@@ -10,6 +10,8 @@ export const dynamic='force-dynamic';
 type Membership={id:string;team_role:string;joined_at:string;project_id:string;projects:{id:string;title:string;status:string}|null};
 type Contribution={id:string;title:string;contribution_type:string;verification_status:string;created_at:string;evidence_url:string|null;review_notes:string|null;projects:{title:string}|null};
 type TaxonomyItem={slug:string;name:string};
+type DomainPreferenceRow={domains:TaxonomyItem|null};
+type ToolPreferenceRow={tools:TaxonomyItem|null};
 type Recommendation={id:string;slug:string;title:string;status:string;difficulty_level:string|null;project_domains?:{domains:TaxonomyItem|null}[];project_tools?:{tools:TaxonomyItem|null}[]};
 
 export default async function MemberDashboard(){
@@ -36,11 +38,11 @@ export default async function MemberDashboard(){
   const memberships=(membershipsResult.data||[]) as unknown as Membership[];
   const contributions=(contributionsResult.data||[]) as unknown as Contribution[];
   const domains=(domainsResult.data||[]) as TaxonomyItem[];const tools=(toolsResult.data||[]) as TaxonomyItem[];
-  const domainPreferences=(domainPrefsResult.data||[]).map((row:any)=>row.domains?.slug).filter(Boolean) as string[];
-  const toolPreferences=(toolPrefsResult.data||[]).map((row:any)=>row.tools?.slug).filter(Boolean) as string[];
+  const domainPreferences=((domainPrefsResult.data||[]) as unknown as DomainPreferenceRow[]).map(row=>row.domains?.slug).filter((value):value is string=>Boolean(value));
+  const toolPreferences=((toolPrefsResult.data||[]) as unknown as ToolPreferenceRow[]).map(row=>row.tools?.slug).filter((value):value is string=>Boolean(value));
   const recommendations=((recommendationResult.data||[]) as unknown as Recommendation[]).map(project=>{
-    const projectDomains=(project.project_domains||[]).map(x=>x.domains?.slug).filter(Boolean) as string[];
-    const projectTools=(project.project_tools||[]).map(x=>x.tools?.slug).filter(Boolean) as string[];
+    const projectDomains=(project.project_domains||[]).map(x=>x.domains?.slug).filter((value):value is string=>Boolean(value));
+    const projectTools=(project.project_tools||[]).map(x=>x.tools?.slug).filter((value):value is string=>Boolean(value));
     const matchedDomains=projectDomains.filter(slug=>domainPreferences.includes(slug));
     const matchedTools=projectTools.filter(slug=>toolPreferences.includes(slug));
     return {...project,matchedDomains,matchedTools,score:matchedDomains.length*3+matchedTools.length};

@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 
+type TaxonomyItem={slug:string;name:string};
 type Profile={
   full_name:string|null;
   headline:string|null;
@@ -15,7 +16,7 @@ type Profile={
   is_public:boolean;
 };
 
-export default function ProfileEditor({profile}:{profile:Profile}){
+export default function ProfileEditor({profile,domains,tools,domainPreferences,toolPreferences}:{profile:Profile;domains:TaxonomyItem[];tools:TaxonomyItem[];domainPreferences:string[];toolPreferences:string[]}){
   const [status,setStatus]=useState<'idle'|'saving'|'success'|'error'>('idle');
   const [message,setMessage]=useState('');
 
@@ -25,13 +26,14 @@ export default function ProfileEditor({profile}:{profile:Profile}){
     const payload={
       full_name:String(form.get('full_name')||''),headline:String(form.get('headline')||''),bio:String(form.get('bio')||''),location:String(form.get('location')||''),
       professional_area:String(form.get('professional_area')||''),primary_goal:String(form.get('primary_goal')||''),linkedin_url:String(form.get('linkedin_url')||''),github_url:String(form.get('github_url')||''),
-      skills:String(form.get('skills')||'').split(',').map(v=>v.trim()).filter(Boolean),is_public:form.get('is_public')==='on'
+      skills:String(form.get('skills')||'').split(',').map(v=>v.trim()).filter(Boolean),is_public:form.get('is_public')==='on',
+      domain_preferences:form.getAll('domain_preferences').map(String),tool_preferences:form.getAll('tool_preferences').map(String)
     };
     try{
       const response=await fetch('/api/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||'Unable to save profile.');
-      setStatus('success');setMessage('Profile saved.');
+      setStatus('success');setMessage('Profile and project preferences saved.');
     }catch(error){setStatus('error');setMessage(error instanceof Error?error.message:'Unable to save profile.');}
   }
 
@@ -42,6 +44,7 @@ export default function ProfileEditor({profile}:{profile:Profile}){
     <div className="fieldRow"><div><label htmlFor="profile-location">Location</label><input id="profile-location" name="location" defaultValue={profile.location||''} placeholder="City, Country"/></div><div><label htmlFor="profile-area">Professional area</label><select id="profile-area" name="professional_area" defaultValue={profile.professional_area||''}><option value="">Select one</option><option>Data Analysis / BI</option><option>Data Science / ML</option><option>Data Engineering</option><option>AI / Generative AI</option><option>Analytics Engineering</option><option>Research / Product / Design</option><option>Career transition / Student</option><option>Other</option></select></div></div>
     <label htmlFor="profile-goal">What are you working toward?</label><input id="profile-goal" name="primary_goal" defaultValue={profile.primary_goal||''} placeholder="The next capability, project or opportunity you want to move toward"/>
     <label htmlFor="profile-skills">Skills</label><input id="profile-skills" name="skills" defaultValue={(profile.skills||[]).join(', ')} placeholder="SQL, Python, Power BI, Looker, ML"/><small>Separate skills with commas.</small>
+    <div className="preferencePanel"><div><span className="cardNumber">PROJECT MATCHING</span><h3>What do you want to work on?</h3><p>Choose the domains and tools that matter to you. Mettelo uses these choices to surface more relevant Labs projects.</p></div><div className="fieldRow"><div><label htmlFor="profile-domains">Domains of interest</label><select id="profile-domains" name="domain_preferences" multiple size={7} defaultValue={domainPreferences}>{domains.map(item=><option key={item.slug} value={item.slug}>{item.name}</option>)}</select><small>Use Ctrl/Cmd to select more than one.</small></div><div><label htmlFor="profile-tools">Tools / technologies</label><select id="profile-tools" name="tool_preferences" multiple size={7} defaultValue={toolPreferences}>{tools.map(item=><option key={item.slug} value={item.slug}>{item.name}</option>)}</select><small>Pick tools you use or want to develop.</small></div></div></div>
     <div className="fieldRow"><div><label htmlFor="profile-linkedin">LinkedIn</label><input id="profile-linkedin" name="linkedin_url" type="url" defaultValue={profile.linkedin_url||''} placeholder="https://linkedin.com/in/..."/></div><div><label htmlFor="profile-github">GitHub</label><input id="profile-github" name="github_url" type="url" defaultValue={profile.github_url||''} placeholder="https://github.com/..."/></div></div>
     <label htmlFor="profile-bio">Short bio</label><textarea id="profile-bio" name="bio" defaultValue={profile.bio||''} placeholder="What you work on, what you are good at and what you want to contribute."/>
     <label className="consent"><input name="is_public" type="checkbox" defaultChecked={profile.is_public}/><span>Allow Mettelo to show this professional profile publicly when the people directory is enabled. Private activity and account data are never included.</span></label>

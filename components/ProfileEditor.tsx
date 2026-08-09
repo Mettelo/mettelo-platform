@@ -1,6 +1,6 @@
 'use client';
 
-import {ChangeEvent,FormEvent,useState} from 'react';
+import {ChangeEvent,FormEvent,useEffect,useState} from 'react';
 import {createClient} from '@/lib/supabase/client';
 
 type TaxonomyItem={slug:string;name:string};
@@ -13,7 +13,7 @@ type Profile={
   primary_goal:string|null;
   linkedin_url:string|null;
   github_url:string|null;
-  avatar_url:string|null;
+  avatar_url?:string|null;
   skills:string[];
   is_public:boolean;
 };
@@ -32,7 +32,8 @@ type EditablePreview={
   is_public:boolean;
 };
 
-export default function ProfileEditor({userId,profile,domains,tools,domainPreferences,toolPreferences}:{userId:string;profile:Profile;domains:TaxonomyItem[];tools:TaxonomyItem[];domainPreferences:string[];toolPreferences:string[]}){
+export default function ProfileEditor({userId,profile,domains,tools,domainPreferences,toolPreferences}:{userId?:string;profile:Profile;domains:TaxonomyItem[];tools:TaxonomyItem[];domainPreferences:string[];toolPreferences:string[]}){
+  const [resolvedUserId,setResolvedUserId]=useState(userId||'');
   const [status,setStatus]=useState<'idle'|'saving'|'success'|'error'>('idle');
   const [message,setMessage]=useState('');
   const [imageFile,setImageFile]=useState<File|null>(null);
@@ -42,6 +43,12 @@ export default function ProfileEditor({userId,profile,domains,tools,domainPrefer
     full_name:profile.full_name||'',headline:profile.headline||'',bio:profile.bio||'',location:profile.location||'',professional_area:profile.professional_area||'',primary_goal:profile.primary_goal||'',
     linkedin_url:profile.linkedin_url||'',github_url:profile.github_url||'',avatar_url:profile.avatar_url||null,skills:profile.skills||[],is_public:Boolean(profile.is_public)
   });
+
+  useEffect(()=>{
+    if(resolvedUserId)return;
+    const supabase=createClient();
+    supabase.auth.getUser().then(({data})=>{if(data.user)setResolvedUserId(data.user.id);});
+  },[resolvedUserId]);
 
   function chooseImage(event:ChangeEvent<HTMLInputElement>){
     const file=event.target.files?.[0]||null;
@@ -72,14 +79,21 @@ export default function ProfileEditor({userId,profile,domains,tools,domainPrefer
     };
     try{
       const supabase=createClient();
+      let ownerId=resolvedUserId;
+      if(!ownerId){
+        const {data:{user}}=await supabase.auth.getUser();
+        ownerId=user?.id||'';
+        if(ownerId)setResolvedUserId(ownerId);
+      }
+      if(!ownerId)throw new Error('Your session could not be confirmed. Sign in again and retry.');
       let avatarUrl=removeAvatar?null:preview.avatar_url;
       if(removeAvatar){
-        await supabase.storage.from('profile-images').remove([`${userId}/avatar`]);
+        await supabase.storage.from('profile-images').remove([`${ownerId}/avatar`]);
       }
       if(imageFile){
-        const {error:uploadError}=await supabase.storage.from('profile-images').upload(`${userId}/avatar`,imageFile,{upsert:true,contentType:imageFile.type,cacheControl:'3600'});
+        const {error:uploadError}=await supabase.storage.from('profile-images').upload(`${ownerId}/avatar`,imageFile,{upsert:true,contentType:imageFile.type,cacheControl:'3600'});
         if(uploadError)throw new Error(`Unable to upload profile image: ${uploadError.message}`);
-        const {data:publicData}=supabase.storage.from('profile-images').getPublicUrl(`${userId}/avatar`);
+        const {data:publicData}=supabase.storage.from('profile-images').getPublicUrl(`${ownerId}/avatar`);
         avatarUrl=`${publicData.publicUrl}?v=${Date.now()}`;
       }
       const payload={...basePayload,avatar_url:avatarUrl};
@@ -126,7 +140,7 @@ export default function ProfileEditor({userId,profile,domains,tools,domainPrefer
       {preview.skills.length>0&&<div className="metaRow">{preview.skills.slice(0,8).map(skill=><span className="metaPill" key={skill}>{skill}</span>)}</div>}
       {preview.primary_goal&&<div className="profileGoal"><small>WORKING TOWARD</small><strong>{preview.primary_goal}</strong></div>}
       <div className="profilePreviewLinks">{preview.linkedin_url&&<a href={preview.linkedin_url} target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>}{preview.github_url&&<a href={preview.github_url} target="_blank" rel="noopener noreferrer">GitHub ↗</a>}</div>
-      {preview.is_public?<a className="button ghost" href={`/people/${userId}`} target="_blank" rel="noopener noreferrer">View public profile →</a>:<p className="profilePreviewNote">Enable public visibility and save to make this profile discoverable in Mettelo People.</p>}
+      {preview.is_public&&resolvedUserId?<a className="button ghost" href={`/people/${resolvedUserId}`} target="_blank" rel="noopener noreferrer">View public profile →</a>:<p className="profilePreviewNote">Enable public visibility and save to make this profile discoverable in Mettelo People.</p>}
     </aside>
   </div>;
 }

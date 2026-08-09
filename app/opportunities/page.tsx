@@ -1,0 +1,2 @@
+import ModuleLanding from '@/components/ModuleLanding';
+export default function Page(){return <ModuleLanding eyebrow="Opportunities" title="Turn stronger evidence into better access." description="Jobs, referrals, volunteer roles, fellowships and community-shared opportunities in one place." items={[{title:'Jobs',copy:'Curated roles with clear source, location and eligibility.'},{title:'Referrals',copy:'Member-only referral routes and community introductions.'},{title:'Volunteer & Fellowships',copy:'Practical opportunities to build experience and impact.'}]}/>}

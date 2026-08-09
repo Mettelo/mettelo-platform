@@ -1,12 +1,49 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import AdminContentManager from '@/components/AdminContentManager';
 
 export const metadata:Metadata={title:'Mettelo Admin',description:'Private Mettelo operations console.'};
 
-export default function AdminDashboard(){return <section className="section softSection"><div className="shell dashboard">
-<aside className="sidebar"><div className="sidebarTop"><h3>Mettelo Admin</h3><small>Operations console</small></div><a className="active" href="#overview">Launch overview <span>⌂</span></a><a href="#data">Data <span>→</span></a><a href="#content">Content <span>→</span></a><a href="#operations">Operations <span>→</span></a><a href="#security">Security <span>→</span></a></aside>
-<main className="dashboardMain" id="overview"><div className="eyebrow">Private admin</div><h1>Operate from real data, not demo numbers.</h1><p className="lead">The previous illustrative member, application, project and event counts have been removed. This console should surface production records only after Supabase and the relevant integrations are connected.</p>
-<div className="metricGrid"><div className="metric"><strong>—</strong><span>Members · database pending</span></div><div className="metric"><strong>—</strong><span>Projects · database pending</span></div><div className="metric"><strong>—</strong><span>Submissions · database pending</span></div><div className="metric"><strong>—</strong><span>Events · integration pending</span></div></div>
-<div className="dashboardGrid" id="data"><section className="panel"><div className="panelHead"><h3>Launch data checklist</h3><span className="chip">BLOCKERS</span></div><div className="listRow"><span>Apply Supabase migration</span><strong>Required</strong></div><div className="listRow"><span>Set production Supabase environment variables</span><strong>Required</strong></div><div className="listRow"><span>Create first admin user and set app_metadata.role=admin</span><strong>Required</strong></div><div className="listRow"><span>Test account, reset and session flows</span><strong>Required</strong></div></section><aside className="panel" id="security"><div className="panelHead"><h3>Access model</h3><span className="chip green">CODED</span></div><div className="listRow"><span>Member route</span><strong>Authenticated</strong></div><div className="listRow"><span>Admin route</span><strong>Admin role</strong></div><div className="listRow"><span>Private submissions</span><strong>Server write only</strong></div><div className="listRow"><span>RLS foundation</span><strong>Migration ready</strong></div></aside></div>
-<div className="dashboardGrid" style={{marginTop:18}} id="content"><section className="panel"><div className="panelHead"><h3>Content readiness</h3></div><div className="listRow"><span>Labs pilot briefs</span><strong>Clearly labelled</strong></div><div className="listRow"><span>Opportunity feed</span><strong>No fake listings</strong></div><div className="listRow"><span>Events</span><strong>No fake registration links</strong></div><div className="listRow"><span>Legal and community policies</span><strong>Published</strong></div></section><aside className="panel" id="operations"><div className="panelHead"><h3>Next operational integrations</h3></div><div className="listRow"><span>Luma</span><strong>Events</strong></div><div className="listRow"><span>YouTube</span><strong>Replays</strong></div><div className="listRow"><span>Make</span><strong>Routing / automation</strong></div><div className="listRow"><span>Analytics</span><strong>GA ID required</strong></div></aside></div>
-<section className="panel" style={{marginTop:18}}><div className="panelHead"><h3>Role ownership</h3><span className="chip">GOVERNANCE</span></div><div className="grid4"><div><span className="cardNumber">COMMUNITY</span><h3 style={{fontSize:'1.05rem',marginTop:10}}>Community Manager</h3><p>Members, moderation, community rhythm and events.</p></div><div><span className="cardNumber">LABS</span><h3 style={{fontSize:'1.05rem',marginTop:10}}>Labs Manager</h3><p>Briefs, Project Leads, applications and delivery quality.</p></div><div><span className="cardNumber">CONTENT</span><h3 style={{fontSize:'1.05rem',marginTop:10}}>Content Manager</h3><p>Insights, media, updates and publishing quality.</p></div><div><span className="cardNumber">PROJECT</span><h3 style={{fontSize:'1.05rem',marginTop:10}}>Project Lead</h3><p>Project team, milestones, review and contribution evidence.</p></div></div></section>
-</main></div></section>}
+export default async function AdminDashboard(){
+  const auth=await createServerSupabaseClient();
+  const {data:{user}}=await auth.auth.getUser();
+  if(!user) redirect('/signin');
+  if(user.app_metadata?.role!=='admin') redirect('/member');
+
+  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
+  let counts={members:0,projects:0,opportunities:0,events:0,submissions:0,applications:0};
+  let recentProjects:{id:string;title:string;status:string}[]=[];
+  let recentSubmissions:{id:string;form_type:string;status:string;created_at:string}[]=[];
+
+  if(url&&serviceKey){
+    const db=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
+    const [members,projects,opportunities,events,submissions,applications,projectRows,submissionRows]=await Promise.all([
+      db.from('profiles').select('id',{count:'exact',head:true}),
+      db.from('projects').select('id',{count:'exact',head:true}),
+      db.from('opportunities').select('id',{count:'exact',head:true}),
+      db.from('events').select('id',{count:'exact',head:true}),
+      db.from('form_submissions').select('id',{count:'exact',head:true}).eq('status','new'),
+      db.from('project_applications').select('id',{count:'exact',head:true}).in('status',['submitted','in_review','shortlisted']),
+      db.from('projects').select('id,title,status').order('updated_at',{ascending:false}).limit(5),
+      db.from('form_submissions').select('id,form_type,status,created_at').order('created_at',{ascending:false}).limit(5)
+    ]);
+    counts={members:members.count||0,projects:projects.count||0,opportunities:opportunities.count||0,events:events.count||0,submissions:submissions.count||0,applications:applications.count||0};
+    recentProjects=projectRows.data||[];recentSubmissions=submissionRows.data||[];
+  }
+
+  return <section className="section softSection"><div className="shell dashboard">
+    <aside className="sidebar"><div className="sidebarTop"><h3>Mettelo Admin</h3><small>{user.email}</small></div><a className="active" href="#overview">Overview <span>⌂</span></a><a href="#publisher">Publish <span>＋</span></a><a href="#projects">Projects <span>{counts.projects}</span></a><a href="#submissions">Intake <span>{counts.submissions}</span></a><a href="#operations">Operations <span>→</span></a></aside>
+    <main className="dashboardMain" id="overview"><div className="eyebrow">Operations console</div><h1>Run Mettelo from production records.</h1><p className="lead">Publish Labs briefs, opportunities and events from one protected workspace. Public pages read the same database, so content does not need to be hard-coded into the site.</p>
+      <div className="metricGrid"><div className="metric"><strong>{counts.members}</strong><span>Member profiles</span></div><div className="metric"><strong>{counts.projects}</strong><span>Projects</span></div><div className="metric"><strong>{counts.applications}</strong><span>Active project applications</span></div><div className="metric"><strong>{counts.submissions}</strong><span>New intake submissions</span></div></div>
+
+      <AdminContentManager/>
+
+      <div className="dashboardGrid" style={{marginTop:18}}><section className="panel" id="projects"><div className="panelHead"><h3>Recent projects</h3><a className="linkArrow" href="/projects">Public view →</a></div>{recentProjects.length?recentProjects.map(item=><div className="listRow" key={item.id}><strong>{item.title}</strong><span className="chip">{item.status.toUpperCase()}</span></div>):<div className="emptyState"><h3>No project records.</h3><p>Create the first Labs brief from the publisher above.</p></div>}</section><aside className="panel"><div className="panelHead"><h3>Publishing inventory</h3></div><div className="listRow"><span>Projects</span><strong>{counts.projects}</strong></div><div className="listRow"><span>Opportunities</span><strong>{counts.opportunities}</strong></div><div className="listRow"><span>Events</span><strong>{counts.events}</strong></div></aside></div>
+
+      <div className="dashboardGrid" style={{marginTop:18}}><section className="panel" id="submissions"><div className="panelHead"><h3>Latest intake</h3><span className="chip">PRIVATE</span></div>{recentSubmissions.length?recentSubmissions.map(item=><div className="listRow" key={item.id}><div><strong>{item.form_type.replace('_',' ')}</strong><br/><small>{new Date(item.created_at).toLocaleString('en-GB')}</small></div><span className="chip">{item.status.toUpperCase()}</span></div>):<div className="emptyState"><h3>No submissions yet.</h3><p>Contact, partnership, contributor and feedback submissions appear here.</p></div>}</section><aside className="panel" id="operations"><div className="panelHead"><h3>Operational boundaries</h3><span className="chip green">LIVE DATA</span></div><div className="listRow"><span>Public content</span><strong>Supabase source</strong></div><div className="listRow"><span>Private intake</span><strong>Server-only</strong></div><div className="listRow"><span>Member workspace</span><strong>RLS protected</strong></div><div className="listRow"><span>Admin publishing</span><strong>Admin role only</strong></div></aside></div>
+    </main>
+  </div></section>;
+}

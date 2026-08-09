@@ -26,6 +26,13 @@ const socials=[
   ["LinkedIn","https://www.linkedin.com/mettelo"],
   ["Facebook","https://www.facebook.com/officialmettelo"]
 ];
+const footerSocials=socials.filter(([label])=>label!=="X Community");
+const footerCommunity=[
+  ["Community Hub","https://gamms.app/community/mettelo"],
+  ["WhatsApp Community","https://chat.whatsapp.com/LrxCOfDBCDUJhRqXFRD2cY"],
+  ["Discord Server","https://discord.gg/Nx6qCbEY"],
+  ["X Community","https://x.com/i/communities/2015608740804718665"]
+];
 
 const explore=[
   ["Projects","/projects","Join real Labs work and open-source projects."],
@@ -74,10 +81,10 @@ export default function RootLayout({children}:{children:React.ReactNode}){
     </div></header>
     {children}
     <footer><div className="shell footerGrid">
-      <div><a className="brand footerBrand brandImageLink" href="/" aria-label="Mettelo home"><Logo light/></a><p>Professional capability infrastructure for Data & AI — connecting community, real work, proof and opportunity.</p><strong className="accent">Built for What’s Next.</strong><div className="footerNewsletter"><form action="/newsletter" method="post"><input type="email" name="email" required aria-label="Email address" placeholder="Get Mettelo updates"/><button aria-label="Subscribe" type="submit">→</button></form></div><div className="footerSocial">{socials.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener">{label}</a>)}</div><small className="instagramNote">Instagram link pending — the supplied URL currently points to Facebook.</small></div>
+      <div><a className="brand footerBrand brandImageLink" href="/" aria-label="Mettelo home"><Logo light/></a><p>Professional capability infrastructure for Data & AI — connecting community, real work, proof and opportunity.</p><strong className="accent">Built for What’s Next.</strong><div className="footerNewsletter"><form action="/newsletter" method="post"><input type="email" name="email" required aria-label="Email address" placeholder="Get Mettelo updates"/><button aria-label="Subscribe" type="submit">→</button></form></div><div className="footerSocial">{footerSocials.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener">{label}</a>)}</div><small className="instagramNote">Instagram link pending — the supplied URL currently points to Facebook.</small></div>
       <div><h4>Explore</h4><a href="/about">About Mettelo</a><a href="/projects">Projects</a><a href="/opportunities">Opportunities</a><a href="/community">Community</a><a href="/events">Events</a><a href="/blog">Insights & News</a><a href="/spotlight">Spotlight</a></div>
       <div><h4>Participate</h4><a href="/membership">Membership</a><a href="/contribute">Become a Contributor</a><a href="/showcase">Project Showcase</a><a href="/partnership">Partner with Mettelo</a><a href="/contact">Contact us</a><a href="/signin">Sign in</a></div>
-      <div><h4>Community</h4>{socials.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener">{label}</a>)}</div>
+      <div><h4>Community</h4>{footerCommunity.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener">{label}</a>)}</div>
     </div><div className="shell copyright"><span>© 2026 Mettelo. All rights reserved.</span><span><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Use</a></span></div></footer>
   </body></html>
 }

@@ -1,0 +1,11 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title:'Mentors & Office Hours', description:'Mentoring, office hours and practical career support in Mettelo.' };
+
+export default function MentorsPage(){
+ const sessions=[['Career Office Hours','Applications, interviews, progression and career decisions.'],['Technical Review','Portfolio, SQL, analytics, data engineering and project feedback.'],['Leadership Clinic','Stakeholders, communication, delivery, mentoring and leading without authority.'],['Project Lead Office Hours','Scoping, team coordination, GitHub workflow, QA and project close-out.']];
+ return <>
+ <section className="hero"><div className="shell heroGrid"><div><div className="eyebrow">Mentors & Office Hours</div><h1>Get useful support without creating another noisy mentorship programme.</h1><p className="heroLead">Mettelo mentoring should combine scheduled office hours, focused sessions and practical project support so experienced professionals can help without taking on unlimited one-to-one commitments.</p></div><aside className="heroPanel"><span className="chip">LOW-PRESSURE MODEL</span><h3 style={{marginTop:18}}>Group office hours first. One-to-one where it adds real value.</h3><p>This keeps mentoring scalable and gives more members access to experienced professionals.</p></aside></div></section>
+ <section className="section"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">Support formats</div><h2>Ask better questions. Get practical direction.</h2></div></div><div className="grid4">{sessions.map(([t,c])=><article className="card" key={t}><h3>{t}</h3><p>{c}</p><div className="actions"><a className="linkArrow" href="/events">See upcoming sessions →</a></div></article>)}</div></div></section>
+ <section className="section dark"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">Become a mentor</div><h2>Mentoring is also a form of contribution.</h2></div><p>Experienced members can support office hours, project reviews, career sessions or specialist clinics and have meaningful mentoring contribution recognised.</p></div><a className="button primary" href="/contribute">Apply to mentor →</a></div></section>
+ </>;
+}

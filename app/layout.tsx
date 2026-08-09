@@ -45,7 +45,9 @@ const insights=[
   ["Spotlight & Awards","/spotlight","Recognition based on meaningful contribution."],
 ];
 
-function BrandMark(){return <span className="brandMark" aria-hidden="true"><i/><i/><i/></span>}
+function Logo({light=false}:{light?:boolean}){
+  return <img className="brandLogo" src={light?"/mettelo-logo-light.svg":"/mettelo-logo-dark.svg"} alt="Mettelo"/>;
+}
 function Dropdown({label,items}:{label:string;items:string[][]}){
   return <details className="navDropdown"><summary>{label}<span aria-hidden="true">⌄</span></summary><div className="navDropdownPanel">{items.map(([title,href,copy])=><a key={href} href={href}><strong>{title}</strong><small>{copy}</small></a>)}</div></details>
 }
@@ -54,7 +56,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
   return <html lang="en" className={`${inter.variable} ${space.variable} ${mono.variable}`}><body>
     <div className="topbar"><div className="shell"><span>Real problems. Real teams. Real proof.</span><a href="/join">Join the Mettelo network <b>→</b></a></div></div>
     <header className="siteHeader"><div className="shell nav">
-      <a className="brand" href="/"><BrandMark/><span>METTELO</span></a>
+      <a className="brand brandImageLink" href="/" aria-label="Mettelo home"><Logo/></a>
       <nav className="primaryNav" aria-label="Primary navigation">
         <a className="primaryNavLink" href="/about">About</a>
         <Dropdown label="Explore" items={explore}/>
@@ -72,7 +74,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
     </div></header>
     {children}
     <footer><div className="shell footerGrid">
-      <div><a className="brand footerBrand" href="/"><BrandMark/><span>METTELO</span></a><p>Professional capability infrastructure for Data & AI — connecting community, real work, proof and opportunity.</p><strong className="accent">Built for What’s Next.</strong><div className="footerNewsletter"><form action="/newsletter" method="post"><input type="email" name="email" required aria-label="Email address" placeholder="Get Mettelo updates"/><button aria-label="Subscribe" type="submit">→</button></form></div><div className="footerSocial">{socials.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener">{label}</a>)}</div><small className="instagramNote">Instagram link pending — the supplied URL currently points to Facebook.</small></div>
+      <div><a className="brand footerBrand brandImageLink" href="/" aria-label="Mettelo home"><Logo light/></a><p>Professional capability infrastructure for Data & AI — connecting community, real work, proof and opportunity.</p><strong className="accent">Built for What’s Next.</strong><div className="footerNewsletter"><form action="/newsletter" method="post"><input type="email" name="email" required aria-label="Email address" placeholder="Get Mettelo updates"/><button aria-label="Subscribe" type="submit">→</button></form></div><div className="footerSocial">{socials.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener">{label}</a>)}</div><small className="instagramNote">Instagram link pending — the supplied URL currently points to Facebook.</small></div>
       <div><h4>Explore</h4><a href="/about">About Mettelo</a><a href="/projects">Projects</a><a href="/opportunities">Opportunities</a><a href="/community">Community</a><a href="/events">Events</a><a href="/blog">Insights & News</a><a href="/spotlight">Spotlight</a></div>
       <div><h4>Participate</h4><a href="/membership">Membership</a><a href="/contribute">Become a Contributor</a><a href="/showcase">Project Showcase</a><a href="/partnership">Partner with Mettelo</a><a href="/contact">Contact us</a><a href="/signin">Sign in</a></div>
       <div><h4>Community</h4>{socials.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener">{label}</a>)}</div>

@@ -3,6 +3,12 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
+function safeNext(){
+  if(typeof window==='undefined') return '/member';
+  const value=new URLSearchParams(window.location.search).get('next')||'/member';
+  return value.startsWith('/')&&!value.startsWith('//')?value:'/member';
+}
+
 export default function SignInPage(){
   const [mode,setMode]=useState<'signin'|'signup'|'reset'>('signin');
   const [status,setStatus]=useState<'idle'|'working'|'success'|'error'>('idle');
@@ -19,18 +25,19 @@ export default function SignInPage(){
       const password=String(form.get('password')||'');
       const fullName=String(form.get('fullName')||'').trim();
       const supabase=createClient();
+      const next=safeNext();
       if(mode==='signup'){
         const {data,error}=await supabase.auth.signUp({
           email,
           password,
           options:{
             data:{full_name:fullName},
-            emailRedirectTo:`${window.location.origin}/auth/callback?next=/member`
+            emailRedirectTo:`${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
           }
         });
         if(error) throw error;
-        if(data.session){window.location.assign('/member');return;}
-        setStatus('success');setMessage('Account created. Check your email to confirm your address, then continue to My Mettelo.');
+        if(data.session){window.location.assign(next);return;}
+        setStatus('success');setMessage('Account created. Check your email to confirm your address, then continue to Mettelo.');
       }else if(mode==='reset'){
         const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/auth/update-password`});
         if(error) throw error;
@@ -38,7 +45,7 @@ export default function SignInPage(){
       }else{
         const {error}=await supabase.auth.signInWithPassword({email,password});
         if(error) throw error;
-        window.location.assign('/member');
+        window.location.assign(next);
       }
     }catch(error){setStatus('error');setMessage(error instanceof Error?error.message:'Something went wrong. Please try again.');}
   }

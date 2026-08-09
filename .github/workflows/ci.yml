@@ -31,6 +31,10 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SITE_URL: https://mettelo.com
+      NEXT_PUBLIC_SUPABASE_URL: https://aconptuqupsgznyrxhrh.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_C5OTze0onbkbLl7Lorpjcg_FX1kDL6P
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,5 +42,3 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run build
-        env:
-          NEXT_PUBLIC_SITE_URL: https://mettelo.com

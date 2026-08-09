@@ -34,6 +34,7 @@ export async function PATCH(request:Request){
     const primaryGoal=String(body.primary_goal||'').trim().slice(0,160);
     const linkedinUrl=String(body.linkedin_url||'').trim().slice(0,300);
     const githubUrl=String(body.github_url||'').trim().slice(0,300);
+    const avatarUrl=body.avatar_url?String(body.avatar_url).trim().slice(0,700):'';
     const skills=Array.isArray(body.skills)?body.skills.map((v:unknown)=>String(v).trim()).filter(Boolean).slice(0,20):[];
     const isPublic=Boolean(body.is_public);
     const domainSlugs=slugList(body.domain_preferences);
@@ -41,6 +42,11 @@ export async function PATCH(request:Request){
 
     if(!fullName) return NextResponse.json({error:'Full name is required.'},{status:400});
     if(professionalArea&&!allowedAreas.has(professionalArea)) return NextResponse.json({error:'Choose a valid professional area.'},{status:400});
+    if(avatarUrl){
+      const projectUrl=process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/,'');
+      const expectedPrefix=projectUrl?`${projectUrl}/storage/v1/object/public/profile-images/${user.id}/`:'';
+      if(!expectedPrefix||!avatarUrl.startsWith(expectedPrefix)) return NextResponse.json({error:'Profile image must come from your Mettelo image upload.'},{status:400});
+    }
 
     const [domainRows,toolRows]=await Promise.all([
       domainSlugs.length?supabase.from('domains').select('id,slug').eq('is_active',true).in('slug',domainSlugs):Promise.resolve({data:[],error:null}),
@@ -51,7 +57,7 @@ export async function PATCH(request:Request){
 
     const {data,error}=await supabase.from('profiles').update({
       full_name:fullName,headline,bio,location,professional_area:professionalArea||null,primary_goal:primaryGoal,
-      linkedin_url:linkedinUrl||null,github_url:githubUrl||null,skills,is_public:isPublic,updated_at:new Date().toISOString()
+      linkedin_url:linkedinUrl||null,github_url:githubUrl||null,avatar_url:avatarUrl||null,skills,is_public:isPublic,updated_at:new Date().toISOString()
     }).eq('id',user.id).select('*').single();
     if(error) return NextResponse.json({error:'Unable to save profile.'},{status:500});
 

@@ -1,0 +1,98 @@
+import { NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+
+const messageTypes=new Set(['update','question','blocker','decision']);
+const resourceTypes=new Set(['github','google_drive','onedrive','figma','canva','power_bi','tableau','looker','dataset','documentation','other']);
+const meetingPlatforms=new Set(['google_meet','microsoft_teams','zoom','other']);
+
+function clean(value:unknown,max=2000){return String(value??'').trim().slice(0,max);}
+function validUrl(value:string){try{const url=new URL(value);return ['http:','https:'].includes(url.protocol);}catch{return false;}}
+
+async function context(projectId:string){
+  const supabase=await createServerSupabaseClient();
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user) return {supabase,user:null,membership:null};
+  const {data:membership}=await supabase.from('project_members').select('team_role').eq('project_id',projectId).eq('user_id',user.id).maybeSingle();
+  return {supabase,user,membership};
+}
+
+export async function POST(request:Request){
+  try{
+    const body=await request.json();
+    const projectId=clean(body.project_id,80);
+    const action=clean(body.action,60);
+    if(!projectId) return NextResponse.json({error:'Project is required.'},{status:400});
+    const ctx=await context(projectId);
+    if(!ctx.user) return NextResponse.json({error:'Authentication required.'},{status:401});
+    const isAdmin=ctx.user.app_metadata?.role==='admin';
+    if(!ctx.membership&&!isAdmin) return NextResponse.json({error:'Project membership is required.'},{status:403});
+    const canLead=isAdmin||['project_lead','reviewer'].includes(ctx.membership?.team_role||'');
+    const canReview=isAdmin||ctx.membership?.team_role==='reviewer';
+
+    if(action==='discussion'){
+      const messageType=clean(body.message_type,30)||'update';
+      const text=clean(body.body,5000);
+      const mentions=Array.isArray(body.mentioned_user_ids)?body.mentioned_user_ids.map((v:unknown)=>clean(v,80)).filter(Boolean).slice(0,20):[];
+      if(!messageTypes.has(messageType)||!text) return NextResponse.json({error:'Add a valid discussion type and message.'},{status:400});
+      if(mentions.length){const {data}=await ctx.supabase.from('project_members').select('user_id').eq('project_id',projectId).in('user_id',mentions);if((data||[]).length!==mentions.length)return NextResponse.json({error:'Mentions must be current project members.'},{status:400});}
+      const {data,error}=await ctx.supabase.from('project_discussions').insert({project_id:projectId,author_user_id:ctx.user.id,parent_id:body.parent_id||null,message_type:messageType,body:text,mentioned_user_ids:mentions}).select('id').single();
+      if(error) throw error;return NextResponse.json({ok:true,item:data});
+    }
+
+    if(action==='resource'){
+      const title=clean(body.title,180);const type=clean(body.resource_type,40);const url=clean(body.url,600);const description=clean(body.description,1200);
+      if(!title||!resourceTypes.has(type)||!validUrl(url)) return NextResponse.json({error:'Add a title, valid resource type and https:// URL.'},{status:400});
+      const {data,error}=await ctx.supabase.from('project_resources').insert({project_id:projectId,title,resource_type:type,url,description:description||null,added_by:ctx.user.id}).select('id').single();
+      if(error) throw error;return NextResponse.json({ok:true,item:data});
+    }
+
+    if(action==='meeting'){
+      if(!canLead) return NextResponse.json({error:'Project Lead or Reviewer access is required to schedule meetings.'},{status:403});
+      const title=clean(body.title,180);const purpose=clean(body.purpose,1200);const platform=clean(body.platform,40);const joinUrl=clean(body.join_url,600);const startsAt=clean(body.starts_at,80);
+      if(!title||!meetingPlatforms.has(platform)||!startsAt||!validUrl(joinUrl)) return NextResponse.json({error:'Add a title, platform, date/time and valid joining URL.'},{status:400});
+      const {data,error}=await ctx.supabase.from('project_meetings').insert({project_id:projectId,title,purpose:purpose||null,platform,starts_at:startsAt,ends_at:body.ends_at||null,join_url:joinUrl,organiser_user_id:ctx.user.id}).select('id').single();
+      if(error) throw error;return NextResponse.json({ok:true,item:data});
+    }
+
+    if(action==='book_presentation'){
+      if(!canLead) return NextResponse.json({error:'Project Lead or Reviewer access is required.'},{status:403});
+      const slotId=clean(body.slot_id,80);const deckUrl=clean(body.deck_url,600);const presenters=Array.isArray(body.presenter_ids)?body.presenter_ids.map((v:unknown)=>clean(v,80)).filter(Boolean).slice(0,12):[];
+      if(!slotId) return NextResponse.json({error:'Choose an available presentation slot.'},{status:400});
+      if(deckUrl&&!validUrl(deckUrl)) return NextResponse.json({error:'Provide a valid presentation/deck URL.'},{status:400});
+      const {data,error}=await ctx.supabase.rpc('book_project_presentation',{target_project:projectId,target_slot:slotId,target_deck_url:deckUrl||null,target_presenters:presenters});
+      if(error) return NextResponse.json({error:error.message||'Unable to book presentation.'},{status:409});
+      return NextResponse.json({ok:true,presentation_id:data});
+    }
+
+    if(action==='presentation_status'){
+      const status=clean(body.status,40);const notes=clean(body.reviewer_notes,1800);
+      if(status==='presented'&&!canLead) return NextResponse.json({error:'Project Lead access is required.'},{status:403});
+      if(['verified','changes_required'].includes(status)&&!canReview) return NextResponse.json({error:'Reviewer or Admin access is required.'},{status:403});
+      if(status==='changes_required'&&!notes) return NextResponse.json({error:'Explain the required presentation changes.'},{status:400});
+      const {error}=await ctx.supabase.rpc('update_project_presentation_status',{target_project:projectId,target_status:status,target_notes:notes||null});
+      if(error) return NextResponse.json({error:error.message||'Unable to update presentation.'},{status:400});
+      return NextResponse.json({ok:true});
+    }
+
+    if(action==='submit_completion'){
+      if(!canLead) return NextResponse.json({error:'Project Lead or Reviewer access is required.'},{status:403});
+      const {data:readiness,error:readinessError}=await ctx.supabase.rpc('project_completion_readiness',{target_project:projectId});
+      if(readinessError) throw readinessError;
+      if(!readiness?.ready) return NextResponse.json({error:'This project is not ready for completion yet.',readiness},{status:409});
+      if(!isAdmin){
+        const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if(!url||!key) return NextResponse.json({error:'Completion service is not configured.'},{status:503});
+        const {createClient}=await import('@supabase/supabase-js');
+        const admin=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+        const {error}=await admin.from('projects').update({status:'review',updated_at:new Date().toISOString()}).eq('id',projectId);
+        if(error) throw error;
+      }else{
+        const {error}=await ctx.supabase.from('projects').update({status:'review',updated_at:new Date().toISOString()}).eq('id',projectId);
+        if(error) throw error;
+      }
+      return NextResponse.json({ok:true,message:'Project submitted for completion review.'});
+    }
+
+    return NextResponse.json({error:'Unknown collaboration action.'},{status:400});
+  }catch(error){console.error('project collaboration error',error);return NextResponse.json({error:'Unable to update this project workspace.'},{status:500});}
+}

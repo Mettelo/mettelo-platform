@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 import { Inter, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import Analytics from "@/components/Analytics";
 import "./globals.css";
@@ -52,7 +54,7 @@ const insights=[
   ["Spotlight & Awards","/spotlight","Recognition based on meaningful contribution."]
 ];
 
-function Logo({light=false}:{light?:boolean}){return <img className="brandLogo" src={light?"/mettelo-logo-light.svg":"/mettelo-logo-dark.svg"} alt="Mettelo"/>;}
+function Logo({light=false}:{light?:boolean}){return <Image className="brandLogo" src={light?"/mettelo-logo-light.svg":"/mettelo-logo-dark.svg"} alt="Mettelo" width={1630} height={370} unoptimized priority/>;}
 function Dropdown({label,items}:{label:string;items:string[][]}){return <details className="navDropdown"><summary>{label}<span aria-hidden="true">⌄</span></summary><div className="navDropdownPanel">{items.map(([title,href,copy])=><a key={href} href={href}><strong>{title}</strong><small>{copy}</small></a>)}</div></details>;}
 
 export default function RootLayout({children}:{children:React.ReactNode}){
@@ -60,7 +62,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
     <a className="skipLink" href="#main-content">Skip to content</a>
     <div className="topbar"><div className="shell"><span>Real problems. Real teams. Real proof.</span><a href="/join">Join the Mettelo network <b>→</b></a></div></div>
     <header className="siteHeader"><div className="shell nav">
-      <a className="brand brandImageLink" href="/" aria-label="Mettelo home"><Logo/></a>
+      <Link className="brand brandImageLink" href="/" aria-label="Mettelo home"><Logo/></Link>
       <nav className="primaryNav" aria-label="Primary navigation"><a className="primaryNavLink" href="/about">About</a><Dropdown label="Explore" items={explore}/><Dropdown label="Community" items={community}/><Dropdown label="Insights" items={insights}/><a className="primaryNavLink" href="/partnership">Partner</a></nav>
       <div className="navActions"><a className="iconButton" href="/search" aria-label="Search Mettelo">⌕</a><a className="button ghost" href="/signin">Sign in</a><a className="button primary" href="/join">Join Mettelo</a></div>
       <details className="mobileMenu"><summary aria-label="Open navigation menu"><span className="hamburgerIcon" aria-hidden="true"><i/><i/><i/></span><span className="menuLabel">Menu</span></summary><div className="mobileMenuPanel">
@@ -69,7 +71,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
     </div></header>
     <main id="main-content">{children}</main>
     <footer><div className="shell footerGrid">
-      <div><a className="brand footerBrand brandImageLink" href="/" aria-label="Mettelo home"><Logo light/></a><p>Professional capability infrastructure for Data & AI — connecting community, real work, proof and opportunity.</p><strong className="accent">Built for What’s Next.</strong><div className="footerNewsletter"><form action="/api/newsletter" method="post"><label className="srOnly" htmlFor="footer-email">Email address for Mettelo updates</label><input id="footer-email" type="email" name="email" required autoComplete="email" placeholder="Get Mettelo updates"/><button aria-label="Subscribe to Mettelo updates" type="submit">→</button></form></div><div className="footerSocial">{footerSocials.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener noreferrer">{label}</a>)}</div><small className="instagramNote">Instagram is intentionally not linked until the official account URL is confirmed.</small></div>
+      <div><Link className="brand footerBrand brandImageLink" href="/" aria-label="Mettelo home"><Logo light/></Link><p>Professional capability infrastructure for Data & AI — connecting community, real work, proof and opportunity.</p><strong className="accent">Built for What’s Next.</strong><div className="footerNewsletter"><form action="/api/newsletter" method="post"><label className="srOnly" htmlFor="footer-email">Email address for Mettelo updates</label><input id="footer-email" type="email" name="email" required autoComplete="email" placeholder="Get Mettelo updates"/><button aria-label="Subscribe to Mettelo updates" type="submit">→</button></form></div><div className="footerSocial">{footerSocials.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener noreferrer">{label}</a>)}</div><small className="instagramNote">Instagram is intentionally not linked until the official account URL is confirmed.</small></div>
       <div><h4>Explore</h4><a href="/about">About Mettelo</a><a href="/projects">Projects</a><a href="/opportunities">Opportunities</a><a href="/community">Community</a><a href="/events">Events</a><a href="/blog">Insights & News</a><a href="/spotlight">Spotlight</a></div>
       <div><h4>Participate</h4><a href="/membership">Membership</a><a href="/contribute">Become a Contributor</a><a href="/showcase">Project Showcase</a><a href="/partnership">Partner with Mettelo</a><a href="/contact">Contact us</a><a href="/feedback">Give feedback</a><a href="/signin">Sign in</a></div>
       <div><h4>Community</h4>{footerCommunity.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener noreferrer">{label}</a>)}</div>

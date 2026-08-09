@@ -26,5 +26,12 @@ footer > .shell,
 .card,.projectCard,.panel,.formCard,.mediaCard,.articleItem,.statementCard,.benefitCard,.joinRoute,.personCard,.contactOption,.teamMember,.discussionItem,.resourceItem,.meetingItem,.completionCheck,.homeRouteCard,.homeExploreCard,.audienceCard,.proofPreview,.workspaceFeature{min-width:0}
 img,svg{max-width:100%}
 
-@media(max-width:1080px){.heroGrid,.homeHeroGrid,.homeSplit,.formShell,.contactGrid,.aboutSplit,.founderGrid{align-items:start}}
-@media(max-width:720px){.sectionHead,.panelHead,.projectFoot,.eventCard{align-items:flex-start}}
+/* Project discovery taxonomy */
+.projectFilterPanel{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:12px;align-items:end;padding:18px;margin-bottom:16px;border:1px solid var(--line);border-radius:18px;background:#fff}
+.projectFilterPanel>div{min-width:0}.projectFilterPanel label{display:block;margin:0 0 6px;font-size:.7rem;font-weight:750;color:var(--slate)}.projectFilterPanel select{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink)}.projectFilterActions{display:flex;gap:7px}.projectResultsMeta{display:flex;align-items:baseline;gap:8px;margin:0 0 20px;color:var(--slate);font-size:.8rem}.projectResultsMeta strong{font-family:var(--font-space);font-size:1.4rem;color:var(--ink)}.projectCardTop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.domainTag{display:inline-flex;align-items:center;min-height:26px;padding:5px 8px;border-radius:999px;background:var(--sand);color:var(--bronze-deep);font-size:.64rem;font-weight:750}.projectTagRow{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 8px}.projectTagRow span{padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:.68rem;color:var(--slate)}.projectMethodLine{margin:8px 0 2px;color:var(--slate);font-size:.72rem}
+
+/* Homepage live discovery */
+.liveDiscoveryCard{display:flex;flex-direction:column}.liveDiscoveryCard .liveCardMeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 0;color:var(--slate);font-size:.68rem}.liveDiscoveryCard .projectTagRow{margin:10px 0 15px}.liveDiscoveryCard small{display:block;margin:-5px 0 12px;color:var(--slate)}.liveDiscoveryCard .linkArrow{margin-top:auto}
+
+@media(max-width:1080px){.heroGrid,.homeHeroGrid,.homeSplit,.formShell,.contactGrid,.aboutSplit,.founderGrid{align-items:start}.projectFilterPanel{grid-template-columns:repeat(2,minmax(0,1fr))}.projectFilterActions{grid-column:1/-1}}
+@media(max-width:720px){.sectionHead,.panelHead,.projectFoot,.eventCard{align-items:flex-start}.projectFilterPanel{grid-template-columns:1fr;padding:14px}.projectFilterActions{grid-column:auto}.projectFilterActions .button{flex:1}}

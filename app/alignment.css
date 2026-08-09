@@ -1,0 +1,30 @@
+/* Sitewide alignment guard — keeps resting layouts square, consistent and predictable. */
+
+/* Shared page containers stay on one horizontal system. */
+.hero > .shell,
+.section > .shell,
+.homeHero > .shell,
+.homeFinal > .shell,
+footer > .shell,
+.siteHeader > .shell,
+.topbar > .shell{margin-left:auto;margin-right:auto}
+
+/* Grids align their children cleanly without decorative offsets. */
+.grid2,.grid3,.grid4,.projectGrid,.mediaGrid,.membershipGrid,.benefitGrid,.principleGrid,.joinRouteGrid,.peopleGrid,.dashboardGrid,.teamGrid,.homeRouteGrid,.homeExploreGrid,.audienceGrid,.realityList,.proofGrid,.previewGrid{align-items:stretch}
+
+/* Resting surfaces are always straight. Interaction movement remains hover-only. */
+.productPreview,.heroPanel,.card,.projectCard,.mediaCard,.articleItem,.statementCard,.benefitCard,.joinRoute,.personCard,.contactOption,.panel,.formCard,.tier,.teamMember,.discussionItem,.resourceItem,.meetingItem,.completionCheck,.proofPreview,.workspaceFeature,.homeRouteCard,.homeExploreCard,.audienceCard{rotate:0deg!important}
+.productPreview,.tier.featured{transform:none!important}
+
+/* Two-column layouts share a predictable vertical start unless intentionally centred. */
+.formShell,.contactGrid,.aboutSplit,.founderGrid,.articleLayout{align-items:start}
+
+/* Section headings and controls line up on their own edges. */
+.sectionHead{width:100%}.panelHead,.projectFoot,.eventCard,.resourceItem,.meetingItem{min-width:0}.panelHead>*{min-width:0}
+
+/* Prevent long content from pushing grids out of alignment. */
+.card,.projectCard,.panel,.formCard,.mediaCard,.articleItem,.statementCard,.benefitCard,.joinRoute,.personCard,.contactOption,.teamMember,.discussionItem,.resourceItem,.meetingItem,.completionCheck,.homeRouteCard,.homeExploreCard,.audienceCard,.proofPreview,.workspaceFeature{min-width:0}
+img,svg{max-width:100%}
+
+@media(max-width:1080px){.heroGrid,.homeHeroGrid,.homeSplit,.formShell,.contactGrid,.aboutSplit,.founderGrid{align-items:start}}
+@media(max-width:720px){.sectionHead,.panelHead,.projectFoot,.eventCard{align-items:flex-start}}

@@ -4,6 +4,9 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 type Source={id:string;provider:'greenhouse'|'lever';organisation_name:string;source_key:string;region:'global'|'eu';employer_domain:string|null;is_active:boolean;auto_publish_enabled:boolean};
 type Job={externalId:string;title:string;description:string;location:string|null;url:string;updatedAt:string|null;team:string|null};
+type GreenhouseJob={id?:string|number;title?:string;absolute_url?:string;content?:string;updated_at?:string;location?:{name?:string|null}|null;departments?:{name?:string|null}[]|null};
+type GreenhouseResponse={jobs?:GreenhouseJob[]};
+type LeverJob={id?:string;text?:string;hostedUrl?:string;descriptionPlain?:string;description?:string;additionalPlain?:string;additional?:string;categories?:{location?:string|null;team?:string|null}|null};
 
 function stripHtml(value:string){return value.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();}
 function slugify(value:string){return value.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,100);}
@@ -21,11 +24,20 @@ function classify(title:string,description:string){
 
 async function fetchJobs(source:Source):Promise<Job[]>{
   if(source.provider==='greenhouse'){
-    const response=await fetch(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(source.source_key)}/jobs?content=true`,{headers:{accept:'application/json'},cache:'no-store'});if(!response.ok)throw new Error(`Greenhouse returned ${response.status}`);const json=await response.json();
-    return (Array.isArray(json.jobs)?json.jobs:[]).filter((j:any)=>j?.id&&j?.title&&j?.absolute_url).map((j:any)=>({externalId:String(j.id),title:String(j.title),description:stripHtml(String(j.content||'')),location:j.location?.name?String(j.location.name):null,url:String(j.absolute_url),updatedAt:j.updated_at?String(j.updated_at):null,team:Array.isArray(j.departments)&&j.departments[0]?.name?String(j.departments[0].name):null}));
+    const response=await fetch(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(source.source_key)}/jobs?content=true`,{headers:{accept:'application/json'},cache:'no-store'});
+    if(!response.ok)throw new Error(`Greenhouse returned ${response.status}`);
+    const json=(await response.json()) as GreenhouseResponse;
+    return (Array.isArray(json.jobs)?json.jobs:[])
+      .filter(job=>Boolean(job.id&&job.title&&job.absolute_url))
+      .map(job=>({externalId:String(job.id),title:String(job.title),description:stripHtml(String(job.content||'')),location:job.location?.name?String(job.location.name):null,url:String(job.absolute_url),updatedAt:job.updated_at?String(job.updated_at):null,team:Array.isArray(job.departments)&&job.departments[0]?.name?String(job.departments[0].name):null}));
   }
-  const base=source.region==='eu'?'https://api.eu.lever.co':'https://api.lever.co';const response=await fetch(`${base}/v0/postings/${encodeURIComponent(source.source_key)}?mode=json`,{headers:{accept:'application/json'},cache:'no-store'});if(!response.ok)throw new Error(`Lever returned ${response.status}`);const json=await response.json();
-  return (Array.isArray(json)?json:[]).filter((j:any)=>j?.id&&j?.text&&j?.hostedUrl).map((j:any)=>({externalId:String(j.id),title:String(j.text),description:stripHtml([j.descriptionPlain,j.description,j.additionalPlain,j.additional].filter(Boolean).join(' ')),location:j.categories?.location?String(j.categories.location):null,url:String(j.hostedUrl),updatedAt:null,team:j.categories?.team?String(j.categories.team):null}));
+  const base=source.region==='eu'?'https://api.eu.lever.co':'https://api.lever.co';
+  const response=await fetch(`${base}/v0/postings/${encodeURIComponent(source.source_key)}?mode=json`,{headers:{accept:'application/json'},cache:'no-store'});
+  if(!response.ok)throw new Error(`Lever returned ${response.status}`);
+  const json=(await response.json()) as LeverJob[];
+  return (Array.isArray(json)?json:[])
+    .filter(job=>Boolean(job.id&&job.text&&job.hostedUrl))
+    .map(job=>({externalId:String(job.id),title:String(job.text),description:stripHtml([job.descriptionPlain,job.description,job.additionalPlain,job.additional].filter(Boolean).join(' ')),location:job.categories?.location?String(job.categories.location):null,url:String(job.hostedUrl),updatedAt:null,team:job.categories?.team?String(job.categories.team):null}));
 }
 
 export async function POST(request:Request){

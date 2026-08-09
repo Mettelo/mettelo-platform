@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import SubmissionForm from '@/components/SubmissionForm';
+import ProjectApplicationForm from '@/components/ProjectApplicationForm';
 import { createPublicSupabaseClient } from '@/lib/supabase/public';
 
 export const metadata:Metadata={title:'Mettelo Labs Projects',description:'Explore Mettelo Labs project briefs and build real work with multidisciplinary Data & AI teams.'};
 export const dynamic='force-dynamic';
 
-type Role={title:string;discipline:string|null;openings:number};
+type Role={id:string;title:string;discipline:string|null;openings:number};
 type Project={id:string;slug:string;title:string;summary:string;status:string;location:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;github_url:string|null;project_roles?:Role[]};
 
 function statusLabel(status:string){return status==='pilot'?'PILOT BRIEF':status==='recruiting'?'RECRUITING':status==='active'?'IN DELIVERY':status==='review'?'IN REVIEW':status==='completed'?'COMPLETED':status.toUpperCase();}
@@ -13,24 +14,22 @@ function tone(status:string){return status==='recruiting'?'green':status==='pilo
 
 export default async function ProjectsPage(){
   const supabase=createPublicSupabaseClient();
-  let projects:Project[]=[];
-  let loadError=false;
+  let projects:Project[]=[];let loadError=false;
   if(supabase){
-    const result=await supabase.from('projects').select('id,slug,title,summary,status,location,duration_weeks,weekly_commitment,application_deadline,github_url,project_roles(title,discipline,openings)').in('status',['pilot','recruiting','active','review','completed']).eq('visibility','public').order('created_at',{ascending:true});
+    const result=await supabase.from('projects').select('id,slug,title,summary,status,location,duration_weeks,weekly_commitment,application_deadline,github_url,project_roles(id,title,discipline,openings)').in('status',['pilot','recruiting','active','review','completed']).eq('visibility','public').order('created_at',{ascending:true});
     if(result.error) loadError=true; else projects=(result.data||[]) as Project[];
   }else loadError=true;
   const pilotTitles=projects.filter(p=>p.status==='pilot').map(p=>p.title);
+  const recruiting=projects.filter(p=>p.status==='recruiting'&&(p.project_roles||[]).length>0).map(p=>({id:p.id,title:p.title,roles:(p.project_roles||[]).map(r=>({id:r.id,title:r.title}))}));
 
   return <>
     <section className="hero"><div className="shell heroGrid"><div><div className="eyebrow">Mettelo Labs · Projects</div><h1>Build work that proves what you can do.</h1><p className="heroLead">Labs turns real problems into structured briefs with clear roles, ownership, review and contributor credit. What you see here comes from the live Mettelo project system.</p><div className="actions"><a className="button dark" href="#open-projects">Explore Labs →</a></div></div><aside className="heroPanel"><div className="heroPanelTop"><span className="liveDot">Labs database live</span><span className="chip">REAL WORK</span></div><h3>One brief. One team. Visible contribution.</h3><p>Each project moves through a controlled lifecycle: brief, recruitment, delivery, review, publication and contributor credit.</p><div className="path"><span>Discover</span><span>Apply</span><span>Build</span><span>Review</span><span>Publish</span><span>Credit</span></div></aside></div></section>
 
     <section className="section" id="open-projects"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">Labs work</div><h2>Projects at different stages.</h2></div><p>Pilot means the brief is being shaped. Recruiting means applications are genuinely open. Active and Review show work already moving through delivery.</p></div>
-      {loadError?<div className="emptyState panel"><h3>Projects are temporarily unavailable.</h3><p>The project database could not be reached. Please try again later or use the Community page for current updates.</p></div>:projects.length?<div className="projectGrid">{projects.map(p=>{
-        const roles=(p.project_roles||[]).map(r=>r.title).join(' · ');
-        const meta=[p.duration_weeks?`${p.duration_weeks} weeks`:null,p.location,p.weekly_commitment].filter(Boolean) as string[];
-        return <article className="projectCard" key={p.id}><div><span className={`chip ${tone(p.status)}`}>{statusLabel(p.status)}</span><h3>{p.title}</h3><p>{p.summary}</p><div className="metaRow">{meta.map(m=><span className="metaPill" key={m}>{m}</span>)}</div>{roles&&<small><strong>Roles:</strong> {roles}</small>}</div><div className="projectFoot"><span>{p.status==='recruiting'?'Applications open':p.status==='pilot'?'Register interest':p.status==='completed'?'Published proof':'Project in progress'}</span>{p.status==='recruiting'?<a className="button dark" href={`/signin?next=/projects#apply`}>Sign in & apply →</a>:p.status==='completed'?<a className="button ghost" href="/showcase">View proof →</a>:p.status==='pilot'?<a className="button ghost" href="#interest">Register interest</a>:<a className="button ghost" href="/newsletter">Follow updates</a>}</div></article>;
-      })}</div>:<div className="emptyState panel"><h3>No public Labs projects right now.</h3><p>New briefs appear here only after they pass the Mettelo project review process.</p><a className="button ghost" href="/newsletter">Get project alerts →</a></div>}
+      {loadError?<div className="emptyState panel"><h3>Projects are temporarily unavailable.</h3><p>The project database could not be reached. Please try again later or use the Community page for current updates.</p></div>:projects.length?<div className="projectGrid">{projects.map(p=>{const roles=(p.project_roles||[]).map(r=>r.title).join(' · ');const meta=[p.duration_weeks?`${p.duration_weeks} weeks`:null,p.location,p.weekly_commitment].filter(Boolean) as string[];return <article className="projectCard" key={p.id}><div><span className={`chip ${tone(p.status)}`}>{statusLabel(p.status)}</span><h3>{p.title}</h3><p>{p.summary}</p><div className="metaRow">{meta.map(m=><span className="metaPill" key={m}>{m}</span>)}</div>{roles&&<small><strong>Roles:</strong> {roles}</small>}</div><div className="projectFoot"><span>{p.status==='recruiting'?'Applications open':p.status==='pilot'?'Register interest':p.status==='completed'?'Published proof':'Project in progress'}</span>{p.status==='recruiting'?<a className="button dark" href="/signin?next=/projects#apply">Sign in & apply →</a>:p.status==='completed'?<a className="button ghost" href="/showcase">View proof →</a>:p.status==='pilot'?<a className="button ghost" href="#interest">Register interest</a>:<a className="button ghost" href="/newsletter">Follow updates</a>}</div></article>;})}</div>:<div className="emptyState panel"><h3>No public Labs projects right now.</h3><p>New briefs appear here only after they pass the Mettelo project review process.</p><a className="button ghost" href="/newsletter">Get project alerts →</a></div>}
     </div></section>
+
+    {recruiting.length>0&&<section className="section softSection" id="apply"><div className="shell formShell"><div><div className="eyebrow">Labs application</div><h2 style={{fontSize:'clamp(2.5rem,4vw,4rem)',margin:0}}>Apply to work you are ready to own.</h2><p className="lead">Applications are tied to your My Mettelo account. Be specific about the role, your evidence and what you can deliver. Your status appears in the member workspace after submission.</p></div><ProjectApplicationForm projects={recruiting}/></div></section>}
 
     <section className="section softSection" id="how-it-works"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">Labs operating model</div><h2>Real work needs structure, not chat-room coordination.</h2></div><p>Project Leads own delivery. Mettelo provides governance, application routing, GitHub structure, review controls and the proof layer.</p></div><div className="grid4"><article className="card"><div className="cardNumber">01 / PUBLISH</div><h3 style={{marginTop:24}}>Clear project brief</h3><p>Problem, outcomes, roles, skills, duration, commitment, lead and deadline.</p></article><article className="card"><div className="cardNumber">02 / SELECT</div><h3 style={{marginTop:24}}>Structured applications</h3><p>Applications route into a controlled review workflow instead of email chains.</p></article><article className="card"><div className="cardNumber">03 / DELIVER</div><h3 style={{marginTop:24}}>GitHub + project team</h3><p>Accepted contributors work through accountable issues, milestones and documentation.</p></article><article className="card"><div className="cardNumber">04 / PROVE</div><h3 style={{marginTop:24}}>Review and contribution credit</h3><p>Reviewed outputs become a showcase and verified contribution becomes professional evidence.</p></article></div></div></section>
 

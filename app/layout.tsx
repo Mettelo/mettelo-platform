@@ -10,6 +10,7 @@ import "./expansion.css";
 import "./collaboration.css";
 import "./polish.css";
 import "./page-system.css";
+import "./alignment.css";
 
 const inter=Inter({subsets:["latin"],variable:"--font-inter",display:"swap"});
 const space=Space_Grotesk({subsets:["latin"],variable:"--font-space",display:"swap"});

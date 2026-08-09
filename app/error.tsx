@@ -1,2 +1,7 @@
 'use client';
-export default function ErrorPage({reset}:{error:Error&{digest?:string};reset:()=>void}){return <section className="section softSection"><div className="shell"><div className="eyebrow">Something went wrong</div><h1 style={{fontSize:'clamp(3rem,8vw,6rem)',margin:0}}>The page could not finish loading.</h1><p className="lead">Try again. If the problem continues, report it so the team can investigate the route and device involved.</p><div className="actions"><button className="button dark" onClick={()=>reset()}>Try again →</button><a className="button ghost" href="/feedback">Report the problem</a><a className="button ghost" href="/">Go home</a></div></div></section>}
+
+import Link from 'next/link';
+
+export default function ErrorPage({reset}:{error:Error&{digest?:string};reset:()=>void}){
+  return <section className="section softSection"><div className="shell"><div className="eyebrow">Something went wrong</div><h1 style={{fontSize:'clamp(3rem,8vw,6rem)',margin:0}}>The page could not finish loading.</h1><p className="lead">Try again. If the problem continues, report it so the team can investigate the route and device involved.</p><div className="actions"><button className="button dark" onClick={()=>reset()}>Try again →</button><Link className="button ghost" href="/feedback">Report the problem</Link><Link className="button ghost" href="/">Go home</Link></div></div></section>;
+}

@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const QA_PROJECT_SLUG='qa-collaboration-pilot';
@@ -10,6 +10,8 @@ const QA_ACCOUNTS=[
   {key:'engineer',email:'qa+engineer@mettelo.com',name:'QA Data Engineer',teamRole:'contributor'}
 ] as const;
 
+type QaProject={id:string;title:string;status:string};
+
 async function adminDb(){
   const auth=await createServerSupabaseClient();
   const {data:{user}}=await auth.auth.getUser();
@@ -18,17 +20,18 @@ async function adminDb(){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
   if(!url||!key) return {error:NextResponse.json({error:'Admin data service is not configured.'},{status:503})};
-  return {user,db:createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}})};
+  const db:SupabaseClient=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+  return {user,db};
 }
 
-async function getProject(db:ReturnType<typeof createClient>){
+async function getProject(db:SupabaseClient):Promise<QaProject|null>{
   const {data,error}=await db.from('projects').select('id,title,status').eq('slug',QA_PROJECT_SLUG).maybeSingle();
   if(error) throw error;
-  return data;
+  return (data||null) as QaProject|null;
 }
 
-async function listAllUsers(db:ReturnType<typeof createClient>){
-  const users=[];
+async function listAllUsers(db:SupabaseClient):Promise<User[]>{
+  const users:User[]=[];
   let page=1;
   while(true){
     const {data,error}=await db.auth.admin.listUsers({page,perPage:200});
@@ -48,7 +51,7 @@ export async function GET(){
     if(!project) return NextResponse.json({error:'QA collaboration project is missing.'},{status:404});
     const users=await listAllUsers(ctx.db);
     const {data:members}=await ctx.db.from('project_members').select('user_id,team_role').eq('project_id',project.id);
-    const memberMap=new Map((members||[]).map(row=>[row.user_id,row.team_role]));
+    const memberMap=new Map<string,string>((members||[]).map(row=>[String(row.user_id),String(row.team_role)]));
     return NextResponse.json({project,users:users.map(user=>({id:user.id,email:user.email||'',name:String(user.user_metadata?.full_name||user.email||'Mettelo user'),role:user.app_metadata?.role||null,project_role:memberMap.get(user.id)||null}))});
   }catch(error){console.error('qa team get error',error);return NextResponse.json({error:'Unable to load QA team setup.'},{status:500});}
 }
@@ -64,19 +67,19 @@ export async function POST(request:Request){
 
     if(action==='create_qa_users'){
       const existing=await listAllUsers(ctx.db);
-      const byEmail=new Map(existing.map(user=>[(user.email||'').toLowerCase(),user]));
+      const byEmail=new Map<string,User>(existing.map(user=>[(user.email||'').toLowerCase(),user]));
       const credentials:{key:string;email:string;password:string|null;user_id:string}[]=[];
       for(const account of QA_ACCOUNTS){
-        let user=byEmail.get(account.email.toLowerCase());
+        let qaUser=byEmail.get(account.email.toLowerCase());
         let password:string|null=null;
-        if(!user){
+        if(!qaUser){
           password=`Qa-${randomBytes(18).toString('base64url')}!9`;
           const {data,error}=await ctx.db.auth.admin.createUser({email:account.email,password,email_confirm:true,user_metadata:{full_name:account.name,qa_account:true}});
           if(error) throw error;
-          user=data.user;
+          qaUser=data.user;
         }
-        if(!user) throw new Error(`Unable to create ${account.email}`);
-        credentials.push({key:account.key,email:account.email,password,user_id:user.id});
+        if(!qaUser) throw new Error(`Unable to create ${account.email}`);
+        credentials.push({key:account.key,email:account.email,password,user_id:qaUser.id});
       }
       return NextResponse.json({ok:true,credentials,message:'QA users are ready. Passwords are returned only for accounts created in this request.'});
     }

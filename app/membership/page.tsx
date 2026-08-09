@@ -1,0 +1,2 @@
+import ModuleLanding from '@/components/ModuleLanding';
+export default function Page(){return <ModuleLanding eyebrow="Membership" title="Join. Contribute. Build a record of what you can do." description="Membership connects community, projects, opportunities, events, proof and recognition." items={[{title:'Member',copy:'Community access, events, opportunities and project alerts.'},{title:'Contributor',copy:'Join Labs, open source and Mettelo-building work.'},{title:'Partner',copy:'Bring briefs, support projects and collaborate with the ecosystem.'}]}/>}

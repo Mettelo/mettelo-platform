@@ -1,5 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import type { CookieOptions } from '@supabase/ssr';
+
+type CookieToSet={name:string;value:string;options?:CookieOptions};
 
 export async function createServerSupabaseClient(){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -10,7 +13,7 @@ export async function createServerSupabaseClient(){
   return createServerClient(url,anonKey,{
     cookies:{
       getAll(){return cookieStore.getAll();},
-      setAll(items){
+      setAll(items:CookieToSet[]){
         try{items.forEach(({name,value,options})=>cookieStore.set(name,value,options));}
         catch{
           // Server Components cannot always mutate cookies. Middleware refreshes sessions.

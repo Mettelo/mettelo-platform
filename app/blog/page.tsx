@@ -1,0 +1,2 @@
+import ModuleLanding from '@/components/ModuleLanding';
+export default function Page(){return <ModuleLanding eyebrow="Blog & News" title="Ideas, insight and what we are building." description="Career insight, project write-ups, Data & AI thinking, community updates, research and Mettelo product news." items={[{title:'Insights',copy:'Practical thinking on capability, careers and the future of Data & AI work.'},{title:'Mettelo News',copy:'Platform updates, launches and ecosystem announcements.'},{title:'Project Stories',copy:'Case studies and lessons from Mettelo Labs.'}]}/>}

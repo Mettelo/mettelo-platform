@@ -1,0 +1,63 @@
+'use client';
+
+import { FormEvent, useState } from 'react';
+
+type Resource='project'|'opportunity'|'event';
+
+export default function AdminContentManager(){
+  const [resource,setResource]=useState<Resource>('project');
+  const [status,setStatus]=useState<'idle'|'saving'|'success'|'error'>('idle');
+  const [message,setMessage]=useState('');
+
+  async function submit(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();setStatus('saving');setMessage('');
+    const form=event.currentTarget;
+    const data=Object.fromEntries(new FormData(form).entries());
+    try{
+      const response=await fetch('/api/admin/content',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...data,resource})});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(payload.error||'Unable to save content.');
+      setStatus('success');setMessage(`${resource[0].toUpperCase()+resource.slice(1)} saved successfully.`);
+      form.reset();
+    }catch(error){setStatus('error');setMessage(error instanceof Error?error.message:'Unable to save content.');}
+  }
+
+  return <section className="panel adminPublisher" id="publisher">
+    <div className="panelHead"><div><span className="cardNumber">CONTENT OPERATIONS</span><h3 style={{marginTop:8}}>Create or update production content</h3></div><span className="chip green">SUPABASE</span></div>
+    <div className="filterBar" role="tablist" aria-label="Content type">
+      {(['project','opportunity','event'] as Resource[]).map(item=><button key={item} type="button" className={`filter ${resource===item?'active':''}`} onClick={()=>{setResource(item);setStatus('idle');setMessage('')}}>{item[0].toUpperCase()+item.slice(1)}</button>)}
+    </div>
+    <form className="formCard adminPublishForm" onSubmit={submit}>
+      <label htmlFor="admin-title">Title *</label><input id="admin-title" name="title" required maxLength={180}/>
+      <label htmlFor="admin-slug">Slug</label><input id="admin-slug" name="slug" placeholder="Generated from title when blank"/>
+      <label htmlFor="admin-summary">Summary *</label><textarea id="admin-summary" name="summary" required/>
+
+      {resource==='project'&&<>
+        <div className="fieldRow"><div><label>Status *</label><select name="status" defaultValue="pilot"><option value="draft">Draft</option><option value="pilot">Pilot</option><option value="recruiting">Recruiting</option><option value="active">Active</option><option value="review">Review</option><option value="completed">Completed</option><option value="archived">Archived</option></select></div><div><label>Duration (weeks)</label><input name="duration_weeks" type="number" min="1" max="52"/></div></div>
+        <label>Problem statement</label><textarea name="problem_statement"/>
+        <div className="fieldRow"><div><label>Location</label><input name="location" placeholder="Remote / Lagos / UK"/></div><div><label>Weekly commitment</label><input name="weekly_commitment" placeholder="3–5 hours / week"/></div></div>
+        <div className="fieldRow"><div><label>Application deadline</label><input name="application_deadline" type="datetime-local"/></div><div><label>Start date</label><input name="starts_at" type="datetime-local"/></div></div>
+        <label>GitHub URL</label><input name="github_url" type="url" placeholder="https://github.com/Mettelo/..."/>
+      </>}
+
+      {resource==='opportunity'&&<>
+        <div className="fieldRow"><div><label>Type *</label><select name="opportunity_type" defaultValue="job"><option value="job">Job</option><option value="referral">Referral</option><option value="volunteer">Volunteer</option><option value="fellowship">Fellowship</option><option value="freelance">Freelance</option><option value="consulting">Consulting</option><option value="project">Project</option><option value="other">Other</option></select></div><div><label>Status *</label><select name="status" defaultValue="draft"><option value="draft">Draft</option><option value="published">Published</option><option value="closed">Closed</option><option value="archived">Archived</option></select></div></div>
+        <div className="fieldRow"><div><label>Organisation</label><input name="organisation"/></div><div><label>Location</label><input name="location"/></div></div>
+        <label>Eligibility / important constraints</label><textarea name="eligibility"/>
+        <label>Official source / application URL</label><input name="source_url" type="url" placeholder="https://"/>
+        <div className="fieldRow"><div><label>Access</label><select name="access_level"><option value="public">Public</option><option value="members">Members only</option></select></div><div><label>Closing date</label><input name="closes_at" type="datetime-local"/></div></div>
+      </>}
+
+      {resource==='event'&&<>
+        <div className="fieldRow"><div><label>Type *</label><select name="event_type" defaultValue="ama"><option value="ama">AMA</option><option value="workshop">Workshop</option><option value="showcase">Showcase</option><option value="networking">Networking</option><option value="build_sprint">Build Sprint</option><option value="webinar">Webinar</option><option value="meetup">Meetup</option><option value="other">Other</option></select></div><div><label>Status *</label><select name="status" defaultValue="draft"><option value="draft">Draft</option><option value="published">Published</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div></div>
+        <div className="fieldRow"><div><label>Starts *</label><input required name="starts_at" type="datetime-local"/></div><div><label>Ends</label><input name="ends_at" type="datetime-local"/></div></div>
+        <label>Location / format</label><input name="location_label" placeholder="Online · 18:30 BST"/>
+        <label>Registration URL</label><input name="registration_url" type="url" placeholder="https://"/>
+        <label>Replay URL</label><input name="replay_url" type="url" placeholder="https://"/>
+      </>}
+
+      <button className="button dark" type="submit" disabled={status==='saving'} style={{width:'100%',marginTop:20}}>{status==='saving'?'Saving…':`Save ${resource} →`}</button>
+      <div className={`formStatus ${status}`} role="status" aria-live="polite">{message}</div>
+    </form>
+  </section>;
+}

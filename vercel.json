@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/opportunity-discovery",
+      "schedule": "15 5 * * *"
+    },
+    {
+      "path": "/api/cron/opportunity-lifecycle",
+      "schedule": "45 5 * * *"
+    }
+  ]
+}

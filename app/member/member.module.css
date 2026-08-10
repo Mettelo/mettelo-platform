@@ -1,0 +1,75 @@
+.memberScope{--member-gap:22px}
+
+.memberScope :global(.memberDashboard){align-items:start;gap:28px}
+.memberScope :global(.memberDashboardMain){min-width:0}
+.memberScope :global(.memberHero){max-width:820px;margin-bottom:28px}
+.memberScope :global(.memberHero h1){max-width:760px;margin-bottom:12px}
+.memberScope :global(.memberHero .lead){max-width:720px}
+.memberScope :global(.memberSection){margin-top:var(--member-gap)}
+
+.memberScope :global(.memberSidebar){position:sticky;top:92px;padding:10px 10px 14px;border:1px solid rgba(16,19,29,.09);border-radius:18px;background:rgba(255,255,255,.86);box-shadow:0 10px 34px rgba(16,19,29,.045);backdrop-filter:blur(10px)}
+.memberScope :global(.memberSidebarLabel){padding:12px 12px 10px}
+.memberScope :global(.memberSidebarLabel .eyebrow){margin:0;color:#697280;font-size:.62rem}
+.memberScope :global(.memberSidebar nav){display:grid;gap:5px}
+.memberScope :global(.memberNavGroup){display:grid;gap:3px;padding-top:10px;margin-top:5px;border-top:1px solid rgba(16,19,29,.075)}
+.memberScope :global(.memberNavGroup:first-child){padding-top:2px;margin-top:0;border-top:0}
+.memberScope :global(.memberNavHeading){padding:6px 10px 4px;color:#87909c;font-size:.61rem;font-weight:760;letter-spacing:.095em;text-transform:uppercase}
+.memberScope :global(.memberSidebar a){min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 10px;border-radius:10px;color:#3f4754;font-size:.8rem;font-weight:630;transition:background-color .16s ease,color .16s ease,transform .16s ease}
+.memberScope :global(.memberSidebar a:hover),.memberScope :global(.memberSidebar a:focus-visible){background:#f7efdd;color:#10131d}
+.memberScope :global(.memberSidebar a.active){background:#10131d;color:#fff}
+.memberScope :global(.memberSidebar a span){color:#8a929d;font-size:.7rem;font-weight:650}
+.memberScope :global(.memberSidebar a.active span){color:#d8dde5}
+
+.memberScope :global(.memberGettingStarted){display:grid;grid-template-columns:minmax(0,.82fr) minmax(360px,1.18fr);gap:34px;align-items:start;padding:28px;margin-bottom:4px;border-color:rgba(42,47,82,.14);background:linear-gradient(135deg,#fff 0%,#fbfaf7 100%)}
+.memberScope :global(.memberGettingStarted h2){margin:8px 0 8px;font-size:clamp(1.55rem,3vw,2.15rem)}
+.memberScope :global(.memberGettingStarted p){max-width:510px;margin:0;color:#5b6472;line-height:1.65}
+.memberScope :global(.memberChecklist){display:grid;gap:8px}
+.memberScope :global(.memberChecklist a){display:grid;grid-template-columns:34px minmax(0,1fr) 20px;gap:12px;align-items:center;padding:13px 14px;border:1px solid rgba(16,19,29,.085);border-radius:13px;background:#fff;color:#10131d;transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+.memberScope :global(.memberChecklist a:hover){border-color:rgba(198,137,42,.38);box-shadow:0 8px 22px rgba(16,19,29,.06);transform:translateY(-1px)}
+.memberScope :global(.memberChecklist a>span){width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#f7efdd;color:#8b5a17;font-family:var(--font-mono),monospace;font-size:.66rem;font-weight:750}
+.memberScope :global(.memberChecklist strong),.memberScope :global(.memberChecklist small){display:block}
+.memberScope :global(.memberChecklist strong){font-size:.84rem}
+.memberScope :global(.memberChecklist small){margin-top:3px;color:#68717e;font-size:.7rem;line-height:1.4}
+.memberScope :global(.memberChecklist b){color:#8b5a17;font-size:.95rem}
+
+.memberScope :global(.memberMetricGrid .metric){min-height:108px;padding:19px}
+.memberScope :global(.memberMetricGrid .metric strong){font-size:1.8rem}
+.memberScope :global(.memberRowActions){display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.memberScope :global(.memberLoop h3){margin:10px 0 5px;font-size:1.1rem}
+
+.memberScope :global(.proofCard){position:relative;display:flex;flex-direction:column;min-height:220px}
+.memberScope :global(.proofCard h3){margin:14px 0 7px;font-size:1.08rem;line-height:1.35}
+.memberScope :global(.proofCard>p){margin:0;color:#5b6472;line-height:1.55}
+.memberScope :global(.proofCard .linkArrow){margin-top:auto;padding-top:16px}
+.memberScope :global(.proofReview){margin-top:10px!important;font-size:.78rem}
+.memberScope :global(.proofCardTop){display:flex;align-items:center;justify-content:space-between;gap:12px}
+.memberScope :global(.proofShare){display:flex;align-items:center;gap:6px}
+.memberScope :global(.proofShare a){width:34px;height:34px;display:grid;place-items:center;border:1px solid rgba(16,19,29,.12);border-radius:10px;background:#fff;color:#3f4754;font-size:.72rem;font-weight:800;line-height:1;transition:background-color .16s ease,border-color .16s ease,color .16s ease,transform .16s ease}
+.memberScope :global(.proofShare a:hover),.memberScope :global(.proofShare a:focus-visible){background:#10131d;border-color:#10131d;color:#fff;transform:translateY(-1px)}
+
+@media(max-width:1080px){
+  .memberScope :global(.memberDashboard){grid-template-columns:1fr}
+  .memberScope :global(.memberSidebar){position:relative;top:auto;overflow-x:auto;padding:8px}
+  .memberScope :global(.memberSidebarLabel){display:none}
+  .memberScope :global(.memberSidebar nav){display:flex;gap:8px;min-width:max-content}
+  .memberScope :global(.memberNavGroup){display:flex;align-items:center;gap:4px;padding:0 8px 0 0;margin:0;border:0;border-right:1px solid rgba(16,19,29,.09)}
+  .memberScope :global(.memberNavGroup:last-child){border-right:0}
+  .memberScope :global(.memberNavHeading){padding:0 5px;color:#8b5a17}
+  .memberScope :global(.memberSidebar a){white-space:nowrap}
+}
+
+@media(max-width:760px){
+  .memberScope{--member-gap:16px}
+  .memberScope :global(.memberHero){margin-bottom:20px}
+  .memberScope :global(.memberGettingStarted){grid-template-columns:1fr;gap:22px;padding:20px}
+  .memberScope :global(.memberChecklist){gap:7px}
+  .memberScope :global(.memberChecklist a){grid-template-columns:32px minmax(0,1fr) 18px;padding:12px}
+  .memberScope :global(.memberMetricGrid){grid-template-columns:1fr 1fr}
+  .memberScope :global(.memberRowActions){justify-content:flex-start;margin-top:8px}
+}
+
+@media(max-width:520px){
+  .memberScope :global(.memberMetricGrid){grid-template-columns:1fr}
+  .memberScope :global(.memberGettingStarted){padding:18px}
+  .memberScope :global(.proofShare a){width:36px;height:36px}
+}

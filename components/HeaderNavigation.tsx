@@ -5,6 +5,7 @@ import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {User} from '@supabase/supabase-js';
 import {createClient} from '@/lib/supabase/client';
+import styles from './HeaderNavigation.module.css';
 
 type NavItem=[string,string,string];
 type DropdownConfig={label:string;items:NavItem[]};
@@ -89,7 +90,7 @@ export default function HeaderNavigation({dropdowns}:{dropdowns:DropdownConfig[]
   const mobileTarget=mounted?document.querySelector('.mobileMenuPanel'):null;
 
   return <>
-    <nav ref={navRef} className="primaryNav" aria-label="Primary navigation">
+    <nav ref={navRef} className={`${styles.headerNavigation} primaryNav`} aria-label="Primary navigation">
       {!account&&<Link className="primaryNavLink" href="/about">About</Link>}
       {dropdowns.map(({label,items})=>{
         const isOpen=open===label;

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import ProfileEditor from '@/components/ProfileEditor';
 import ContributionForm from '@/components/ContributionForm';
+import styles from './member.module.css';
 
 export const metadata:Metadata={title:'My Mettelo',description:'Your private Mettelo member workspace for profile, projects, applications and contribution.'};
 export const dynamic='force-dynamic';
@@ -52,7 +53,7 @@ export default async function MemberDashboard(){
   const contributionProjects=memberships.filter(item=>item.projects&&item.projects.status!=='archived').map(item=>({id:item.project_id,title:item.projects?.title||'Mettelo Labs project'}));
   const hasActivity=Boolean((applicationsResult.count||0)||(membershipsResult.count||0)||verifiedCount||(savedResult.count||0));
 
-  return <section className="section softSection memberWorkspace"><div className="shell dashboard memberDashboard">
+  return <section className={`${styles.memberScope} section softSection memberWorkspace`}><div className="shell dashboard memberDashboard">
     <aside className="sidebar memberSidebar" aria-label="My Mettelo sections">
       <div className="memberSidebarLabel"><span className="eyebrow">Member workspace</span></div>
       <nav aria-label="Workspace navigation">

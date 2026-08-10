@@ -40,15 +40,10 @@ export default function HeaderNavigation({dropdowns}:{dropdowns:DropdownConfig[]
       document.body.classList.add('authSignedIn');
     }
 
-    // Restore the browser session immediately on public-page navigation, then
-    // validate/refresh it from Auth so role changes are also picked up.
     supabase.auth.getSession().then(({data})=>void applyUser(data.session?.user||null));
     supabase.auth.getUser().then(({data})=>void applyUser(data.user));
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>void applyUser(session?.user||null));
-    return()=>{
-      active=false;
-      subscription.unsubscribe();
-    };
+    return()=>{active=false;subscription.unsubscribe();};
   },[]);
 
   useEffect(()=>{
@@ -60,10 +55,7 @@ export default function HeaderNavigation({dropdowns}:{dropdowns:DropdownConfig[]
     function onKeyDown(event:KeyboardEvent){if(event.key==='Escape')setOpen(null);}
     document.addEventListener('mousedown',onPointerDown);
     document.addEventListener('keydown',onKeyDown);
-    return()=>{
-      document.removeEventListener('mousedown',onPointerDown);
-      document.removeEventListener('keydown',onKeyDown);
-    };
+    return()=>{document.removeEventListener('mousedown',onPointerDown);document.removeEventListener('keydown',onKeyDown);};
   },[open]);
 
   async function signOut(){
@@ -85,6 +77,10 @@ export default function HeaderNavigation({dropdowns}:{dropdowns:DropdownConfig[]
       <Link href="/member" onClick={()=>setOpen(null)}>My dashboard <span>→</span></Link>
       <Link href="/member#profile" onClick={()=>setOpen(null)}>Edit profile <span>→</span></Link>
       {account.isAdmin&&<Link href="/admin" onClick={()=>setOpen(null)}>Admin console <span>→</span></Link>}
+      <div className="accountSecondaryLinks" aria-label="More Mettelo links">
+        <Link href="/about" onClick={()=>setOpen(null)}>About Mettelo <span>→</span></Link>
+        <Link href="/partnership" onClick={()=>setOpen(null)}>Partner with Mettelo <span>→</span></Link>
+      </div>
       <button type="button" onClick={signOut}>Sign out <span>→</span></button>
     </div>
   </div>:null;
@@ -94,7 +90,7 @@ export default function HeaderNavigation({dropdowns}:{dropdowns:DropdownConfig[]
 
   return <>
     <nav ref={navRef} className="primaryNav" aria-label="Primary navigation">
-      <Link className="primaryNavLink" href="/about">About</Link>
+      {!account&&<Link className="primaryNavLink" href="/about">About</Link>}
       {dropdowns.map(({label,items})=>{
         const isOpen=open===label;
         const panelId=`nav-${label.toLowerCase()}-panel`;
@@ -107,9 +103,9 @@ export default function HeaderNavigation({dropdowns}:{dropdowns:DropdownConfig[]
           </div>
         </div>;
       })}
-      <Link className="primaryNavLink" href="/partnership">Partner</Link>
+      {!account&&<Link className="primaryNavLink" href="/partnership">Partner</Link>}
     </nav>
     {account&&desktopTarget&&createPortal(<div className="desktopAccountPortal">{accountPanel}</div>,desktopTarget)}
-    {account&&mobileTarget&&createPortal(<div className="mobileAccountPortal"><div className="mobileDivider"/><Link href="/member">My dashboard <span>→</span></Link>{account.isAdmin&&<Link href="/admin">Admin console <span>→</span></Link>}<Link href="/member#profile">Edit profile <span>→</span></Link><button type="button" onClick={signOut}>Sign out <span>→</span></button></div>,mobileTarget)}
+    {account&&mobileTarget&&createPortal(<div className="mobileAccountPortal"><div className="mobileDivider"/><span className="mobileAccountLabel">Workspace</span><Link href="/member">My dashboard <span>→</span></Link>{account.isAdmin&&<Link href="/admin">Admin console <span>→</span></Link>}<Link href="/member#profile">Edit profile <span>→</span></Link><span className="mobileAccountLabel mobileAccountLabelSecondary">More</span><Link href="/about">About Mettelo <span>→</span></Link><Link href="/partnership">Partner with Mettelo <span>→</span></Link><button type="button" onClick={signOut}>Sign out <span>→</span></button></div>,mobileTarget)}
   </>;
 }

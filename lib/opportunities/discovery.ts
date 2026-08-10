@@ -10,7 +10,7 @@ type DiscoveredJob={
 
 type Classification={score:number;status:'high'|'medium'|'low';roleFamily:string;reasons:string[]};
 
-const searchTerms=['data analyst','data scientist','data engineer','machine learning'];
+const searchTerms=['data analyst','data scientist','data engineer','machine learning','data internship','AI internship','analytics graduate','data volunteer'];
 const adzunaCountries=[['gb','GB'],['in','IN']] as const;
 const joobleLocations=[['Nigeria','NG'],['India','IN'],['United Kingdom','GB']] as const;
 

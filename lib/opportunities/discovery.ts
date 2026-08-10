@@ -68,7 +68,8 @@ export async function runOpportunityDiscovery(){
   const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});const cutoff=Date.now()-7*24*60*60*1000;
   const sourceCalls:[string,()=>Promise<DiscoveredJob[]>][]=[['Arbeitnow',fetchArbeitnow],['Remotive',fetchRemotive],['Adzuna',fetchAdzuna],['Jooble',fetchJooble]];
   const settled=await Promise.all(sourceCalls.map(async([name,fn])=>{try{return {name,jobs:await fn(),error:null};}catch(error){return {name,jobs:[] as DiscoveredJob[],error:error instanceof Error?error.message:String(error)};}}));
-  const sourceErrors=settled.filter(x=>x.error).map(x=>`${x.name}: ${x.error}`);const sourceStats=settled.map(x=>({source:x.name,discovered:x.jobs.length,configured:!(x.name==='Adzuna'&&!process.env.ADZUNA_APP_ID)||!(x.name==='Jooble'&&!process.env.JOOBLE_API_KEY),error:x.error}));
+  const sourceErrors=settled.filter(x=>x.error).map(x=>`${x.name}: ${x.error}`);
+  const sourceStats=settled.map(x=>({source:x.name,discovered:x.jobs.length,configured:x.name==='Adzuna'?Boolean(process.env.ADZUNA_APP_ID&&process.env.ADZUNA_APP_KEY):x.name==='Jooble'?Boolean(process.env.JOOBLE_API_KEY):true,error:x.error}));
   const deduped=new Map<string,DiscoveredJob>();for(const item of settled.flatMap(x=>x.jobs)){if(item.publishedAt&&new Date(item.publishedAt).getTime()<cutoff)continue;deduped.set(`${item.provider}:${item.externalId}`,item);}const jobs=[...deduped.values()];
   let relevant=0,ingested=0,published=0,rejected=0,duplicates=0,upgraded=0;
   for(const job of jobs){const cls=classify(job.title,job.description);if(cls.status!=='high'||cls.score<85){rejected++;continue;}relevant++;

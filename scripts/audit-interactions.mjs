@@ -28,6 +28,7 @@ function routeExists(url){
 
 for(const file of files){
   const text=fs.readFileSync(file,'utf8');
+  const hasForm=/<form\b/.test(text);
 
   for(const match of text.matchAll(/<form\b([^>]*)>/gs)){
     const attrs=match[1]||'';const line=lineOf(text,match.index||0);
@@ -40,11 +41,13 @@ for(const file of files){
 
   for(const match of text.matchAll(/<button\b([^>]*)>/gs)){
     const attrs=match[1]||'';const line=lineOf(text,match.index||0);
-    const submit=/\btype\s*=\s*["']submit["']/.test(attrs);
+    const explicitSubmit=/\btype\s*=\s*["']submit["']/.test(attrs);
+    const explicitButton=/\btype\s*=\s*["']button["']/.test(attrs);
     const handler=/\bonClick\s*=|\bonPointerDown\s*=|\bonMouseDown\s*=/.test(attrs);
     const menuControl=/\baria-(expanded|controls|haspopup)\s*=/.test(attrs);
-    const wired=submit||handler||menuControl;
-    inventory.push({kind:'button',file,line,wired,submit});
+    const implicitSubmit=!explicitButton&&!explicitSubmit&&hasForm;
+    const wired=explicitSubmit||implicitSubmit||handler||menuControl;
+    inventory.push({kind:'button',file,line,wired,submit:explicitSubmit||implicitSubmit});
     if(!wired)addIssue('error',file,line,'button-no-action','Button has no click handler and is not a submit/menu control.');
   }
 

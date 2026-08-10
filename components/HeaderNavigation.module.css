@@ -1,0 +1,17 @@
+.headerNavigation{}
+
+:global(.authSignedIn .topbar){display:none}
+:global(.authSignedIn .siteHeader){box-shadow:0 1px 0 rgba(16,19,29,.08)}
+:global(.authSignedIn .nav){height:72px}
+:global(.authSignedIn .mobileMenuPanel>a[href="/about"]),
+:global(.authSignedIn .mobileMenuPanel>a[href="/partnership"]){display:none}
+
+:global(.accountSecondaryLinks){margin-top:5px;padding-top:5px;border-top:1px solid rgba(16,19,29,.08)}
+:global(.accountSecondaryLinks>a){width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:9px 11px;border-radius:10px;color:#5b6472;font-size:.75rem;font-weight:600}
+:global(.accountSecondaryLinks>a:hover),:global(.accountSecondaryLinks>a:focus-visible){background:#f7efdd;color:#10131d}
+:global(.mobileAccountLabel){display:block;margin:16px 0 5px;color:#7a8290;font-size:.64rem;font-weight:750;letter-spacing:.1em;text-transform:uppercase}
+:global(.mobileAccountLabelSecondary){padding-top:10px;border-top:1px solid rgba(16,19,29,.08)}
+
+@media(max-width:1080px){
+  :global(.authSignedIn .mobileMenuPanel){padding-top:12px}
+}

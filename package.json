@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "audit:interactions": "node scripts/audit-interactions.mjs",
     "admin:promote": "node scripts/promote-admin.mjs"
   },
   "dependencies": {

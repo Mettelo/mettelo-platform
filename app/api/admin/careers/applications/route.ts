@@ -16,7 +16,7 @@ export async function PATCH(request:Request){
     const {error}=await db.from('career_applications').update(patch).eq('id',id);if(error)throw error;
     await db.from('career_application_events').insert({application_id:id,from_status:application.status,to_status:status,note:note||null,actor_user_id:user.id});
     const message=careerMessage(status,roleTitle,{interviewAt,interviewDetails:status==='interview'?note:null,offerDetails:status==='offer'?note:null});
-    const sent=await sendCareerEmail(db,{email:application.email,subject:message.subject,body:message.body,templateKey:`career_${status}`,userId:application.user_id||null,actionUrl:application.user_id?'/member':null});
+    const sent=await sendCareerEmail(db,{email:application.email,subject:message.subject,body:message.body,templateKey:`career_${status}`,userId:application.user_id||null,actionUrl:application.user_id?'/member/applications#careers':'/careers',name:application.full_name,roleTitle,payload:{career_application_id:id,interview_at:interviewAt?new Date(interviewAt).toLocaleString('en-GB'):null,stage_note:note||null}});
     return NextResponse.json({ok:true,email_sent:sent.sent});
   }catch(error){console.error('career stage update error',error);return NextResponse.json({error:'Unable to update candidate stage.'},{status:500});}
 }

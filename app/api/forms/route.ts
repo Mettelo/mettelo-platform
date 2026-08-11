@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {notifyAdmins,notifyUser,serviceDb} from '@/lib/project-flow';
 
-const allowedTypes=new Set(['contact','partnership','project_application','contributor','feedback']);
+const allowedTypes=new Set(['contact','partnership','project_application','feedback']);
 
 export async function POST(request:Request){
   try{

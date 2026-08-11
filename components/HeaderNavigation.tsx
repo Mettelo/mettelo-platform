@@ -73,7 +73,7 @@ export default function HeaderNavigation({dropdowns}:{dropdowns:DropdownConfig[]
 
   return <>
     <nav ref={navRef} className={`${styles.headerNavigation} primaryNav`} aria-label="Primary navigation">
-      <Link className="primaryNavLink" href="/about">About</Link>
+      <Link className="primaryNavLink" href="/about">About Mettelo</Link>
       {dropdowns.map(({label,items})=>{const isOpen=open===label;const panelId=`nav-${label.toLowerCase().replaceAll(' ','-')}-panel`;return <div className={`navDropdown${isOpen?' isOpen':''}`} key={label}><button className="navDropdownTrigger" type="button" aria-expanded={isOpen} aria-controls={panelId} onClick={()=>setOpen(isOpen?null:label)}><span>{label}</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg></button><div className="navDropdownPanel" id={panelId} aria-hidden={!isOpen}>{items.map(([title,href,copy])=><Link key={href} href={href} onClick={()=>setOpen(null)}><strong>{title}</strong><small>{copy}</small></Link>)}</div></div>;})}
     </nav>
     {account&&desktopTarget&&createPortal(<div className="desktopAccountPortal">{accountPanel}</div>,desktopTarget)}

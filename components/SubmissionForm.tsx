@@ -10,8 +10,10 @@ type Props={
   successMessage?:string;
 };
 
-export default function SubmissionForm({formType,children,submitLabel,className='formCard',successMessage='Thanks — your submission has been received.'}:Props){
-  const [status,setStatus]=useState<'idle'|'submitting'|'success'|'error'>('idle');
+function confirmationType(formType:string){return formType==='project_application'?'project_interest':formType}
+
+export default function SubmissionForm({formType,children,submitLabel,className='formCard'}:Props){
+  const [status,setStatus]=useState<'idle'|'submitting'|'error'>('idle');
   const [message,setMessage]=useState('');
 
   async function submit(event:FormEvent<HTMLFormElement>){
@@ -24,12 +26,10 @@ export default function SubmissionForm({formType,children,submitLabel,className=
       const response=await fetch('/api/forms',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({formType,data})});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(payload.error||'We could not submit this form. Please try again.');
-      form.reset();
-      setStatus('success');
-      setMessage(successMessage);
       if(typeof window!=='undefined' && (window as Window & {gtag?:(...args:unknown[])=>void}).gtag){
         (window as Window & {gtag?:(...args:unknown[])=>void}).gtag?.('event',`${formType}_submitted`);
       }
+      window.location.assign(`/submitted?type=${encodeURIComponent(confirmationType(formType))}`);
     }catch(error){
       setStatus('error');
       setMessage(error instanceof Error?error.message:'We could not submit this form. Please try again.');

@@ -7,7 +7,7 @@ type Project={id:string;title:string;roles:Role[]};
 
 export default function ProjectApplicationForm({projects}:{projects:Project[]}){
   const [projectId,setProjectId]=useState(projects[0]?.id||'');
-  const [status,setStatus]=useState<'idle'|'submitting'|'success'|'error'>('idle');
+  const [status,setStatus]=useState<'idle'|'submitting'|'error'>('idle');
   const [message,setMessage]=useState('');
   const selected=useMemo(()=>projects.find(p=>p.id===projectId),[projects,projectId]);
 
@@ -18,7 +18,7 @@ export default function ProjectApplicationForm({projects}:{projects:Project[]}){
       const response=await fetch('/api/project-applications',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(payload.error||'Unable to submit application.');
-      setStatus('success');setMessage('Application received. It is now visible on your dashboard and application tracker.');form.reset();
+      window.location.assign('/submitted?type=project_application');
     }catch(error){setStatus('error');setMessage(error instanceof Error?error.message:'Unable to submit application.');}
   }
 
@@ -31,6 +31,5 @@ export default function ProjectApplicationForm({projects}:{projects:Project[]}){
     <label htmlFor="application-statement">What will you contribute? *</label><textarea id="application-statement" name="contribution_statement" required minLength={40} placeholder="Be specific about the part of the brief you can own, your relevant evidence and how you will contribute to the team."/>
     <button className="button dark" type="submit" disabled={status==='submitting'} style={{width:'100%',marginTop:20}}>{status==='submitting'?'Submitting…':'Submit application →'}</button>
     <div className={`formStatus ${status}`} role="status" aria-live="polite">{message}</div>
-    {status==='success'&&<div className="actions" style={{marginTop:12}}><a className="button dark" href="/member/applications">Track application →</a><a className="button ghost" href="/member">Open dashboard</a></div>}
   </form>;
 }

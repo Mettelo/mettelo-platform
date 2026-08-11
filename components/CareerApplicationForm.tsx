@@ -7,8 +7,8 @@ export default function CareerApplicationForm({roleId,roleTitle}:{roleId:string;
   async function submit(event:React.FormEvent<HTMLFormElement>){
     event.preventDefault();setBusy(true);setStatus('');
     const form=event.currentTarget;const data=new FormData(form);data.set('role_id',roleId);
-    try{const response=await fetch('/api/careers/apply',{method:'POST',body:data});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||'Unable to submit application.');form.reset();setStatus('Application submitted. Check your email for confirmation.');}
-    catch(error){setStatus(error instanceof Error?error.message:'Unable to submit application.');}finally{setBusy(false);}
+    try{const response=await fetch('/api/careers/apply',{method:'POST',body:data});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||'Unable to submit application.');window.location.assign(`/submitted?type=career_application&role=${encodeURIComponent(roleTitle)}`);}
+    catch(error){setStatus(error instanceof Error?error.message:'Unable to submit application.');setBusy(false);}
   }
   return <form className="careerApplyForm" onSubmit={submit}>
     <div className="careerFormSection"><div className="careerFormHeading"><span>01</span><div><small>Your details</small><h3>Tell us who you are</h3></div></div><div className="careerFormGrid"><label>Full name<input name="full_name" required maxLength={140} placeholder="Your full name"/></label><label>Email<input name="email" type="email" required autoComplete="email" placeholder="you@example.com"/></label><label>Phone <small>Optional</small><input name="phone" maxLength={50} placeholder="Include country code"/></label><label>Current location<input name="location" maxLength={160} placeholder="City, country"/></label></div></div>

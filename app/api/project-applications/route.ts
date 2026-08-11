@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {notifyAdmins,notifyUser,serviceDb} from '@/lib/project-flow';
 
+function acceptsApplications(project:{status:string;project_type:string}){
+  if(project.project_type==='open')return !['pilot','completed','archived','cancelled'].includes(project.status);
+  return ['recruiting','open','forming'].includes(project.status);
+}
+
 export async function POST(request:Request){
   try{
     const supabase=await createServerSupabaseClient();
@@ -19,12 +24,12 @@ export async function POST(request:Request){
 
     if(!projectId||statement.length<40) return NextResponse.json({error:'Choose a project and explain your contribution in at least 40 characters.'},{status:400});
 
-    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status').eq('id',projectId).single();
+    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status,project_type').eq('id',projectId).single();
     if(projectError||!project) return NextResponse.json({error:'Project not found.'},{status:404});
 
     const isInterest=requestedKind==='interest';
     if(isInterest&&project.status!=='pilot') return NextResponse.json({error:'This project is already open for applications. Apply to a project role instead.'},{status:400});
-    if(!isInterest&&!['recruiting','open','forming'].includes(project.status)) return NextResponse.json({error:'This project is not currently accepting applications.'},{status:400});
+    if(!isInterest&&!acceptsApplications(project)) return NextResponse.json({error:'This project is not currently accepting applications.'},{status:400});
 
     let role:{id:string;title:string}|null=null;
     if(!isInterest){
@@ -49,7 +54,7 @@ export async function POST(request:Request){
     }).select('id,status,application_kind').single();
 
     if(error){
-      if(error.code==='23505') return NextResponse.json({error:isInterest?'You already registered interest in this project.':'You already have an application for this project role.'},{status:409});
+      if(error.code==='23505') return NextResponse.json({error:isInterest?'You already registered interest in this project.':'You already have an active application for this project role. Track it in My Mettelo, or reapply after a previous application is withdrawn or declined.'},{status:409});
       throw error;
     }
 

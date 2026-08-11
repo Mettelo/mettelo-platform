@@ -5,50 +5,18 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  lint:
-    name: Lint
+  verify:
+    name: Lint, typecheck, interactions and build
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm install
-      - run: npm run lint
-
-  typecheck:
-    name: Typecheck
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm install
-      - run: npm run typecheck
-
-  interactions:
-    name: Interaction audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm install
-      - run: npm run audit:interactions
-      - name: Upload interaction audit
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: interaction-audit
-          path: artifacts/interaction-audit.*
-          if-no-files-found: warn
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       NEXT_PUBLIC_SITE_URL: https://mettelo.com
       NEXT_PUBLIC_SUPABASE_URL: https://aconptuqupsgznyrxhrh.supabase.co
@@ -58,5 +26,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run audit:interactions
       - run: npm run build
+      - name: Upload interaction audit on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interaction-audit
+          path: artifacts/interaction-audit.*
+          if-no-files-found: ignore
+          retention-days: 3

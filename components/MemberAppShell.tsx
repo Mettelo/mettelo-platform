@@ -12,7 +12,7 @@ import styles from './MemberAppShell.module.css';
 type Account={name:string;email:string;avatarUrl:string|null;isAdmin:boolean}|null;
 const groups=[
   {label:'',items:[['Dashboard','/member'],['Recommended','/member/recommended']]},
-  {label:'My work',items:[['Applications','/member/applications'],['My Projects','/member/projects'],['Proof & Contributions','/member/proof']]},
+  {label:'My work',items:[['Applications','/member/applications'],['Saved Opportunities','/member/saved-opportunities'],['My Projects','/member/projects'],['Proof & Contributions','/member/proof']]},
   {label:'Discover',items:[['Projects','/projects'],['Opportunities','/opportunities'],['Events','/events'],['People','/people'],['Community','/community']]},
   {label:'Identity',items:[['Profile','/member/profile']]}
 ] as const;

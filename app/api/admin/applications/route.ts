@@ -28,15 +28,16 @@ export async function PATCH(request:Request){
     const id=String(body.id||'');
     const status=String(body.status||'');
     const reviewerNotes=String(body.reviewer_notes||'').trim().slice(0,1500);
-    if(!id||!statuses.has(status)) return NextResponse.json({error:'Choose a valid application and status.'},{status:400});
+    if(!id||!statuses.has(status)) return NextResponse.json({error:'Choose a valid project request and status.'},{status:400});
 
-    const {data:application,error:loadError}=await db.from('project_applications').select('id,project_id,project_role_id,user_id,status,projects(id,title,status,team_size_threshold,kickoff_at)').eq('id',id).single();
-    if(loadError||!application) return NextResponse.json({error:'Application not found.'},{status:404});
+    const {data:application,error:loadError}=await db.from('project_applications').select('id,project_id,project_role_id,user_id,status,application_kind,requested_role,projects(id,title,status,team_size_threshold,kickoff_at)').eq('id',id).single();
+    if(loadError||!application) return NextResponse.json({error:'Project request not found.'},{status:404});
     const project=Array.isArray(application.projects)?application.projects[0]:application.projects;
     if(!project)return NextResponse.json({error:'Project not found.'},{status:404});
+    const isInterest=application.application_kind==='interest';
 
     if(status==='declined'&&(['approved','waiting_for_team','team_complete','accepted'].includes(application.status)||project.status==='active')){
-      return NextResponse.json({error:'This applicant has already joined the forming/active team. Remove or replace the team member through project controls instead of declining the application.'},{status:409});
+      return NextResponse.json({error:'This member has already joined the forming/active team. Remove or replace them through project controls instead.'},{status:409});
     }
 
     if(status!=='approved'){
@@ -45,7 +46,7 @@ export async function PATCH(request:Request){
       const {data:updated,error}=await db.from('project_applications').update({...patch,updated_at:new Date().toISOString()}).eq('id',id).select('id,status').single();
       if(error)throw error;
       const email=await memberEmail(db,application.user_id);
-      if(status==='declined')await notifyUser(db,{userId:application.user_id,email,projectId:application.project_id,applicationId:id,type:'application_declined',title:'Project application update',body:`Your application for ${project.title} was not selected.${reviewerNotes?` Reason: ${reviewerNotes}`:''}`,actionUrl:'/member#applications',subject:`Application update — ${project.title}`});
+      if(status==='declined')await notifyUser(db,{userId:application.user_id,email,projectId:application.project_id,applicationId:id,type:'application_declined',title:'Project request update',body:`Your ${isInterest?'interest':'application'} for ${project.title} was not selected.${reviewerNotes?` Reason: ${reviewerNotes}`:''}`,actionUrl:'/member/applications',subject:`Project request update — ${project.title}`});
       return NextResponse.json({ok:true,application:updated});
     }
 
@@ -63,7 +64,8 @@ export async function PATCH(request:Request){
     if(error)throw error;
 
     const applicantEmail=await memberEmail(db,application.user_id);
-    await notifyUser(db,{userId:application.user_id,email:applicantEmail,projectId:application.project_id,applicationId:id,type:'application_approved',title:'Application approved',body:full?`You are approved for ${project.title}. The team threshold has been reached and kickoff is starting.`:`You are approved for ${project.title}. ${filled} of ${threshold} team spots are now filled.`,actionUrl:'/member#applications',subject:`Approved — ${project.title}`});
+    const roleLabel=application.requested_role?` (${application.requested_role})`:'';
+    await notifyUser(db,{userId:application.user_id,email:applicantEmail,projectId:application.project_id,applicationId:id,type:'application_approved',title:'Project request approved',body:full?`You are approved for ${project.title}${roleLabel}. The team threshold has been reached and kickoff is starting.`:`You are approved for ${project.title}${roleLabel}. ${filled} of ${threshold} team spots are now filled.`,actionUrl:'/member/applications',subject:`Approved — ${project.title}`});
 
     if(full){
       await db.from('projects').update({status:'active',kickoff_at:project.kickoff_at||now,starts_at:project.kickoff_at||now,updated_at:now}).eq('id',application.project_id);
@@ -78,7 +80,7 @@ export async function PATCH(request:Request){
 
     return NextResponse.json({ok:true,application:updated,team:{filled,threshold,full},project_status:full?'active':'forming'});
   }catch(error){
-    console.error('application review error',error);
-    return NextResponse.json({error:'Unable to update this application.'},{status:500});
+    console.error('project request review error',error);
+    return NextResponse.json({error:'Unable to update this project request.'},{status:500});
   }
 }

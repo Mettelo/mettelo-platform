@@ -1,3 +1,5 @@
+'use client';
+
 type Application={id:string;status:string;submitted_at:string;project_id:string;projects:{title:string}|null;project_roles:{title:string}|null};
 
 const steps=['submitted','in_review','shortlisted','accepted'] as const;

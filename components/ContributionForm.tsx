@@ -6,7 +6,7 @@ type Project={id:string;title:string};
 type Task={id:string;project_id:string;title:string;status:string};
 
 export default function ContributionForm({projects,tasks=[]}:{projects:Project[];tasks?:Task[]}){
-  const [status,setStatus]=useState<'idle'|'submitting'|'success'|'error'>('idle');
+  const [status,setStatus]=useState<'idle'|'submitting'|'error'>('idle');
   const [message,setMessage]=useState('');
   const [projectId,setProjectId]=useState(projects[0]?.id||'');
   const relevantTasks=useMemo(()=>tasks.filter(task=>task.project_id===projectId&&task.status!=='done'),[tasks,projectId]);
@@ -16,7 +16,7 @@ export default function ContributionForm({projects,tasks=[]}:{projects:Project[]
     try{
       const response=await fetch('/api/contributions',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});const body=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(body.error||'Unable to submit contribution.');
-      setStatus('success');setMessage('Evidence submitted for review. Linked tasks move to Review until the evidence is verified.');form.reset();
+      window.location.assign('/submitted?type=contribution');
     }catch(error){setStatus('error');setMessage(error instanceof Error?error.message:'Unable to submit contribution.');}
   }
   if(!projects.length) return <div className="emptyState"><h3>No active project membership.</h3><p>You can submit project evidence after you are accepted into a Labs team.</p></div>;

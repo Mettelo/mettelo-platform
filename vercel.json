@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/project-formation",
       "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/cron/monthly-spotlight",
+      "schedule": "10 0 1 * *"
     }
   ]
 }

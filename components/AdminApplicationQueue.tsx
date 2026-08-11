@@ -1,37 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-
+import {useMemo,useState} from 'react';
 type Item={id:string;name:string;email:string;project:string;role:string;status:string;submitted_at:string;statement:string;portfolio_url:string|null;availability:string|null};
 
 export default function AdminApplicationQueue({initialItems}:{initialItems:Item[]}){
-  const [items,setItems]=useState(initialItems);
-  const [working,setWorking]=useState('');
-  const [message,setMessage]=useState('');
-  const [notes,setNotes]=useState<Record<string,string>>({});
-
-  async function update(id:string,status:string){
-    setWorking(id);setMessage('');
-    try{
-      const response=await fetch('/api/admin/applications',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id,status,reviewer_notes:notes[id]||''})});
-      const payload=await response.json().catch(()=>({}));
-      if(!response.ok) throw new Error(payload.error||'Unable to update application.');
-      setItems(current=>current.map(item=>item.id===id?{...item,status:payload.application?.status||status}:item));
-      setMessage(status==='approved'?(payload.team?.full?`Approved. Team reached ${payload.team.filled}/${payload.team.threshold}; project kicked off.`:`Approved. Team is forming at ${payload.team?.filled||0}/${payload.team?.threshold||'—'} spots.`):'Application status updated.');
-    }catch(error){setMessage(error instanceof Error?error.message:'Unable to update application.');}
-    finally{setWorking('');}
+  const [items,setItems]=useState(initialItems);const [working,setWorking]=useState('');const [message,setMessage]=useState('');const [notes,setNotes]=useState<Record<string,string>>({});const [selected,setSelected]=useState<string[]>([]);
+  const selectedItems=useMemo(()=>items.filter(item=>selected.includes(item.id)),[items,selected]);const selectedProject=selectedItems[0]?.project||'';
+  async function update(id:string,status:string){const response=await fetch('/api/admin/applications',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id,status,reviewer_notes:notes[id]||''})});const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error||'Unable to update application.');setItems(current=>current.map(item=>item.id===id?{...item,status:payload.application?.status||status}:item));return payload;}
+  async function updateOne(id:string,status:string){setWorking(id);setMessage('');try{const payload=await update(id,status);setMessage(status==='approved'?(payload.team?.full?`Approved. Team reached ${payload.team.filled}/${payload.team.threshold}; project kicked off.`:`Approved. Team is forming at ${payload.team?.filled||0}/${payload.team?.threshold||'—'} spots.`):'Application status updated.');}catch(error){setMessage(error instanceof Error?error.message:'Unable to update application.');}finally{setWorking('');}}
+  function toggle(item:Item){setSelected(current=>current.includes(item.id)?current.filter(id=>id!==item.id):selectedProject&&selectedProject!==item.project?current:[...current,item.id]);}
+  async function bulk(status:'approved'|'shortlisted'|'in_review'|'declined'){
+    if(!selectedItems.length)return;setWorking('bulk');setMessage('');let changed=0;
+    try{for(const item of selectedItems){const payload=await update(item.id,status);changed++;if(status==='approved'&&payload.team?.full){setMessage(`Approved ${changed} selected applicant${changed===1?'':'s'}. ${item.project} reached ${payload.team.filled}/${payload.team.threshold}; bulk approval stopped because the team is now full. Remaining applicants stay in review.`);break;}}if(!(status==='approved'&&message))setMessage(`${changed} selected application${changed===1?'':'s'} updated.`);setSelected([]);}catch(error){setMessage(error instanceof Error?error.message:'Bulk review could not be completed.');}finally{setWorking('');}
   }
-
   return <div className="applicationQueue">
-    <div className="actions" style={{marginBottom:16}}><a className="button ghost" href="/admin/team-formation">Open team formation →</a></div>
-    {!items.length?<div className="emptyState"><h3>No Labs applications yet.</h3><p>When a project is open for applications, member submissions appear here automatically.</p></div>:items.map(item=><article className="applicationReview" key={item.id}>
-      <div className="panelHead"><div><span className="chip">{item.status.replaceAll('_',' ').toUpperCase()}</span><h3 style={{margin:'10px 0 4px'}}>{item.name}</h3><small>{item.email}</small></div><small>{new Date(item.submitted_at).toLocaleString('en-GB')}</small></div>
-      <div className="metaRow"><span className="metaPill">{item.project}</span><span className="metaPill">{item.role}</span>{item.availability&&<span className="metaPill">{item.availability}</span>}</div>
-      <p>{item.statement}</p>
-      {item.portfolio_url&&<a className="linkArrow" href={item.portfolio_url} target="_blank" rel="noopener noreferrer">Open evidence →</a>}
-      <label style={{display:'block',marginTop:14}}>Reviewer note / decline reason</label><textarea value={notes[item.id]||''} onChange={event=>setNotes(current=>({...current,[item.id]:event.target.value}))} placeholder="Optional for approval; recommended when declining." maxLength={1500}/>
-      <div className="reviewActions"><button className="button ghost" type="button" disabled={working===item.id} onClick={()=>update(item.id,'in_review')}>Under review</button><button className="button ghost" type="button" disabled={working===item.id} onClick={()=>update(item.id,'shortlisted')}>Shortlist</button><button className="button dark" type="button" disabled={working===item.id} onClick={()=>update(item.id,'approved')}>Approve → team</button><button className="button ghost" type="button" disabled={working===item.id} onClick={()=>update(item.id,'declined')}>Decline</button></div>
-    </article>)}
-    <div className="formStatus" role="status" aria-live="polite">{message}</div>
+    <div className="panel" style={{marginBottom:16,padding:14}}><div className="panelHead"><div><strong>Bulk review</strong><small style={{display:'block',marginTop:4}}>Select applicants from one project at a time. Approval stops automatically when that team becomes full.</small></div><span className="chip">{selected.length} SELECTED</span></div><div className="actions" style={{marginTop:10}}><button className="button ghost" type="button" disabled={!selected.length||working==='bulk'} onClick={()=>bulk('in_review')}>Mark under review</button><button className="button ghost" type="button" disabled={!selected.length||working==='bulk'} onClick={()=>bulk('shortlisted')}>Shortlist selected</button><button className="button dark" type="button" disabled={!selected.length||working==='bulk'} onClick={()=>bulk('approved')}>{working==='bulk'?'Processing…':'Approve selected → team'}</button><button className="button ghost" type="button" disabled={!selected.length||working==='bulk'} onClick={()=>bulk('declined')}>Decline selected</button></div></div>
+    {!items.length?<div className="emptyState"><h3>No applications on this page.</h3><p>New project requests appear here automatically.</p></div>:items.map(item=>{const locked=Boolean(selectedProject&&selectedProject!==item.project&&!selected.includes(item.id));return <article className="applicationReview" key={item.id}><div className="panelHead"><div style={{display:'flex',gap:12,alignItems:'flex-start'}}><input type="checkbox" checked={selected.includes(item.id)} disabled={locked||working==='bulk'} onChange={()=>toggle(item)} aria-label={`Select ${item.name}`}/><div><span className="chip">{item.status.replaceAll('_',' ').toUpperCase()}</span><h3 style={{margin:'10px 0 4px'}}>{item.name}</h3><small>{item.email}</small></div></div><small>{new Date(item.submitted_at).toLocaleString('en-GB')}</small></div><div className="metaRow"><span className="metaPill">{item.project}</span><span className="metaPill">{item.role}</span>{item.availability&&<span className="metaPill">{item.availability}</span>}</div><p>{item.statement}</p>{item.portfolio_url&&<a className="linkArrow" href={item.portfolio_url} target="_blank" rel="noopener noreferrer">Open evidence →</a>}<label style={{display:'block',marginTop:14}}>Reviewer note / decline reason</label><textarea value={notes[item.id]||''} onChange={event=>setNotes(current=>({...current,[item.id]:event.target.value}))} maxLength={1500}/><div className="reviewActions"><button className="button ghost" type="button" disabled={working===item.id||working==='bulk'} onClick={()=>updateOne(item.id,'in_review')}>Under review</button><button className="button ghost" type="button" disabled={working===item.id||working==='bulk'} onClick={()=>updateOne(item.id,'shortlisted')}>Shortlist</button><button className="button dark" type="button" disabled={working===item.id||working==='bulk'} onClick={()=>updateOne(item.id,'approved')}>Approve → team</button><button className="button ghost" type="button" disabled={working===item.id||working==='bulk'} onClick={()=>updateOne(item.id,'declined')}>Decline</button></div></article>})}<div className="formStatus" role="status" aria-live="polite">{message}</div>
   </div>;
 }

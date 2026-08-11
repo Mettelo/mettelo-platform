@@ -53,16 +53,22 @@ export default function HeaderNavigation({dropdowns}:{dropdowns:DropdownConfig[]
     document.querySelectorAll<HTMLAnchorElement>('a[href="/contribute"]').forEach(link=>link.remove());
     const groups=Array.from(document.querySelectorAll<HTMLElement>('.mobileMenuPanel .mobileGroup'));
     const organisationGroup=groups.find(group=>group.querySelector('strong')?.textContent?.trim()==='For Organisations');
-    if(!organisationGroup)return;
-    const heading=organisationGroup.querySelector('strong');
-    if(heading)heading.textContent='Work With Us';
-    organisationGroup.querySelector('a[href="/organisations"]')?.remove();
-    if(!organisationGroup.querySelector('a[href="/careers"]')){
-      const careers=document.createElement('a');
-      careers.href='/careers';
-      careers.innerHTML='Careers<span>→</span>';
-      heading?.insertAdjacentElement('afterend',careers);
+    if(organisationGroup){
+      const heading=organisationGroup.querySelector('strong');
+      if(heading)heading.textContent='Work With Us';
+      organisationGroup.querySelector('a[href="/organisations"]')?.remove();
+      if(!organisationGroup.querySelector('a[href="/careers"]')){
+        const careers=document.createElement('a');
+        careers.href='/careers';
+        careers.innerHTML='Careers<span>→</span>';
+        heading?.insertAdjacentElement('afterend',careers);
+      }
     }
+    const mobilePanel=document.querySelector<HTMLElement>('.mobileMenuPanel');
+    const mobileDetails=mobilePanel?.closest('details');
+    const closeMobile=()=>{if(mobileDetails instanceof HTMLDetailsElement)mobileDetails.open=false;setOpen(null);};
+    mobilePanel?.querySelectorAll('a').forEach(link=>link.addEventListener('click',closeMobile));
+    return()=>mobilePanel?.querySelectorAll('a').forEach(link=>link.removeEventListener('click',closeMobile));
   },[mounted]);
 
   useEffect(()=>{

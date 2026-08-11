@@ -14,6 +14,20 @@ async function adminContext(){
 
 async function emailFor(db:NonNullable<ReturnType<typeof serviceDb>>,userId:string){const {data}=await db.auth.admin.getUserById(userId);return data.user?.email||null;}
 
+export async function GET(){
+  try{
+    const ctx=await adminContext();if('error' in ctx)return ctx.error;const {db}=ctx;
+    const {data:projects,error}=await db.from('projects').select('id,title,status,team_size_threshold,forming_deadline,kickoff_at,lead_user_id,updated_at').in('status',['recruiting','open','forming','active','review']).order('updated_at',{ascending:false});if(error)throw error;
+    const projectIds=(projects||[]).map(project=>project.id);
+    const {data:members}=projectIds.length?await db.from('project_members').select('id,project_id,user_id,team_role,membership_status').in('project_id',projectIds).in('membership_status',['waiting','active']):{data:[]};
+    const userIds=[...new Set((members||[]).map(member=>member.user_id))];
+    const {data:profiles}=userIds.length?await db.from('profiles').select('id,full_name,headline').in('id',userIds):{data:[]};
+    const names=new Map((profiles||[]).map(profile=>[profile.id,profile]));
+    const items=(projects||[]).map(project=>{const team=(members||[]).filter(member=>member.project_id===project.id).map(member=>({id:member.user_id,name:names.get(member.user_id)?.full_name||'Mettelo member',headline:names.get(member.user_id)?.headline||null,team_role:member.team_role,membership_status:member.membership_status}));return {...project,filled:team.length,team};});
+    return NextResponse.json({items});
+  }catch(error){console.error('project flow admin list error',error);return NextResponse.json({error:'Unable to load team formation.'},{status:500});}
+}
+
 export async function POST(request:Request){
   try{
     const ctx=await adminContext();if('error' in ctx)return ctx.error;const {db}=ctx;

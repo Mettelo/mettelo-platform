@@ -40,3 +40,17 @@ export async function POST(request:Request){
     return NextResponse.json({error:'We could not submit this application. Please try again.'},{status:500});
   }
 }
+
+export async function PATCH(request:Request){
+  try{
+    const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});
+    const body=await request.json();const id=String(body.id||'');const action=String(body.action||'');if(!id||action!=='withdraw')return NextResponse.json({error:'Invalid application action.'},{status:400});
+    const db=serviceDb();if(!db)return NextResponse.json({error:'Application service is not configured.'},{status:503});
+    const {data:application}=await db.from('project_applications').select('id,user_id,project_id,status,projects(title)').eq('id',id).maybeSingle();if(!application||application.user_id!==user.id)return NextResponse.json({error:'Application not found.'},{status:404});
+    if(!['submitted','in_review','shortlisted'].includes(application.status))return NextResponse.json({error:'You can only withdraw before an approval or decline decision is made.'},{status:409});
+    const now=new Date().toISOString();const {data:updated,error}=await db.from('project_applications').update({status:'withdrawn',withdrawn_at:now,updated_at:now}).eq('id',id).select('id,status').single();if(error)throw error;
+    const project=Array.isArray(application.projects)?application.projects[0]:application.projects;const title=project?.title||'Mettelo Labs project';
+    await notifyAdmins(db,{projectId:application.project_id,applicationId:id,type:'application_withdrawn',title:`Application withdrawn — ${title}`,body:`${user.user_metadata?.full_name||user.email||'A member'} withdrew their application before a decision.`,actionUrl:'/admin#applications'});
+    return NextResponse.json({ok:true,application:updated});
+  }catch(error){console.error('application withdrawal error',error);return NextResponse.json({error:'Unable to withdraw this application.'},{status:500});}
+}

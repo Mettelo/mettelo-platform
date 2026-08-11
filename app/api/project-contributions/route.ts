@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import {notifyUser} from '@/lib/project-flow';
 
 const statuses=new Set(['needs_changes','verified','rejected']);
 
@@ -23,6 +24,10 @@ export async function PATCH(request:Request){
     const {data,error}=await db.from('contributions').update({verification_status:status,review_notes:notes||null,verified_by:verified?user.id:null,verified_at:verified?new Date().toISOString():null,updated_at:new Date().toISOString()}).eq('id',id).select('id,verification_status').single();
     if(error) throw error;
     if(contribution.task_id){const taskStatus=verified?'done':status==='needs_changes'?'in_progress':'blocked';const {error:taskError}=await db.from('project_tasks').update({status:taskStatus,updated_at:new Date().toISOString()}).eq('id',contribution.task_id);if(taskError)throw taskError;}
+    const [{data:project},{data:recipient}]=await Promise.all([db.from('projects').select('title').eq('id',contribution.project_id).maybeSingle(),db.auth.admin.getUserById(contribution.user_id)]);
+    const outcome=status==='verified'?'verified':status==='needs_changes'?'needs changes':'not verified';
+    const action=status==='needs_changes'&&notes?` Review note: ${notes}`:'';
+    await notifyUser(db,{userId:contribution.user_id,email:recipient.user?.email||null,projectId:contribution.project_id,type:'proof_status_changed',eventKey:'proof_status_changed',title:`Contribution ${outcome}`,body:`Your contribution on ${project?.title||'a Mettelo Labs project'} has been ${outcome}.${action}`,actionUrl:'/member/proof',subject:`Contribution review — ${project?.title||'Mettelo Labs'}`,dedupeKey:`contribution:${id}:${status}`});
     return NextResponse.json({ok:true,contribution:data});
   }catch(error){console.error('project contribution review error',error);return NextResponse.json({error:'Unable to review this contribution.'},{status:500});}
 }

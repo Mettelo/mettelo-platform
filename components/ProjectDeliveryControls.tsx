@@ -5,14 +5,14 @@ import { FormEvent, useState } from 'react';
 type Milestone={id:string;title:string};
 type TeamMember={id:string;name:string;role:string};
 
-export default function ProjectDeliveryControls({projectId,milestones,team}:{projectId:string;milestones:Milestone[];team:TeamMember[]}){
+export default function ProjectDeliveryControls({projectId,projectRunId,milestones,team}:{projectId:string;projectRunId:string|null;milestones:Milestone[];team:TeamMember[]}){
   const [resource,setResource]=useState<'milestone'|'task'>('milestone');
   const [status,setStatus]=useState<'idle'|'saving'|'success'|'error'>('idle');
   const [message,setMessage]=useState('');
   async function submit(event:FormEvent<HTMLFormElement>){
     event.preventDefault();setStatus('saving');setMessage('');
     const form=event.currentTarget;const values=Object.fromEntries(new FormData(form).entries());
-    const payload={...values,resource,project_id:projectId,is_required:new FormData(form).get('is_required')==='on'};
+    const payload={...values,resource,project_id:projectId,project_run_id:projectRunId,is_required:new FormData(form).get('is_required')==='on'};
     try{
       const response=await fetch('/api/project-delivery',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
       const body=await response.json().catch(()=>({}));

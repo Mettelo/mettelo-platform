@@ -22,10 +22,9 @@ export default function AdminApplicationQueue({initialItems}:{initialItems:Item[
     finally{setWorking('');}
   }
 
-  if(!items.length) return <div className="emptyState"><h3>No Labs applications yet.</h3><p>When a project is open for applications, member submissions appear here automatically.</p></div>;
-
   return <div className="applicationQueue">
-    {items.map(item=><article className="applicationReview" key={item.id}>
+    <div className="actions" style={{marginBottom:16}}><a className="button ghost" href="/admin/team-formation">Open team formation →</a></div>
+    {!items.length?<div className="emptyState"><h3>No Labs applications yet.</h3><p>When a project is open for applications, member submissions appear here automatically.</p></div>:items.map(item=><article className="applicationReview" key={item.id}>
       <div className="panelHead"><div><span className="chip">{item.status.replaceAll('_',' ').toUpperCase()}</span><h3 style={{margin:'10px 0 4px'}}>{item.name}</h3><small>{item.email}</small></div><small>{new Date(item.submitted_at).toLocaleString('en-GB')}</small></div>
       <div className="metaRow"><span className="metaPill">{item.project}</span><span className="metaPill">{item.role}</span>{item.availability&&<span className="metaPill">{item.availability}</span>}</div>
       <p>{item.statement}</p>

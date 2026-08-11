@@ -74,7 +74,7 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
         <Link className={styles.brand} href="/member" aria-label="Mettelo member home"><Mark/><strong>Mettelo</strong></Link>
         <a className={styles.search} href="/search"><span aria-hidden="true">⌕</span><span>Search projects, people, opportunities...</span></a>
         <div className={styles.headerActions}>
-          <button className={styles.notification} type="button" aria-label="Notifications" title="Notifications"><span aria-hidden="true">♢</span></button>
+          <span className={styles.notification} aria-label="Notifications coming soon" title="Notifications coming soon"><span aria-hidden="true">♢</span></span>
           <details className={styles.accountMenu}>
             <summary aria-label="Open account menu">
               <span className={styles.avatar} style={account?.avatarUrl?{backgroundImage:`url(${account.avatarUrl})`}:undefined}>{account?.avatarUrl?'':(account?.name?.[0]||'M').toUpperCase()}</span>

@@ -9,7 +9,7 @@ import styles from './MemberAppShell.module.css';
 type Account={name:string;email:string;avatarUrl:string|null}|null;
 
 const groups=[
-  {label:'',items:[['Home','/member'],['Recommended','/member#recommended']]},
+  {label:'',items:[['Home','/'],['Dashboard','/member'],['Recommended','/member#recommended']]},
   {label:'My work',items:[['Applications','/member#applications'],['My Projects','/member#projects'],['Contributions','/member#submit-proof'],['Proof','/member#proof']]},
   {label:'Discover',items:[['Projects','/projects'],['Opportunities','/opportunities'],['Events','/events'],['Community','/community']]},
   {label:'Identity',items:[['Profile','/member#profile']]}
@@ -61,8 +61,9 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
   }
 
   const isActive=(href:string)=>{
+    if(href==='/')return false;
     if(href==='/member')return pathname==='/member';
-    if(href.startsWith('/member#'))return pathname==='/member';
+    if(href.startsWith('/member#'))return false;
     return pathname===href||pathname.startsWith(`${href}/`);
   };
 
@@ -71,7 +72,7 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
   return <div className={styles.appShell}>
     <header className={styles.appHeader}>
       <div className={styles.headerInner}>
-        <Link className={styles.brand} href="/member" aria-label="Mettelo member home"><Mark/><strong>Mettelo</strong></Link>
+        <Link className={styles.brand} href="/member" aria-label="Mettelo member dashboard"><Mark/><strong>Mettelo</strong></Link>
         <a className={styles.search} href="/search"><span aria-hidden="true">⌕</span><span>Search projects, people, opportunities...</span></a>
         <div className={styles.headerActions}>
           <span className={styles.notification} aria-label="Notifications coming soon" title="Notifications coming soon"><span aria-hidden="true">♢</span></span>
@@ -83,6 +84,7 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
             </summary>
             <div className={styles.accountPanel}>
               {account&&<div className={styles.accountIdentity}><strong>{account.name}</strong><small>{account.email}</small></div>}
+              <Link href="/member">Dashboard <span>→</span></Link>
               <Link href="/member#profile">Profile <span>→</span></Link>
               <Link href="/feedback">Give feedback <span>→</span></Link>
               <Link href="/about">About Mettelo <span>→</span></Link>

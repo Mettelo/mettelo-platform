@@ -5,12 +5,12 @@ import {notifyUser,serviceDb} from '@/lib/project-flow';
 const milestoneStatuses=new Set(['planned','in_progress','completed','blocked']);
 const taskStatuses=new Set(['todo','in_progress','review','done','blocked']);
 
-async function accessContext(projectId:string){
+async function accessContext(projectId:string,projectRunId?:string|null){
   const supabase=await createServerSupabaseClient();
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)return{supabase,user:null,membership:null,canLead:false,isAdmin:false};
   const isAdmin=user.app_metadata?.role==='admin';
-  const {data:membership}=await supabase.from('project_members').select('team_role,membership_status,project_run_id').eq('project_id',projectId).eq('user_id',user.id).maybeSingle();
+  let query=supabase.from('project_members').select('team_role,membership_status,project_run_id').eq('project_id',projectId).eq('user_id',user.id).order('joined_at',{ascending:false}).limit(1);if(projectRunId)query=query.eq('project_run_id',projectRunId);const {data:membership}=await query.maybeSingle();
   return{supabase,user,membership,canLead:Boolean(membership&&membership.membership_status==='active'&&membership.team_role==='project_lead'),isAdmin};
 }
 
@@ -18,14 +18,16 @@ export async function POST(request:Request){
   try{
     const body=await request.json();
     const projectId=String(body.project_id||'');
+    const projectRunId=String(body.project_run_id||'')||null;
     const resource=String(body.resource||'');
     if(!projectId)return NextResponse.json({error:'Project is required.'},{status:400});
 
-    const access=await accessContext(projectId);
+    const access=await accessContext(projectId,projectRunId);
     if(!access.user)return NextResponse.json({error:'Authentication required.'},{status:401});
     if(!access.canLead)return NextResponse.json({error:'Only the active Project Lead can create milestones or allocate tasks.'},{status:403});
 
     const runId=access.membership?.project_run_id||null;
+    if(!runId)return NextResponse.json({error:'An active project run is required.'},{status:409});
     const title=String(body.title||'').trim().slice(0,180);
     const description=String(body.description||'').trim().slice(0,1500);
     const isRequired=body.is_required!==false&&body.is_required!=='false';
@@ -89,7 +91,7 @@ export async function PATCH(request:Request){
     const {data:task}=await supabase.from('project_tasks').select('id,project_id,project_run_id,assignee_user_id,title').eq('id',taskId).maybeSingle();
     if(!task)return NextResponse.json({error:'Task not found or inaccessible.'},{status:404});
 
-    const access=await accessContext(task.project_id);
+    const access=await accessContext(task.project_id,task.project_run_id);
     if(access.isAdmin&&!access.membership)return NextResponse.json({error:'Admin access is read-only for task delivery.'},{status:403});
     if(!(access.canLead||task.assignee_user_id===user.id))return NextResponse.json({error:'Only the assignee or Project Lead can update this task.'},{status:403});
 

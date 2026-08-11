@@ -54,8 +54,31 @@ export async function POST(request:Request){
     }
 
     if(resource==='event'){
-      const status=text(body.status,30)||'draft';const eventType=text(body.event_type,30);if(!['ama','workshop','showcase','networking','build_sprint','webinar','meetup','other'].includes(eventType))return NextResponse.json({error:'Choose a valid event type.'},{status:400});if(!['draft','published','completed','cancelled'].includes(status))return NextResponse.json({error:'Invalid event status.'},{status:400});if(!body.starts_at)return NextResponse.json({error:'Event start date and time are required.'},{status:400});const registrationUrl=text(body.registration_url,500);if(status==='published'&&!registrationUrl)return NextResponse.json({error:'Published events need a real registration URL.'},{status:400});
-      const {data,error}=await db.from('events').upsert({slug,title,event_type:eventType,summary:text(body.summary,900)||null,starts_at:body.starts_at,ends_at:body.ends_at||null,location_label:text(body.location_label,180)||null,registration_url:registrationUrl||null,replay_url:text(body.replay_url,500)||null,status,updated_at:new Date().toISOString()},{onConflict:'slug'}).select('*').single();if(error)throw error;return NextResponse.json({ok:true,item:data});
+      const status=text(body.status,30)||'draft';
+      const eventType=text(body.event_type,40)||'community_session';
+      const deliveryMode=text(body.delivery_mode,30)||'online';
+      const allowedTypes=['ama','workshop','office_hours','community_session','showcase','webinar','networking','summit','build_sprint','other'];
+      const allowedStatuses=['draft','published','registration_closed','completed','cancelled','archived'];
+      if(!allowedTypes.includes(eventType))return NextResponse.json({error:'Choose a valid event type.'},{status:400});
+      if(!allowedStatuses.includes(status))return NextResponse.json({error:'Invalid event status.'},{status:400});
+      if(!['online','in_person','hybrid'].includes(deliveryMode))return NextResponse.json({error:'Choose a valid event format.'},{status:400});
+      if(!body.starts_at)return NextResponse.json({error:'Event start date and time are required.'},{status:400});
+      const registrationRequired=body.registration_required===true||body.registration_required==='true'||body.registration_required==='on';
+      const registrationUrl=text(body.registration_url,500);
+      if(status==='published'&&registrationRequired&&!registrationUrl)return NextResponse.json({error:'Published events that require registration need a real registration URL.'},{status:400});
+      const speakerNames=Array.isArray(body.speaker_names)?body.speaker_names.map((value:unknown)=>text(value,120)).filter(Boolean).slice(0,20):text(body.speaker_names,1000).split(',').map(v=>v.trim()).filter(Boolean).slice(0,20);
+      const now=new Date().toISOString();
+      const {data,error}=await db.from('events').upsert({
+        slug,title,event_type:eventType,summary:text(body.summary,900)||null,description:text(body.description,12000)||null,
+        starts_at:body.starts_at,ends_at:body.ends_at||null,timezone:text(body.timezone,80)||'Europe/London',delivery_mode:deliveryMode,
+        location_label:text(body.location_label,180)||null,host_name:text(body.host_name,180)||null,speaker_names:speakerNames,
+        capacity:body.capacity?Math.max(1,Number(body.capacity)):null,registration_required:registrationRequired,
+        registration_platform:text(body.registration_platform,100)||null,registration_label:text(body.registration_label,80)||null,
+        registration_url:registrationUrl||null,replay_url:text(body.replay_url,500)||null,featured_image:text(body.featured_image,500)||null,
+        featured_image_alt:text(body.featured_image_alt,240)||null,seo_title:text(body.seo_title,180)||null,seo_description:text(body.seo_description,320)||null,
+        status,published_at:status==='published'?now:null,archived_at:status==='archived'?now:null,updated_at:now
+      },{onConflict:'slug'}).select('*').single();
+      if(error)throw error;return NextResponse.json({ok:true,item:data});
     }
     return NextResponse.json({error:'Unknown content type.'},{status:400});
   }catch(error){console.error('admin content error',error);return NextResponse.json({error:'Unable to save this content. Check the fields and try again.'},{status:500});}

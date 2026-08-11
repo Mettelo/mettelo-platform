@@ -19,7 +19,10 @@ export default function HeaderNavigation({dropdowns}:{dropdowns:DropdownConfig[]
 
   const navigation=useMemo(()=>dropdowns.map(dropdown=>dropdown.label==='For Organisations'?{
     label:'Work With Us',
-    items:[['Careers','/careers','Join the Mettelo team through current internal roles.'] as NavItem,...dropdown.items]
+    items:[
+      ['Careers','/careers','Join the Mettelo team through current internal roles.'] as NavItem,
+      ...dropdown.items.filter(([title])=>title!=='For Organisations')
+    ]
   }:dropdown),[dropdowns]);
 
   useEffect(()=>{
@@ -52,6 +55,7 @@ export default function HeaderNavigation({dropdowns}:{dropdowns:DropdownConfig[]
     if(!organisationGroup)return;
     const heading=organisationGroup.querySelector('strong');
     if(heading)heading.textContent='Work With Us';
+    organisationGroup.querySelector('a[href="/organisations"]')?.remove();
     if(!organisationGroup.querySelector('a[href="/careers"]')){
       const careers=document.createElement('a');
       careers.href='/careers';

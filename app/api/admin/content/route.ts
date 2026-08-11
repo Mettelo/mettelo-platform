@@ -17,10 +17,11 @@ export async function POST(request:Request){
     if(!title||!slug) return NextResponse.json({error:'Title is required.'},{status:400});
 
     if(resource==='project'){
-      const status=text(body.status,30)||'draft';if(!['draft','pilot','recruiting','active','review','completed','archived'].includes(status)) return NextResponse.json({error:'Invalid project status.'},{status:400});
+      const status=text(body.status,30)||'draft';if(!['draft','pilot','recruiting','open','forming','active','review','completed','cancelled','archived'].includes(status)) return NextResponse.json({error:'Invalid project status.'},{status:400});
       const summary=text(body.summary,700);if(!summary) return NextResponse.json({error:'Project summary is required.'},{status:400});
       const difficulty=text(body.difficulty_level,30);if(difficulty&&!['entry','intermediate','advanced'].includes(difficulty))return NextResponse.json({error:'Invalid project level.'},{status:400});
       const locationType=text(body.location_type,30);if(locationType&&!['remote','hybrid','onsite'].includes(locationType))return NextResponse.json({error:'Invalid working model.'},{status:400});
+      const teamSize=Math.max(1,Math.min(50,Number(body.team_size_threshold)||5));
       if(status==='completed'){const {data:existing}=await db.from('projects').select('id,status').eq('slug',slug).maybeSingle();if(!existing)return NextResponse.json({error:'A project cannot be created directly as Completed. Create and deliver it through the project workflow first.'},{status:409});}
 
       const primaryDomain=text(body.primary_domain,120);const requestedDomains=[...new Set([primaryDomain,...slugs(body.domains)].filter(Boolean))];const requestedTools=slugs(body.tools);const requestedMethods=slugs(body.methods);
@@ -32,8 +33,8 @@ export async function POST(request:Request){
       if(domainRows.error||toolRows.error||methodRows.error)throw domainRows.error||toolRows.error||methodRows.error;
       if((domainRows.data||[]).length!==requestedDomains.length||(toolRows.data||[]).length!==requestedTools.length||(methodRows.data||[]).length!==requestedMethods.length)return NextResponse.json({error:'One or more project taxonomy selections are invalid. Refresh Admin and try again.'},{status:400});
 
-      const {data,error}=await db.from('projects').upsert({slug,title,summary,problem_statement:text(body.problem_statement,2000)||null,status,visibility:'public',location:text(body.location,160)||null,location_type:locationType||null,difficulty_level:difficulty||null,duration_weeks:body.duration_weeks?Number(body.duration_weeks):null,weekly_commitment:text(body.weekly_commitment,120)||null,application_deadline:body.application_deadline||null,starts_at:body.starts_at||null,github_url:text(body.github_url,400)||null,presentation_required:body.presentation_required===true||body.presentation_required==='on'||body.presentation_required==='true',updated_at:new Date().toISOString()},{onConflict:'slug'}).select('*').single();
-      if(error){if(error.message?.includes('Project is not ready for completion'))return NextResponse.json({error:'Project cannot be marked Completed until required milestones/tasks, member Proof and any required presentation are verified.'},{status:409});throw error;}
+      const {data,error}=await db.from('projects').upsert({slug,title,summary,problem_statement:text(body.problem_statement,2000)||null,status,visibility:'public',location:text(body.location,160)||null,location_type:locationType||null,difficulty_level:difficulty||null,duration_weeks:body.duration_weeks?Number(body.duration_weeks):null,weekly_commitment:text(body.weekly_commitment,120)||null,application_deadline:body.application_deadline||null,forming_deadline:body.forming_deadline||null,team_size_threshold:teamSize,starts_at:body.starts_at||null,github_url:text(body.github_url,400)||null,presentation_required:body.presentation_required===true||body.presentation_required==='on'||body.presentation_required==='true',updated_at:new Date().toISOString()},{onConflict:'slug'}).select('*').single();
+      if(error){if(error.message?.includes('Project is not ready for completion'))return NextResponse.json({error:'Project cannot be marked Completed until required milestones/tasks and any required presentation are complete.'},{status:409});throw error;}
 
       const [clearDomains,clearTools,clearMethods]=await Promise.all([
         db.from('project_domains').delete().eq('project_id',data.id),db.from('project_tools').delete().eq('project_id',data.id),db.from('project_methods').delete().eq('project_id',data.id)

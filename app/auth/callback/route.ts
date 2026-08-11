@@ -1,21 +1,18 @@
-import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import {NextResponse} from 'next/server';
+import {createServerSupabaseClient} from '@/lib/supabase/server';
+
+function safePath(value:string|null,fallback:string){if(!value)return fallback;return value.startsWith('/')&&!value.startsWith('//')?value:fallback}
 
 export async function GET(request:Request){
-  const url=new URL(request.url);
-  const code=url.searchParams.get('code');
-  const next=url.searchParams.get('next')||'/member';
-  const safeNext=next.startsWith('/')&&!next.startsWith('//')?next:'/member';
-
+  const url=new URL(request.url);const code=url.searchParams.get('code');const flow=url.searchParams.get('flow')||'oauth';const next=safePath(url.searchParams.get('next'),flow==='recovery'?'/auth/update-password':'/member');
   if(code){
     try{
-      const supabase=await createServerSupabaseClient();
-      const {error}=await supabase.auth.exchangeCodeForSession(code);
-      if(!error) return NextResponse.redirect(new URL(safeNext,url.origin));
+      const supabase=await createServerSupabaseClient();const {error}=await supabase.auth.exchangeCodeForSession(code);
+      if(!error){
+        if(flow==='signup'){const target=new URL('/auth/verified',url.origin);target.searchParams.set('next',next);return NextResponse.redirect(target)}
+        return NextResponse.redirect(new URL(next,url.origin));
+      }
     }catch{}
   }
-
-  const target=new URL('/signin',url.origin);
-  target.searchParams.set('error','auth-callback');
-  return NextResponse.redirect(target);
+  const target=new URL('/signin',url.origin);target.searchParams.set('error','expired-link');return NextResponse.redirect(target);
 }

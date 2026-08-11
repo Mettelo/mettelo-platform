@@ -1,86 +1,27 @@
-import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import {NextResponse} from 'next/server';
+import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {notifyUser,serviceDb} from '@/lib/project-flow';
 
 const statuses=new Set(['in_review','shortlisted','approved','declined']);
-
-async function adminDb(){
-  const auth=await createServerSupabaseClient();
-  const {data:{user}}=await auth.auth.getUser();
-  if(!user) return {error:NextResponse.json({error:'Authentication required.'},{status:401})};
-  if(user.app_metadata?.role!=='admin') return {error:NextResponse.json({error:'Admin access required.'},{status:403})};
-  const db=serviceDb();
-  if(!db) return {error:NextResponse.json({error:'Admin data service is not configured.'},{status:503})};
-  return {db,user};
-}
-
-async function memberEmail(db:NonNullable<ReturnType<typeof serviceDb>>,userId:string){
-  const {data}=await db.auth.admin.getUserById(userId);
-  return data.user?.email||null;
-}
+async function adminDb(){const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();if(!user)return{error:NextResponse.json({error:'Authentication required.'},{status:401})};if(user.app_metadata?.role!=='admin')return{error:NextResponse.json({error:'Admin access required.'},{status:403})};const db=serviceDb();if(!db)return{error:NextResponse.json({error:'Admin data service is not configured.'},{status:503})};return{db,user}}
+async function memberEmail(db:NonNullable<ReturnType<typeof serviceDb>>,userId:string){const {data}=await db.auth.admin.getUserById(userId);return data.user?.email||null}
 
 export async function PATCH(request:Request){
-  try{
-    const connection=await adminDb();
-    if('error' in connection) return connection.error;
-    const {db}=connection;
-    const body=await request.json();
-    const id=String(body.id||'');
-    const status=String(body.status||'');
-    const reviewerNotes=String(body.reviewer_notes||'').trim().slice(0,1500);
-    if(!id||!statuses.has(status)) return NextResponse.json({error:'Choose a valid project request and status.'},{status:400});
-
-    const {data:application,error:loadError}=await db.from('project_applications').select('id,project_id,project_role_id,user_id,status,application_kind,requested_role,projects(id,title,status,team_size_threshold,kickoff_at)').eq('id',id).single();
-    if(loadError||!application) return NextResponse.json({error:'Project request not found.'},{status:404});
-    const project=Array.isArray(application.projects)?application.projects[0]:application.projects;
-    if(!project)return NextResponse.json({error:'Project not found.'},{status:404});
-    const isInterest=application.application_kind==='interest';
-
-    if(status==='declined'&&(['approved','waiting_for_team','team_complete','accepted'].includes(application.status)||project.status==='active')){
-      return NextResponse.json({error:'This member has already joined the forming/active team. Remove or replace them through project controls instead.'},{status:409});
-    }
-
-    if(status!=='approved'){
-      const patch:{status:string;reviewer_notes:string|null;decision_reason?:string|null;decision_at?:string}={status,reviewer_notes:reviewerNotes||null};
-      if(status==='declined'){patch.decision_reason=reviewerNotes||null;patch.decision_at=new Date().toISOString();}
-      const {data:updated,error}=await db.from('project_applications').update({...patch,updated_at:new Date().toISOString()}).eq('id',id).select('id,status').single();
-      if(error)throw error;
-      const email=await memberEmail(db,application.user_id);
-      if(status==='declined')await notifyUser(db,{userId:application.user_id,email,projectId:application.project_id,applicationId:id,type:'application_declined',title:'Project request update',body:`Your ${isInterest?'interest':'application'} for ${project.title} was not selected.${reviewerNotes?` Reason: ${reviewerNotes}`:''}`,actionUrl:'/member/applications',subject:`Project request update — ${project.title}`});
-      return NextResponse.json({ok:true,application:updated});
-    }
-
-    const now=new Date().toISOString();
-    const {error:memberError}=await db.from('project_members').upsert({project_id:application.project_id,user_id:application.user_id,project_role_id:application.project_role_id,team_role:'contributor',membership_status:'waiting'},{onConflict:'project_id,user_id'});
-    if(memberError)throw memberError;
-
-    await db.from('projects').update({status:['draft','pilot','recruiting','open'].includes(project.status)?'forming':project.status,updated_at:now}).eq('id',application.project_id);
-    const {count}=await db.from('project_members').select('id',{count:'exact',head:true}).eq('project_id',application.project_id).in('membership_status',['waiting','active']);
-    const threshold=Number(project.team_size_threshold||5);
-    const filled=count||0;
-    const full=filled>=threshold;
-
-    const {data:updated,error}=await db.from('project_applications').update({status:full?'team_complete':'waiting_for_team',reviewer_notes:reviewerNotes||null,approved_at:now,decision_at:now,decision_reason:null,updated_at:now}).eq('id',id).select('id,status').single();
-    if(error)throw error;
-
-    const applicantEmail=await memberEmail(db,application.user_id);
-    const roleLabel=application.requested_role?` (${application.requested_role})`:'';
-    await notifyUser(db,{userId:application.user_id,email:applicantEmail,projectId:application.project_id,applicationId:id,type:'application_approved',title:'Project request approved',body:full?`You are approved for ${project.title}${roleLabel}. The team threshold has been reached and kickoff is starting.`:`You are approved for ${project.title}${roleLabel}. ${filled} of ${threshold} team spots are now filled.`,actionUrl:'/member/applications',subject:`Approved — ${project.title}`});
-
-    if(full){
-      await db.from('projects').update({status:'active',kickoff_at:project.kickoff_at||now,starts_at:project.kickoff_at||now,updated_at:now}).eq('id',application.project_id);
-      await db.from('project_members').update({membership_status:'active',activated_at:now}).eq('project_id',application.project_id).eq('membership_status','waiting');
-      await db.from('project_applications').update({status:'team_complete',updated_at:now}).eq('project_id',application.project_id).in('status',['approved','waiting_for_team','accepted']);
-      const {data:members}=await db.from('project_members').select('user_id').eq('project_id',application.project_id).eq('membership_status','active');
-      await Promise.all((members||[]).map(async member=>{
-        const email=await memberEmail(db,member.user_id);
-        return notifyUser(db,{userId:member.user_id,email,projectId:application.project_id,type:'project_kickoff',title:'Your project is starting',body:`${project.title} has reached ${filled} of ${threshold} spots and is now active. Open the workspace to meet the team and begin delivery.`,actionUrl:`/member/projects/${application.project_id}`,subject:`Your Mettelo project is starting — ${project.title}`});
-      }));
-    }
-
-    return NextResponse.json({ok:true,application:updated,team:{filled,threshold,full},project_status:full?'active':'forming'});
-  }catch(error){
-    console.error('project request review error',error);
-    return NextResponse.json({error:'Unable to update this project request.'},{status:500});
-  }
+ try{const connection=await adminDb();if('error'in connection)return connection.error;const {db}=connection;const body=await request.json();const id=String(body.id||''),status=String(body.status||''),reviewerNotes=String(body.reviewer_notes||'').trim().slice(0,1500);if(!id||!statuses.has(status))return NextResponse.json({error:'Choose a valid project application and status.'},{status:400});
+ const {data:application,error:loadError}=await db.from('project_applications').select('id,project_id,project_role_id,project_run_id,user_id,status,application_kind,requested_role,projects(id,title,status,project_type,team_size_threshold,kickoff_at)').eq('id',id).single();if(loadError||!application)return NextResponse.json({error:'Project application not found.'},{status:404});const project=Array.isArray(application.projects)?application.projects[0]:application.projects;if(!project)return NextResponse.json({error:'Project not found.'},{status:404});const isInterest=application.application_kind==='interest';
+ if(status==='declined'&&['approved','waiting_for_team','team_complete','accepted'].includes(application.status))return NextResponse.json({error:'This member has already joined a team. Manage their membership from Project Operations.'},{status:409});
+ if(status!=='approved'){const patch:{status:string;reviewer_notes:string|null;decision_reason?:string|null;decision_at?:string}={status,reviewer_notes:reviewerNotes||null};if(status==='declined'){patch.decision_reason=reviewerNotes||null;patch.decision_at=new Date().toISOString()}const {data:updated,error}=await db.from('project_applications').update({...patch,updated_at:new Date().toISOString()}).eq('id',id).select('id,status').single();if(error)throw error;const email=await memberEmail(db,application.user_id);if(status==='declined')await notifyUser(db,{userId:application.user_id,email,projectId:application.project_id,applicationId:id,type:'application_declined',title:'Project application update',body:`Your ${isInterest?'interest':'application'} for ${project.title} was not selected.${reviewerNotes?` Reason: ${reviewerNotes}`:''}`,actionUrl:'/member/applications',subject:`Project application update: ${project.title}`});return NextResponse.json({ok:true,application:updated})}
+ const now=new Date().toISOString();let run:{id:string;run_number:number;status:string}|null=null;
+ if(application.project_run_id){const {data}=await db.from('project_runs').select('id,run_number,status').eq('id',application.project_run_id).maybeSingle();run=data}
+ if(!run){const {data:forming}=await db.from('project_runs').select('id,run_number,status').eq('project_id',application.project_id).eq('status','forming').order('run_number',{ascending:false}).limit(1).maybeSingle();run=forming}
+ if(!run){const {data:latest}=await db.from('project_runs').select('run_number').eq('project_id',application.project_id).order('run_number',{ascending:false}).limit(1).maybeSingle();const {data:created,error:createError}=await db.from('project_runs').insert({project_id:application.project_id,run_number:(latest?.run_number||0)+1,status:'forming',team_size_threshold:Number(project.team_size_threshold||5)}).select('id,run_number,status').single();if(createError)throw createError;run=created}
+ const {error:memberError}=await db.from('project_members').upsert({project_id:application.project_id,project_run_id:run.id,user_id:application.user_id,project_role_id:application.project_role_id,team_role:'contributor',membership_status:'waiting'},{onConflict:'project_id,user_id'});if(memberError)throw memberError;
+ await db.from('project_applications').update({project_run_id:run.id}).eq('id',id);
+ if(project.project_type==='partner')await db.from('projects').update({status:['draft','pilot','recruiting','open'].includes(project.status)?'forming':project.status,updated_at:now}).eq('id',application.project_id);else await db.from('projects').update({status:'open',updated_at:now}).eq('id',application.project_id);
+ const {count}=await db.from('project_members').select('id',{count:'exact',head:true}).eq('project_run_id',run.id).in('membership_status',['waiting','active']);const threshold=Number(project.team_size_threshold||5),filled=count||0,full=filled>=threshold;
+ const {data:updated,error}=await db.from('project_applications').update({status:full?'team_complete':'waiting_for_team',reviewer_notes:reviewerNotes||null,approved_at:now,decision_at:now,decision_reason:null,project_run_id:run.id,updated_at:now}).eq('id',id).select('id,status').single();if(error)throw error;
+ const applicantEmail=await memberEmail(db,application.user_id);const roleLabel=application.requested_role?` (${application.requested_role})`:'';await notifyUser(db,{userId:application.user_id,email:applicantEmail,projectId:application.project_id,applicationId:id,type:'application_approved',title:'Project application approved',body:full?`You are approved for ${project.title}${roleLabel}. Team ${run.run_number} is ready to start.`:`You are approved for ${project.title}${roleLabel}. Team ${run.run_number} has ${filled} of ${threshold} places filled.`,actionUrl:'/member/applications',subject:`Approved: ${project.title}`});
+ if(full){await db.from('project_runs').update({status:'active',kickoff_at:now,updated_at:now}).eq('id',run.id);await db.from('project_members').update({membership_status:'active',activated_at:now}).eq('project_run_id',run.id).eq('membership_status','waiting');await db.from('project_applications').update({status:'team_complete',updated_at:now}).eq('project_run_id',run.id).in('status',['approved','waiting_for_team','accepted']);if(project.project_type==='partner')await db.from('projects').update({status:'active',kickoff_at:project.kickoff_at||now,starts_at:project.kickoff_at||now,updated_at:now}).eq('id',application.project_id);const {data:members}=await db.from('project_members').select('user_id').eq('project_run_id',run.id).eq('membership_status','active');await Promise.all((members||[]).map(async member=>notifyUser(db,{userId:member.user_id,email:await memberEmail(db,member.user_id),projectId:application.project_id,type:'project_kickoff',title:'Your project is starting',body:`Team ${run!.run_number} for ${project.title} is ready. Open the workspace to meet the team and start work.`,actionUrl:`/member/projects/${application.project_id}`,subject:`Your project is starting: ${project.title}`})))}
+ return NextResponse.json({ok:true,application:updated,team:{filled,threshold,full,run_number:run.run_number},project_status:project.project_type==='open'?'open':full?'active':'forming'});
+ }catch(error){console.error('project request review error',error);return NextResponse.json({error:'Unable to update this project application.'},{status:500})}
 }

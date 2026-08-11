@@ -1,20 +1,16 @@
 import type {SupabaseClient} from '@supabase/supabase-js';
-
-const site=process.env.NEXT_PUBLIC_SITE_URL||'https://mettelo.com';
+import {deliverOutboxItem,enqueueEmail,notifyUser} from '@/lib/notifications';
 
 export async function sendCareerEmail(db:SupabaseClient,input:{email:string;subject:string;body:string;templateKey:string;userId?:string|null;actionUrl?:string|null}){
-  const {data:outbox}=await db.from('email_outbox').insert({user_id:input.userId||null,recipient_email:input.email,template_key:input.templateKey,subject:input.subject,payload:{body:input.body,action_url:input.actionUrl||null}}).select('id').single();
-  if(input.userId){await db.from('notifications').insert({user_id:input.userId,type:input.templateKey,title:input.subject,body:input.body,action_url:input.actionUrl||null});}
-  const apiKey=process.env.RESEND_API_KEY;const from=process.env.METTELO_EMAIL_FROM;
-  if(!outbox?.id)return {queued:false,sent:false};
-  if(!apiKey||!from){await db.from('email_outbox').update({status:'failed',last_error:'Email provider is not configured.'}).eq('id',outbox.id);return {queued:true,sent:false};}
-  try{
-    const href=input.actionUrl?`${site}${input.actionUrl}`:site;
-    const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:`Bearer ${apiKey}`,'content-type':'application/json'},body:JSON.stringify({from,to:input.email,subject:input.subject,html:`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#10131d"><p>${input.body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p><p><a href="${href}">Open Mettelo</a></p></div>`})});
-    if(!response.ok)throw new Error(`Email provider returned ${response.status}`);
-    await db.from('email_outbox').update({status:'sent',sent_at:new Date().toISOString(),attempts:1,last_error:null}).eq('id',outbox.id);
-    return {queued:true,sent:true};
-  }catch(error){await db.from('email_outbox').update({status:'failed',attempts:1,last_error:error instanceof Error?error.message:'Email delivery failed'}).eq('id',outbox.id);return {queued:true,sent:false};}
+  const dedupeKey=`${input.templateKey}:${input.email}:${input.subject}`;
+  if(input.userId){
+    await notifyUser(db,{userId:input.userId,email:input.email,type:input.templateKey,eventKey:input.templateKey,title:input.subject,subject:input.subject,body:input.body,actionUrl:input.actionUrl||null,dedupeKey});
+    const {data}=await db.from('email_outbox').select('status').eq('dedupe_key',`${input.userId}:${dedupeKey}`).maybeSingle();
+    return {queued:true,sent:data?.status==='sent'};
+  }
+  const outbox=await enqueueEmail(db,{to:input.email,templateKey:input.templateKey,eventKey:input.templateKey,subject:input.subject,body:input.body,actionUrl:input.actionUrl||null,dedupeKey});
+  if(!outbox){const {data}=await db.from('email_outbox').select('status').eq('dedupe_key',dedupeKey).maybeSingle();return {queued:true,sent:data?.status==='sent'}}
+  const result=await deliverOutboxItem(db,outbox);return {queued:true,sent:result.status==='sent'};
 }
 
 export function careerMessage(status:string,role:string,details?:{interviewAt?:string|null;interviewDetails?:string|null;offerDetails?:string|null}){

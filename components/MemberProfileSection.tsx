@@ -1,38 +1,33 @@
 'use client';
 
 import {useState} from 'react';
-import ProfileEditor from '@/components/ProfileEditor';
+import ProfileEditor,{MemberProfile} from '@/components/ProfileEditor';
 
 type TaxonomyItem={slug:string;name:string};
-type Profile={full_name:string|null;headline:string|null;bio:string|null;location:string|null;professional_area:string|null;primary_goal:string|null;linkedin_url:string|null;github_url:string|null;avatar_url?:string|null;skills:string[];is_public:boolean};
 
-export default function MemberProfileSection({profile,domains,tools,domainPreferences,toolPreferences}:{profile:Profile;domains:TaxonomyItem[];tools:TaxonomyItem[];domainPreferences:string[];toolPreferences:string[]}){
-  const isComplete=Boolean(profile.full_name?.trim()&&(profile.headline?.trim()||profile.professional_area?.trim()));
+export default function MemberProfileSection({profile,domains,tools,domainPreferences,toolPreferences}:{profile:MemberProfile;domains:TaxonomyItem[];tools:TaxonomyItem[];domainPreferences:string[];toolPreferences:string[]}){
+  const [savedProfile,setSavedProfile]=useState<MemberProfile>(profile);const [savedDomains,setSavedDomains]=useState(domainPreferences);const [savedTools,setSavedTools]=useState(toolPreferences);
+  const isComplete=Boolean(savedProfile.full_name?.trim()&&(savedProfile.headline?.trim()||savedProfile.professional_area?.trim()||savedProfile.current_job_title?.trim()));
   const [editing,setEditing]=useState(!isComplete);
-  const domainNames=domainPreferences.map(slug=>domains.find(item=>item.slug===slug)?.name||slug);
-  const toolNames=toolPreferences.map(slug=>tools.find(item=>item.slug===slug)?.name||slug);
+  const domainNames=savedDomains.map(slug=>domains.find(item=>item.slug===slug)?.name||slug);const toolNames=savedTools.map(slug=>tools.find(item=>item.slug===slug)?.name||slug);
+  const availabilityLabels:{[key:string]:string}={available_now:'Available now',available_soon:'Available soon',limited:'Limited availability',not_available:'Not currently available'};
+  const experienceLabels:{[key:string]:string}={entry:'Entry / early career',mid:'Mid-level',senior:'Senior',lead:'Lead / manager',executive:'Executive / head of function'};
 
-  if(editing)return <div>
-    <div className="panelHead" style={{marginBottom:14}}><div><span className="cardNumber">EDIT PROFILE</span><h3 style={{margin:'7px 0 0'}}>Keep your Mettelo identity useful for matching and collaboration.</h3></div>{isComplete&&<button className="button ghost" type="button" onClick={()=>setEditing(false)}>Cancel edit</button>}</div>
-    <ProfileEditor profile={profile} domains={domains} tools={tools} domainPreferences={domainPreferences} toolPreferences={toolPreferences}/>
-  </div>;
+  if(editing)return <div><div className="panelHead" style={{marginBottom:14}}><div><span className="cardNumber">EDIT PROFILE</span><h3 style={{margin:'7px 0 0'}}>Keep your Mettelo identity useful for matching and collaboration.</h3></div>{isComplete&&<button className="button ghost" type="button" onClick={()=>setEditing(false)}>Cancel edit</button>}</div><ProfileEditor profile={savedProfile} domains={domains} tools={tools} domainPreferences={savedDomains} toolPreferences={savedTools} onSaved={(next,nextDomains,nextTools)=>{setSavedProfile(next);setSavedDomains(nextDomains);setSavedTools(nextTools);setEditing(false);}}/></div>;
 
   return <section className="panel memberProfileSummary" aria-labelledby="member-profile-heading">
     <div className="panelHead"><div><span className="cardNumber">PROFESSIONAL IDENTITY</span><h3 id="member-profile-heading" style={{margin:'7px 0 0'}}>Your Mettelo profile</h3></div><button className="button dark" type="button" onClick={()=>setEditing(true)}>Edit profile →</button></div>
-    <div className="memberProfileOverview">
-      <div className="memberProfileAvatar" style={profile.avatar_url?{backgroundImage:`url(${profile.avatar_url})`}:undefined}>{profile.avatar_url?'':(profile.full_name?.[0]||'M').toUpperCase()}</div>
-      <div className="memberProfileIdentity"><h2>{profile.full_name||'Mettelo member'}</h2><p>{profile.headline||profile.professional_area||'Add a professional headline'}</p><div className="metaRow">{profile.location&&<span className="metaPill">{profile.location}</span>}{profile.professional_area&&<span className="metaPill">{profile.professional_area}</span>}<span className={`chip ${profile.is_public?'green':''}`}>{profile.is_public?'PUBLIC PROFILE':'PRIVATE PROFILE'}</span></div></div>
-    </div>
-    {profile.bio&&<p className="memberProfileBio">{profile.bio}</p>}
+    <div className="memberProfileOverview"><div className="memberProfileAvatar" style={savedProfile.avatar_url?{backgroundImage:`url(${savedProfile.avatar_url})`}:undefined}>{savedProfile.avatar_url?'':(savedProfile.full_name?.[0]||'M').toUpperCase()}</div><div className="memberProfileIdentity"><h2>{savedProfile.full_name||'Mettelo member'}</h2><p>{savedProfile.headline||savedProfile.current_job_title||savedProfile.professional_area||'Add a professional headline'}</p>{savedProfile.current_job_title&&<small>{savedProfile.current_job_title}{savedProfile.organisation?` · ${savedProfile.organisation}`:''}</small>}<div className="metaRow">{savedProfile.location&&<span className="metaPill">{savedProfile.location}</span>}{savedProfile.experience_level&&<span className="metaPill">{experienceLabels[savedProfile.experience_level]||savedProfile.experience_level}</span>}<span className={`chip ${savedProfile.is_public?'green':''}`}>{savedProfile.is_public?'PUBLIC PROFILE':'PRIVATE PROFILE'}</span></div></div></div>
+    {savedProfile.bio&&<p className="memberProfileBio">{savedProfile.bio}</p>}
     <div className="memberProfileDetails">
-      <div><span className="cardNumber">SKILLS</span><div className="metaRow">{profile.skills?.length?profile.skills.slice(0,10).map(skill=><span className="metaPill" key={skill}>{skill}</span>):<small>Add the skills you want Mettelo to recognise.</small>}</div></div>
+      <div><span className="cardNumber">PROJECT AVAILABILITY</span><p>{savedProfile.project_availability?availabilityLabels[savedProfile.project_availability]||savedProfile.project_availability:'Not specified'}{savedProfile.weekly_capacity?` · ${savedProfile.weekly_capacity}`:''}</p></div>
+      <div><span className="cardNumber">PREFERRED ROLES</span><div className="metaRow">{savedProfile.preferred_roles?.length?savedProfile.preferred_roles.map(role=><span className="metaPill" key={role}>{role}</span>):<small>Add the project roles you want to be considered for.</small>}</div></div>
+      <div><span className="cardNumber">SKILLS</span><div className="metaRow">{savedProfile.skills?.length?savedProfile.skills.slice(0,12).map(skill=><span className="metaPill" key={skill}>{skill}</span>):<small>Add the skills you want Mettelo to recognise.</small>}</div></div>
       <div><span className="cardNumber">PROJECT INTERESTS</span><div className="metaRow">{domainNames.length?domainNames.map(name=><span className="metaPill" key={name}>{name}</span>):<small>Add domains to improve project matching.</small>}</div></div>
-      <div><span className="cardNumber">TOOLS</span><div className="metaRow">{toolNames.length?toolNames.slice(0,10).map(name=><span className="metaPill" key={name}>{name}</span>):<small>Add tools you use or want to develop.</small>}</div></div>
-      <div><span className="cardNumber">WORKING TOWARD</span><p>{profile.primary_goal||'Add the capability, project or opportunity you want to move toward.'}</p></div>
+      <div><span className="cardNumber">TOOLS</span><div className="metaRow">{toolNames.length?toolNames.slice(0,12).map(name=><span className="metaPill" key={name}>{name}</span>):<small>Add tools you use or want to develop.</small>}</div></div>
+      <div><span className="cardNumber">WORKING TOWARD</span><p>{savedProfile.primary_goal||'Add the capability, project or opportunity you want to move toward.'}</p></div>
     </div>
-    <div className="profilePreviewLinks">{profile.linkedin_url&&<a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>}{profile.github_url&&<a href={profile.github_url} target="_blank" rel="noopener noreferrer">GitHub ↗</a>}</div>
-    <style jsx>{`
-      .memberProfileOverview{display:flex;align-items:center;gap:18px;margin-top:22px}.memberProfileAvatar{width:76px;height:76px;flex:none;display:grid;place-items:center;border-radius:22px;background:#f1e7d1 center/cover no-repeat;font:700 1.6rem var(--font-space);color:#8b5a17}.memberProfileIdentity h2{margin:0 0 5px;font-size:1.55rem}.memberProfileIdentity p{margin:0;color:#66707e}.memberProfileBio{max-width:800px;margin:20px 0 0;color:#596371;line-height:1.7}.memberProfileDetails{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px;padding-top:22px;border-top:1px solid rgba(16,19,29,.08)}.memberProfileDetails>div{min-width:0}.memberProfileDetails p{margin:8px 0 0;color:#596371}.memberProfileDetails small{display:block;margin-top:9px;color:#7a8390}.profilePreviewLinks{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.profilePreviewLinks a{font-weight:750}@media(max-width:700px){.memberProfileDetails{grid-template-columns:1fr}.memberProfileOverview{align-items:flex-start}.memberProfileAvatar{width:62px;height:62px;border-radius:18px}}
-    `}</style>
+    <div className="profilePreviewLinks">{savedProfile.linkedin_url&&<a href={savedProfile.linkedin_url} target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>}{savedProfile.github_url&&<a href={savedProfile.github_url} target="_blank" rel="noopener noreferrer">GitHub ↗</a>}{savedProfile.portfolio_url&&<a href={savedProfile.portfolio_url} target="_blank" rel="noopener noreferrer">Portfolio ↗</a>}</div>
+    <style jsx>{`.memberProfileOverview{display:flex;align-items:center;gap:18px;margin-top:22px}.memberProfileAvatar{width:76px;height:76px;flex:none;display:grid;place-items:center;border-radius:22px;background:#f1e7d1 center/cover no-repeat;font:700 1.6rem var(--font-space);color:#8b5a17}.memberProfileIdentity h2{margin:0 0 5px;font-size:1.55rem}.memberProfileIdentity p{margin:0;color:#333b46}.memberProfileIdentity small{display:block;margin-top:4px;color:#66707e}.memberProfileBio{max-width:800px;margin:20px 0 0;color:#596371;line-height:1.7}.memberProfileDetails{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px;padding-top:22px;border-top:1px solid rgba(16,19,29,.08)}.memberProfileDetails>div{min-width:0;padding:15px;border-radius:12px;background:#fafafa}.memberProfileDetails p{margin:8px 0 0;color:#596371}.memberProfileDetails small{display:block;margin-top:9px;color:#7a8390}.profilePreviewLinks{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.profilePreviewLinks a{font-weight:750}@media(max-width:700px){.memberProfileDetails{grid-template-columns:1fr}.memberProfileOverview{align-items:flex-start}.memberProfileAvatar{width:62px;height:62px;border-radius:18px}}`}</style>
   </section>;
 }

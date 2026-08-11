@@ -5,14 +5,14 @@ import { FormEvent, useMemo, useState } from 'react';
 type Project={id:string;title:string};
 type Task={id:string;project_id:string;title:string;status:string};
 
-export default function ContributionForm({projects,tasks=[]}:{projects:Project[];tasks?:Task[]}){
+export default function ContributionForm({projects,tasks=[],projectRunId}:{projects:Project[];tasks?:Task[];projectRunId?:string|null}){
   const [status,setStatus]=useState<'idle'|'submitting'|'error'>('idle');
   const [message,setMessage]=useState('');
   const [projectId,setProjectId]=useState(projects[0]?.id||'');
   const relevantTasks=useMemo(()=>tasks.filter(task=>task.project_id===projectId&&task.status!=='done'),[tasks,projectId]);
   async function submit(event:FormEvent<HTMLFormElement>){
     event.preventDefault();setStatus('submitting');setMessage('');
-    const form=event.currentTarget;const data=Object.fromEntries(new FormData(form).entries());const payload={...data,is_public:data.is_public==='on'};
+    const form=event.currentTarget;const data=Object.fromEntries(new FormData(form).entries());const payload={...data,project_run_id:projectRunId||null,is_public:data.is_public==='on'};
     try{
       const response=await fetch('/api/contributions',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});const body=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(body.error||'Unable to submit contribution.');

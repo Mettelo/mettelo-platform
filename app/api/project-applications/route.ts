@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import {notifyAdmins,notifyUser,serviceDb} from '@/lib/project-flow';
 
 export async function POST(request:Request){
   try{
@@ -14,15 +15,24 @@ export async function POST(request:Request){
     const availability=String(body.availability||'').trim().slice(0,160);
     if(!projectId||!roleId||statement.length<40) return NextResponse.json({error:'Choose a project and role, and explain your contribution in at least 40 characters.'},{status:400});
 
-    const {data:project,error:projectError}=await supabase.from('projects').select('id,status').eq('id',projectId).single();
-    if(projectError||!project||project.status!=='recruiting') return NextResponse.json({error:'This project is not currently accepting applications.'},{status:400});
-    const {data:role,error:roleError}=await supabase.from('project_roles').select('id,project_id').eq('id',roleId).eq('project_id',projectId).single();
+    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status').eq('id',projectId).single();
+    if(projectError||!project||!['recruiting','open','forming'].includes(project.status)) return NextResponse.json({error:'This project is not currently accepting applications.'},{status:400});
+    const {data:role,error:roleError}=await supabase.from('project_roles').select('id,project_id,title').eq('id',roleId).eq('project_id',projectId).single();
     if(roleError||!role) return NextResponse.json({error:'Choose a valid role for this project.'},{status:400});
 
     const {data,error}=await supabase.from('project_applications').insert({project_id:projectId,project_role_id:roleId,user_id:user.id,portfolio_url:portfolio||null,contribution_statement:statement,availability:availability||null,status:'submitted'}).select('id,status').single();
     if(error){
       if(error.code==='23505') return NextResponse.json({error:'You already have an application for this project role.'},{status:409});
       throw error;
+    }
+
+    const db=serviceDb();
+    if(db){
+      const profileName=String(user.user_metadata?.full_name||user.email?.split('@')[0]||'A member');
+      await Promise.all([
+        notifyUser(db,{userId:user.id,email:user.email,projectId,applicationId:data.id,type:'application_submitted',title:'Application received',body:`We received your application for ${project.title}${role.title?` — ${role.title}`:''}. You can track every review stage from your dashboard.`,actionUrl:'/member#applications',subject:`Application received — ${project.title}`}),
+        notifyAdmins(db,{projectId,applicationId:data.id,type:'new_project_application',title:`New application — ${project.title}`,body:`${profileName} applied for ${role.title||'a project role'} on ${project.title}.`,actionUrl:'/admin#applications',subject:`New Mettelo application — ${project.title}`})
+      ]);
     }
     return NextResponse.json({ok:true,application:data});
   }catch(error){

@@ -64,7 +64,7 @@ export async function POST(request:Request){
             db.auth.admin.getUserById(assignee),
             db.from('projects').select('title').eq('id',projectId).maybeSingle()
           ]);
-          await notifyUser(db,{userId:assignee,email:recipient.user?.email||null,projectId,type:'task_assigned',eventKey:'task_assigned',title:'New project task',body:`You have been assigned “${title}” on ${project?.title||'a Mettelo project'}.`,actionUrl:`/member/projects/${projectId}`,subject:`Task assigned: ${project?.title||'Mettelo'}`,dedupeKey:`task:${data.id}:assigned`});
+          await notifyUser(db,{userId:assignee,email:recipient.user?.email||null,projectId,type:'task_assigned',eventKey:'task_assigned',title:'New project task',body:`You have been assigned “${title}” on ${project?.title||'a Mettelo project'}.`,actionUrl:`/member/projects/${projectId}?run=${runId}`,subject:`Task assigned: ${project?.title||'Mettelo'}`,dedupeKey:`task:${data.id}:assigned`});
         }
       }
       return NextResponse.json({ok:true,item:data});
@@ -114,7 +114,7 @@ export async function PATCH(request:Request){
         ]);
         for(const lead of leads||[]){
           const {data:recipient}=await db.auth.admin.getUserById(lead.user_id);
-          await notifyUser(db,{userId:lead.user_id,email:recipient.user?.email||null,projectId:task.project_id,type:'contribution_review',eventKey:'contribution_review',title:'Task ready for review',body:`“${task.title}” on ${project?.title||'a Mettelo project'} is ready for review.`,actionUrl:`/member/projects/${task.project_id}`,subject:`Review requested: ${project?.title||'Mettelo'}`,dedupeKey:`task:${taskId}:review`});
+          await notifyUser(db,{userId:lead.user_id,email:recipient.user?.email||null,projectId:task.project_id,type:'contribution_review',eventKey:'contribution_review',title:'Task ready for review',body:`“${task.title}” on ${project?.title||'a Mettelo project'} is ready for review.`,actionUrl:`/member/projects/${task.project_id}${task.project_run_id?`?run=${task.project_run_id}`:''}`,subject:`Review requested: ${project?.title||'Mettelo'}`,dedupeKey:`task:${taskId}:review`});
         }
       }
     }

@@ -7,7 +7,7 @@ import {useEffect,useState} from 'react';
 import {createClient} from '@/lib/supabase/client';
 
 type AdminAccount={name:string;avatarUrl:string|null}|null;
-const nav=[['Overview','/admin'],['Applications','/admin/applications'],['Careers','/admin/careers'],['Project operations','/admin/project-operations'],['Team formation','/admin/team-formation'],['Events','/admin/events'],['Content & Insights','/admin/content'],['Proof review','/admin/proof'],['Spotlight & awards','/admin/spotlights'],['Notifications & email','/admin/notifications'],['QA team','/admin/qa'],['Opportunity review','/admin/opportunities'],['Job sources','/admin/opportunity-sources'],['Intake','/admin/intake'],['Admin access','/admin/access']] as const;
+const nav=[['Overview','/admin'],['Applications','/admin/applications'],['Project Architect','/admin/project-architect-applications'],['Project governance','/admin/project-governance'],['Careers','/admin/careers'],['Project operations','/admin/project-operations'],['Team formation','/admin/team-formation'],['Events','/admin/events'],['Content & Insights','/admin/content'],['Proof review','/admin/proof'],['Spotlight & awards','/admin/spotlights'],['Notifications & email','/admin/notifications'],['QA team','/admin/qa'],['Opportunity review','/admin/opportunities'],['Job sources','/admin/opportunity-sources'],['Intake','/admin/intake'],['Admin access','/admin/access']] as const;
 function sectionLabel(pathname:string){const match=nav.find(([,href])=>href==='/admin'?pathname==='/admin':pathname===href||pathname.startsWith(`${href}/`));return match?.[0]||'Workspace'}
 
 export default function AdminShell({children}:{children:React.ReactNode}){

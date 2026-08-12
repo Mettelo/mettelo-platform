@@ -18,6 +18,10 @@
       "schedule": "*/10 * * * *"
     },
     {
+      "path": "/api/cron/project-event-reminders",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/saved-opportunity-reminders",
       "schedule": "15 7 * * *"
     },

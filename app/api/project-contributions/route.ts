@@ -15,15 +15,16 @@ export async function PATCH(request:Request){
     const body=await request.json();const id=String(body.id||'');const status=String(body.status||'');const notes=String(body.review_notes||'').trim().slice(0,1800);
     if(!id||!statuses.has(status)) return NextResponse.json({error:'Choose a valid review status.'},{status:400});
     if(status==='needs_changes'&&!notes) return NextResponse.json({error:'Explain the changes required.'},{status:400});
-    const {data:contribution}=await db.from('contributions').select('id,project_id,task_id,user_id').eq('id',id).maybeSingle();
-    if(!contribution?.project_id) return NextResponse.json({error:'Contribution not found.'},{status:404});
+    const {data:contribution}=await db.from('contributions').select('id,project_id,project_run_id,task_id,user_id').eq('id',id).maybeSingle();
+    if(!contribution?.project_id||!contribution.project_run_id) return NextResponse.json({error:'Contribution is not attached to a project run.'},{status:409});
+    if(contribution.user_id===user.id) return NextResponse.json({error:'You cannot review your own contribution.'},{status:403});
     let allowed=user.app_metadata?.role==='admin';
-    if(!allowed){const {data:membership}=await db.from('project_members').select('team_role').eq('project_id',contribution.project_id).eq('user_id',user.id).maybeSingle();allowed=Boolean(membership&&['project_lead','reviewer'].includes(membership.team_role));}
+    if(!allowed){const {data:membership}=await db.from('project_members').select('team_role').eq('project_id',contribution.project_id).eq('project_run_id',contribution.project_run_id).eq('user_id',user.id).in('membership_status',['active','completed']).maybeSingle();allowed=Boolean(membership&&['project_lead','reviewer'].includes(membership.team_role));}
     if(!allowed) return NextResponse.json({error:'Project Lead or Reviewer access is required.'},{status:403});
     const verified=status==='verified';
     const {data,error}=await db.from('contributions').update({verification_status:status,review_notes:notes||null,verified_by:verified?user.id:null,verified_at:verified?new Date().toISOString():null,updated_at:new Date().toISOString()}).eq('id',id).select('id,verification_status').single();
     if(error) throw error;
-    if(contribution.task_id){const taskStatus=verified?'done':status==='needs_changes'?'in_progress':'blocked';const {error:taskError}=await db.from('project_tasks').update({status:taskStatus,updated_at:new Date().toISOString()}).eq('id',contribution.task_id);if(taskError)throw taskError;}
+    if(contribution.task_id){const taskStatus=verified?'done':status==='needs_changes'?'in_progress':'blocked';const {error:taskError}=await db.from('project_tasks').update({status:taskStatus,updated_at:new Date().toISOString()}).eq('id',contribution.task_id).eq('project_run_id',contribution.project_run_id);if(taskError)throw taskError;}
     const [{data:project},{data:recipient}]=await Promise.all([db.from('projects').select('title').eq('id',contribution.project_id).maybeSingle(),db.auth.admin.getUserById(contribution.user_id)]);
     const outcome=status==='verified'?'verified':status==='needs_changes'?'needs changes':'not verified';
     const action=status==='needs_changes'&&notes?` Review note: ${notes}`:'';

@@ -9,11 +9,17 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "audit:interactions": "node scripts/audit-interactions.mjs",
+    "audit:phase5": "node scripts/audit-phase-5-governance.mjs",
+    "audit:phase6": "node scripts/audit-phase-6-events.mjs",
     "admin:promote": "node scripts/promote-admin.mjs"
   },
   "dependencies": {
+    "@livekit/components-react": "2.9.24",
+    "@livekit/components-styles": "1.2.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.1",
+    "livekit-client": "2.21.0",
+    "livekit-server-sdk": "2.17.0",
     "next": "^15.2.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

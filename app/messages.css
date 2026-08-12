@@ -1,0 +1,37 @@
+/* Phase 2: familiar, run-scoped project messaging */
+.messagePanel{display:grid;grid-template-rows:auto auto minmax(280px,1fr) auto;gap:0;min-height:620px;overflow:hidden;padding:0}
+.messagePanelHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:24px 26px 18px;border-bottom:1px solid var(--line)}
+.messagePanelHeader h3{margin:7px 0 3px}.messagePanelHeader p{margin:0;color:var(--slate);font-size:.82rem}
+.messageConnection{display:flex;align-items:center;gap:7px;white-space:nowrap;color:var(--slate);font-family:var(--font-mono),monospace;font-size:.62rem;letter-spacing:.08em}
+.messageConnection i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(35,126,75,.1)}
+.pinnedMessages{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 14px;padding:12px 26px;border-bottom:1px solid var(--line);background:#fff9ed}
+.pinnedMessages>strong{grid-row:1/4;font-size:.72rem;color:var(--bronze-deep)}
+.pinnedMessages button{min-width:0;padding:0;border:0;background:transparent;color:var(--ink);font:inherit;font-size:.75rem;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.messageFeed{display:flex;flex-direction:column;gap:14px;min-height:300px;max-height:min(68vh,720px);padding:24px 26px;overflow-y:auto;overscroll-behavior:contain;background:linear-gradient(180deg,#fbfaf7 0%,#fff 100%);scrollbar-gutter:stable}
+.messageBubbleRow{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:end}.messageBubbleRow.own{grid-template-columns:minmax(0,1fr) 40px}
+.messageBubbleRow.own .messageAvatar{grid-column:2}.messageBubbleRow.own .messageBubble{grid-column:1;grid-row:1;justify-self:end;background:#f7edd9}
+.messageAvatar{width:40px;height:40px;display:grid;place-items:center;border-radius:13px;background:#10131d;color:#fff;font-family:var(--font-space),sans-serif;font-size:.75rem;font-weight:800}
+.messageBubble{width:min(78%,720px);padding:12px 14px;border:1px solid var(--line);border-radius:6px 18px 18px 18px;background:#fff;box-shadow:0 5px 18px rgba(16,19,29,.04)}
+.own .messageBubble{border-radius:18px 6px 18px 18px}.messageBubble.blocker{border-left:4px solid var(--red)}.messageBubble.decision{border-left:4px solid var(--bronze)}.messageBubble.failed{border-color:#b43b34}
+.messageBubble header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.messageBubble header strong{font-size:.76rem}.messageBubble header span{color:var(--bronze-deep);font-size:.65rem}
+.messageBubble time{margin-left:auto;color:var(--muted);font-size:.64rem}.messageBubble>p{margin:7px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.88rem;line-height:1.55}
+.messageBubble>p a{color:var(--blue);text-decoration:underline;text-underline-offset:2px}.messageBubble .deletedMessage{color:var(--muted);font-style:italic}
+.messageBubble footer{display:flex;align-items:center;gap:8px;min-height:18px;margin-top:8px}.messageBubble footer>small{color:var(--muted);font-size:.64rem}.messageBubble footer .messageFailed{color:#9d302b}
+.messageLabel{padding:3px 7px;border-radius:999px;font-size:.62rem;text-transform:capitalize}.messageLabel.blocker{background:#fbe9e8;color:#9d302b}.messageLabel.decision{background:#fff0cf;color:var(--bronze-deep)}
+.messageActions{display:flex;gap:3px;flex-wrap:wrap;margin-left:auto;opacity:0;transition:opacity .15s ease}.messageBubble:focus-within .messageActions,.messageBubble:hover .messageActions{opacity:1}
+.messageActions button,.messageBubble footer>button{min-height:36px;padding:6px 8px;border:0;border-radius:8px;background:transparent;color:var(--slate);font:inherit;font-size:.66rem;font-weight:700;cursor:pointer}
+.messageActions button:hover,.messageActions button:focus-visible,.messageBubble footer>button:hover,.messageBubble footer>button:focus-visible{background:rgba(16,19,29,.07);color:var(--ink)}
+.messageEditor{display:grid;gap:8px;margin-top:9px}.messageEditor textarea{min-height:90px;resize:vertical}.messageEditor>div{display:flex;justify-content:flex-end;gap:8px}
+.messageEditor button{min-height:40px;padding:7px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;font:inherit;font-size:.72rem;font-weight:750;cursor:pointer}
+.messageEmpty{margin:auto;padding:42px 18px;text-align:center}.messageEmpty p{margin:5px 0 0;color:var(--slate)}
+.messageComposer{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;padding:16px 18px;border-top:1px solid var(--line);background:#fff;box-shadow:0 -12px 30px rgba(16,19,29,.04)}
+.messageComposerInput{position:relative;display:grid;gap:5px}.messageComposer textarea{width:100%;min-height:52px;max-height:180px;padding:14px 15px;resize:vertical;border:1px solid #cfd3db;border-radius:15px;background:#fbfbfc;line-height:1.45}
+.messageComposer textarea:focus{border-color:var(--bronze);box-shadow:0 0 0 3px rgba(194,132,35,.13);outline:0}.messageComposerInput>small{padding-left:3px;color:var(--muted);font-size:.62rem}
+.messageSend{min-width:96px;min-height:52px;padding:0 16px;border:0;border-radius:14px;background:#10131d;color:#fff;font:inherit;font-weight:800;cursor:pointer}.messageSend:disabled{cursor:not-allowed;opacity:.42}.messageSend span{margin-left:4px}
+.mentionSuggestions{position:absolute;left:0;right:0;bottom:calc(100% + 8px);display:grid;padding:6px;border:1px solid var(--line);border-radius:13px;background:#fff;box-shadow:0 16px 38px rgba(16,19,29,.16)}
+.mentionSuggestions button{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:44px;padding:8px 10px;border:0;border-radius:9px;background:transparent;text-align:left;cursor:pointer}
+.mentionSuggestions button:hover,.mentionSuggestions button:focus-visible{background:var(--sand)}.mentionSuggestions strong,.mentionSuggestions small{font-size:.72rem}.mentionSuggestions small{color:var(--slate);text-transform:capitalize}
+.messageReadOnly{margin:0;padding:18px 24px;border-top:1px solid var(--line);background:#fff;color:var(--slate);font-size:.8rem}
+@media(max-width:680px){.messagePanel{min-height:560px;border-radius:18px}.messagePanelHeader{padding:18px;gap:12px}.messagePanelHeader p{max-width:250px}.messageConnection{font-size:0}.messageConnection i{display:block}.pinnedMessages{grid-template-columns:1fr;padding:11px 18px}.pinnedMessages>strong{grid-row:auto}.messageFeed{min-height:300px;max-height:56vh;padding:18px 12px;scrollbar-gutter:auto}.messageBubbleRow{grid-template-columns:34px minmax(0,1fr);gap:7px}.messageBubbleRow.own{grid-template-columns:minmax(0,1fr) 34px}.messageAvatar{width:34px;height:34px;border-radius:11px;font-size:.66rem}.messageBubble{width:min(92%,620px);padding:11px 12px}.messageBubble header time{width:100%;margin-left:0}.messageActions{width:100%;margin:3px 0 0;opacity:1}.messageActions button,.messageBubble footer>button{min-height:44px;padding:8px 9px}.messageComposer{grid-template-columns:minmax(0,1fr) 52px;gap:8px;padding:11px 10px calc(11px + env(safe-area-inset-bottom))}.messageComposer textarea{min-height:50px;padding:13px}.messageComposerInput>small{display:none}.messageSend{width:52px;min-width:52px;min-height:50px;padding:0;font-size:0}.messageSend span{margin:0;font-size:1.15rem}.mentionSuggestions{position:fixed;left:12px;right:12px;bottom:calc(82px + env(safe-area-inset-bottom))}}
+@media(prefers-reduced-motion:reduce){.messageActions{transition:none}.messageFeed{scroll-behavior:auto}}
+

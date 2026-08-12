@@ -1,0 +1,5 @@
+import {notFound} from 'next/navigation';
+
+const widths=[320,375,390,430,768,1024,1280,1440];
+
+export default function ProjectArchitectResponsiveGate(){if(process.env.VERCEL_ENV==='production')notFound();return <main style={{padding:20,background:'#e9ecf1'}}><h1 style={{fontSize:28}}>Project Architect release check</h1><p>Public opportunity and member application at every required viewport width.</p>{[['Public opportunity','/project-architect'],['Member application','/dev/project-architect-preview']].map(([label,src])=><section key={src} style={{marginTop:32}}><h2 style={{fontSize:22}}>{label}</h2><div style={{display:'grid',gap:24}}>{widths.map(width=><section key={`${src}-${width}`} data-gate-width={width} data-gate-page={src} style={{width:'max-content',maxWidth:'none'}}><h3 style={{fontSize:18}}>{width}px</h3><iframe title={`${label} at ${width}px`} data-width={width} src={src} width={width} height="900" style={{display:'block',width,height:900,border:'2px solid #10131d',background:'#fff'}}/></section>)}</div></section>)}</main>}

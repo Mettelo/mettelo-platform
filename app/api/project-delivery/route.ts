@@ -31,12 +31,14 @@ export async function POST(request:Request){
     const title=String(body.title||'').trim().slice(0,180);
     const description=String(body.description||'').trim().slice(0,1500);
     const isRequired=body.is_required!==false&&body.is_required!=='false';
+    const workstreamId=String(body.workstream_id||'')||null;
     if(!title)return NextResponse.json({error:'Title is required.'},{status:400});
+    if(workstreamId){const {data}=await access.supabase.from('project_workstreams').select('id').eq('id',workstreamId).eq('project_run_id',runId).maybeSingle();if(!data)return NextResponse.json({error:'Choose a workstream from this project team.'},{status:400});}
 
     if(resource==='milestone'){
       const status=String(body.status||'planned');
       if(!milestoneStatuses.has(status))return NextResponse.json({error:'Invalid milestone status.'},{status:400});
-      const {data,error}=await access.supabase.from('project_milestones').insert({project_id:projectId,project_run_id:runId,title,description:description||null,due_at:body.due_at||null,status,sort_order:Number(body.sort_order)||0,is_required:isRequired}).select('*').single();
+      const {data,error}=await access.supabase.from('project_milestones').insert({project_id:projectId,project_run_id:runId,workstream_id:workstreamId,title,description:description||null,due_at:body.due_at||null,status,sort_order:Number(body.sort_order)||0,is_required:isRequired}).select('*').single();
       if(error)throw error;
       return NextResponse.json({ok:true,item:data});
     }
@@ -54,7 +56,7 @@ export async function POST(request:Request){
         if(!member)return NextResponse.json({error:'Task assignee must be an active member of this team.'},{status:400});
       }
 
-      const {data,error}=await access.supabase.from('project_tasks').insert({project_id:projectId,project_run_id:runId,milestone_id:milestoneId,title,description:description||null,due_at:body.due_at||null,status,assignee_user_id:assignee,is_required:isRequired}).select('*').single();
+      const {data,error}=await access.supabase.from('project_tasks').insert({project_id:projectId,project_run_id:runId,workstream_id:workstreamId,milestone_id:milestoneId,title,description:description||null,due_at:body.due_at||null,status,assignee_user_id:assignee,is_required:isRequired}).select('*').single();
       if(error)throw error;
 
       if(assignee){

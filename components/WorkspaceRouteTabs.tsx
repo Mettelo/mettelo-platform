@@ -4,8 +4,8 @@ import Link from 'next/link';
 import {usePathname,useSearchParams} from 'next/navigation';
 import {useEffect} from 'react';
 
-const views=[['overview','Overview'],['team','Team'],['discussion','Discussion'],['delivery','Delivery'],['meetings','Meetings'],['resources','Resources'],['proof','Proof'],['presentation','Presentation'],['completion','Completion']] as const;
-const ids=['team','discussion','delivery','meetings','resources','proof','presentation','completion'];
+const views=[['overview','Overview'],['problem','Problem'],['data-sources','Data'],['workstreams','Workstreams'],['deliverables','Deliverables'],['delivery','Tasks'],['team','Team'],['discussion','Discussion'],['meetings','Meetings'],['resources','Resources'],['proof','Proof'],['presentation','Presentation'],['completion','Completion']] as const;
+const ids=['problem','data-sources','workstreams','deliverables','team','discussion','delivery','meetings','resources','proof','presentation','completion'];
 
 export default function WorkspaceRouteTabs(){
   const pathname=usePathname();
@@ -41,7 +41,7 @@ export default function WorkspaceRouteTabs(){
         <div><span className="cardNumber">PROJECT WORKSPACE</span><h3 style={{marginTop:8}}>Choose a workspace area.</h3></div>
         <span className="chip">FOCUSED VIEW</span>
       </div>
-      <p className="routedWorkspaceIntro">Move directly to the team area, discussion, delivery, meetings, resources, Proof, presentation or completion.</p>
+      <p className="routedWorkspaceIntro">Move from the problem brief and governed data sources through workstreams, reviewed delivery, team collaboration and verified Proof.</p>
       <div className="grid4 routedWorkspaceGrid">{views.slice(1).map(([key,label])=><Link className="card" href={hrefFor(key)} key={key}><strong>{label}</strong><span className="linkArrow">Open →</span></Link>)}</div>
     </section>}
     <style jsx>{`.routedWorkspaceNav{display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;margin:0 0 18px;padding:8px;border:1px solid rgba(16,19,29,.09);border-radius:12px;background:#fff}.routedWorkspaceNav::-webkit-scrollbar{display:none}.routedWorkspaceNav :global(a){flex:0 0 auto;white-space:nowrap;scroll-snap-align:start;padding:8px 11px;border-radius:8px;font-size:.74rem;font-weight:750;color:#596371}.routedWorkspaceNav :global(a:hover){background:#f2f4f7;color:#10131d}.routedWorkspaceNav :global(a.active){background:#10131d;color:#fff}.routedWorkspaceOverview{margin-bottom:18px}.routedWorkspaceOverview :global(.card){display:grid;gap:8px;min-height:100px}.routedWorkspaceIntro{max-width:70ch}@media(max-width:900px){.routedWorkspaceOverview{padding:18px}.routedWorkspaceOverview :global(.panelHead){display:block}.routedWorkspaceOverview :global(.panelHead .chip){display:none}.routedWorkspaceIntro{margin:8px 0 16px;font-size:.86rem;line-height:1.55}.routedWorkspaceOverview :global(.routedWorkspaceGrid){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.routedWorkspaceOverview :global(.card){min-height:72px;padding:13px}.routedWorkspaceOverview :global(.card strong){font-size:.82rem}.routedWorkspaceOverview :global(.linkArrow){font-size:.72rem}}`}</style>

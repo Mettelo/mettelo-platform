@@ -4,15 +4,16 @@ import { FormEvent, useMemo, useState } from 'react';
 
 type Project={id:string;title:string};
 type Task={id:string;project_id:string;title:string;status:string};
+export type EvidenceOption={type:'task'|'data_source'|'deliverable'|'review';id:string;label:string;detail?:string};
 
-export default function ContributionForm({projects,tasks=[],projectRunId}:{projects:Project[];tasks?:Task[];projectRunId?:string|null}){
+export default function ContributionForm({projects,tasks=[],projectRunId,evidenceOptions=[]}:{projects:Project[];tasks?:Task[];projectRunId?:string|null;evidenceOptions?:EvidenceOption[]}){
   const [status,setStatus]=useState<'idle'|'submitting'|'error'>('idle');
   const [message,setMessage]=useState('');
   const [projectId,setProjectId]=useState(projects[0]?.id||'');
   const relevantTasks=useMemo(()=>tasks.filter(task=>task.project_id===projectId&&task.status!=='done'),[tasks,projectId]);
   async function submit(event:FormEvent<HTMLFormElement>){
     event.preventDefault();setStatus('submitting');setMessage('');
-    const form=event.currentTarget;const data=Object.fromEntries(new FormData(form).entries());const payload={...data,project_run_id:projectRunId||null,is_public:data.is_public==='on'};
+    const form=event.currentTarget;const formData=new FormData(form);const data=Object.fromEntries(formData.entries());const evidenceLinks=formData.getAll('evidence_links').map(String).map(value=>{const [type,id]=value.split(':');return{type,id}});const payload={...data,project_run_id:projectRunId||null,is_public:data.is_public==='on',evidence_links:evidenceLinks};
     try{
       const response=await fetch('/api/contributions',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});const body=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(body.error||'Unable to submit contribution.');
@@ -24,10 +25,11 @@ export default function ContributionForm({projects,tasks=[],projectRunId}:{proje
     <div className="panelHead"><div><span className="cardNumber">CONTRIBUTION EVIDENCE</span><h3 style={{marginTop:8}}>Submit work for verification</h3></div><span className="chip">PROOF</span></div>
     <label htmlFor="proof-project">Project *</label><select id="proof-project" name="project_id" required value={projectId} onChange={e=>setProjectId(e.target.value)}>{projects.map(project=><option key={project.id} value={project.id}>{project.title}</option>)}</select>
     {tasks.length>0&&<><label htmlFor="proof-task">Assigned task</label><select id="proof-task" name="task_id" defaultValue=""><option value="">Project-level contribution / no task</option>{relevantTasks.map(task=><option key={task.id} value={task.id}>{task.title} · {task.status.replace('_',' ')}</option>)}</select><small>Use the task link when this evidence completes a specific assigned deliverable.</small></>}
+    {evidenceOptions.length>0&&<fieldset className="evidenceLedger"><legend>Your Contribution Ledger</legend><p>Select the workspace records that show what you owned, managed or reviewed.</p>{evidenceOptions.map(item=><label className="ledgerOption" key={`${item.type}:${item.id}`}><input type="checkbox" name="evidence_links" value={`${item.type}:${item.id}`}/><span><strong>{item.label}</strong><small>{item.type.replace('_',' ')}{item.detail?` · ${item.detail}`:''}</small></span></label>)}</fieldset>}
     <label htmlFor="proof-type">Contribution type *</label><select id="proof-type" name="contribution_type" required defaultValue=""><option value="" disabled>Select type</option><option value="analysis">Analysis</option><option value="engineering">Engineering</option><option value="research">Research</option><option value="design">Design</option><option value="documentation">Documentation</option><option value="qa">QA / Review</option><option value="leadership">Leadership</option><option value="mentoring">Mentoring</option><option value="open_source">Open source</option><option value="other">Other</option></select>
     <label htmlFor="proof-title">What did you own? *</label><input id="proof-title" name="title" required minLength={6} maxLength={180} placeholder="e.g. Built the validation dashboard and anomaly checks"/>
     <label htmlFor="proof-description">What did you do and what changed? *</label><textarea id="proof-description" name="description" required minLength={30} placeholder="Describe your ownership, method, decisions, output and result. Be specific enough for a reviewer to verify."/>
-    <label htmlFor="proof-url">Evidence URL *</label><input id="proof-url" name="evidence_url" required type="url" placeholder="GitHub PR, repository, dashboard, document or published output"/>
+    <label htmlFor="proof-url">Additional evidence URL</label><input id="proof-url" name="evidence_url" type="url" placeholder="GitHub PR, dashboard, document or published output"/><small>Required only when you have not selected evidence from your Contribution Ledger.</small>
     <label className="consent"><input name="is_public" type="checkbox"/><span>If verified, allow this contribution to appear in public Mettelo Proof/Showcase. Leave unchecked to keep the verified record private.</span></label>
     <button className="button dark" type="submit" disabled={status==='submitting'} style={{width:'100%',marginTop:20}}>{status==='submitting'?'Submitting…':'Submit for verification →'}</button>
     <div className={`formStatus ${status}`} role="status" aria-live="polite">{message}</div>

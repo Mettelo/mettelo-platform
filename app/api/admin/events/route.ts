@@ -2,7 +2,7 @@ import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
 
-const types=new Set(['ama','workshop','office_hours','community_session','showcase','webinar','networking','summit','build_sprint','other']);
+const types=new Set(['ama','workshop','office_hours','community_session','project_learning','showcase','webinar','networking','summit','build_sprint','other']);
 const statuses=new Set(['draft','published','registration_closed','completed','cancelled','archived']);
 const deliveryModes=new Set(['online','in_person','hybrid']);
 function slugify(v:string){return v.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,120)}

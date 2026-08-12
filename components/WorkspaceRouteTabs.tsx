@@ -34,7 +34,7 @@ export default function WorkspaceRouteTabs(){
 
   return <>
     <nav className="routedWorkspaceNav" aria-label="Project workspace views">
-      {views.map(([key,label])=><Link className={view===key?'active':''} href={hrefFor(key)} key={key}>{label}</Link>)}
+      {views.map(([key,label])=><Link aria-current={view===key?'page':undefined} className={view===key?'active':''} href={hrefFor(key)} key={key}>{label}</Link>)}
     </nav>
     {view==='overview'&&<section className="panel routedWorkspaceOverview">
       <div className="panelHead">

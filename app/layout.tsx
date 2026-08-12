@@ -8,6 +8,7 @@ import "./globals.css";
 import "./mobile.css";
 import "./expansion.css";
 import "./collaboration.css";
+import "./messages.css";
 import "./polish.css";
 import "./page-system.css";
 import "./alignment.css";

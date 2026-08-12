@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "audit:interactions": "node scripts/audit-interactions.mjs",
+    "audit:phase5": "node scripts/audit-phase-5-governance.mjs",
     "admin:promote": "node scripts/promote-admin.mjs"
   },
   "dependencies": {

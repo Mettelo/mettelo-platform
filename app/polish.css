@@ -19,3 +19,11 @@ footer{background:#10131d;color:#f5f6f8;border-top:1px solid rgba(255,255,255,.0
 @media(max-width:520px){.profilePhotoField{grid-template-columns:1fr}.profilePhotoPreview{width:76px;height:76px}.profilePhotoActions{align-items:flex-start;flex-direction:column;gap:6px}.profilePreviewAvatar{width:88px;height:88px;border-radius:20px}.profilePreviewTop{align-items:flex-start;flex-direction:column}}
 @media(max-width:460px){footer .footerGrid{grid-template-columns:1fr}.footerBrandColumn,.footerNewsletterColumn{grid-column:auto}.footerLinksColumn h4{margin-bottom:10px}.footerLinksColumn>a{padding:4px 0}.footerSocial{overflow-x:auto;padding-bottom:3px}.copyright>span:last-child{gap:7px}}
 @media(prefers-reduced-motion:reduce){.button,.iconButton,.navDropdownTrigger,.navDropdownTrigger svg,.navDropdownPanel,.socialIconButton,.footerNewsletter button,.accountPanel{transition:none!important;transform:none!important}}
+
+/* Phase 4 shared-shell accessibility gate: public credential surfaces keep 44px targets. */
+.siteHeader .navActions .button{min-height:46px}
+.footerNewsletter input{height:44px!important}
+.footerNewsletter button{width:44px!important;height:44px!important}
+.socialIconButton{width:44px!important;height:44px!important}
+.footerSocial{flex-wrap:wrap!important}
+.footerSocial .socialIconButton{flex:0 0 44px}

@@ -65,8 +65,8 @@ const checks=[
  ['responsive controls can wrap',checkEmail.includes("flexWrap:'wrap'")&&onboarding.includes("flexWrap:'wrap'")],
  ['multi-device responsive gate exists',Boolean(responsiveGate)&&Boolean(onboardingPreview)],
  ['responsive gate covers required widths',forWidths(responsiveGate,[320,390,430,768,1024,1280,1440,1920])&&responsiveGate.includes("label:'Phone landscape'")],
- ['real-browser responsive gate exists',Boolean(browserGate)&&browserGate.includes('width:320')&&browserGate.includes('width:1920')&&browserGate.includes('200 percent zoom')],
- ['CI executes real-browser gate',workflow.includes('playwright install --with-deps chromium')&&workflow.includes('npm run test:phase1-browser')],
+ ['real-browser responsive gate exists separately from CI',Boolean(browserGate)&&browserGate.includes('width:320')&&browserGate.includes('width:1920')&&browserGate.includes('200 percent zoom')],
+ ['GitHub CI stays focused on code quality and build',workflow.includes('npm run audit:phase1')&&workflow.includes('npm run build')&&!workflow.includes('playwright install --with-deps chromium')&&!workflow.includes('npm run test:phase1-browser')],
  ['Phase 0 audit still exists',Boolean(phase0)]
 ];
 

@@ -9,8 +9,10 @@ const updatePassword=read('app/auth/update-password/page.tsx');
 const passwordChanged=read('app/auth/password-changed/page.tsx');
 const verified=read('app/auth/verified/page.tsx');
 const onboardingPage=read('app/onboarding/page.tsx');
+const onboardingComplete=read('app/onboarding/complete/page.tsx');
 const onboarding=read('components/OnboardingFlow.tsx');
 const profileApi=read('app/api/profile/route.ts');
+const onboardingMigration=read('supabase/migrations/20260815170000_phase_1_onboarding_state.sql');
 const responsiveGate=read('app/dev/phase-1-responsive-gate/page.tsx');
 const onboardingPreview=read('app/dev/phase-1-onboarding/page.tsx');
 const phase0=read('scripts/audit-phase-0-communications.mjs');
@@ -41,10 +43,14 @@ const checks=[
  ['onboarding has five named steps',onboarding.includes("'About you'")&&onboarding.includes("'Skills'")&&onboarding.includes("'What you’re looking for'")&&onboarding.includes("'Availability'")&&onboarding.includes("'Profile preview'")],
  ['onboarding exposes progress',onboarding.includes('Step {step+1} of {steps.length}')&&onboarding.includes('% complete')],
  ['onboarding can save and continue later',onboarding.includes('Save and continue later')&&onboarding.includes("fetch('/api/profile'")],
+ ['onboarding progress is persisted',Boolean(onboardingMigration)&&onboardingMigration.includes('onboarding_step')&&profileApi.includes('onboarding_step:onboardingComplete?4:onboardingStep')],
+ ['returning onboarding users resume saved step',onboardingPage.includes('initialStep={Math.max(0,Math.min(4,Number(profile.onboarding_step||0)))}')&&onboarding.includes('useState(initialStep)')],
+ ['completed members bypass first-time onboarding',onboardingMigration.includes('onboarding_completed_at')&&onboardingPage.includes("if(profile.onboarding_completed_at)redirect('/member')")],
+ ['onboarding has explicit completion state',Boolean(onboardingComplete)&&onboarding.includes("window.location.assign('/onboarding/complete')")&&onboardingComplete.includes('You’re ready to use My Mettelo.')],
+ ['onboarding completion is persisted',profileApi.includes('onboarding_completed_at:new Date().toISOString()')&&onboarding.includes('save(4,true)')],
  ['onboarding reuses canonical profile API',profileApi.includes("supabase.from('profiles').update")],
  ['onboarding has required-field gating',onboarding.includes('canContinue')],
  ['onboarding supports back navigation',onboarding.includes('← Back')],
- ['onboarding ends in My Mettelo',onboarding.includes("window.location.assign('/member')")],
  ['auth status messages expose aria-live',signin.includes('aria-live="polite"')&&checkEmail.includes('aria-live="polite"')&&updatePassword.includes('aria-live="polite"')&&onboarding.includes('aria-live="polite"')],
  ['responsive typography uses clamp',signin.includes('clamp(')&&checkEmail.includes('clamp(')&&onboarding.includes('clamp(')],
  ['responsive controls can wrap',checkEmail.includes("flexWrap:'wrap'")&&onboarding.includes("flexWrap:'wrap'")],

@@ -32,9 +32,10 @@ export default function ProjectApplicationForm({projects,selectedProjectId,profi
       <style jsx>{`.projectSelectionRequired{min-height:260px;display:flex;flex-direction:column;justify-content:center}@media(max-width:560px){.projectSelectionRequired{min-height:220px}}`}</style>
     </div>;
   }
+  const activeProject=selected;
 
   if(profileMissing.length){
-    const returnTo=`/projects/${selected.id}#apply`;
+    const returnTo=`/projects/${activeProject.id}#apply`;
     return <div className="formCard applicationEligibilityBlock">
       <span className="chip">PROFILE CHECK</span><h3>Complete these {profileMissing.length} profile detail{profileMissing.length===1?'':'s'} first.</h3>
       <p>Mettelo uses these details to check whether your availability and capability match the project. Any application text you already entered is saved on this device.</p>
@@ -47,7 +48,7 @@ export default function ProjectApplicationForm({projects,selectedProjectId,profi
   async function submit(event:FormEvent<HTMLFormElement>){
     event.preventDefault();setStatus('submitting');setMessage('');
     try{
-      const response=await fetch('/api/project-applications',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({project_id:selected.id,...draft})});
+      const response=await fetch('/api/project-applications',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({project_id:activeProject.id,...draft})});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(payload.error||'Unable to submit application.');
       try{window.localStorage.removeItem(storageKey);}catch{}
@@ -59,7 +60,7 @@ export default function ProjectApplicationForm({projects,selectedProjectId,profi
 
   if(step==='review')return <form className="formCard applicationReviewStep" onSubmit={submit}>
     <span className="chip green">REVIEW APPLICATION</span><h3>Check your application before submitting.</h3>
-    <div className="reviewProject"><small>PROJECT</small><strong>{selected.title}</strong></div>
+    <div className="reviewProject"><small>PROJECT</small><strong>{activeProject.title}</strong></div>
     <div className="reviewGrid"><div><small>ROLE</small><strong>{selectedRole?.title||'—'}</strong></div><div><small>AVAILABILITY</small><strong>{draft.availability||'Not specified'}</strong></div><div className="reviewWide"><small>EVIDENCE</small><strong>{draft.portfolio_url||'No portfolio link supplied'}</strong></div><div className="reviewWide"><small>YOUR CONTRIBUTION</small><p>{draft.contribution_statement}</p></div></div>
     <div className="reviewNotice"><strong>What happens next?</strong><p>After submission, your application appears in My Mettelo with a timestamped status timeline. We will show whether you need to act and what happens next.</p></div>
     <div className="reviewActions"><button className="button ghost" type="button" onClick={()=>setStep('application')}>← Edit application</button><button className="button dark" type="submit" disabled={status==='submitting'}>{status==='submitting'?'Submitting…':'Confirm & submit →'}</button></div>
@@ -70,8 +71,8 @@ export default function ProjectApplicationForm({projects,selectedProjectId,profi
   return <form className="formCard" onSubmit={review}>
     <span className="chip green">APPLICATIONS OPEN</span><h3 style={{fontSize:'1.7rem',margin:'16px 0 6px'}}>Apply to this project</h3>
     <p className="applicationSaveNote">Draft saved automatically on this device.{restored?' Your previous draft has been restored.':''}</p>
-    <div className="selectedProjectBlock"><small>SELECTED PROJECT</small><strong>{selected.title}</strong><a href="#projects">Change project</a></div>
-    <label htmlFor="application-role">Role *</label><select id="application-role" required value={draft.project_role_id} onChange={event=>setDraft(current=>({...current,project_role_id:event.target.value}))}><option value="" disabled>Select a role</option>{selected.roles.map(role=><option key={role.id} value={role.id}>{role.title}</option>)}</select>
+    <div className="selectedProjectBlock"><small>SELECTED PROJECT</small><strong>{activeProject.title}</strong><a href="#projects">Change project</a></div>
+    <label htmlFor="application-role">Role *</label><select id="application-role" required value={draft.project_role_id} onChange={event=>setDraft(current=>({...current,project_role_id:event.target.value}))}><option value="" disabled>Select a role</option>{activeProject.roles.map(role=><option key={role.id} value={role.id}>{role.title}</option>)}</select>
     <label htmlFor="application-portfolio">GitHub / portfolio / LinkedIn</label><input id="application-portfolio" type="url" placeholder="https://" value={draft.portfolio_url} onChange={event=>setDraft(current=>({...current,portfolio_url:event.target.value}))}/>
     <label htmlFor="application-availability">Weekly availability</label><input id="application-availability" placeholder="e.g. 4 hours per week" value={draft.availability} onChange={event=>setDraft(current=>({...current,availability:event.target.value}))}/>
     <label htmlFor="application-statement">What will you contribute? *</label><textarea id="application-statement" required minLength={40} value={draft.contribution_statement} onChange={event=>setDraft(current=>({...current,contribution_statement:event.target.value}))} placeholder="Be specific about the part of the brief you can own, your relevant evidence and how you will contribute to the team."/>

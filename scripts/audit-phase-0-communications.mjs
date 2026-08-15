@@ -32,7 +32,7 @@ const checks=[
  ['retry/dead-letter handling',notifications.includes("'dead_letter'")&&notifications.includes('backoffMinutes')],
  ['notification preferences',notifications.includes('notification_preferences')],
  ['career application receipt',careerApply.includes('career_submitted')||careerApply.includes('career_application_submitted')],
- ['career status communications',careerAdmin.includes('career_in_review')&&careerAdmin.includes('career_offer')&&careerAdmin.includes('career_rejected')],
+ ['career status communications',careerAdmin.includes("const STAGES=new Set(['in_review','shortlisted','interview','offer','hired','rejected'])")&&careerAdmin.includes('templateKey:`career_${status}`')&&careerAdmin.includes('template_key:`career_${status}`')],
  ['offer document API',documentsApi.includes('career-offer-documents')&&documentsApi.includes('application/pdf')],
  ['Account/Auth group complete',completion.includes("'account_welcome'")&&completion.includes("'auth_email_verification'")&&completion.includes("'auth_password_reset'")],
  ['Account/Auth product journeys exist',signin.includes("mode==='signup'")&&signin.includes('resetPasswordForEmail')&&signin.includes('/auth/callback')],
@@ -45,6 +45,6 @@ const checks=[
 ];
 
 let passed=0;
-for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'} ${String(passed+1).padStart(2,'0')}/25 ${name}`);if(ok)passed++;}
+checks.forEach(([name,ok],index)=>{console.log(`${ok?'PASS':'FAIL'} ${String(index+1).padStart(2,'0')}/25 ${name}`);if(ok)passed++;});
 console.log(`\nPhase 0 communication audit: ${passed}/25 criteria passed.`);
 if(passed!==25)process.exit(1);

@@ -24,6 +24,8 @@ const checks=[
  ['wrong-email recovery exists',checkEmail.includes('Wrong email? Change it')],
  ['verification callback exchanges code',callback.includes('exchangeCodeForSession')],
  ['signup verification reaches verified page',callback.includes("flow==='signup'")&&callback.includes('/auth/verified')],
+ ['email signup continues into onboarding',signin.includes("flow=signup&next=${encodeURIComponent('/onboarding')}")&&signin.includes('/auth/verified?next=%2Fonboarding')],
+ ['OAuth account creation continues into onboarding',signin.includes("const next=mode==='signup'?'/onboarding':safeNext()")],
  ['verified page has explicit success state',verified.includes('Your email is verified.')],
  ['safe next path rejects protocol-relative redirects',signin.includes("!value.startsWith('//')")&&callback.includes("!value.startsWith('//')")],
  ['reset request redirects to reset-sent',signin.includes('/auth/reset-sent?email=')],

@@ -7,7 +7,7 @@ const checks=[
   ['app/projects/[id]/page.tsx',['What this project is solving','Know what you are committing to','AVAILABLE ROLES','EXPECTED PROOF','Application deadline','ProjectApplicationForm']],
   ['components/ProjectApplicationForm.tsx',['localStorage','Draft saved automatically','Complete these','REVIEW APPLICATION','Confirm & submit']],
   ['app/member/applications/page.tsx',['project_application_events','project_run_id','forming_deadline','MemberApplicationTracker']],
-  ['components/MemberApplicationTracker.tsx',['WHAT THIS MEANS','WHAT HAPPENS NEXT','DO I NEED TO DO SOMETHING?','Application timeline','Team progress']],
+  ['components/MemberApplicationTracker.tsx',['WHAT THIS MEANS','WHAT HAPPENS NEXT','DO I NEED TO DO SOMETHING?','Application timeline','formationTrack']],
   ['app/api/project-applications/route.ts',['application_deadline','team_place_released','waiting_for_team']],
   ['supabase/migrations/20260816001500_phase2_project_application_events.sql',['project_application_events','record_project_application_event','members read own project application events']]
 ];

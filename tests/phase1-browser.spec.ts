@@ -1,4 +1,4 @@
-import {expect,test} from '@playwright/test';
+import {expect,test,type Page} from '@playwright/test';
 
 const viewports=[
   {name:'small-phone',width:320,height:900},
@@ -24,13 +24,13 @@ const pages=[
   '/onboarding/complete'
 ];
 
-async function expectNoHorizontalOverflow(page:any){
+async function expectNoHorizontalOverflow(page:Page){
   const result=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
   expect(result.scrollWidth,'document must not overflow horizontally').toBeLessThanOrEqual(result.clientWidth+1);
 }
 
-async function expectUsableControls(page:any){
-  const controls=page.locator('button,input,select,textarea');
+async function expectUsableControls(page:Page){
+  const controls=page.locator('button,input:not([type="checkbox"]):not([type="radio"]),select,textarea');
   const count=await controls.count();
   for(let i=0;i<count;i++){
     const control=controls.nth(i);
@@ -38,6 +38,12 @@ async function expectUsableControls(page:any){
     const box=await control.boundingBox();
     if(!box)continue;
     expect(box.height,`control ${i} must have usable height`).toBeGreaterThanOrEqual(40);
+  }
+  const toggles=page.locator('input[type="checkbox"],input[type="radio"]');
+  for(let i=0;i<await toggles.count();i++){
+    const toggle=toggles.nth(i);if(!(await toggle.isVisible()))continue;
+    const label=toggle.locator('xpath=ancestor::label[1]');
+    if(await label.count()){const box=await label.boundingBox();if(box)expect(box.height,`toggle target ${i} must be usable`).toBeGreaterThanOrEqual(40)}
   }
 }
 

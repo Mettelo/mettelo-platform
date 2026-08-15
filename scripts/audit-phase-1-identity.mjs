@@ -36,7 +36,7 @@ const checks=[
  ['onboarding route requires authentication',onboardingPage.includes("redirect('/signin?next=%2Fonboarding')")],
  ['onboarding has five named steps',onboarding.includes("'About you'")&&onboarding.includes("'Skills'")&&onboarding.includes("'What you’re looking for'")&&onboarding.includes("'Availability'")&&onboarding.includes("'Profile preview'")],
  ['onboarding exposes progress',onboarding.includes('Step {step+1} of {steps.length}')&&onboarding.includes('% complete')],
- ['onboarding can save and continue later',onboarding.includes('Save and continue later')&&onboarding.includes("fetch('/api/profile'"))],
+ ['onboarding can save and continue later',onboarding.includes('Save and continue later')&&onboarding.includes("fetch('/api/profile'")],
  ['onboarding reuses canonical profile API',profileApi.includes("supabase.from('profiles').update")],
  ['onboarding has required-field gating',onboarding.includes('canContinue')],
  ['onboarding supports back navigation',onboarding.includes('← Back')],

@@ -11,6 +11,7 @@
     "audit:interactions": "node scripts/audit-interactions.mjs",
     "audit:phase0": "node scripts/audit-phase-0-communications.mjs",
     "audit:phase1": "node scripts/audit-phase-1-identity.mjs",
+    "test:phase1-browser": "playwright test tests/phase1-browser.spec.ts --project=chromium",
     "audit:phase5": "node scripts/audit-phase-5-governance.mjs",
     "audit:phase6": "node scripts/audit-phase-6-events.mjs",
     "admin:promote": "node scripts/promote-admin.mjs"
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "@playwright/test": "^1.55.0",
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",

@@ -15,20 +15,28 @@ const profileApi=read('app/api/profile/route.ts');
 const onboardingMigration=read('supabase/migrations/20260815170000_phase_1_onboarding_state.sql');
 const responsiveGate=read('app/dev/phase-1-responsive-gate/page.tsx');
 const onboardingPreview=read('app/dev/phase-1-onboarding/page.tsx');
+const browserGate=read('tests/phase1-browser.spec.ts');
+const workflow=read('.github/workflows/ci.yml');
 const phase0=read('scripts/audit-phase-0-communications.mjs');
 
 const checks=[
  ['signup redirects to check-email',signin.includes('/auth/check-email?email=')],
  ['check-email route exists',Boolean(checkEmail)],
  ['check-email masks destination email',checkEmail.includes('maskEmail')],
+ ['verification email app action exists',checkEmail.includes('Open email app')&&checkEmail.includes("window.location.href='mailto:'")],
  ['verification resend is wired',checkEmail.includes("supabase.auth.resend")],
  ['verification resend cooldown exists',checkEmail.includes('setCooldown(60)')],
  ['wrong-email recovery exists',checkEmail.includes('Wrong email? Change it')],
+ ['verification support recovery exists',checkEmail.includes('/contact')],
  ['verification callback exchanges code',callback.includes('exchangeCodeForSession')],
  ['signup verification reaches verified page',callback.includes("flow==='signup'")&&callback.includes('/auth/verified')],
  ['email signup continues into onboarding',signin.includes("flow=signup&next=${encodeURIComponent('/onboarding')}")&&signin.includes('/auth/verified?next=%2Fonboarding')],
  ['OAuth account creation continues into onboarding',signin.includes("const next=mode==='signup'?'/onboarding':safeNext()")],
+ ['OAuth cancellation and failure are recoverable',callback.includes('oauth-cancelled')&&callback.includes('oauth-failed')&&signin.includes('Social sign-in was cancelled')],
+ ['unverified sign-in routes to verification recovery',signin.includes("code==='email_not_confirmed'")&&signin.includes('/auth/check-email?email=')],
+ ['authenticated users do not remain on sign-in',signin.includes('supabase.auth.getSession()')&&signin.includes('window.location.replace(safeNext())')],
  ['verified page has explicit success state',verified.includes('Your email is verified.')],
+ ['verified page names onboarding next action',verified.includes('Continue profile setup')],
  ['safe next path rejects protocol-relative redirects',signin.includes("!value.startsWith('//')")&&callback.includes("!value.startsWith('//')")],
  ['reset request redirects to reset-sent',signin.includes('/auth/reset-sent?email=')],
  ['reset-sent route exists',Boolean(resetSent)],
@@ -37,7 +45,7 @@ const checks=[
  ['password update checks recovery session',updatePassword.includes('getSession()')],
  ['password show/hide controls exist',updatePassword.includes('showPassword')&&updatePassword.includes('showConfirm')],
  ['password mismatch is validated',updatePassword.includes('The passwords do not match.')],
- ['password completion redirects to dedicated state',updatePassword.includes("/auth/password-changed")],
+ ['password completion redirects to dedicated state',updatePassword.includes('/auth/password-changed')],
  ['password-changed route exists',Boolean(passwordChanged)],
  ['onboarding route requires authentication',onboardingPage.includes("redirect('/signin?next=%2Fonboarding')")],
  ['onboarding has five named steps',onboarding.includes("'About you'")&&onboarding.includes("'Skills'")&&onboarding.includes("'What you’re looking for'")&&onboarding.includes("'Availability'")&&onboarding.includes("'Profile preview'")],
@@ -56,6 +64,8 @@ const checks=[
  ['responsive controls can wrap',checkEmail.includes("flexWrap:'wrap'")&&onboarding.includes("flexWrap:'wrap'")],
  ['multi-device responsive gate exists',Boolean(responsiveGate)&&Boolean(onboardingPreview)],
  ['responsive gate covers required widths',forWidths(responsiveGate,[320,390,430,768,1024,1280,1440,1920])&&responsiveGate.includes("label:'Phone landscape'")],
+ ['real-browser responsive gate exists',Boolean(browserGate)&&browserGate.includes("width:320")&&browserGate.includes("width:1920")&&browserGate.includes('200 percent zoom')],
+ ['CI executes real-browser gate',workflow.includes('playwright install --with-deps chromium')&&workflow.includes('npm run test:phase1-browser')],
  ['Phase 0 audit still exists',Boolean(phase0)]
 ];
 

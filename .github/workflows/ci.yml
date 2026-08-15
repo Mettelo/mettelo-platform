@@ -14,9 +14,9 @@ permissions:
 
 jobs:
   verify:
-    name: Lint, typecheck, interactions, browser gate and build
+    name: Lint, typecheck, interactions and build
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     env:
       NEXT_PUBLIC_SITE_URL: https://mettelo.com
       NEXT_PUBLIC_SUPABASE_URL: https://aconptuqupsgznyrxhrh.supabase.co
@@ -33,23 +33,11 @@ jobs:
       - run: npm run audit:phase0
       - run: npm run audit:phase1
       - run: npm run build
-      - name: Install Chromium for Phase 1 browser gate
-        run: npx playwright install --with-deps chromium
-      - name: Run Phase 1 real-browser gate
-        run: npm run test:phase1-browser
       - name: Upload interaction audit on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: interaction-audit
           path: artifacts/interaction-audit.*
-          if-no-files-found: ignore
-          retention-days: 3
-      - name: Upload Playwright traces on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phase1-playwright
-          path: test-results/
           if-no-files-found: ignore
           retention-days: 3

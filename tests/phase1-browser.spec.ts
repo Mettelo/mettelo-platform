@@ -63,6 +63,31 @@ test.describe('Phase 1 responsive release matrix',()=>{
   }
 });
 
+test('protected onboarding redirects to sign in and preserves origin',async({page})=>{
+  await page.goto('/onboarding');
+  await expect(page).toHaveURL(/\/signin\?next=%2Fonboarding$/);
+});
+
+test('OAuth cancellation returns to a clear recoverable state',async({page})=>{
+  await page.goto('/auth/callback?flow=oauth&error=access_denied&next=%2Fmember');
+  await expect(page).toHaveURL(/\/signin\?/);
+  await expect(page.getByText('Social sign-in was cancelled. You can try again or use email instead.')).toBeVisible();
+});
+
+test('Google OAuth provider starts from account creation',async({page})=>{
+  await page.goto('/signin?mode=signup');
+  await page.getByRole('button',{name:/Create account with Google/i}).click();
+  await page.waitForURL(url=>url.hostname.includes('google.com')||url.hostname.includes('supabase.co'),{timeout:20000});
+  expect(page.url()).toMatch(/google\.com|supabase\.co/);
+});
+
+test('GitHub OAuth provider starts from account creation',async({page})=>{
+  await page.goto('/signin?mode=signup');
+  await page.getByRole('button',{name:/Create account with GitHub/i}).click();
+  await page.waitForURL(url=>url.hostname==='github.com'||url.hostname.includes('supabase.co'),{timeout:20000});
+  expect(page.url()).toMatch(/github\.com|supabase\.co/);
+});
+
 test('keyboard navigation exposes visible focus on sign in',async({page})=>{
   await page.goto('/signin');
   await page.keyboard.press('Tab');

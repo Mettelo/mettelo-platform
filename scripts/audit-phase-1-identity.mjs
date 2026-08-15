@@ -11,6 +11,8 @@ const verified=read('app/auth/verified/page.tsx');
 const onboardingPage=read('app/onboarding/page.tsx');
 const onboarding=read('components/OnboardingFlow.tsx');
 const profileApi=read('app/api/profile/route.ts');
+const responsiveGate=read('app/dev/phase-1-responsive-gate/page.tsx');
+const onboardingPreview=read('app/dev/phase-1-onboarding/page.tsx');
 const phase0=read('scripts/audit-phase-0-communications.mjs');
 
 const checks=[
@@ -44,8 +46,12 @@ const checks=[
  ['auth status messages expose aria-live',signin.includes('aria-live="polite"')&&checkEmail.includes('aria-live="polite"')&&updatePassword.includes('aria-live="polite"')&&onboarding.includes('aria-live="polite"')],
  ['responsive typography uses clamp',signin.includes('clamp(')&&checkEmail.includes('clamp(')&&onboarding.includes('clamp(')],
  ['responsive controls can wrap',checkEmail.includes("flexWrap:'wrap'")&&onboarding.includes("flexWrap:'wrap'")],
+ ['multi-device responsive gate exists',Boolean(responsiveGate)&&Boolean(onboardingPreview)],
+ ['responsive gate covers required widths',forWidths(responsiveGate,[320,390,430,768,1024,1280,1440,1920])&&responsiveGate.includes("label:'Phone landscape'")],
  ['Phase 0 audit still exists',Boolean(phase0)]
 ];
+
+function forWidths(source,widths){return widths.every(width=>source.includes(`width:${width}`));}
 
 let passed=0;
 checks.forEach(([label,ok],index)=>{const prefix=String(index+1).padStart(2,'0');console.log(`${ok?'PASS':'FAIL'} ${prefix}/${checks.length} ${label}`);if(ok)passed+=1;});

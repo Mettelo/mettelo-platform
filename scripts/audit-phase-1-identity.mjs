@@ -50,7 +50,7 @@ const checks=[
  ['onboarding route requires authentication',onboardingPage.includes("redirect('/signin?next=%2Fonboarding')")],
  ['onboarding has five named steps',onboarding.includes("'About you'")&&onboarding.includes("'Skills'")&&onboarding.includes("'What you’re looking for'")&&onboarding.includes("'Availability'")&&onboarding.includes("'Profile preview'")],
  ['onboarding exposes progress',onboarding.includes('Step {step+1} of {steps.length}')&&onboarding.includes('% complete')],
- ['onboarding can save and continue later',onboarding.includes('Save and continue later')&&onboarding.includes("fetch('/api/profile'")],
+ ['onboarding can save and continue later',onboarding.includes('Save and continue later')&&onboarding.includes('saveForLater')&&onboarding.includes("window.location.assign('/member')")],
  ['onboarding progress is persisted',Boolean(onboardingMigration)&&onboardingMigration.includes('onboarding_step')&&profileApi.includes('onboarding_step:onboardingComplete?4:onboardingStep')],
  ['returning onboarding users resume saved step',onboardingPage.includes('initialStep={Math.max(0,Math.min(4,Number(profile.onboarding_step||0)))}')&&onboarding.includes('useState(initialStep)')],
  ['completed members bypass first-time onboarding',onboardingMigration.includes('onboarding_completed_at')&&onboardingPage.includes("if(profile.onboarding_completed_at)redirect('/member')")],
@@ -64,7 +64,7 @@ const checks=[
  ['responsive controls can wrap',checkEmail.includes("flexWrap:'wrap'")&&onboarding.includes("flexWrap:'wrap'")],
  ['multi-device responsive gate exists',Boolean(responsiveGate)&&Boolean(onboardingPreview)],
  ['responsive gate covers required widths',forWidths(responsiveGate,[320,390,430,768,1024,1280,1440,1920])&&responsiveGate.includes("label:'Phone landscape'")],
- ['real-browser responsive gate exists',Boolean(browserGate)&&browserGate.includes("width:320")&&browserGate.includes("width:1920")&&browserGate.includes('200 percent zoom')],
+ ['real-browser responsive gate exists',Boolean(browserGate)&&browserGate.includes('width:320')&&browserGate.includes('width:1920')&&browserGate.includes('200 percent zoom')],
  ['CI executes real-browser gate',workflow.includes('playwright install --with-deps chromium')&&workflow.includes('npm run test:phase1-browser')],
  ['Phase 0 audit still exists',Boolean(phase0)]
 ];

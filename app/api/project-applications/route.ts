@@ -24,8 +24,9 @@ export async function POST(request:Request){
 
     if(!projectId||statement.length<40) return NextResponse.json({error:'Choose a project and explain your contribution in at least 40 characters.'},{status:400});
 
-    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status,project_type').eq('id',projectId).single();
+    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status,project_type,application_deadline').eq('id',projectId).single();
     if(projectError||!project) return NextResponse.json({error:'Project not found.'},{status:404});
+    if(project.application_deadline&&new Date(project.application_deadline).getTime()<Date.now())return NextResponse.json({error:'The application deadline for this project has passed.'},{status:409});
 
     const isInterest=requestedKind==='interest';
     if(isInterest&&project.status!=='pilot') return NextResponse.json({error:'This project is already open for applications. Apply to a project role instead.'},{status:400});
@@ -82,10 +83,18 @@ export async function PATCH(request:Request){
     const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});
     const body=await request.json();const id=String(body.id||'');const action=String(body.action||'');if(!id||action!=='withdraw')return NextResponse.json({error:'Invalid application action.'},{status:400});
     const db=serviceDb();if(!db)return NextResponse.json({error:'Application service is not configured.'},{status:503});
-    const {data:application}=await db.from('project_applications').select('id,user_id,project_id,status,application_kind,projects(title)').eq('id',id).maybeSingle();if(!application||application.user_id!==user.id)return NextResponse.json({error:'Project request not found.'},{status:404});
-    if(!['submitted','in_review','shortlisted'].includes(application.status))return NextResponse.json({error:'You can only withdraw before an approval or decline decision is made.'},{status:409});
-    const now=new Date().toISOString();const {data:updated,error}=await db.from('project_applications').update({status:'withdrawn',withdrawn_at:now,updated_at:now}).eq('id',id).select('id,status').single();if(error)throw error;
+    const {data:application}=await db.from('project_applications').select('id,user_id,project_id,project_run_id,status,application_kind,projects(title,status)').eq('id',id).maybeSingle();if(!application||application.user_id!==user.id)return NextResponse.json({error:'Project request not found.'},{status:404});
     const project=Array.isArray(application.projects)?application.projects[0]:application.projects;const title=project?.title||'Mettelo Labs project';
+    if(application.status==='team_complete'||project?.status==='active')return NextResponse.json({error:'This project has already started. Contact Mettelo Support or the Project Lead if you need to leave an active team.'},{status:409});
+    const now=new Date().toISOString();
+    if(['approved','accepted','waiting_for_team'].includes(application.status)){
+      if(application.project_run_id){const {error:memberError}=await db.from('project_members').update({membership_status:'left',left_at:now}).eq('project_run_id',application.project_run_id).eq('user_id',user.id).eq('membership_status','waiting');if(memberError)throw memberError;}
+      const {data:updated,error}=await db.from('project_applications').update({status:'withdrawn',withdrawn_at:now,updated_at:now}).eq('id',id).select('id,status').single();if(error)throw error;
+      await notifyAdmins(db,{projectId:application.project_id,applicationId:id,type:'application_withdrawn',title:`Confirmed place withdrawn — ${title}`,body:`${user.user_metadata?.full_name||user.email||'A member'} withdrew while the team was still forming. The team capacity has been released.`,actionUrl:'/admin'});
+      return NextResponse.json({ok:true,application:updated,team_place_released:true});
+    }
+    if(!['submitted','in_review','shortlisted'].includes(application.status))return NextResponse.json({error:'This application can no longer be withdrawn from the application tracker.'},{status:409});
+    const {data:updated,error}=await db.from('project_applications').update({status:'withdrawn',withdrawn_at:now,updated_at:now}).eq('id',id).select('id,status').single();if(error)throw error;
     await notifyAdmins(db,{projectId:application.project_id,applicationId:id,type:'application_withdrawn',title:`Project request withdrawn — ${title}`,body:`${user.user_metadata?.full_name||user.email||'A member'} withdrew their ${application.application_kind==='interest'?'interest':'application'} before a decision.`,actionUrl:'/admin'});
     return NextResponse.json({ok:true,application:updated});
   }catch(error){console.error('application withdrawal error',error);return NextResponse.json({error:'Unable to withdraw this project request.'},{status:500});}

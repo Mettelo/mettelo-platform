@@ -1,0 +1,22 @@
+name: Sync Supabase Auth Templates
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/templates/auth/**'
+      - 'scripts/sync-supabase-auth-templates.mjs'
+      - '.github/workflows/sync-supabase-auth-templates.yml'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Sync and verify hosted Supabase Auth templates
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: aconptuqupsgznyrxhrh
+        run: node scripts/sync-supabase-auth-templates.mjs

@@ -52,6 +52,9 @@ export async function PATCH(request:Request){
     const isPublic=Boolean(body.is_public);
     const domainSlugs=slugList(body.domain_preferences);
     const toolSlugs=slugList(body.tool_preferences);
+    const hasOnboardingStep=Object.prototype.hasOwnProperty.call(body,'onboarding_step');
+    const onboardingStep=Math.max(0,Math.min(4,Number.isFinite(Number(body.onboarding_step))?Math.trunc(Number(body.onboarding_step)):0));
+    const onboardingComplete=body.onboarding_complete===true;
 
     if(!fullName) return NextResponse.json({error:'Full name is required.'},{status:400});
     if(professionalArea&&!allowedAreas.has(professionalArea)) return NextResponse.json({error:'Choose a valid professional area.'},{status:400});
@@ -72,13 +75,17 @@ export async function PATCH(request:Request){
     if(domainRows.error||toolRows.error) return NextResponse.json({error:'Unable to validate project preferences.'},{status:500});
     if((domainRows.data||[]).length!==domainSlugs.length||(toolRows.data||[]).length!==toolSlugs.length)return NextResponse.json({error:'One or more project preferences are invalid. Refresh and try again.'},{status:400});
 
-    const {data,error}=await supabase.from('profiles').update({
+    const onboardingState=onboardingComplete
+      ?{onboarding_step:4,onboarding_completed_at:new Date().toISOString()}
+      :hasOnboardingStep?{onboarding_step:onboardingStep}:{};
+    const updatePayload={
       full_name:fullName,headline,bio,location,professional_area:professionalArea||null,primary_goal:primaryGoal||null,
       linkedin_url:linkedinUrl||null,github_url:githubUrl||null,portfolio_url:portfolioUrl||null,avatar_url:avatarUrl||null,
       current_job_title:currentJobTitle||null,organisation:organisation||null,experience_level:experienceLevel||null,
       employment_status:employmentStatus||null,project_availability:projectAvailability||null,weekly_capacity:weeklyCapacity||null,
-      skills,preferred_roles:preferredRoles,languages,is_public:isPublic,updated_at:new Date().toISOString()
-    }).eq('id',user.id).select('*').single();
+      skills,preferred_roles:preferredRoles,languages,is_public:isPublic,...onboardingState,updated_at:new Date().toISOString()
+    };
+    const {data,error}=await supabase.from('profiles').update(updatePayload).eq('id',user.id).select('*').single();
     if(error) return NextResponse.json({error:'Unable to save profile.'},{status:500});
 
     const [clearDomains,clearTools]=await Promise.all([

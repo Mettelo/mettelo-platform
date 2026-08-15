@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 const checks=[
   ['app/member/profile/page.tsx',['ProfileReturnAfterSave','MemberProfileSection']],
-  ['components/MemberProfileSection.tsx',['Profile completeness','improve project matching','Project availability','Preview public profile']],
+  ['components/MemberProfileSection.tsx',['Profile completeness','improve project matching','PROJECT AVAILABILITY','Preview public profile']],
   ['components/ProfileReturnAfterSave.tsx',['mettelo:profile-updated','window.location.assign(next)']],
   ['app/projects/[id]/page.tsx',['What this project is solving','Know what you are committing to','AVAILABLE ROLES','EXPECTED PROOF','Application deadline','ProjectApplicationForm']],
   ['components/ProjectApplicationForm.tsx',['localStorage','Draft saved automatically','Complete these','REVIEW APPLICATION','Confirm & submit']],

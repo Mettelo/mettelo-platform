@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const read=(path)=>fs.existsSync(path)?fs.readFileSync(path,'utf8'):'';
 const signin=read('app/signin/page.tsx');
 const callback=read('app/auth/callback/route.ts');
+const socialComplete=read('app/auth/social-complete/page.tsx');
 const checkEmail=read('app/auth/check-email/page.tsx');
 const resetSent=read('app/auth/reset-sent/page.tsx');
 const updatePassword=read('app/auth/update-password/page.tsx');
@@ -31,10 +32,13 @@ const checks=[
  ['verification callback exchanges code',callback.includes('exchangeCodeForSession')],
  ['signup verification reaches verified page',callback.includes("flow==='signup'")&&callback.includes('/auth/verified')],
  ['email signup continues into onboarding',signin.includes("flow=signup&next=${encodeURIComponent('/onboarding')}")&&signin.includes('/auth/verified?next=%2Fonboarding')],
- ['OAuth account creation continues into onboarding',signin.includes("const next=mode==='signup'?'/onboarding':safeNext()")],
+ ['OAuth account creation uses distinct social signup flow',signin.includes("const flow=socialSignup?'social-signup':'oauth'")&&callback.includes("flow==='social-signup'")],
+ ['OAuth account creation requires password completion',Boolean(socialComplete)&&callback.includes('/auth/social-complete')&&socialComplete.includes('updateUser({password})')&&socialComplete.includes('Confirm password')],
+ ['OAuth account creation continues into onboarding',socialComplete.includes("return '/onboarding'")&&socialComplete.includes('/auth/verified?next=')],
  ['OAuth cancellation and failure are recoverable',callback.includes('oauth-cancelled')&&callback.includes('oauth-failed')&&signin.includes('Social sign-in was cancelled')],
  ['unverified sign-in routes to verification recovery',signin.includes("code==='email_not_confirmed'")&&signin.includes('/auth/check-email?email=')],
  ['authenticated users do not remain on sign-in',signin.includes('supabase.auth.getSession()')&&signin.includes('window.location.replace(safeNext())')],
+ ['canonical auth origin is used for email and OAuth redirects',signin.includes('function authOrigin()')&&signin.includes('NEXT_PUBLIC_SITE_URL')&&signin.includes('${authOrigin()}/auth/callback')],
  ['verified page has explicit success state',verified.includes('Your email is verified.')],
  ['verified page names onboarding next action',verified.includes('Continue profile setup')],
  ['safe next path rejects protocol-relative redirects',signin.includes("!value.startsWith('//')")&&callback.includes("!value.startsWith('//')")],
@@ -60,7 +64,7 @@ const checks=[
  ['onboarding reuses canonical profile API',profileApi.includes("supabase.from('profiles').update")],
  ['onboarding has required-field gating',onboarding.includes('canContinue')],
  ['onboarding supports back navigation',onboarding.includes('← Back')],
- ['auth status messages expose aria-live',signin.includes('aria-live="polite"')&&checkEmail.includes('aria-live="polite"')&&updatePassword.includes('aria-live="polite"')&&onboarding.includes('aria-live="polite"')],
+ ['auth status messages expose aria-live',signin.includes('aria-live="polite"')&&checkEmail.includes('aria-live="polite"')&&updatePassword.includes('aria-live="polite"')&&socialComplete.includes('aria-live="polite"')&&onboarding.includes('aria-live="polite"')],
  ['responsive typography uses clamp',signin.includes('clamp(')&&checkEmail.includes('clamp(')&&onboarding.includes('clamp(')],
  ['responsive controls can wrap',checkEmail.includes("flexWrap:'wrap'")&&onboarding.includes("flexWrap:'wrap'")],
  ['multi-device responsive gate exists',Boolean(responsiveGate)&&Boolean(onboardingPreview)],

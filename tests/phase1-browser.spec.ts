@@ -20,7 +20,11 @@ const pages=[
   '/auth/reset-sent?email=long.member.address%40example.com',
   '/auth/password-changed',
   '/auth/verified?next=%2Fonboarding',
-  '/dev/phase-1-onboarding',
+  '/dev/phase-1-onboarding?step=0',
+  '/dev/phase-1-onboarding?step=1',
+  '/dev/phase-1-onboarding?step=2',
+  '/dev/phase-1-onboarding?step=3',
+  '/dev/phase-1-onboarding?step=4',
   '/onboarding/complete'
 ];
 
@@ -47,6 +51,15 @@ async function expectUsableControls(page:Page){
   }
 }
 
+async function expectNamedFormControls(page:Page){
+  const controls=page.locator('input:not([type="hidden"]),select,textarea');
+  for(let i=0;i<await controls.count();i++){
+    const control=controls.nth(i);if(!(await control.isVisible()))continue;
+    const named=await control.evaluate((element:HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement)=>Boolean(element.getAttribute('aria-label')||element.getAttribute('aria-labelledby')||element.labels?.length));
+    expect(named,`form control ${i} must have an accessible name`).toBeTruthy();
+  }
+}
+
 test.describe('Phase 1 responsive release matrix',()=>{
   for(const viewport of viewports){
     for(const path of pages){
@@ -56,6 +69,7 @@ test.describe('Phase 1 responsive release matrix',()=>{
         await expect(page.locator('body')).toBeVisible();
         await expectNoHorizontalOverflow(page);
         await expectUsableControls(page);
+        await expectNamedFormControls(page);
         const bodyBox=await page.locator('body').boundingBox();
         expect(bodyBox?.width||0).toBeLessThanOrEqual(viewport.width+1);
       });
@@ -88,27 +102,39 @@ test('GitHub OAuth provider starts from account creation',async({page})=>{
   expect(page.url()).toMatch(/github\.com|supabase\.co/);
 });
 
-test('keyboard navigation exposes visible focus on sign in',async({page})=>{
+test('keyboard navigation exposes visible focus and advances focus order',async({page})=>{
   await page.goto('/signin');
-  await page.keyboard.press('Tab');
-  const focused=page.locator(':focus');
-  await expect(focused).toBeVisible();
-  const outline=await focused.evaluate(el=>{const s=getComputedStyle(el);return `${s.outlineStyle}|${s.outlineWidth}|${s.boxShadow}`});
-  expect(outline).not.toMatch(/^none\|0px\|none$/);
+  let previous='';
+  for(let i=0;i<6;i++){
+    await page.keyboard.press('Tab');
+    const focused=page.locator(':focus');
+    await expect(focused).toBeVisible();
+    const signature=await focused.evaluate(el=>`${el.tagName}:${el.getAttribute('href')||''}:${el.getAttribute('name')||''}:${el.textContent||''}`);
+    expect(signature).not.toBe(previous);previous=signature;
+    const focusStyle=await focused.evaluate(el=>{const s=getComputedStyle(el);return `${s.outlineStyle}|${s.outlineWidth}|${s.boxShadow}`});
+    expect(focusStyle).not.toMatch(/^none\|0px\|none$/);
+  }
 });
 
-test('auth fields expose browser autofill semantics',async({page})=>{
+test('auth fields expose mobile keyboard and password-manager semantics',async({page})=>{
   await page.goto('/signin');
   await expect(page.locator('input[type="email"]')).toHaveAttribute('autocomplete',/email/);
-  await expect(page.locator('input[type="password"]')).toHaveAttribute('autocomplete',/(current-password|new-password)/);
+  await expect(page.locator('input[type="email"]')).toHaveAttribute('inputmode','email');
+  await expect(page.locator('input[type="password"]')).toHaveAttribute('autocomplete','current-password');
   await page.goto('/signin?mode=signup');
   await expect(page.locator('input[type="email"]')).toHaveAttribute('autocomplete',/email/);
-  await expect(page.locator('input[type="password"]')).toHaveAttribute('autocomplete',/(new-password|current-password)/);
+  await expect(page.locator('input[type="password"]')).toHaveAttribute('autocomplete','new-password');
+});
+
+test('errors are textual and announced, not colour-only',async({page})=>{
+  await page.goto('/signin?error=oauth-failed');
+  const status=page.locator('[role="status"][aria-live="polite"]').filter({hasText:'Social sign-in could not be completed'});
+  await expect(status).toBeVisible();
 });
 
 test('200 percent zoom remains horizontally usable',async({page})=>{
   await page.setViewportSize({width:1280,height:900});
-  for(const path of ['/signin','/auth/check-email?email=long.member.address%40example.com&next=%2Fonboarding','/dev/phase-1-onboarding']){
+  for(const path of ['/signin','/auth/check-email?email=long.member.address%40example.com&next=%2Fonboarding','/dev/phase-1-onboarding?step=4']){
     await page.goto(path,{waitUntil:'networkidle'});
     await page.evaluate(()=>{document.documentElement.style.zoom='2'});
     await expectNoHorizontalOverflow(page);

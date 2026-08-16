@@ -1,0 +1,8 @@
+import {redirect} from 'next/navigation';
+import {createServerSupabaseClient} from '@/lib/supabase/server';
+import {serviceDb} from '@/lib/project-flow';
+import AdminSectionTabs from '@/components/AdminSectionTabs';
+import AdminCareerRolesTable,{type CareerRoleRow} from '@/components/AdminCareerRolesTable';
+
+export const dynamic='force-dynamic';
+export default async function AdminCareerRolesPage(){const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();if(!user)redirect('/signin');if(user.app_metadata?.role!=='admin')redirect('/member');const db=serviceDb();let roles:CareerRoleRow[]=[];if(db){const [roleResult,applications]=await Promise.all([db.from('career_roles').select('id,title,slug,team,employment_type,status,closes_at,location,work_arrangement,salary_text,summary,responsibilities,requirements,nice_to_have,eligibility,expected_response_days,application_process,application_questions').order('created_at',{ascending:false}),db.from('career_applications').select('role_id')]);const counts=new Map<string,number>();for(const row of applications.data||[])counts.set(row.role_id,(counts.get(row.role_id)||0)+1);roles=((roleResult.data||[]) as unknown as Omit<CareerRoleRow,'applicant_count'>[]).map(role=>({...role,applicant_count:counts.get(role.id)||0}));}return <section className="section softSection"><div className="shell"><AdminSectionTabs label="Career sections" tabs={[{label:'Roles',href:'/admin/careers/roles'},{label:'Candidates',href:'/admin/careers/applications'},{label:'Pipeline overview',href:'/admin/careers/pipeline'}]}/><AdminCareerRolesTable initialRoles={roles}/></div></section>}

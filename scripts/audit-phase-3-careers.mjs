@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 const checks=[
   ['supabase/migrations/20260816013000_phase3_careers_recruitment.sql',['eligibility text','expected_response_days','interview_timezone','offer_acceptance_deadline','career_onboarding_items','career_withdrawn','members can view own career onboarding','admins manage career onboarding']],
+  ['supabase/migrations/20260816014500_phase3_career_role_defaults.sql',['expected_response_days set default 14','No additional eligibility restrictions are specified','Mettelo then reviews your application']],
   ['app/careers/[slug]/page.tsx',['Eligibility','Response target','What happens after you apply','application_process','application_questions','initialValues']],
   ['components/CareerApplicationForm.tsx',['localStorage','Draft saved automatically','Review application','Confirm & submit application','XMLHttpRequest','uploadProgress','question_']],
   ['app/api/careers/apply/route.ts',['application_questions','answers','career_submitted','This role is not accepting applications','An application for this role already exists','career_application_submitted']],
@@ -9,11 +10,12 @@ const checks=[
   ['components/CareerApplicationTracker.tsx',['Recruitment progress','What this means','What happens next','Do I need to do something?','Congratulations — you have an offer','Your interview details','Get ready for your first day','Withdraw application','View application history']],
   ['app/member/applications/page.tsx',['career_application_events','career_onboarding_items','career_offer_documents','CareerApplicationTracker','Your recruitment journey']],
   ['components/AdminCareerRoleManager.tsx',['Eligibility','Expected response','Application process','Application questions','expected_response_days','application_questions']],
+  ['app/api/admin/careers/roles/route.ts',['Complete the career brief before publishing','expected response time','application process','eligibility']],
   ['app/admin/careers/page.tsx',['communication_records','career_onboarding_items','profiles','application_questions','AdminCareerApplicationQueue']],
   ['components/AdminCareerApplicationQueue.tsx',['Linked Mettelo profile','Role-specific answers','Internal note','Communication history','AdminCareerInterviewComposer','AdminCareerOfferComposer','AdminCareerOnboarding']],
   ['components/AdminCareerInterviewComposer.tsx',['showModal','INTERVIEW COMPOSER','Date & time','Timezone','Format','Meeting URL / joining link','Interviewer','Candidate instructions','EMAIL PREVIEW','Schedule & send']],
   ['components/AdminCareerOfferComposer.tsx',['showModal','OFFER COMPOSER','Salary / rate','Start date','Employment type','Manager','Working arrangement','Acceptance deadline','Conditions','Personal message','Private PDF','EMAIL PREVIEW']],
-  ['app/api/admin/careers/applications/route.ts',['candidateEventNote','Review and confirm','interview_timezone','interview_format','interview_url','offer_salary_rate','offer_start_date','offer_acceptance_deadline','career_onboarding_items','career_stage_transition','communication_records']],
+  ['app/api/admin/careers/applications/route.ts',['TRANSITIONS','candidateEventNote','Review and confirm','interview_timezone','interview_format','interview_url','offer_salary_rate','offer_start_date','offer_acceptance_deadline','career_onboarding_items','career_stage_transition','communication_records']],
   ['app/api/admin/careers/onboarding/route.ts',['career_onboarding_items','career_onboarding_updated','Admin access required']],
   ['app/api/admin/communications/documents/route.ts',['application/pdf','10*1024*1024','career-offer-documents','offer_document_attached']],
   ['app/api/careers/offer-documents/[id]/route.ts',['application?.user_id!==user.id','createSignedUrl','60']],

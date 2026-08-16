@@ -2,8 +2,8 @@
 
 import {useState} from 'react';
 
-type Metrics={members:number|null;projects:number|null;proofs:number|null};
-type MetricConfig={label:string;liveLabel:string;historicalValue:number;liveValue:number|null};
+type Metrics={projects:number|null;opportunities:number|null;proofs:number|null};
+type ThresholdMetricConfig={label:string;liveLabel:string;historicalValue:number;liveValue:number|null};
 
 type Slide={
   eyebrow:string;
@@ -21,13 +21,21 @@ const slides:Slide[]=[
   {eyebrow:'DISCOVERY',title:'Use stronger signals when opportunity appears.',body:'Projects and verified Proof give organisations more context than a list of claims on a profile.',accent:'Professional discovery',detailTitle:'Opportunity signal',detailBody:'Evidence · Context · Fit'}
 ];
 
-function Metric({label,liveLabel,historicalValue,liveValue}:MetricConfig){
+function ThresholdMetric({label,liveLabel,historicalValue,liveValue}:ThresholdMetricConfig){
   const useLive=liveValue!==null&&liveValue>=LIVE_THRESHOLD;
   const value=useLive?liveValue:historicalValue;
   return <div className="heroMetric">
     <span>{useLive?liveLabel:label}</span>
     <strong>{value.toLocaleString('en-GB')}+</strong>
     <small>{useLive?'Live platform total':'Established Mettelo total'}</small>
+  </div>;
+}
+
+function LiveMetric({label,value}:{label:string;value:number|null}){
+  return <div className="heroMetric">
+    <span>{label}</span>
+    <strong>{value===null?'Live':`${value.toLocaleString('en-GB')}+`}</strong>
+    <small>Live platform total</small>
   </div>;
 }
 
@@ -57,10 +65,10 @@ export default function HomeHeroShowcase({metrics}:{metrics:Metrics}){
         <div className="heroFeatureFoot"><span>{slide.accent}</span><strong>View in Mettelo →</strong></div>
       </div>
 
-      <div className="heroMetrics" aria-label="Mettelo reach and platform signals">
-        <Metric label="Community reach" liveLabel="Mettelo members" historicalValue={5689} liveValue={metrics.members}/>
-        <Metric label="Projects delivered" liveLabel="Public projects" historicalValue={684} liveValue={metrics.projects}/>
-        <Metric label="Proof signals" liveLabel="Verified Proof" historicalValue={900} liveValue={metrics.proofs}/>
+      <div className="heroMetrics" aria-label="Mettelo platform activity signals">
+        <ThresholdMetric label="Projects delivered" liveLabel="Public projects" historicalValue={684} liveValue={metrics.projects}/>
+        <LiveMetric label="Open opportunities" value={metrics.opportunities}/>
+        <ThresholdMetric label="Proof signals" liveLabel="Verified Proof" historicalValue={900} liveValue={metrics.proofs}/>
       </div>
 
       <div className="heroSlideControls" aria-label="Platform showcase slides">

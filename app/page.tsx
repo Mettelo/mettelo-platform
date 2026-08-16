@@ -4,6 +4,11 @@ import {createPublicSupabaseClient} from '@/lib/supabase/public';
 import './home.css';
 import './home-refinement.css';
 import './home-overhaul.css';
+import './home-social-proof.css';
+
+const LIVE_THRESHOLD=500;
+const ESTABLISHED_COMMUNITY_REACH=5689;
+const fallbackAvatarInitials=['M','E','T','T','O'];
 
 const steps=[
   {number:'01',title:'Discover',body:'Find projects, opportunities and events that match your skills, interests and next move.'},
@@ -19,19 +24,34 @@ const impactPillars=[
   {title:'Cross-border scope',body:'Infrastructure designed for Africa and useful beyond it.'}
 ];
 
+type HeroAvatar={full_name:string|null;avatar_url:string|null};
+
 async function getHeroMetrics(){
   const db=createPublicSupabaseClient();
-  if(!db)return {members:null,projects:null,proofs:null};
-  const [members,projects,proofs]=await Promise.all([
+  if(!db)return {members:null,projects:null,opportunities:null,proofs:null,avatars:[] as HeroAvatar[]};
+  const now=new Date().toISOString();
+  const [members,projects,opportunities,proofs,avatars]=await Promise.all([
     db.from('profiles').select('id',{count:'exact',head:true}),
     db.from('projects').select('id',{count:'exact',head:true}).eq('visibility','public').in('status',['pilot','recruiting','active','review','completed']),
-    db.from('contributions').select('id',{count:'exact',head:true}).eq('verification_status','verified').eq('is_public',true)
+    db.from('opportunities').select('id',{count:'exact',head:true}).eq('status','published').eq('access_level','public').or(`closes_at.is.null,closes_at.gte.${now}`),
+    db.from('contributions').select('id',{count:'exact',head:true}).eq('verification_status','verified').eq('is_public',true),
+    db.from('profiles').select('full_name,avatar_url').eq('is_public',true).not('avatar_url','is',null).order('updated_at',{ascending:false}).limit(5)
   ]);
-  return {members:members.count??null,projects:projects.count??null,proofs:proofs.count??null};
+  return {
+    members:members.count??null,
+    projects:projects.count??null,
+    opportunities:opportunities.count??null,
+    proofs:proofs.count??null,
+    avatars:(avatars.data||[]) as HeroAvatar[]
+  };
 }
 
 export default async function HomePage(){
   const metrics=await getHeroMetrics();
+  const useLiveCommunity=metrics.members!==null&&metrics.members>=LIVE_THRESHOLD;
+  const communityValue:number=useLiveCommunity?(metrics.members??ESTABLISHED_COMMUNITY_REACH):ESTABLISHED_COMMUNITY_REACH;
+  const communityLabel=useLiveCommunity?'Mettelo members building capability and making impact':'professionals reached through the wider Mettelo community';
+  const heroAvatars=Array.from({length:5},(_,index)=>metrics.avatars[index]||{full_name:fallbackAvatarInitials[index],avatar_url:null});
   return <>
     <section className="homeHero homeHeroDark homeHeroOverhaul" aria-labelledby="home-hero-title">
       <div className="shell homeHeroShell">
@@ -44,12 +64,21 @@ export default async function HomePage(){
               <a className="button primary" href="/projects">Explore projects →</a>
               <a className="button heroGhost" href="/auth/signup">Create your profile</a>
             </div>
+            <div className="heroCommunityProof" aria-label={`${communityValue.toLocaleString('en-GB')} plus ${communityLabel}`}>
+              <div className="heroCommunityAvatars" aria-hidden="true">
+                {heroAvatars.map((avatar,index)=>{
+                  const initial=(avatar.full_name?.trim()?.charAt(0)||fallbackAvatarInitials[index]).toUpperCase();
+                  return <span className="heroCommunityAvatar" key={`${avatar.avatar_url||initial}-${index}`} style={avatar.avatar_url?{backgroundImage:`url(${avatar.avatar_url})`}:undefined}>{avatar.avatar_url?'':initial}</span>;
+                })}
+              </div>
+              <p><strong>{communityValue.toLocaleString('en-GB')}+</strong><span>{communityLabel}</span></p>
+            </div>
             <div className="heroPositioningLine" aria-label="Mettelo positioning">
               <strong>Professional capability infrastructure</strong>
               <span>Real projects · reviewed evidence · stronger professional signals</span>
             </div>
           </div>
-          <HomeHeroShowcase metrics={metrics}/>
+          <HomeHeroShowcase metrics={{projects:metrics.projects,opportunities:metrics.opportunities,proofs:metrics.proofs}}/>
         </div>
       </div>
     </section>

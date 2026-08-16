@@ -1,6 +1,24 @@
 .headerNavigation{}
 
+/* Shared logged-out/public responsiveness contract. HeaderNavigation is mounted on every public page,
+   so these rules provide a final defensive layer after page-specific CSS. */
+:global(html),:global(body){max-width:100%;overflow-x:clip}
+:global(body:not(.memberAppActive) #main-content),
+:global(body:not(.memberAppActive) #main-content > *),
+:global(body:not(.memberAppActive) #main-content .shell),
+:global(body:not(.memberAppActive) #main-content .section),
+:global(body:not(.memberAppActive) #main-content .hero),
+:global(body:not(.memberAppActive) #main-content .heroGrid),
+:global(body:not(.memberAppActive) #main-content .sectionHead){min-width:0;max-width:100%}
+:global(body:not(.memberAppActive) #main-content img),
+:global(body:not(.memberAppActive) #main-content video),
+:global(body:not(.memberAppActive) #main-content iframe),
+:global(body:not(.memberAppActive) #main-content svg){max-width:100%;height:auto}
+
 @media(max-width:1080px){
+  :global(.siteHeader .shell.nav){width:min(calc(100% - 24px),1440px)!important;max-width:100%!important;min-width:0!important}
+  :global(.siteHeader .brandImageLink){min-width:0!important;flex:0 1 auto!important}
+  :global(.siteHeader .brandLogo){width:min(112px,34vw)!important;max-width:112px!important;height:auto!important}
   :global(.mobileMenuPanel){
     display:none;
     overflow-y:auto!important;
@@ -29,10 +47,56 @@
   :global(.mobileDirectNav a span){display:inline!important;visibility:visible!important}
   :global(.mobileNavLabel){display:block!important;visibility:visible!important;color:#5b6472!important}
   :global(.mobileSupportGroup){display:grid!important}
+
+  :global(body:not(.memberAppActive) #main-content .heroGrid),
+  :global(body:not(.memberAppActive) #main-content .aboutSplit),
+  :global(body:not(.memberAppActive) #main-content .founderGrid),
+  :global(body:not(.memberAppActive) #main-content .contactGrid),
+  :global(body:not(.memberAppActive) #main-content .formShell),
+  :global(body:not(.memberAppActive) #main-content .homeSplit){grid-template-columns:minmax(0,1fr)!important}
+}
+
+@media(max-width:760px){
+  :global(.siteHeader .nav){height:64px!important;min-height:64px!important;gap:8px!important}
+  :global(.siteHeader .shell.nav){width:calc(100% - 20px)!important;padding-left:0!important;padding-right:0!important}
+  :global(.mobileMenuPanel){top:70px!important;left:8px!important;right:8px!important;width:auto!important;max-width:none!important}
+  :global(body:not(.memberAppActive) #main-content .sectionHead){display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+  :global(body:not(.memberAppActive) #main-content .actions){max-width:100%;flex-wrap:wrap!important}
+  :global(body:not(.memberAppActive) #main-content .button){max-width:100%;white-space:normal;text-align:center}
+  :global(body:not(.memberAppActive) #main-content h1),
+  :global(body:not(.memberAppActive) #main-content h2),
+  :global(body:not(.memberAppActive) #main-content h3),
+  :global(body:not(.memberAppActive) #main-content p){max-width:100%;overflow-wrap:normal;word-break:normal;hyphens:none}
 }
 
 @media(max-width:480px){
-  :global(.mobileMenuPanel){left:8px!important;right:8px!important;top:68px!important;border-radius:16px!important;padding:12px!important}
-  :global(.mobileGuestActions){grid-template-columns:1fr!important}
+  :global(.siteHeader .shell.nav){width:calc(100% - 16px)!important}
+  :global(.siteHeader .brandLogo){width:min(108px,32vw)!important}
+  :global(.mobileHeaderSearch),:global(.mobileMenu>summary){width:44px!important;height:44px!important;min-width:44px!important;flex:none!important}
+  :global(.mobileMenuPanel){left:6px!important;right:6px!important;top:68px!important;border-radius:16px!important;padding:12px!important;max-height:calc(100dvh - 76px)!important}
+  :global(.mobileGuestActions){grid-template-columns:minmax(0,1fr)!important}
   :global(.mobileGuestActions a){width:100%!important;min-height:46px!important}
+  :global(body:not(.memberAppActive) #main-content .shell){width:min(calc(100% - 24px),var(--max))!important;max-width:100%!important;min-width:0!important}
+  :global(body:not(.memberAppActive) #main-content .grid2),
+  :global(body:not(.memberAppActive) #main-content .grid3),
+  :global(body:not(.memberAppActive) #main-content .grid4),
+  :global(body:not(.memberAppActive) #main-content .projectGrid),
+  :global(body:not(.memberAppActive) #main-content .mediaGrid),
+  :global(body:not(.memberAppActive) #main-content .peopleGrid),
+  :global(body:not(.memberAppActive) #main-content .membershipGrid),
+  :global(body:not(.memberAppActive) #main-content .joinRouteGrid),
+  :global(body:not(.memberAppActive) #main-content .principleGrid),
+  :global(body:not(.memberAppActive) #main-content .homeExploreGrid),
+  :global(body:not(.memberAppActive) #main-content .homeValueGrid),
+  :global(body:not(.memberAppActive) #main-content .homeHowGrid){grid-template-columns:minmax(0,1fr)!important;width:100%!important}
+  :global(body:not(.memberAppActive) #main-content .card),
+  :global(body:not(.memberAppActive) #main-content .panel),
+  :global(body:not(.memberAppActive) #main-content .projectCard),
+  :global(body:not(.memberAppActive) #main-content .eventCard),
+  :global(body:not(.memberAppActive) #main-content .mediaCard),
+  :global(body:not(.memberAppActive) #main-content .formCard){min-width:0!important;max-width:100%!important;overflow:hidden!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  :global(.mobileMenuPanel *),:global(body:not(.memberAppActive) #main-content *){scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 }

@@ -1,5 +1,6 @@
 import HomeLiveContent from '@/components/HomeLiveContent';
 import './home.css';
+import './home-refinement.css';
 
 const steps=[
   {number:'01',title:'Discover',body:'Find projects, opportunities and events that match your skills, interests and next move.'},

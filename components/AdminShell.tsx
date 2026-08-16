@@ -11,7 +11,7 @@ type NavItem={label:string;href:string};
 type NavGroup={label:string;items:NavItem[]};
 
 const groups:NavGroup[]=[
-  {label:'Recruiting',items:[{label:'Careers',href:'/admin/careers'},{label:'Applications',href:'/admin/applications'},{label:'Opportunity review',href:'/admin/opportunities'},{label:'Job sources',href:'/admin/opportunity-sources'}]},
+  {label:'Recruiting',items:[{label:'Careers',href:'/admin/careers'},{label:'Applications',href:'/admin/project-operations/applications'},{label:'Opportunity review',href:'/admin/opportunities'},{label:'Job sources',href:'/admin/opportunity-sources'}]},
   {label:'Projects',items:[{label:'Project operations',href:'/admin/project-operations/projects'},{label:'Project Architect',href:'/admin/project-architect-applications'},{label:'Project governance',href:'/admin/project-governance'}]},
   {label:'Community & Proof',items:[{label:'Proof review',href:'/admin/proof'},{label:'Spotlight & awards',href:'/admin/spotlights'},{label:'Events',href:'/admin/events'}]},
   {label:'Content & Comms',items:[{label:'Content & Insights',href:'/admin/content'},{label:'Notifications & email',href:'/admin/notifications'}]},

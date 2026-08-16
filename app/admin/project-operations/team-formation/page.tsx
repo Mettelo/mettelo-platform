@@ -1,0 +1,5 @@
+import {redirect} from 'next/navigation';
+import {createServerSupabaseClient} from '@/lib/supabase/server';
+import AdminTeamFormation from '@/components/AdminTeamFormation';
+export const dynamic='force-dynamic';
+export default async function TeamFormationPage({searchParams}:{searchParams?:Promise<{project?:string|string[]}>}){const params=await searchParams||{};const focusProjectId=Array.isArray(params.project)?params.project[0]:params.project;const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();if(!user)redirect('/signin');if(user.app_metadata?.role!=='admin')redirect('/member');return <section className="section softSection"><div className="shell"><div className="adminPageHeader"><div><div className="eyebrow">Admin / Projects / Team Formation</div><h1>Team Formation</h1><p>Manage forming, active and paused project teams without loading completed teams by default.</p></div></div><AdminTeamFormation focusProjectId={focusProjectId}/><style>{`.adminPageHeader{margin-bottom:18px}.adminPageHeader h1{margin:4px 0 6px;font-size:clamp(2rem,4vw,3.3rem)}.adminPageHeader p{margin:0;color:#5b6470}`}</style></div></section>}

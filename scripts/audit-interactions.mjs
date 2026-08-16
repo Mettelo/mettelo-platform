@@ -26,12 +26,37 @@ function routeExists(url){
   return fs.existsSync(exact)||fs.existsSync(exactJs);
 }
 
+// Return JSX opening tags without mistaking comparison/arrow operators inside
+// attribute expressions (for example disabled={page>=pages}) for the tag end.
+function* openingTags(text,tagName){
+  const startPattern=new RegExp(`<${tagName}\\b`,'g');
+  for(const match of text.matchAll(startPattern)){
+    const start=match.index??0;let i=start+match[0].length;let braces=0;let quote='';let escaped=false;
+    for(;i<text.length;i++){
+      const ch=text[i];
+      if(quote){
+        if(escaped){escaped=false;continue;}
+        if(ch==='\\\\'){escaped=true;continue;}
+        if(ch===quote)quote='';
+        continue;
+      }
+      if(ch==='"'||ch==="'"||ch==='`'){quote=ch;continue;}
+      if(ch==='{'){braces++;continue;}
+      if(ch==='}'&&braces>0){braces--;continue;}
+      if(ch==='>'&&braces===0){
+        yield {index:start,attrs:text.slice(start+match[0].length,i)};
+        break;
+      }
+    }
+  }
+}
+
 for(const file of files){
   const text=fs.readFileSync(file,'utf8');
   const hasForm=/<form\b/.test(text);
 
-  for(const match of text.matchAll(/<form\b([^>]*)>/gs)){
-    const attrs=match[1]||'';const line=lineOf(text,match.index||0);
+  for(const match of openingTags(text,'form')){
+    const attrs=match.attrs||'';const line=lineOf(text,match.index);
     const wired=/\bonSubmit\s*=/.test(attrs)||/\baction\s*=/.test(attrs);
     inventory.push({kind:'form',file,line,wired});
     if(!wired)addIssue('error',file,line,'form-no-action','Form has neither onSubmit nor action.');
@@ -39,8 +64,8 @@ for(const file of files){
     if(action?.startsWith('/api/')&&!routeExists(action))addIssue('error',file,line,'missing-api-route',`Form action ${action} has no matching app API route.`);
   }
 
-  for(const match of text.matchAll(/<button\b([^>]*)>/gs)){
-    const attrs=match[1]||'';const line=lineOf(text,match.index||0);
+  for(const match of openingTags(text,'button')){
+    const attrs=match.attrs||'';const line=lineOf(text,match.index);
     const explicitSubmit=/\btype\s*=\s*["']submit["']/.test(attrs);
     const explicitButton=/\btype\s*=\s*["']button["']/.test(attrs);
     const handler=/\bonClick\s*=|\bonPointerDown\s*=|\bonMouseDown\s*=/.test(attrs);
@@ -51,8 +76,8 @@ for(const file of files){
     if(!wired)addIssue('error',file,line,'button-no-action','Button has no click handler and is not a submit/menu control.');
   }
 
-  for(const match of text.matchAll(/<input\b([^>]*)>/gs)){
-    const attrs=match[1]||'';const line=lineOf(text,match.index||0);
+  for(const match of openingTags(text,'input')){
+    const attrs=match.attrs||'';const line=lineOf(text,match.index);
     if(/\btype\s*=\s*["'](button|submit)["']/.test(attrs)){
       const submit=/\btype\s*=\s*["']submit["']/.test(attrs);const handler=/\bonClick\s*=/.test(attrs);
       inventory.push({kind:'input-action',file,line,wired:submit||handler});
@@ -60,8 +85,8 @@ for(const file of files){
     }
   }
 
-  for(const match of text.matchAll(/<a\b([^>]*)>/gs)){
-    const attrs=match[1]||'';const line=lineOf(text,match.index||0);
+  for(const match of openingTags(text,'a')){
+    const attrs=match.attrs||'';const line=lineOf(text,match.index);
     const href=attrs.match(/\bhref\s*=\s*["']([^"']*)["']/)?.[1];
     if(href!==undefined){
       inventory.push({kind:'link',file,line,wired:Boolean(href&&href!=='#')});

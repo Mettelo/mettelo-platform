@@ -8,7 +8,6 @@ import './home-social-proof.css';
 
 const LIVE_THRESHOLD=500;
 const ESTABLISHED_COMMUNITY_REACH=5689;
-const fallbackAvatarInitials=['M','E','T','T','O'];
 
 const steps=[
   {number:'01',title:'Discover',body:'Find projects, opportunities and events that match your skills, interests and next move.'},
@@ -24,25 +23,21 @@ const impactPillars=[
   {title:'Cross-border scope',body:'Infrastructure designed for Africa and useful beyond it.'}
 ];
 
-type HeroAvatar={full_name:string|null;avatar_url:string|null};
-
 async function getHeroMetrics(){
   const db=createPublicSupabaseClient();
-  if(!db)return {members:null,projects:null,opportunities:null,proofs:null,avatars:[] as HeroAvatar[]};
+  if(!db)return {members:null,projects:null,opportunities:null,proofs:null};
   const now=new Date().toISOString();
-  const [members,projects,opportunities,proofs,avatars]=await Promise.all([
+  const [members,projects,opportunities,proofs]=await Promise.all([
     db.from('profiles').select('id',{count:'exact',head:true}),
     db.from('projects').select('id',{count:'exact',head:true}).eq('visibility','public').in('status',['pilot','recruiting','active','review','completed']),
     db.from('opportunities').select('id',{count:'exact',head:true}).eq('status','published').eq('access_level','public').or(`closes_at.is.null,closes_at.gte.${now}`),
-    db.from('contributions').select('id',{count:'exact',head:true}).eq('verification_status','verified').eq('is_public',true),
-    db.from('profiles').select('full_name,avatar_url').eq('is_public',true).not('avatar_url','is',null).order('updated_at',{ascending:false}).limit(5)
+    db.from('contributions').select('id',{count:'exact',head:true}).eq('verification_status','verified').eq('is_public',true)
   ]);
   return {
     members:members.count??null,
     projects:projects.count??null,
     opportunities:opportunities.count??null,
-    proofs:proofs.count??null,
-    avatars:(avatars.data||[]) as HeroAvatar[]
+    proofs:proofs.count??null
   };
 }
 
@@ -50,8 +45,7 @@ export default async function HomePage(){
   const metrics=await getHeroMetrics();
   const useLiveCommunity=metrics.members!==null&&metrics.members>=LIVE_THRESHOLD;
   const communityValue:number=useLiveCommunity?(metrics.members??ESTABLISHED_COMMUNITY_REACH):ESTABLISHED_COMMUNITY_REACH;
-  const communityLabel=useLiveCommunity?'Mettelo members building capability and making impact':'professionals reached through the wider Mettelo community';
-  const heroAvatars=Array.from({length:5},(_,index)=>metrics.avatars[index]||{full_name:fallbackAvatarInitials[index],avatar_url:null});
+  const communityLabel='professionals building capability and accessing opportunity';
   return <>
     <section className="homeHero homeHeroDark homeHeroOverhaul" aria-labelledby="home-hero-title">
       <div className="shell homeHeroShell">
@@ -66,10 +60,7 @@ export default async function HomePage(){
             </div>
             <div className="heroCommunityProof" aria-label={`${communityValue.toLocaleString('en-GB')} plus ${communityLabel}`}>
               <div className="heroCommunityAvatars" aria-hidden="true">
-                {heroAvatars.map((avatar,index)=>{
-                  const initial=(avatar.full_name?.trim()?.charAt(0)||fallbackAvatarInitials[index]).toUpperCase();
-                  return <span className="heroCommunityAvatar" key={`${avatar.avatar_url||initial}-${index}`} style={avatar.avatar_url?{backgroundImage:`url(${avatar.avatar_url})`}:undefined}>{avatar.avatar_url?'':initial}</span>;
-                })}
+                {Array.from({length:5},(_,index)=><span className={`heroCommunityAvatar heroCommunityAvatar${index+1}`} key={index}><i/><b/></span>)}
               </div>
               <p><strong>{communityValue.toLocaleString('en-GB')}+</strong><span>{communityLabel}</span></p>
             </div>

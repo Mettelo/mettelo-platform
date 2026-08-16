@@ -14,6 +14,7 @@
     "audit:phase2": "node scripts/audit-phase-2-member-projects.mjs",
     "audit:phase3": "node scripts/audit-phase-3-careers.mjs",
     "audit:admin": "node scripts/audit-admin-console.mjs",
+    "audit:admin2": "node scripts/audit-admin-part-2.mjs",
     "test:phase1-browser": "playwright test tests/phase1-browser.spec.ts --project=chromium",
     "audit:phase5": "node scripts/audit-phase-5-governance.mjs",
     "audit:phase6": "node scripts/audit-phase-6-events.mjs",

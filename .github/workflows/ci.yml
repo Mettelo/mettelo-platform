@@ -36,6 +36,7 @@ jobs:
       - run: npm run audit:phase3
       - run: npm run audit:admin
       - run: npm run audit:admin2
+      - run: npm run audit:phase5-reputation
       - run: npm run build
       - name: Upload interaction audit on failure
         if: failure()

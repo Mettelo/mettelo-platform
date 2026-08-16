@@ -9,8 +9,8 @@ import styles from './HeaderNavigation.module.css';
 
 type AccountState={email:string;name:string;isAdmin:boolean;avatarUrl:string|null}|null;
 const PAGE_SIZE=6;
-const directNavigation=[['Projects','/projects'],['Opportunities','/opportunities'],['Proof','/showcase'],['Events','/events'],['Insights','/blog'],['For organisations','/organisations']] as const;
-const exploreNavigation=[['Community','/community'],['Spotlight','/spotlight'],['Careers','/careers'],['About','/about'],['FAQ','/faq']] as const;
+const directNavigation=[['Projects','/projects'],['Opportunities','/opportunities'],['Proof','/showcase'],['Events','/events'],['For organisations','/organisations'],['About Mettelo','/about']] as const;
+const exploreNavigation=[['Community','/community'],['Insights','/blog'],['Spotlight','/spotlight'],['Careers','/careers'],['FAQ','/faq']] as const;
 const supportNavigation=[['Contact','/contact'],['Feedback','/feedback']] as const;
 
 function SearchIcon(){return <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="m16 16 4 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>}

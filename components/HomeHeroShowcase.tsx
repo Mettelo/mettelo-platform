@@ -2,7 +2,8 @@
 
 import {useState} from 'react';
 
-type Metrics={projects:number|null;opportunities:number|null;proofs:number|null};
+type Metrics={members:number|null;projects:number|null;proofs:number|null};
+type MetricConfig={label:string;liveLabel:string;historicalValue:number;liveValue:number|null};
 
 type Slide={
   eyebrow:string;
@@ -13,14 +14,21 @@ type Slide={
   detailBody:string;
 };
 
+const LIVE_THRESHOLD=500;
 const slides:Slide[]=[
   {eyebrow:'PROJECT DELIVERY',title:'Work in a real delivery environment.',body:'Roles, tasks, milestones, data, events and evidence stay connected from brief to completion.',accent:'Structured delivery',detailTitle:'Active project',detailBody:'Your role · Data Analyst'},
   {eyebrow:'VERIFIED PROOF',title:'Turn contribution into evidence people can trust.',body:'Reviewed work stays connected to the project context, evidence and verification state behind it.',accent:'Evidence reviewed',detailTitle:'Proof record',detailBody:'Contribution · Verified'},
   {eyebrow:'DISCOVERY',title:'Use stronger signals when opportunity appears.',body:'Projects and verified Proof give organisations more context than a list of claims on a profile.',accent:'Professional discovery',detailTitle:'Opportunity signal',detailBody:'Evidence · Context · Fit'}
 ];
 
-function Metric({label,value}:{label:string;value:number|null}){
-  return <div className="heroMetric"><span>{label}</span><strong>{value===null?'Live':value.toLocaleString('en-GB')}</strong><small>{value===null?'Platform signal':'currently visible'}</small></div>;
+function Metric({label,liveLabel,historicalValue,liveValue}:MetricConfig){
+  const useLive=liveValue!==null&&liveValue>=LIVE_THRESHOLD;
+  const value=useLive?liveValue:historicalValue;
+  return <div className="heroMetric">
+    <span>{useLive?liveLabel:label}</span>
+    <strong>{value.toLocaleString('en-GB')}+</strong>
+    <small>{useLive?'Live platform total':'Established Mettelo total'}</small>
+  </div>;
 }
 
 export default function HomeHeroShowcase({metrics}:{metrics:Metrics}){
@@ -49,10 +57,10 @@ export default function HomeHeroShowcase({metrics}:{metrics:Metrics}){
         <div className="heroFeatureFoot"><span>{slide.accent}</span><strong>View in Mettelo →</strong></div>
       </div>
 
-      <div className="heroMetrics" aria-label="Live Mettelo platform signals">
-        <Metric label="Public projects" value={metrics.projects}/>
-        <Metric label="Open opportunities" value={metrics.opportunities}/>
-        <Metric label="Verified Proof" value={metrics.proofs}/>
+      <div className="heroMetrics" aria-label="Mettelo reach and platform signals">
+        <Metric label="Community reach" liveLabel="Mettelo members" historicalValue={5689} liveValue={metrics.members}/>
+        <Metric label="Projects delivered" liveLabel="Public projects" historicalValue={684} liveValue={metrics.projects}/>
+        <Metric label="Proof signals" liveLabel="Verified Proof" historicalValue={900} liveValue={metrics.proofs}/>
       </div>
 
       <div className="heroSlideControls" aria-label="Platform showcase slides">

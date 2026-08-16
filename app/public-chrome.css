@@ -1,12 +1,13 @@
 /* Public chrome refinement: compact mobile navigation + working footer newsletter feedback. */
-.mobileMenuBackdrop{display:none;position:fixed;inset:64px 0 0;z-index:88;border:0;background:rgba(8,14,23,.48);cursor:default}
+.mobileMenuBackdrop{display:none;position:fixed;inset:64px 0 0;z-index:30;border:0;background:rgba(8,14,23,.48);cursor:default}
 .mobileMenuBackdrop[hidden]{display:none!important}
 .mobileNavOpen{overflow:hidden}
 .footerNewsletterForm{width:100%}.footerNewsletterInline{display:flex;width:100%}.footerNewsletterInline input{min-width:0;flex:1}.footerNewsletterInline button{flex:none}.footerNewsletterStatus{margin:9px 0 0;max-width:42ch;font-size:.72rem;line-height:1.45}.footerNewsletterStatus.success{color:#d8efd8}.footerNewsletterStatus.error{color:#ffd3cf}.footerNewsletterForm :is(input,button):focus-visible{outline:3px solid #e0ad59;outline-offset:2px}
 
 @media(max-width:1080px){
-  body.mobileNavOpen .mobileMenuBackdrop{display:block}
-  .mobileMenuPanel{z-index:100!important;padding:8px!important}
+  body.mobileNavOpen .mobileMenuBackdrop{display:block;pointer-events:auto}
+  .mobileMenuPanel{z-index:100!important;padding:8px!important;pointer-events:auto!important;isolation:isolate}
+  .mobileMenuPanel a,.mobileMenuPanel button,.mobileMenuPanel summary{pointer-events:auto!important}
   .metteloMobileNav{gap:7px!important}
   .mobileAccountCard{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;padding:8px!important;border-radius:12px!important}
   .mobileAccountIdentity{min-width:0!important;padding:0!important;gap:8px!important}

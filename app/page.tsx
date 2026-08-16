@@ -49,7 +49,7 @@ async function getHeroMetrics(){
 export default async function HomePage(){
   const metrics=await getHeroMetrics();
   const useLiveCommunity=metrics.members!==null&&metrics.members>=LIVE_THRESHOLD;
-  const communityValue=useLiveCommunity?metrics.members:ESTABLISHED_COMMUNITY_REACH;
+  const communityValue:number=useLiveCommunity?(metrics.members??ESTABLISHED_COMMUNITY_REACH):ESTABLISHED_COMMUNITY_REACH;
   const communityLabel=useLiveCommunity?'Mettelo members building capability and making impact':'professionals reached through the wider Mettelo community';
   const heroAvatars=Array.from({length:5},(_,index)=>metrics.avatars[index]||{full_name:fallbackAvatarInitials[index],avatar_url:null});
   return <>

@@ -15,11 +15,11 @@
     },
     {
       "path": "/api/cron/email-delivery",
-      "schedule": "*/10 * * * *"
+      "schedule": "15 8 * * *"
     },
     {
       "path": "/api/cron/project-event-reminders",
-      "schedule": "*/15 * * * *"
+      "schedule": "15 9 * * *"
     },
     {
       "path": "/api/cron/saved-opportunity-reminders",

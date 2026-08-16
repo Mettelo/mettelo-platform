@@ -21,6 +21,7 @@
     "audit:phase6": "node scripts/audit-phase-6-events.mjs",
     "audit:journey-phase6": "node scripts/audit-journey-phase-6-governance.mjs",
     "audit:journey-phase7": "node scripts/audit-journey-phase-7-discovery.mjs",
+    "audit:journey-phase8": "node scripts/audit-journey-phase-8-support.mjs",
     "admin:promote": "node scripts/promote-admin.mjs"
   },
   "dependencies": {

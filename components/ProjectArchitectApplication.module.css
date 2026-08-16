@@ -1,39 +1,23 @@
 .stack{display:grid;gap:18px}
-.heroCard,.statusCard,.experienceCard{padding:clamp(22px,4vw,40px);border:1px solid rgba(16,19,29,.1);border-radius:20px;background:#fff}
+.heroCard,.statusCard,.experienceCard,.progressCard,.timeline{padding:clamp(22px,4vw,40px);border:1px solid rgba(16,19,29,.1);border-radius:20px;background:#fff}
 .heroCard h2{margin:14px 0 10px;font-size:clamp(1.8rem,4vw,3rem)}
 .heroCard>p{max-width:780px;color:#596371;line-height:1.7}
 .approved{background:linear-gradient(135deg,#fff 0%,#f8f0df 100%)}
-.boundary{display:grid;gap:5px;margin-top:22px;padding:16px;border-left:4px solid #c6892a;background:#fbf7ee}
+.boundary{display:grid;gap:5px;margin-top:22px;padding:16px;border-left:4px solid #8b641f;background:#fbf7ee}
 .boundary span{color:#596371;line-height:1.6}
+.progressCard,.timeline{display:grid;gap:18px}.progressCard h3,.timeline h3{margin:6px 0 0}.progressCard p{margin:7px 0 0;color:#596371}.readinessGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.readinessGrid>div{display:grid;gap:5px;padding:16px;border:1px solid rgba(16,19,29,.1);border-radius:12px}.readinessGrid span{color:#596371;line-height:1.5}.exampleBox{padding:16px;border-radius:12px;background:#f6f3ec}.exampleBox ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 24px;margin:10px 0 0;padding-left:20px;color:#596371}.timelineItem{display:grid;gap:8px;padding:16px;border-left:3px solid #8b641f;background:#faf9f6}.timelineItem>div{display:flex;justify-content:space-between;gap:16px}.timelineItem time{font-size:.78rem;color:#66707e}.timelineItem p{margin:0;color:#596371;line-height:1.55}
 .experienceCard h3{margin:8px 0 20px;font-size:clamp(1.4rem,3vw,2rem)}
 .experienceGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .experienceGrid>div{display:grid;gap:6px;padding:16px;border:1px solid rgba(16,19,29,.09);border-radius:12px;background:#fbfaf7}
 .experienceGrid span,.referenceNote{color:#596371;line-height:1.55}
 .referenceNote{margin:18px 0 0;font-size:.86rem}
 .credential{display:grid;gap:4px;width:min(100%,430px);margin:24px 0;padding:18px;border:1px solid rgba(16,19,29,.12);border-radius:14px;background:#fff}
-.credential span,.credential small{color:#66707e}
-.credential strong{font:750 1.05rem var(--font-space);letter-spacing:.06em}
-.toggle{display:flex;align-items:flex-start;gap:12px;max-width:650px;padding:14px 0;font-weight:700}
-.toggle input{width:22px;height:22px;flex:none}
-.statusCard{display:flex;align-items:center;justify-content:space-between;gap:22px}
-.statusCard h3{margin:7px 0}
-.statusCard p{margin:8px 0 0;color:#596371}
-.form{display:grid;gap:24px}
-.field{display:grid;gap:7px}
-.field p,.evidence>p{margin:0;color:#66707e;font-size:.92rem;line-height:1.55}
-.field textarea{min-height:120px}
-.evidence{min-width:0;margin:0;padding:20px;border:1px solid rgba(16,19,29,.12);border-radius:14px}
-.evidence legend{padding:0 8px;font-weight:800}
-.linkRow{display:grid;grid-template-columns:1fr 1.2fr auto;align-items:end;gap:10px;margin-top:14px}
-.linkRow label{display:grid;gap:6px}
-.linkRow label span{font-size:.78rem;font-weight:750}
-.linkRow button{min-width:44px;min-height:44px;border:0;background:transparent;color:#9d3029;font-weight:700}
-.proofList{display:grid;gap:9px;margin-top:14px}
-.proofList label{display:flex;align-items:flex-start;gap:12px;padding:13px;border:1px solid rgba(16,19,29,.09);border-radius:11px;background:#fff}
-.proofList input{width:20px;height:20px;flex:none}
-.proofList span{display:grid;gap:3px}
-.proofList small,.empty{color:#66707e}
-.actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.actions :global(.button){min-height:44px}
-@media(max-width:900px){.experienceGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.statusCard{align-items:flex-start;flex-direction:column}.experienceGrid,.linkRow{grid-template-columns:1fr}.linkRow button{justify-self:start}.actions{display:grid;grid-template-columns:1fr}.actions :global(.button),.actions button{width:100%;justify-content:center}}
+.credential span,.credential small{color:#66707e}.credential strong{font:750 1.05rem var(--font-space);letter-spacing:.06em}
+.toggle{display:flex;align-items:flex-start;gap:12px;max-width:650px;padding:14px 0;font-weight:700}.toggle input{width:22px;height:22px;flex:none}
+.statusCard{display:flex;align-items:center;justify-content:space-between;gap:22px}.statusCard h3{margin:7px 0}.statusCard p{margin:8px 0 0;color:#596371}
+.form{display:grid;gap:24px}.field{display:grid;gap:7px}.field p,.evidence>p{margin:0;color:#66707e;font-size:.92rem;line-height:1.55}.field textarea{min-height:120px}
+.evidence{min-width:0;margin:0;padding:20px;border:1px solid rgba(16,19,29,.12);border-radius:14px}.evidence legend{padding:0 8px;font-weight:800}.linkRow{display:grid;grid-template-columns:1fr 1.2fr auto;align-items:end;gap:10px;margin-top:14px}.linkRow label{display:grid;gap:6px}.linkRow label span{font-size:.78rem;font-weight:750}.linkRow button{min-width:44px;min-height:44px;border:0;background:transparent;color:#8f2823;font-weight:700}
+.proofList{display:grid;gap:9px;margin-top:14px}.proofList label{display:flex;align-items:flex-start;gap:12px;padding:13px;border:1px solid rgba(16,19,29,.09);border-radius:11px;background:#fff}.proofList input{width:20px;height:20px;flex:none}.proofList span{display:grid;gap:3px}.proofList small,.empty{color:#66707e}
+.actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.actions :global(.button){min-height:44px}
+@media (min-width:481px) and (max-width:1024px){.experienceGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.readinessGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.exampleBox ul{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.heroCard,.statusCard,.experienceCard,.progressCard,.timeline{padding:18px}.statusCard{align-items:flex-start;flex-direction:column}.experienceGrid,.readinessGrid,.linkRow,.exampleBox ul{grid-template-columns:1fr}.timelineItem>div{display:grid;gap:4px}.linkRow button{justify-self:start}.actions{display:grid;grid-template-columns:1fr}.actions :global(.button),.actions button{width:100%;justify-content:center}.evidence{padding:16px}}

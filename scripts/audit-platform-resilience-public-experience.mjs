@@ -12,6 +12,6 @@ expect('app/about/page.tsx',['technology-led organisation','Africa and beyond','
 expect('app/join/page.tsx',["redirect('/auth/signup')"],'Join route collapses to signup');
 expect('middleware.ts',["pathname==='/project-architect'","target.pathname='/member/project-architect'","'/project-architect'"],'Project Architect member-only redirect');
 expect('components/FAQAccordion.tsx',['aria-expanded','aria-controls','role="region"','hidden={!expanded}'],'FAQ accordion accessibility');
-expect('app/faq/page.tsx',['What is Mettelo, and who is it for?','How do project applications work?','What does “Proof” mean on Mettelo?','Is Mettelo only for people in Africa?','Still have questions?'],'FAQ content coverage');
+expect('app/faq/page.tsx',['What is Mettelo, and who is it for?','How do project applications work?','What does “Proof” mean on Mettelo?','Is Mettelo only for people in Africa?','STILL HAVE QUESTIONS?'],'FAQ content coverage');
 
 if(process.exitCode)process.exit(process.exitCode);console.log(`Platform resilience/public experience audit passed (${checks.length} contracts).`);

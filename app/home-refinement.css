@@ -1,0 +1,76 @@
+/* Full-page homepage refinement: hierarchy, responsive rhythm and WCAG 2.2 AA interaction treatment. */
+.homeHowHead,.homeLiveHead,.homeImpactIntro{max-width:1180px;margin-left:auto;margin-right:auto}
+.homeHowHead h2,.homeLiveHead h2,.homeImpactIntro h2,.proofStory h2{max-width:780px;text-wrap:balance}
+.homeHowHead>p,.homeLiveIntro p,.homeImpactIntro>p,.proofStory .lead{max-width:62ch}
+
+/* How Mettelo works */
+.homeHowGrid li{min-height:190px;align-items:flex-start}
+.homeHowGrid h3{line-height:1.25}.homeHowGrid p{font-size:.84rem;line-height:1.62}
+.homeHowGrid li:focus-within{outline:3px solid rgba(198,137,42,.32);outline-offset:-3px}
+
+/* Proof section */
+.proofStory{min-width:0}.proofStory .lead{color:#d7dce4}
+.proofPrinciples{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 4px}
+.proofPrinciples span{display:inline-flex;align-items:center;min-height:34px;padding:7px 10px;border:1px solid rgba(255,255,255,.18);border-radius:999px;color:#f3f4f6;font-size:.72rem;font-weight:700}
+.proofPrinciples span:before{content:'✓';margin-right:7px;color:#efbd63;font-weight:900}
+.proofGrid{margin:14px 0 0;padding:0}.proofField dt{display:block;color:#626b78;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700}.proofField dd{display:block;margin:4px 0 0;font-size:.86rem;font-weight:750;overflow-wrap:anywhere;color:#141824}
+
+/* Live discovery */
+.homeLiveSection{padding-top:76px;padding-bottom:76px;background:#fcfbf7}
+.homeLiveHead{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);gap:52px;align-items:end;margin-bottom:30px}
+.homeLiveHead h2{margin:7px 0 0}.homeLiveIntro{display:grid;gap:12px}.homeLiveIntro p{margin:0;color:#505966;line-height:1.65}.homeLiveIntro .linkArrow{justify-self:start}
+.homeExploreGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.homeExploreCard{position:relative;display:flex;flex-direction:column;min-width:0;min-height:310px;padding:24px;border:1px solid #e3dccf;border-radius:20px;background:#fff;box-shadow:0 8px 26px rgba(16,19,29,.055)}
+.homeExploreCard:before{content:'';position:absolute;left:0;right:0;top:0;height:4px;border-radius:20px 20px 0 0;background:#c6892a}
+.homeExploreCard h3{font-size:1.18rem;line-height:1.28;margin:15px 0 8px}.homeExploreCard p{color:#505966;line-height:1.58;margin:0 0 18px}.homeExploreCard>.linkArrow{margin-top:auto;min-height:44px;display:inline-flex;align-items:center;align-self:flex-start}.homeExploreCard>.linkArrow:focus-visible,.homeLiveIntro .linkArrow:focus-visible{outline:3px solid rgba(139,90,23,.38);outline-offset:3px;border-radius:6px}
+.liveCardMeta{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-top:14px;font-size:.72rem;color:#596270}.liveCardMeta .chip,.liveCardMeta .domainTag{max-width:100%;overflow-wrap:anywhere}.liveDiscoveryCard>small{display:block;margin:-7px 0 16px;color:#505966;font-weight:700}
+.liveEmptyState{display:grid;align-content:start}.liveEmptyState>span{display:inline-flex;width:max-content;max-width:100%;padding:6px 8px;border-radius:8px;background:#f7efdd;color:#6f4612;font-family:var(--font-mono);font-size:.6rem;font-weight:800;letter-spacing:.07em}.liveEmptyState h3{margin-top:16px}
+.liveEventCard:before{background:#2a2f52}.liveOpportunityCard:before{background:#8b5a17}.liveProofCard:before{background:#2f7d52}
+.projectTagRow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px}.projectTagRow span{padding:5px 8px;border-radius:999px;background:#f5f2eb;color:#424a56;font-size:.68rem;font-weight:700;overflow-wrap:anywhere}
+
+/* Africa and beyond */
+.homeImpactSection{background:linear-gradient(180deg,#fbf7ee,#f7efdd)}
+.homeImpactIntro{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);gap:52px;align-items:end;margin-bottom:28px}.homeImpactIntro h2{margin:7px 0 0}.homeImpactIntro>p{margin:0;color:#505966;line-height:1.65}
+.impactPillars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #dfd5c4;border-radius:20px;overflow:hidden;background:rgba(255,255,255,.66)}
+.impactPillars article{min-width:0;padding:24px;border-right:1px solid #dfd5c4}.impactPillars article:last-child{border-right:0}.impactPillars article>span{font-family:var(--font-mono);font-size:.64rem;letter-spacing:.08em;color:#8b5a17;font-weight:800}.impactPillars h3{margin:16px 0 7px;font-size:1.05rem}.impactPillars p{margin:0;color:#505966;font-size:.82rem;line-height:1.58}
+
+/* Final CTA */
+.homeFinalSection .ctaBand{border:1px solid #e1d3ba;box-shadow:0 14px 34px rgba(16,19,29,.06)}
+.homeFinalSection .ctaBand h2{text-wrap:balance}.homeFinalSection .actions{display:flex;flex-wrap:wrap;gap:10px}.homeFinalSection .button{min-height:48px}
+.homeFinalSection .button:focus-visible{outline:3px solid rgba(139,90,23,.38);outline-offset:3px}
+
+/* Contrast and focus hardening */
+.homeValueGrid>a{min-height:88px}.homeValueGrid>a:focus-visible{outline:3px solid #8b5a17;outline-offset:-4px}
+.homeHeroActions .button:focus-visible,.homeProofSection .button:focus-visible{outline:3px solid #efbd63;outline-offset:3px}
+
+@media(max-width:1024px){
+  .homeLiveHead,.homeImpactIntro{grid-template-columns:1fr;gap:14px;align-items:start}
+  .homeExploreGrid,.impactPillars{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .impactPillars article:nth-child(2){border-right:0}.impactPillars article:nth-child(-n+2){border-bottom:1px solid #dfd5c4}
+  .homeExploreCard{min-height:290px}
+}
+
+@media(max-width:480px){
+  .homeHowSection,.homeLiveSection,.homeProofSection,.homeImpactSection,.homeFinalSection{padding-top:50px;padding-bottom:50px}
+  .homeHowHead,.homeLiveHead,.homeImpactIntro{margin-bottom:22px}
+  .homeHowGrid li{min-height:0;padding:20px 18px}
+  .proofPrinciples{display:grid;grid-template-columns:1fr}.proofPrinciples span{width:100%}
+  .homeExploreGrid,.impactPillars{grid-template-columns:1fr}
+  .homeExploreCard{min-height:0;padding:20px}
+  .impactPillars article{border-right:0;border-bottom:1px solid #dfd5c4}.impactPillars article:nth-child(2){border-bottom:1px solid #dfd5c4}.impactPillars article:last-child{border-bottom:0}
+  .homeLiveIntro .linkArrow,.homeExploreCard>.linkArrow{min-height:44px}
+  .homeFinalSection .actions{width:100%;display:grid;grid-template-columns:1fr}.homeFinalSection .button{width:100%;min-height:48px}
+}
+
+@media(min-width:481px) and (max-width:1024px){
+  .homeLiveSection{padding-top:64px;padding-bottom:64px}.homeImpactSection{padding-top:62px;padding-bottom:62px}
+  .homeExploreGrid,.impactPillars{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(min-width:1025px){
+  .homeExploreGrid,.impactPillars{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .homeExploreCard,.homeValueGrid>a,.button,.linkArrow{scroll-behavior:auto;transition:none!important;animation:none!important}
+}

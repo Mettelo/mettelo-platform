@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 
 const checks=[
-  ['components/MemberAppShell.tsx',['Find a project','Applications','My projects','Profile','What would you like to do?','Member mobile navigation']],
-  ['components/MemberAppShell.module.css',['grid-template-columns:repeat(5,1fr)','min-height:46px','backdrop-filter:blur(18px)']],
-  ['app/member/page.tsx',['What should I do now?','Find a project','Continue where you left off','Build what comes next.']],
+  ['components/MemberAppShell.tsx',['Find a project','Applications','My projects','Profile','Member mobile navigation','Current section','Explore','SWITCH WORKSPACE','aria-current']],
+  ['components/MemberAppShell.module.css',['grid-template-columns:repeat(5,1fr)','min-height:44px','backdrop-filter:blur(18px)','activeLink::before','secondaryDisclosure','pageContext']],
+  ['app/member/page.tsx',['Your Mettelo at a glance','What needs you now','Continue working','Latest application','Profile readiness','ACCOUNT OVERVIEW','NEXT ACTIONS','statusBadge','What this means','What happens next','Action required','role="progressbar"']],
   ['app/member/profile/page.tsx',['ProfileReturnAfterSave','MemberProfileSection','Better project matches','Faster applications']],
   ['components/MemberProfileSection.tsx',['Profile completeness','improve project matching','PROJECT AVAILABILITY','Preview public profile']],
   ['components/ProfileReturnAfterSave.tsx',['mettelo:profile-updated','window.location.assign(next)']],

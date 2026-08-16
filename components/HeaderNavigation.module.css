@@ -1,1 +1,38 @@
 .headerNavigation{}
+
+@media(max-width:1080px){
+  :global(.mobileMenuPanel){
+    display:none;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    max-height:calc(100dvh - 76px)!important;
+    -webkit-overflow-scrolling:touch;
+  }
+  :global(.mobileMenu[open] .mobileMenuPanel){display:block!important}
+  :global(.metteloMobileNav){display:grid!important;gap:14px!important;width:100%!important;min-width:0!important;color:#10131d!important}
+  :global(.mobileNavGroup){display:grid!important;gap:4px!important;width:100%!important;min-width:0!important}
+  :global(.mobileDirectNav){display:grid!important;width:100%!important;min-width:0!important}
+  :global(.mobileDirectNav a){
+    display:flex!important;
+    visibility:visible!important;
+    opacity:1!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:46px!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    color:#10131d!important;
+    background:transparent!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+  }
+  :global(.mobileDirectNav a span){display:inline!important;visibility:visible!important}
+  :global(.mobileNavLabel){display:block!important;visibility:visible!important;color:#5b6472!important}
+  :global(.mobileSupportGroup){display:grid!important}
+}
+
+@media(max-width:480px){
+  :global(.mobileMenuPanel){left:8px!important;right:8px!important;top:68px!important;border-radius:16px!important;padding:12px!important}
+  :global(.mobileGuestActions){grid-template-columns:1fr!important}
+  :global(.mobileGuestActions a){width:100%!important;min-height:46px!important}
+}

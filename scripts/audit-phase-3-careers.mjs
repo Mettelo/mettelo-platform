@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const checks=[
   ['supabase/migrations/20260816013000_phase3_careers_recruitment.sql',['eligibility text','expected_response_days','interview_timezone','offer_acceptance_deadline','career_onboarding_items','career_withdrawn','members can view own career onboarding','admins manage career onboarding']],
   ['supabase/migrations/20260816014500_phase3_career_role_defaults.sql',['expected_response_days set default 14','No additional eligibility restrictions are specified','Mettelo then reviews your application']],
+  ['supabase/migrations/20260816015000_phase3_career_rls_performance.sql',['user_id = (select auth.uid())','career onboarding readable by owner or admin','admins insert career onboarding','admins update career onboarding','admins delete career onboarding']],
   ['app/careers/[slug]/page.tsx',['Eligibility','Response target','What happens after you apply','application_process','application_questions','initialValues']],
   ['components/CareerApplicationForm.tsx',['localStorage','Draft saved automatically','Review application','Confirm & submit application','XMLHttpRequest','uploadProgress','question_']],
   ['app/api/careers/apply/route.ts',['application_questions','answers','career_submitted','This role is not accepting applications','An application for this role already exists','career_application_submitted']],

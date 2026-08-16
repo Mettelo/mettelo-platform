@@ -1,6 +1,6 @@
 'use client';
 
-import {FormEvent,useEffect,useMemo,useState} from 'react';
+import {FormEvent,useCallback,useEffect,useMemo,useState} from 'react';
 
 type ReviewEvent={id:string;event_type:string;comment:string|null;evidence_url:string|null;created_at:string;actor_name:string};
 type Contribution={id:string;title:string;description:string;evidence_url:string|null;verification_status:string;review_notes:string|null;created_at:string;updated_at:string;verified_at:string|null;events:ReviewEvent[]};
@@ -9,8 +9,8 @@ const statusLabels:Record<string,string>={pending:'Under review',needs_changes:'
 export default function ProjectContributionStatusPanel({projectId,projectRunId}:{projectId:string;projectRunId:string|null}){
  const [items,setItems]=useState<Contribution[]>([]);const [loading,setLoading]=useState(Boolean(projectRunId));const [message,setMessage]=useState('');const [working,setWorking]=useState('');
  const endpoint=useMemo(()=>projectRunId?`/api/project-contribution-status?project_id=${encodeURIComponent(projectId)}&project_run_id=${encodeURIComponent(projectRunId)}`:'',[projectId,projectRunId]);
- async function load(){if(!endpoint)return;setLoading(true);try{const response=await fetch(endpoint,{cache:'no-store'});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||'Unable to load contributions.');setItems(body.items||[])}catch(error){setMessage(error instanceof Error?error.message:'Unable to load contributions.')}finally{setLoading(false)}}
- useEffect(()=>{void load()},[endpoint]);
+ const load=useCallback(async()=>{if(!endpoint)return;setLoading(true);try{const response=await fetch(endpoint,{cache:'no-store'});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||'Unable to load contributions.');setItems(body.items||[])}catch(error){setMessage(error instanceof Error?error.message:'Unable to load contributions.')}finally{setLoading(false)}},[endpoint]);
+ useEffect(()=>{void load()},[load]);
  async function resubmit(event:FormEvent<HTMLFormElement>,item:Contribution){event.preventDefault();const form=event.currentTarget,values=Object.fromEntries(new FormData(form).entries());setWorking(item.id);setMessage('');try{const response=await fetch('/api/contributions',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id:item.id,description:values.description,evidence_url:values.evidence_url})});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||'Unable to resubmit contribution.');setMessage(body.message||'Contribution resubmitted for review.');await load()}catch(error){setMessage(error instanceof Error?error.message:'Unable to resubmit contribution.')}finally{setWorking('')}}
  if(!projectRunId)return null;
  return <section className="panel" id="phase4-contributions" aria-labelledby="phase4-contributions-title"><div className="panelHead"><div><span className="cardNumber">MY CONTRIBUTIONS</span><h2 id="phase4-contributions-title" style={{marginTop:8}}>Contribution evidence and review</h2></div><a className="linkArrow" href="#proof">Submit new evidence →</a></div><p className="panelNote">Track what you submitted, what reviewers decided, and whether you need to act.</p>

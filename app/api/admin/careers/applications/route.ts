@@ -4,6 +4,7 @@ import {serviceDb} from '@/lib/project-flow';
 import {careerMessageForDb,sendCareerEmail} from '@/lib/career-notifications';
 
 const STAGES=new Set(['in_review','shortlisted','interview','offer','hired','rejected']);
+const TRANSITIONS:Record<string,Set<string>>={submitted:new Set(['in_review','rejected']),in_review:new Set(['shortlisted','rejected']),shortlisted:new Set(['interview','rejected']),interview:new Set(['interview','offer','rejected']),offer:new Set(['offer','hired','rejected']),hired:new Set(),rejected:new Set(),withdrawn:new Set()};
 function text(value:unknown,max=2000){return String(value||'').trim().slice(0,max)||null;}
 function validHttps(value:string|null){if(!value)return true;try{return new URL(value).protocol==='https:';}catch{return false;}}
 function safeDate(value:unknown){if(!value)return null;const date=new Date(String(value));return Number.isNaN(date.getTime())?null:date.toISOString();}
@@ -27,7 +28,7 @@ export async function PATCH(request:Request){
     const offerSalary=text(body.offer_salary_rate,300);const offerStartDate=text(body.offer_start_date,20);const offerEmploymentType=text(body.offer_employment_type,120);const offerManager=text(body.offer_manager,200);const offerWorking=text(body.offer_working_arrangement,300);const offerConditions=text(body.offer_conditions,5000);const offerDeadline=safeDate(body.offer_acceptance_deadline);const offerPersonal=text(body.offer_personal_message,4000);
     if(status==='offer'&&(!offerStartDate||!offerEmploymentType||!offerDeadline))return NextResponse.json({error:'Offer start date, employment type and a valid acceptance deadline are required.'},{status:400});
     const {data:application}=await db.from('career_applications').select('id,user_id,email,full_name,status,role_id,career_roles(title)').eq('id',id).maybeSingle();if(!application)return NextResponse.json({error:'Application not found.'},{status:404});
-    if(['hired','rejected','withdrawn'].includes(application.status)&&application.status!==status)return NextResponse.json({error:'This recruitment process is already closed.'},{status:409});
+    if(!(TRANSITIONS[application.status]?.has(status)))return NextResponse.json({error:`Move this application through the recruitment stages in order. Current stage: ${application.status.replaceAll('_',' ')}.`},{status:409});
     if(attachmentIds.length){const {data:docs}=await db.from('career_offer_documents').select('id,application_id').in('id',attachmentIds).eq('application_id',id).eq('active',true);if((docs||[]).length!==attachmentIds.length)return NextResponse.json({error:'One or more offer documents are unavailable.'},{status:400});}
     const roleTitle=(application.career_roles as unknown as {title:string}|null)?.title||'Mettelo role';const now=new Date().toISOString();const patch:Record<string,unknown>={status,updated_at:now,admin_notes:note};
     if(status==='interview')Object.assign(patch,{interview_at:interviewAt,interview_timezone:interviewTimezone,interview_format:interviewFormat,interview_url:interviewUrl,interviewer,interview_instructions:interviewInstructions,interview_details:interviewInstructions});

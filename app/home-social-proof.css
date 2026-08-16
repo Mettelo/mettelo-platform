@@ -34,26 +34,42 @@
 }
 @media(min-width:481px) and (max-width:1024px){
   .homeHeroOverhaul .homeHeroShell{width:min(calc(100% - 36px),900px)}
-  .homeHeroOverhaul .homeHeroGrid{grid-template-columns:1fr;gap:38px}
-  .homeHeroOverhaul .homeHeroCopy{max-width:760px}
-  .homeHeroOverhaul .homeHeroCopy h1{font-size:clamp(3rem,7vw,4.25rem);line-height:1.06;max-width:740px}
+  .homeHeroOverhaul .homeHeroGrid{grid-template-columns:minmax(0,1fr)!important;gap:38px}
+  .homeHeroOverhaul .homeHeroCopy{max-width:760px;width:100%;min-width:0}
+  .homeHeroOverhaul .homeHeroCopy h1{font-size:clamp(2.8rem,7vw,4.25rem);line-height:1.06;max-width:740px;overflow-wrap:normal;word-break:normal}
   .homeHeroOverhaul .heroLead{max-width:690px;margin-top:23px!important}
-  .heroCommunityProof{margin-top:21px}
+  .homeHeroOverhaul .heroExperience{width:100%;max-width:760px;min-width:0}
+  .heroCommunityProof{margin-top:21px;max-width:100%}
   .heroCommunityProof p{font-size:.78rem!important;white-space:normal}
   .homeHeroOverhaul .heroPositioningLine{margin-top:19px}
 }
 @media(max-width:480px){
-  .homeHeroOverhaul .homeHeroShell{width:min(calc(100% - 24px),460px)}
-  .homeHeroOverhaul{padding:40px 0 28px}
-  .homeHeroOverhaul .homeHeroGrid{gap:28px}
-  .homeHeroOverhaul .homeHeroCopy h1{font-size:clamp(2.45rem,11.5vw,3.2rem);line-height:1.075;letter-spacing:-.044em}
-  .homeHeroOverhaul .heroLead{margin-top:20px!important;font-size:.95rem;line-height:1.65}
-  .homeHeroOverhaul .homeHeroActions{margin-top:22px}
-  .heroCommunityProof{align-items:center;gap:12px;margin-top:20px}
-  .heroCommunityAvatar{width:34px;height:34px}.heroCommunityAvatar+ .heroCommunityAvatar{margin-left:-9px}
-  .heroCommunityAvatar i{top:6px;width:11px;height:11px}.heroCommunityAvatar b{width:22px;height:15px}
-  .heroCommunityProof p{display:grid;gap:1px;white-space:normal;font-size:.74rem!important;line-height:1.42!important}
-  .heroCommunityProof p strong{font-size:.92rem}
-  .homeHeroOverhaul .heroPositioningLine{margin-top:17px}
+  .homeHeroOverhaul{padding:32px 0 26px;overflow-x:clip}
+  .homeHeroOverhaul .homeHeroShell{width:min(calc(100% - 24px),460px);max-width:100%;min-width:0}
+  .homeHeroOverhaul .homeHeroGrid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:26px!important;width:100%;min-width:0}
+  .homeHeroOverhaul .homeHeroCopy{width:100%;max-width:100%;min-width:0;padding:0}
+  .homeHeroOverhaul .homeHeroCopy .eyebrow{font-size:.68rem;line-height:1.45;letter-spacing:.08em;margin-bottom:14px}
+  .homeHeroOverhaul .homeHeroCopy h1{width:100%;max-width:100%;font-size:clamp(2.35rem,10.5vw,3rem);line-height:1.06;letter-spacing:-.04em;overflow-wrap:normal;word-break:normal;hyphens:none}
+  .homeHeroOverhaul .homeHeroCopy h1 br{display:none}
+  .homeHeroOverhaul .heroLead{width:100%;max-width:100%;margin-top:18px!important;font-size:.94rem;line-height:1.62;overflow-wrap:normal;word-break:normal}
+  .homeHeroOverhaul .homeHeroActions{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;width:100%;margin-top:20px}
+  .homeHeroOverhaul .homeHeroActions .button{width:100%;min-width:0;justify-content:center}
+  .heroCommunityProof{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:12px;margin-top:18px;max-width:100%;min-width:0}
+  .heroCommunityAvatars{min-width:0}
+  .heroCommunityAvatar{width:32px;height:32px}.heroCommunityAvatar+ .heroCommunityAvatar{margin-left:-9px}
+  .heroCommunityAvatar i{top:5px;width:10px;height:10px}.heroCommunityAvatar b{width:20px;height:14px}
+  .heroCommunityProof p{display:block;min-width:0;white-space:normal;font-size:.73rem!important;line-height:1.42!important;overflow-wrap:normal;word-break:normal}
+  .heroCommunityProof p strong{display:inline;font-size:.9rem;margin-right:4px}
+  .homeHeroOverhaul .heroPositioningLine{width:100%;max-width:100%;margin-top:16px}
+  .homeHeroOverhaul .heroExperience{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden}
+  .homeHeroOverhaul .heroScene{width:100%!important;max-width:100%!important;min-width:0!important;border-radius:18px}
+  .homeHeroOverhaul .heroFloatingProof,.homeHeroOverhaul .heroFeatureCard,.homeHeroOverhaul .heroMetrics,.homeHeroOverhaul .heroSlideControls{max-width:100%!important;min-width:0!important}
+  .homeHeroOverhaul .heroMetrics{grid-template-columns:minmax(0,1fr)!important}
+  .homeHeroOverhaul .heroMetric{width:100%;min-width:0}
+}
+@media(max-width:360px){
+  .homeHeroOverhaul .homeHeroShell{width:min(calc(100% - 20px),340px)}
+  .homeHeroOverhaul .homeHeroCopy h1{font-size:clamp(2.05rem,10.8vw,2.45rem)}
+  .heroCommunityProof{grid-template-columns:1fr;gap:8px}
 }
 @media(prefers-reduced-motion:reduce){.heroCommunityAvatar{transition:none!important}}

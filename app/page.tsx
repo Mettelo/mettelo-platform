@@ -21,14 +21,13 @@ const impactPillars=[
 
 async function getHeroMetrics(){
   const db=createPublicSupabaseClient();
-  if(!db)return {projects:null,opportunities:null,proofs:null};
-  const now=new Date().toISOString();
-  const [projects,opportunities,proofs]=await Promise.all([
+  if(!db)return {members:null,projects:null,proofs:null};
+  const [members,projects,proofs]=await Promise.all([
+    db.from('profiles').select('id',{count:'exact',head:true}),
     db.from('projects').select('id',{count:'exact',head:true}).eq('visibility','public').in('status',['pilot','recruiting','active','review','completed']),
-    db.from('opportunities').select('id',{count:'exact',head:true}).eq('status','published').eq('access_level','public').or(`closes_at.is.null,closes_at.gte.${now}`),
     db.from('contributions').select('id',{count:'exact',head:true}).eq('verification_status','verified').eq('is_public',true)
   ]);
-  return {projects:projects.count??null,opportunities:opportunities.count??null,proofs:proofs.count??null};
+  return {members:members.count??null,projects:projects.count??null,proofs:proofs.count??null};
 }
 
 export default async function HomePage(){

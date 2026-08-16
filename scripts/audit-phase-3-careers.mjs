@@ -19,7 +19,8 @@ const checks=[
   ['app/api/careers/offer-documents/[id]/route.ts',['application?.user_id!==user.id','createSignedUrl','60']],
   ['lib/career-notifications.ts',['careerMessageForDb','resolveCommunication','sendCareerEmail','notifyUser']],
   ['app/submitted/page.tsx',['career_application','APPLICATION RECEIVED','WHAT HAPPENS NEXT','Sign in to track']],
-  ['.github/workflows/ci.yml',['npm run audit:phase0','npm run audit:phase1','npm run audit:phase2']],
+  ['package.json',['"audit:phase3": "node scripts/audit-phase-3-careers.mjs"']],
+  ['.github/workflows/ci.yml',['npm run audit:phase0','npm run audit:phase1','npm run audit:phase2','npm run audit:phase3']],
 ];
 let failed=false;let passed=0;
 for(const [file,needles] of checks){

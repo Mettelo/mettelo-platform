@@ -6,7 +6,9 @@ type CookieToSet={name:string;value:string;options?:CookieOptions};
 
 export async function middleware(request:NextRequest){
   const pathname=request.nextUrl.pathname;
-  if(!pathname.startsWith('/member')&&!pathname.startsWith('/admin')) return NextResponse.next();
+  const architectEntry=pathname==='/project-architect';
+  const protectedPath=pathname.startsWith('/member')||pathname.startsWith('/admin')||architectEntry;
+  if(!protectedPath)return NextResponse.next();
 
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -14,6 +16,7 @@ export async function middleware(request:NextRequest){
     const target=request.nextUrl.clone();
     target.pathname='/signin';
     target.searchParams.set('reason','not-configured');
+    if(architectEntry)target.searchParams.set('next','/member/project-architect');
     return NextResponse.redirect(target);
   }
 
@@ -32,7 +35,13 @@ export async function middleware(request:NextRequest){
   if(!user){
     const target=request.nextUrl.clone();
     target.pathname='/signin';
-    target.searchParams.set('next',pathname);
+    target.searchParams.set('next',architectEntry?'/member/project-architect':pathname);
+    return NextResponse.redirect(target);
+  }
+  if(architectEntry){
+    const target=request.nextUrl.clone();
+    target.pathname='/member/project-architect';
+    target.search='';
     return NextResponse.redirect(target);
   }
   if(pathname.startsWith('/admin') && user.app_metadata?.role!=='admin'){
@@ -43,4 +52,4 @@ export async function middleware(request:NextRequest){
   return response;
 }
 
-export const config={matcher:['/member/:path*','/admin/:path*']};
+export const config={matcher:['/member/:path*','/admin/:path*','/project-architect']};

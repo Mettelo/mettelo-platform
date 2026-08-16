@@ -4,6 +4,42 @@ import {serviceDb} from '@/lib/project-flow';
 
 function slugify(value:string){return value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,90)}
 async function admin(){const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();return user?.app_metadata?.role==='admin'?user:null}
-const selectFields='id,title,slug,team,employment_type,status,closes_at,location,work_arrangement,salary_text,summary,responsibilities,requirements,nice_to_have';
-export async function POST(request:Request){try{const user=await admin();if(!user)return NextResponse.json({error:'Admin access required.'},{status:403});const db=serviceDb();if(!db)return NextResponse.json({error:'Career service not configured.'},{status:503});const b=await request.json();const title=String(b.title||'').trim(),summary=String(b.summary||'').trim(),responsibilities=String(b.responsibilities||'').trim(),requirements=String(b.requirements||'').trim();if(!title||!summary||!responsibilities||!requirements)return NextResponse.json({error:'Title, summary, responsibilities and requirements are required.'},{status:400});let slug=slugify(title);const {data:existing}=await db.from('career_roles').select('id').eq('slug',slug).maybeSingle();if(existing)slug=`${slug}-${Date.now().toString().slice(-6)}`;const closes=String(b.closes_at||'').trim();const {data:role,error}=await db.from('career_roles').insert({slug,title,team:String(b.team||'').trim()||null,employment_type:String(b.employment_type||'contract'),location:String(b.location||'').trim()||null,work_arrangement:String(b.work_arrangement||'').trim()||null,salary_text:String(b.salary_text||'').trim()||null,summary,responsibilities,requirements,nice_to_have:String(b.nice_to_have||'').trim()||null,closes_at:closes?`${closes}T23:59:59Z`:null,created_by:user.id,status:'draft'}).select(selectFields).single();if(error)throw error;return NextResponse.json({ok:true,role},{status:201});}catch(error){console.error(error);return NextResponse.json({error:'Unable to create career role.'},{status:500})}}
-export async function PATCH(request:Request){try{const user=await admin();if(!user)return NextResponse.json({error:'Admin access required.'},{status:403});const db=serviceDb();if(!db)return NextResponse.json({error:'Career service not configured.'},{status:503});const b=await request.json();const id=String(b.id||'').trim(),status=String(b.status||'').trim();if(!id||!['draft','published','closed','archived'].includes(status))return NextResponse.json({error:'Invalid role update.'},{status:400});const patch:Record<string,unknown>={status,updated_at:new Date().toISOString()};if(status==='published')patch.published_at=new Date().toISOString();if('title'in b){const title=String(b.title||'').trim();const summary=String(b.summary||'').trim(),responsibilities=String(b.responsibilities||'').trim(),requirements=String(b.requirements||'').trim();if(!title||!summary||!responsibilities||!requirements)return NextResponse.json({error:'Title, summary, responsibilities and requirements are required.'},{status:400});patch.title=title;patch.team=String(b.team||'').trim()||null;patch.employment_type=String(b.employment_type||'contract');patch.location=String(b.location||'').trim()||null;patch.work_arrangement=String(b.work_arrangement||'').trim()||null;patch.salary_text=String(b.salary_text||'').trim()||null;patch.summary=summary;patch.responsibilities=responsibilities;patch.requirements=requirements;patch.nice_to_have=String(b.nice_to_have||'').trim()||null;const closes=String(b.closes_at||'').trim();patch.closes_at=closes?`${closes}T23:59:59Z`:null;}const {data:role,error}=await db.from('career_roles').update(patch).eq('id',id).select(selectFields).single();if(error)throw error;return NextResponse.json({ok:true,role});}catch(error){console.error(error);return NextResponse.json({error:'Unable to update career role.'},{status:500})}}
+const selectFields='id,title,slug,team,employment_type,status,closes_at,location,work_arrangement,salary_text,summary,responsibilities,requirements,nice_to_have,eligibility,expected_response_days,application_process,application_questions';
+function questions(value:unknown){const lines=String(value||'').split('\n').map(item=>item.trim()).filter(Boolean).slice(0,12);return lines.map((label,index)=>({id:`q${index+1}`,label,required:true}));}
+function responseDays(value:unknown){const parsed=Number(value);return Number.isFinite(parsed)&&parsed>0?Math.min(365,Math.trunc(parsed)):null;}
+
+export async function POST(request:Request){
+  try{
+    const user=await admin();if(!user)return NextResponse.json({error:'Admin access required.'},{status:403});
+    const db=serviceDb();if(!db)return NextResponse.json({error:'Career service not configured.'},{status:503});
+    const b=await request.json();
+    const title=String(b.title||'').trim(),summary=String(b.summary||'').trim(),responsibilities=String(b.responsibilities||'').trim(),requirements=String(b.requirements||'').trim();
+    if(!title||!summary||!responsibilities||!requirements)return NextResponse.json({error:'Title, summary, responsibilities and requirements are required.'},{status:400});
+    let slug=slugify(title);const {data:existing}=await db.from('career_roles').select('id').eq('slug',slug).maybeSingle();if(existing)slug=`${slug}-${Date.now().toString().slice(-6)}`;
+    const closes=String(b.closes_at||'').trim();
+    const {data:role,error}=await db.from('career_roles').insert({
+      slug,title,team:String(b.team||'').trim()||null,employment_type:String(b.employment_type||'contract'),location:String(b.location||'').trim()||null,
+      work_arrangement:String(b.work_arrangement||'').trim()||null,salary_text:String(b.salary_text||'').trim()||null,summary,responsibilities,requirements,
+      nice_to_have:String(b.nice_to_have||'').trim()||null,eligibility:String(b.eligibility||'').trim()||null,
+      expected_response_days:responseDays(b.expected_response_days),application_process:String(b.application_process||'').trim()||null,
+      application_questions:questions(b.application_questions),closes_at:closes?`${closes}T23:59:59Z`:null,created_by:user.id,status:'draft'
+    }).select(selectFields).single();
+    if(error)throw error;return NextResponse.json({ok:true,role},{status:201});
+  }catch(error){console.error(error);return NextResponse.json({error:'Unable to create career role.'},{status:500})}
+}
+
+export async function PATCH(request:Request){
+  try{
+    const user=await admin();if(!user)return NextResponse.json({error:'Admin access required.'},{status:403});
+    const db=serviceDb();if(!db)return NextResponse.json({error:'Career service not configured.'},{status:503});
+    const b=await request.json();const id=String(b.id||'').trim(),status=String(b.status||'').trim();
+    if(!id||!['draft','published','closed','archived'].includes(status))return NextResponse.json({error:'Invalid role update.'},{status:400});
+    const patch:Record<string,unknown>={status,updated_at:new Date().toISOString()};if(status==='published')patch.published_at=new Date().toISOString();
+    if('title'in b){
+      const title=String(b.title||'').trim();const summary=String(b.summary||'').trim(),responsibilities=String(b.responsibilities||'').trim(),requirements=String(b.requirements||'').trim();
+      if(!title||!summary||!responsibilities||!requirements)return NextResponse.json({error:'Title, summary, responsibilities and requirements are required.'},{status:400});
+      patch.title=title;patch.team=String(b.team||'').trim()||null;patch.employment_type=String(b.employment_type||'contract');patch.location=String(b.location||'').trim()||null;patch.work_arrangement=String(b.work_arrangement||'').trim()||null;patch.salary_text=String(b.salary_text||'').trim()||null;patch.summary=summary;patch.responsibilities=responsibilities;patch.requirements=requirements;patch.nice_to_have=String(b.nice_to_have||'').trim()||null;patch.eligibility=String(b.eligibility||'').trim()||null;patch.expected_response_days=responseDays(b.expected_response_days);patch.application_process=String(b.application_process||'').trim()||null;patch.application_questions=questions(b.application_questions);const closes=String(b.closes_at||'').trim();patch.closes_at=closes?`${closes}T23:59:59Z`:null;
+    }
+    const {data:role,error}=await db.from('career_roles').update(patch).eq('id',id).select(selectFields).single();if(error)throw error;return NextResponse.json({ok:true,role});
+  }catch(error){console.error(error);return NextResponse.json({error:'Unable to update career role.'},{status:500})}
+}

@@ -8,14 +8,21 @@ const steps=[
   {number:'04',title:'Get opportunities',body:'Use stronger professional signals to get discovered by organisations, collaborators and employers.'}
 ];
 
+const impactPillars=[
+  {title:'Real work',body:'Structured problems, accountable roles and delivery teams.'},
+  {title:'Verified evidence',body:'Contribution connected to review, evidence and Proof.'},
+  {title:'Professional systems',body:'Project, reputation and opportunity workflows in one platform.'},
+  {title:'Cross-border scope',body:'Infrastructure designed for Africa and useful beyond it.'}
+];
+
 export default function HomePage(){
   return <>
-    <section className="homeHero homeHeroDark">
+    <section className="homeHero homeHeroDark" aria-labelledby="home-hero-title">
       <div className="shell homeHeroShell">
         <div className="homeHeroGrid">
           <div className="homeHeroCopy">
             <div className="eyebrow">Professional capability infrastructure</div>
-            <h1>Build real capability.<br/>Prove it with evidence.<br/><span>Get discovered.</span></h1>
+            <h1 id="home-hero-title">Build real capability.<br/>Prove it with evidence.<br/><span>Get discovered.</span></h1>
             <p className="heroLead">Mettelo is a technology-led platform where professionals join structured real-world projects, deliver with teams and turn meaningful contribution into verified Proof that can travel with them into opportunity across Africa and beyond.</p>
             <div className="homeHeroActions">
               <a className="button primary" href="/projects">Explore projects →</a>
@@ -50,39 +57,42 @@ export default function HomePage(){
       </div>
     </section>
 
-    <section className="homeValueStrip" aria-label="Mettelo platform value">
+    <nav className="homeValueStrip" aria-label="Explore the main ways to use Mettelo">
       <div className="shell homeValueGrid">
         <a href="/projects"><span className="valueIcon" aria-hidden="true">01</span><p><strong>Join real projects</strong><small>Build capability through structured delivery.</small></p></a>
         <a href="/showcase"><span className="valueIcon" aria-hidden="true">02</span><p><strong>Earn verified Proof</strong><small>Connect contribution to reviewed evidence.</small></p></a>
         <a href="/opportunities"><span className="valueIcon" aria-hidden="true">03</span><p><strong>Get discovered</strong><small>Use stronger professional signals.</small></p></a>
         <a href="/organisations"><span className="valueIcon" aria-hidden="true">04</span><p><strong>For organisations</strong><small>Bring problems, talent needs and partnerships.</small></p></a>
       </div>
-    </section>
+    </nav>
 
-    <section className="section homeHowSection">
+    <section className="section homeHowSection" aria-labelledby="home-how-title">
       <div className="shell">
-        <div className="homeHowHead"><div><div className="eyebrow">How Mettelo works</div><h2>From discovery to credible professional signal.</h2></div><p>One connected journey turns real contribution into evidence that is easier to trust, understand and use.</p></div>
+        <div className="homeHowHead"><div><div className="eyebrow">How Mettelo works</div><h2 id="home-how-title">From discovery to credible professional signal.</h2></div><p>One connected journey turns real contribution into evidence that is easier to trust, understand and use.</p></div>
         <ol className="homeHowGrid">
-          {steps.map(step=><li key={step.number}><span className="howNumber">{step.number}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></li>)}
+          {steps.map(step=><li key={step.number}><span className="howNumber" aria-hidden="true">{step.number}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></li>)}
         </ol>
       </div>
     </section>
 
-    <section className="section dark homeProofSection">
+    <section className="section dark homeProofSection" aria-labelledby="home-proof-title">
       <div className="shell homeSplit">
-        <div><div className="eyebrow">Built for trusted evidence</div><h2>Your work should carry more weight than a claim on a CV.</h2><p className="lead">Mettelo Proof ties professional evidence to the project, contribution, review and verification state behind it. The result is a stronger signal for collaborators, employers and partners.</p><div className="actions"><a className="button primary" href="/showcase">See verified work →</a></div></div>
-        <aside className="proofPreview" aria-label="Illustrative verified Proof record"><div className="proofPreviewHeader"><div><h3>Verified contribution</h3><p>Illustrative Proof record</p></div><span className="chip green">VERIFIED</span></div><div className="proofGrid"><div className="proofField"><small>Project</small><strong>Data & AI delivery</strong></div><div className="proofField"><small>Role</small><strong>Data Analyst</strong></div><div className="proofField"><small>Evidence</small><strong>Repository · report · dashboard</strong></div><div className="proofField"><small>Review</small><strong>Contribution verified</strong></div></div></aside>
+        <div className="proofStory"><div className="eyebrow">Built for trusted evidence</div><h2 id="home-proof-title">Your work should carry more weight than a claim on a CV.</h2><p className="lead">Mettelo Proof ties professional evidence to the project, contribution, review and verification state behind it. The result is a stronger signal for collaborators, employers and partners.</p><div className="proofPrinciples" aria-label="What makes Mettelo Proof useful"><span>Context attached</span><span>Contribution reviewed</span><span>Evidence traceable</span></div><div className="actions"><a className="button primary" href="/showcase">See verified work →</a></div></div>
+        <aside className="proofPreview" aria-label="Illustrative verified Proof record"><div className="proofPreviewHeader"><div><h3>Verified contribution</h3><p>Illustrative Proof record</p></div><span className="chip green">VERIFIED</span></div><dl className="proofGrid"><div className="proofField"><dt>Project</dt><dd>Data & AI delivery</dd></div><div className="proofField"><dt>Role</dt><dd>Data Analyst</dd></div><div className="proofField"><dt>Evidence</dt><dd>Repository · report · dashboard</dd></div><div className="proofField"><dt>Review</dt><dd>Contribution verified</dd></div></dl></aside>
       </div>
     </section>
 
     <HomeLiveContent/>
 
-    <section className="section softSection homeImpactSection">
-      <div className="shell"><div className="sectionHead"><div><div className="eyebrow">Africa and beyond</div><h2>Professional infrastructure with global usefulness and African ambition.</h2></div><p>Mettelo is building for professionals who should be able to develop capability through real work, prove it with credible evidence and become easier to discover across borders.</p></div><div className="statBand"><div><strong>Real work</strong><span>Structured problems and delivery teams.</span></div><div><strong>Verified evidence</strong><span>Contribution connected to review and Proof.</span></div><div><strong>Professional systems</strong><span>Project, reputation and recruitment workflows.</span></div><div><strong>Cross-border scope</strong><span>Infrastructure designed for Africa and beyond.</span></div></div></div>
+    <section className="section softSection homeImpactSection" aria-labelledby="home-impact-title">
+      <div className="shell">
+        <div className="homeImpactIntro"><div><div className="eyebrow">Africa and beyond</div><h2 id="home-impact-title">Professional infrastructure with global usefulness and African ambition.</h2></div><p>Mettelo is building for professionals who should be able to develop capability through real work, prove it with credible evidence and become easier to discover across borders.</p></div>
+        <div className="impactPillars">{impactPillars.map((pillar,index)=><article key={pillar.title}><span aria-hidden="true">0{index+1}</span><h3>{pillar.title}</h3><p>{pillar.body}</p></article>)}</div>
+      </div>
     </section>
 
-    <section className="section homeFinalSection">
-      <div className="shell"><div className="ctaBand"><div><div className="cardNumber">START HERE</div><h2>Build something real behind your next opportunity.</h2><p>Create your account, complete your profile and find the project or opportunity that fits your next move.</p></div><div className="actions"><a className="button dark" href="/auth/signup">Join Mettelo →</a><a className="button ghost" href="/faq">Read the FAQ</a></div></div></div>
+    <section className="section homeFinalSection" aria-labelledby="home-final-title">
+      <div className="shell"><div className="ctaBand"><div><div className="cardNumber">START HERE</div><h2 id="home-final-title">Build something real behind your next opportunity.</h2><p>Create your account, complete your profile and find the project or opportunity that fits your next move.</p></div><div className="actions"><a className="button dark" href="/auth/signup">Join Mettelo →</a><a className="button ghost" href="/faq">Read the FAQ</a></div></div></div>
     </section>
   </>;
 }

@@ -11,7 +11,7 @@ export async function PATCH(request:Request){
     const body=await request.json().catch(()=>({}));const id=typeof body.id==='string'?body.id:'';const action=typeof body.action==='string'?body.action:'';
     if(!id||!['request_consent','publish','exclude','restore'].includes(action))return NextResponse.json({error:'Invalid request'},{status:400});
     const now=new Date().toISOString();
-    const {data:selected}=await db.from('spotlights').select('id,user_id,title,award_month,status,is_excluded,consent_status').eq('id',id).maybeSingle();if(!selected)return NextResponse.json({error:'Spotlight not found'},{status:404});
+    const {data:selected}=await db.from('spotlights').select('id,user_id,title,award_month,status,is_excluded,consent_status,selected_at').eq('id',id).maybeSingle();if(!selected)return NextResponse.json({error:'Spotlight not found'},{status:404});
 
     if(action==='request_consent'){
       if(selected.status!=='draft'||selected.is_excluded)return NextResponse.json({error:'Only an active draft can be sent for member consent.'},{status:409});

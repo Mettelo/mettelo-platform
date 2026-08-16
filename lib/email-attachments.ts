@@ -4,7 +4,7 @@ export const MAX_EMAIL_ATTACHMENTS=4;
 export const MAX_EMAIL_ATTACHMENT_RAW_BYTES=28*1024*1024;
 
 type OutboxLike={template_key:string;payload:Record<string,unknown>};
-type ProviderAttachment={filename:string;content:string};
+type ProviderAttachment={filename:string;content:string;content_type:'application/pdf'};
 
 type OfferDocument={id:string;application_id:string;storage_path:string;file_name:string;size_bytes:number;active:boolean};
 
@@ -32,7 +32,7 @@ export async function resolveEmailAttachments(db:SupabaseClient,item:OutboxLike)
     const download=await db.storage.from('career-offer-documents').download(document.storage_path);
     if(download.error||!download.data)throw new Error(`Unable to load ${document.file_name} for email delivery.`);
     const bytes=Buffer.from(await download.data.arrayBuffer());
-    attachments.push({filename:document.file_name,content:bytes.toString('base64')});
+    attachments.push({filename:document.file_name,content:bytes.toString('base64'),content_type:'application/pdf'});
   }
   return attachments;
 }

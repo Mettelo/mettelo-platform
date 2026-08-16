@@ -1,17 +1,21 @@
 import fs from 'node:fs';
 
 const checks=[
-  ['app/member/profile/page.tsx',['ProfileReturnAfterSave','MemberProfileSection']],
+  ['components/MemberAppShell.tsx',['Find a project','Applications','My projects','Profile','What would you like to do?','Member mobile navigation']],
+  ['components/MemberAppShell.module.css',['grid-template-columns:repeat(5,1fr)','min-height:46px','backdrop-filter:blur(18px)']],
+  ['app/member/page.tsx',['What should I do now?','Find a project','Continue where you left off','Build what comes next.']],
+  ['app/member/profile/page.tsx',['ProfileReturnAfterSave','MemberProfileSection','Better project matches','Faster applications']],
   ['components/MemberProfileSection.tsx',['Profile completeness','improve project matching','PROJECT AVAILABILITY','Preview public profile']],
   ['components/ProfileReturnAfterSave.tsx',['mettelo:profile-updated','window.location.assign(next)']],
   ['app/projects/page.tsx',['roleCount','deadlinePassed','Roles are still being prepared','View project →']],
   ['app/projects/[id]/page.tsx',['What this project is solving','Know what you are committing to','AVAILABLE ROLES','EXPECTED PROOF','Application deadline','ProjectApplicationForm','Roles pending','roles.length>0']],
   ['components/ProjectApplicationForm.tsx',['localStorage','Draft saved automatically','Complete these','REVIEW APPLICATION','Confirm & submit']],
-  ['app/member/applications/page.tsx',['project_application_events','project_run_id','forming_deadline','MemberApplicationTracker']],
+  ['app/member/applications/page.tsx',['project_application_events','project_run_id','forming_deadline','MemberApplicationTracker','Know exactly what is happening next.','Find another project']],
   ['components/MemberApplicationTracker.tsx',['WHAT THIS MEANS','WHAT HAPPENS NEXT','DO I NEED TO DO SOMETHING?','Application timeline','formationTrack']],
   ['app/api/project-applications/route.ts',['application_deadline','team_place_released','waiting_for_team']],
   ['supabase/migrations/20260816001500_phase2_project_application_events.sql',['project_application_events','record_project_application_event','members read own project application events']],
-  ['supabase/migrations/20260816004500_allow_open_forming_public_projects.sql',['open','forming','public projects readable anon','projects readable authenticated']]
+  ['supabase/migrations/20260816004500_allow_open_forming_public_projects.sql',['open','forming','public projects readable anon','projects readable authenticated']],
+  ['supabase/migrations/20260816010500_restrict_project_application_updates.sql',['applications updatable by admin','public.is_admin()']]
 ];
 let failed=false;
 for(const [file,needles] of checks){

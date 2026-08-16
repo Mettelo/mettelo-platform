@@ -1,0 +1,3 @@
+Preview deployment trigger for the merged homepage refinement.
+Source merge commit: 45722ecb4a30e6228e0fcd8376420eeb90c0769b
+This file has no runtime effect.

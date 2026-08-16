@@ -15,19 +15,19 @@ export async function PATCH(request:Request){
  try{
   const user=await admin();if(!user)return NextResponse.json({error:'Admin access required.'},{status:403});
   const db=serviceDb();if(!db)return NextResponse.json({error:'Intake service not configured.'},{status:503});
-  const body=await request.json();const ids=Array.isArray(body.ids)?body.ids.map(String).filter(Boolean).slice(0,100):[String(body.id||'')].filter(Boolean);const action=String(body.action||'');if(!ids.length)return NextResponse.json({error:'Choose at least one intake record.'},{status:400});const now=new Date().toISOString();
+  const body=await request.json();const ids:string[]=Array.isArray(body.ids)?body.ids.map(String).filter(Boolean).slice(0,100):[String(body.id||'')].filter(Boolean);const action=String(body.action||'');if(!ids.length)return NextResponse.json({error:'Choose at least one intake record.'},{status:400});const now=new Date().toISOString();
 
   if(action==='status'){
     const status=String(body.status||'');if(!['new','in_progress','resolved','duplicate'].includes(status))return NextResponse.json({error:'Invalid triage status.'},{status:400});
     const patch:Record<string,unknown>={status,updated_at:now};if(status==='in_progress')patch.reviewed_at=now;if(status==='resolved'||status==='duplicate')patch.resolved_at=now;
     const {data,error}=await db.from('form_submissions').update(patch).in('id',ids).select('id,status,workflow_stage,assigned_to_user_id,reviewed_at,resolved_at,duplicate_of_id,converted_application_id,next_follow_up_at,last_contacted_at,resolution_summary,updated_at');if(error)throw error;
-    await Promise.all(ids.map(id=>history(db,id,user.id,'status_changed',{status})));
+    await Promise.all(ids.map((id:string)=>history(db,id,user.id,'status_changed',{status})));
     return NextResponse.json({ok:true,items:data||[]});
   }
 
   if(action==='assign'){
     const assigned=text(body.assigned_to_user_id,80)||null;const {data,error}=await db.from('form_submissions').update({assigned_to_user_id:assigned,updated_at:now}).in('id',ids).select('id,status,workflow_stage,assigned_to_user_id,reviewed_at,resolved_at,duplicate_of_id,converted_application_id,next_follow_up_at,last_contacted_at,resolution_summary,updated_at');if(error)throw error;
-    await Promise.all(ids.map(id=>history(db,id,user.id,'owner_assigned',{assigned_to_user_id:assigned})));
+    await Promise.all(ids.map((id:string)=>history(db,id,user.id,'owner_assigned',{assigned_to_user_id:assigned})));
     return NextResponse.json({ok:true,items:data||[]});
   }
 
@@ -60,7 +60,7 @@ export async function PATCH(request:Request){
     if(ids.length!==1)return NextResponse.json({error:'Resolve one submission at a time.'},{status:400});const summary=text(body.resolution_summary,3000);if(!summary)return NextResponse.json({error:'Add a resolution summary before closing this submission.'},{status:400});
     const {data:submission}=await db.from('form_submissions').select('id,form_type,payload').eq('id',ids[0]).maybeSingle();if(!submission)return NextResponse.json({error:'Submission not found.'},{status:404});let delivery:string|null=null;
     if(Boolean(body.notify_submitter)){const email=text(payloadObject(submission.payload).email,320).toLowerCase();if(/^\S+@\S+\.\S+$/.test(email)){delivery=await sendIntakeEmail(db,{submissionId:ids[0],email,subject:submission.form_type==='feedback'?'Update on your Mettelo feedback':'Update on your Mettelo enquiry',message:summary,userId:user.id});}}
-    const {data,error}=await db.from('form_submissions').update({status:'resolved',workflow_stage:submission.form_type==='partnership'?'closed':undefined,resolution_summary:summary,resolved_at:now,updated_at:now}).eq('id',ids[0]).select('id,status,workflow_stage,assigned_to_user_id,reviewed_at,resolved_at,duplicate_of_id,converted_application_id,next_follow_up_at,last_contacted_at,resolution_summary,updated_at').single();if(error)throw error;await history(db,ids[0],user.id,'resolved',{resolution_summary:summary,submitter_notified:Boolean(delivery),delivery});return NextResponse.json({ok:true,items:[data],delivery});
+    const resolutionPatch:Record<string,unknown>={status:'resolved',resolution_summary:summary,resolved_at:now,updated_at:now};if(submission.form_type==='partnership')resolutionPatch.workflow_stage='closed';const {data,error}=await db.from('form_submissions').update(resolutionPatch).eq('id',ids[0]).select('id,status,workflow_stage,assigned_to_user_id,reviewed_at,resolved_at,duplicate_of_id,converted_application_id,next_follow_up_at,last_contacted_at,resolution_summary,updated_at').single();if(error)throw error;await history(db,ids[0],user.id,'resolved',{resolution_summary:summary,submitter_notified:Boolean(delivery),delivery});return NextResponse.json({ok:true,items:[data],delivery});
   }
 
   if(action==='duplicate'){

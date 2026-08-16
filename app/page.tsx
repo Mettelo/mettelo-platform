@@ -16,7 +16,7 @@ export default function HomePage(){
           <div className="homeHeroCopy">
             <div className="eyebrow">Professional capability infrastructure</div>
             <h1>Build real capability.<br/>Prove it with evidence.<br/><span>Get discovered.</span></h1>
-            <p className="heroLead">Join structured real-world projects, deliver with teams and turn meaningful contribution into verified Proof that can travel with you into opportunity across Africa and beyond.</p>
+            <p className="heroLead">Mettelo is a technology-led platform where professionals join structured real-world projects, deliver with teams and turn meaningful contribution into verified Proof that can travel with them into opportunity across Africa and beyond.</p>
             <div className="homeHeroActions">
               <a className="button primary" href="/projects">Explore projects →</a>
               <a className="button heroGhost" href="/auth/signup">Create your profile</a>

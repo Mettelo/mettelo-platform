@@ -7,6 +7,7 @@ async function admin(){const auth=await createServerSupabaseClient();const {data
 const selectFields='id,title,slug,team,employment_type,status,closes_at,location,work_arrangement,salary_text,summary,responsibilities,requirements,nice_to_have,eligibility,expected_response_days,application_process,application_questions';
 function questions(value:unknown){const lines=String(value||'').split('\n').map(item=>item.trim()).filter(Boolean).slice(0,12);return lines.map((label,index)=>({id:`q${index+1}`,label,required:true}));}
 function responseDays(value:unknown){const parsed=Number(value);return Number.isFinite(parsed)&&parsed>0?Math.min(365,Math.trunc(parsed)):null;}
+function present(value:unknown){return typeof value==='string'?Boolean(value.trim()):value!==null&&value!==undefined;}
 
 export async function POST(request:Request){
   try{
@@ -21,7 +22,7 @@ export async function POST(request:Request){
       slug,title,team:String(b.team||'').trim()||null,employment_type:String(b.employment_type||'contract'),location:String(b.location||'').trim()||null,
       work_arrangement:String(b.work_arrangement||'').trim()||null,salary_text:String(b.salary_text||'').trim()||null,summary,responsibilities,requirements,
       nice_to_have:String(b.nice_to_have||'').trim()||null,eligibility:String(b.eligibility||'').trim()||null,
-      expected_response_days:responseDays(b.expected_response_days),application_process:String(b.application_process||'').trim()||null,
+      expected_response_days:responseDays(b.expected_response_days)??14,application_process:String(b.application_process||'').trim()||null,
       application_questions:questions(b.application_questions),closes_at:closes?`${closes}T23:59:59Z`:null,created_by:user.id,status:'draft'
     }).select(selectFields).single();
     if(error)throw error;return NextResponse.json({ok:true,role},{status:201});
@@ -39,6 +40,12 @@ export async function PATCH(request:Request){
       const title=String(b.title||'').trim();const summary=String(b.summary||'').trim(),responsibilities=String(b.responsibilities||'').trim(),requirements=String(b.requirements||'').trim();
       if(!title||!summary||!responsibilities||!requirements)return NextResponse.json({error:'Title, summary, responsibilities and requirements are required.'},{status:400});
       patch.title=title;patch.team=String(b.team||'').trim()||null;patch.employment_type=String(b.employment_type||'contract');patch.location=String(b.location||'').trim()||null;patch.work_arrangement=String(b.work_arrangement||'').trim()||null;patch.salary_text=String(b.salary_text||'').trim()||null;patch.summary=summary;patch.responsibilities=responsibilities;patch.requirements=requirements;patch.nice_to_have=String(b.nice_to_have||'').trim()||null;patch.eligibility=String(b.eligibility||'').trim()||null;patch.expected_response_days=responseDays(b.expected_response_days);patch.application_process=String(b.application_process||'').trim()||null;patch.application_questions=questions(b.application_questions);const closes=String(b.closes_at||'').trim();patch.closes_at=closes?`${closes}T23:59:59Z`:null;
+    }
+    if(status==='published'){
+      const {data:current}=await db.from('career_roles').select(selectFields).eq('id',id).maybeSingle();if(!current)return NextResponse.json({error:'Career role not found.'},{status:404});
+      const candidate={...current,...patch} as Record<string,unknown>;const missing:string[]=[];
+      if(!present(candidate.summary))missing.push('summary');if(!present(candidate.responsibilities))missing.push('responsibilities');if(!present(candidate.requirements))missing.push('requirements');if(!present(candidate.eligibility))missing.push('eligibility');if(!present(candidate.application_process))missing.push('application process');if(!responseDays(candidate.expected_response_days))missing.push('expected response time');
+      if(missing.length)return NextResponse.json({error:`Complete the career brief before publishing: ${missing.join(', ')}.`},{status:409});
     }
     const {data:role,error}=await db.from('career_roles').update(patch).eq('id',id).select(selectFields).single();if(error)throw error;return NextResponse.json({ok:true,role});
   }catch(error){console.error(error);return NextResponse.json({error:'Unable to update career role.'},{status:500})}

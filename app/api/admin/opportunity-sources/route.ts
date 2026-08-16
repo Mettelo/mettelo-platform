@@ -29,6 +29,15 @@ export async function POST(request:Request){
 export async function PATCH(request:Request){
   const ctx=await adminDb();if(!ctx)return NextResponse.json({error:'Admin access required.'},{status:403});
   const body=await request.json();const id=clean(body.id,80);if(!id)return NextResponse.json({error:'Source id is required.'},{status:400});
-  const changes:Record<string,unknown>={updated_at:new Date().toISOString()};if(typeof body.is_active==='boolean')changes.is_active=body.is_active;if(typeof body.auto_publish_enabled==='boolean')changes.auto_publish_enabled=body.auto_publish_enabled;
-  const {data,error}=await ctx.db.from('opportunity_ingestion_sources').update(changes).eq('id',id).select('*').single();if(error)return NextResponse.json({error:'Unable to update source.'},{status:500});return NextResponse.json({source:data});
+  const changes:Record<string,unknown>={updated_at:new Date().toISOString()};
+  if(typeof body.is_active==='boolean')changes.is_active=body.is_active;if(typeof body.auto_publish_enabled==='boolean')changes.auto_publish_enabled=body.auto_publish_enabled;
+  if('organisation_name'in body){const organisation=clean(body.organisation_name);if(!organisation)return NextResponse.json({error:'Organisation name is required.'},{status:400});changes.organisation_name=organisation}
+  if('source_key'in body){const sourceKey=clean(body.source_key,120);if(!sourceKey||!/^[a-zA-Z0-9._-]+$/.test(sourceKey))return NextResponse.json({error:'Source key is invalid.'},{status:400});changes.source_key=sourceKey}
+  if('employer_domain'in body)changes.employer_domain=clean(body.employer_domain,180).toLowerCase()||null;
+  if('region'in body){const region=clean(body.region,20);if(!['global','eu'].includes(region))return NextResponse.json({error:'Invalid source region.'},{status:400});changes.region=region}
+  const {data,error}=await ctx.db.from('opportunity_ingestion_sources').update(changes).eq('id',id).select('*').single();if(error)return NextResponse.json({error:error.code==='23505'?'That ATS source already exists.':'Unable to update source.'},{status:error.code==='23505'?409:500});return NextResponse.json({source:data});
+}
+
+export async function DELETE(request:Request){
+  const ctx=await adminDb();if(!ctx)return NextResponse.json({error:'Admin access required.'},{status:403});const body=await request.json();const id=clean(body.id,80);if(!id)return NextResponse.json({error:'Source id is required.'},{status:400});const {error}=await ctx.db.from('opportunity_ingestion_sources').delete().eq('id',id);if(error)return NextResponse.json({error:'Unable to remove source.'},{status:500});return NextResponse.json({ok:true});
 }

@@ -1,6 +1,9 @@
 import HomeLiveContent from '@/components/HomeLiveContent';
+import HomeHeroShowcase from '@/components/HomeHeroShowcase';
+import {createPublicSupabaseClient} from '@/lib/supabase/public';
 import './home.css';
 import './home-refinement.css';
+import './home-overhaul.css';
 
 const steps=[
   {number:'01',title:'Discover',body:'Find projects, opportunities and events that match your skills, interests and next move.'},
@@ -16,44 +19,38 @@ const impactPillars=[
   {title:'Cross-border scope',body:'Infrastructure designed for Africa and useful beyond it.'}
 ];
 
-export default function HomePage(){
+async function getHeroMetrics(){
+  const db=createPublicSupabaseClient();
+  if(!db)return {projects:null,opportunities:null,proofs:null};
+  const now=new Date().toISOString();
+  const [projects,opportunities,proofs]=await Promise.all([
+    db.from('projects').select('id',{count:'exact',head:true}).eq('visibility','public').in('status',['pilot','recruiting','active','review','completed']),
+    db.from('opportunities').select('id',{count:'exact',head:true}).eq('status','published').eq('access_level','public').or(`closes_at.is.null,closes_at.gte.${now}`),
+    db.from('contributions').select('id',{count:'exact',head:true}).eq('verification_status','verified').eq('is_public',true)
+  ]);
+  return {projects:projects.count??null,opportunities:opportunities.count??null,proofs:proofs.count??null};
+}
+
+export default async function HomePage(){
+  const metrics=await getHeroMetrics();
   return <>
-    <section className="homeHero homeHeroDark" aria-labelledby="home-hero-title">
+    <section className="homeHero homeHeroDark homeHeroOverhaul" aria-labelledby="home-hero-title">
       <div className="shell homeHeroShell">
         <div className="homeHeroGrid">
           <div className="homeHeroCopy">
-            <div className="eyebrow">Professional capability infrastructure</div>
+            <div className="eyebrow">BUILD · PROVE · GET DISCOVERED</div>
             <h1 id="home-hero-title">Build real capability.<br/>Prove it with evidence.<br/><span>Get discovered.</span></h1>
-            <p className="heroLead">Mettelo is a technology-led platform where professionals join structured real-world projects, deliver with teams and turn meaningful contribution into verified Proof that can travel with them into opportunity across Africa and beyond.</p>
+            <p className="heroLead">Mettelo is a technology-led platform where professionals build capability through structured real-world work, turn contribution into verified Proof and use stronger evidence to reach opportunity across Africa and beyond.</p>
             <div className="homeHeroActions">
               <a className="button primary" href="/projects">Explore projects →</a>
               <a className="button heroGhost" href="/auth/signup">Create your profile</a>
             </div>
-            <div className="homeAssurance" aria-label="What Mettelo provides">
-              <span>Structured delivery</span><span>Verified Proof</span><span>Professional discovery</span><span>Africa and beyond</span>
+            <div className="heroPositioningLine" aria-label="Mettelo positioning">
+              <strong>Professional capability infrastructure</strong>
+              <span>Real projects · reviewed evidence · stronger professional signals</span>
             </div>
           </div>
-
-          <aside className="productShowcase" aria-label="Illustrative preview of the Mettelo project workspace and Proof system">
-            <div className="showcaseWindow">
-              <div className="showcaseHeader"><span className="showcaseDot"/><strong>Mettelo Project Workspace</strong><small>PLATFORM PREVIEW</small></div>
-              <div className="showcaseBody">
-                <div className="showcaseProof">
-                  <span className="verifiedMark" aria-hidden="true">✓</span>
-                  <div><small>VERIFIED PROOF</small><strong>Contribution reviewed</strong><span>Evidence connected to delivery</span></div>
-                </div>
-                <div className="showcaseProject">
-                  <span className="chip">ACTIVE PROJECT</span>
-                  <h3>Structured real-world delivery</h3>
-                  <p>Brief, roles, tasks, data, events and evidence in one governed workspace.</p>
-                  <div className="showcaseMeta"><span><small>Your role</small><strong>Data Analyst</strong></span><span><small>Team</small><strong>6 contributors</strong></span></div>
-                  <div className="showcaseProgress" aria-hidden="true"><i/></div>
-                  <div className="showcaseProjectFoot"><span>Next action</span><strong>Submit evidence →</strong></div>
-                </div>
-                <div className="showcaseSignals"><div><small>DELIVERY</small><strong>Milestones</strong></div><div><small>EVIDENCE</small><strong>Reviewed</strong></div><div><small>OUTCOME</small><strong>Verified Proof</strong></div></div>
-              </div>
-            </div>
-          </aside>
+          <HomeHeroShowcase metrics={metrics}/>
         </div>
       </div>
     </section>
@@ -69,7 +66,7 @@ export default function HomePage(){
 
     <section className="section homeHowSection" aria-labelledby="home-how-title">
       <div className="shell">
-        <div className="homeHowHead"><div><div className="eyebrow">How Mettelo works</div><h2 id="home-how-title">From discovery to credible professional signal.</h2></div><p>One connected journey turns real contribution into evidence that is easier to trust, understand and use.</p></div>
+        <div className="homeHowHead"><div><div className="eyebrow">How Mettelo works</div><h2 id="home-how-title">A clear route from discovery to credible professional signal.</h2></div><p>One connected journey turns real contribution into evidence that is easier to trust, understand and use.</p></div>
         <ol className="homeHowGrid">
           {steps.map(step=><li key={step.number}><span className="howNumber" aria-hidden="true">{step.number}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></li>)}
         </ol>
@@ -87,7 +84,7 @@ export default function HomePage(){
 
     <section className="section softSection homeImpactSection" aria-labelledby="home-impact-title">
       <div className="shell">
-        <div className="homeImpactIntro"><div><div className="eyebrow">Africa and beyond</div><h2 id="home-impact-title">Professional infrastructure with global usefulness and African ambition.</h2></div><p>Mettelo is building for professionals who should be able to develop capability through real work, prove it with credible evidence and become easier to discover across borders.</p></div>
+        <div className="homeImpactIntro"><div><div className="eyebrow">Africa and beyond</div><h2 id="home-impact-title">Infrastructure designed for ambitious professionals and organisations.</h2></div><p>Mettelo is building systems that help professionals develop capability through real work, prove it with credible evidence and become easier to discover across borders.</p></div>
         <div className="impactPillars">{impactPillars.map((pillar,index)=><article key={pillar.title}><span aria-hidden="true">0{index+1}</span><h3>{pillar.title}</h3><p>{pillar.body}</p></article>)}</div>
       </div>
     </section>

@@ -7,7 +7,10 @@ function expect(path,needles,label){const source=read(path);const missing=needle
 expect('components/HardenedCard.tsx',['metteloHardenedCard','data-summary-lines','data-title-lines'],'shared hardened card primitive');
 expect('app/mobile.css',['overflow-wrap:anywhere','word-break:break-word','min-width:0!important','grid-template-columns:repeat(3,minmax(0,1fr))','@media(max-width:480px)','@media(min-width:481px) and (max-width:1024px)','@media(min-width:1025px)','a[href="/project-architect"]'],'system card/grid resilience and three breakpoints');
 expect('app/api/forms/route.ts',['fieldLimits','hasPathologicalToken','status:422','contribution:2000','message:3000'],'server-side free-text validation');
-expect('app/page.tsx',['Professional capability infrastructure','technology-led platform','href="/auth/signup"','Africa and beyond','href="/faq"'],'homepage positioning and direct signup');
+expect('app/page.tsx',['Professional capability infrastructure','technology-led platform','href="/auth/signup"','Africa and beyond','href="/faq"','HomeHeroShowcase','getHeroMetrics'],'homepage positioning live metrics and direct signup');
+expect('components/HomeHeroShowcase.tsx',['role="tablist"','aria-selected','Previous showcase slide','Next showcase slide','Public projects','Open opportunities','Verified Proof'],'accessible three-slide homepage showcase');
+expect('components/HomeLiveContent.tsx',['safeText','liveCardTitle','liveCardSummary','replace(/\\S{56,}/g'],'live homepage data display is bounded');
+expect('app/home-overhaul.css',['overflow-wrap:anywhere','word-break:break-word','-webkit-line-clamp:4','grid-template-columns:repeat(4,minmax(0,1fr))','@media(max-width:480px)','@media(min-width:481px) and (max-width:1024px)','@media(min-width:1025px)','prefers-reduced-motion'],'homepage containment and responsive overhaul');
 expect('app/about/page.tsx',['technology-led organisation','Africa and beyond','African ambition and global usefulness','href="/auth/signup"'],'About mission and vision positioning');
 expect('app/join/page.tsx',["redirect('/auth/signup')"],'Join route collapses to signup');
 expect('middleware.ts',["pathname==='/project-architect'","target.pathname='/member/project-architect'","'/project-architect'"],'Project Architect member-only redirect');

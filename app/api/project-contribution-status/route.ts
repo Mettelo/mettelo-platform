@@ -13,7 +13,7 @@ export async function GET(request:Request){
     const {data:contributions,error}=await supabase.from('contributions').select('id,title,description,evidence_url,verification_status,review_notes,created_at,updated_at,verified_at').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).order('created_at',{ascending:false});
     if(error)throw error;
     const ids=(contributions||[]).map(item=>item.id);if(!ids.length)return NextResponse.json({items:[]});
-    const {data:events,eventError}=await supabase.from('contribution_review_events').select('id,contribution_id,event_type,comment,evidence_url,created_at,actor_user_id').in('contribution_id',ids).order('created_at',{ascending:true});
+    const {data:events,error:eventError}=await supabase.from('contribution_review_events').select('id,contribution_id,event_type,comment,evidence_url,created_at,actor_user_id').in('contribution_id',ids).order('created_at',{ascending:true});
     if(eventError)throw eventError;
     const actorIds=[...new Set((events||[]).map(item=>item.actor_user_id).filter(Boolean))];const {data:profiles}=actorIds.length?await supabase.from('profiles').select('id,full_name').in('id',actorIds):{data:[]};const names=new Map((profiles||[]).map(profile=>[profile.id,profile.full_name||'Project member']));
     return NextResponse.json({items:(contributions||[]).map(item=>({...item,events:(events||[]).filter(event=>event.contribution_id===item.id).map(event=>({...event,actor_name:event.actor_user_id?names.get(event.actor_user_id)||'Project member':'System'}))}))});

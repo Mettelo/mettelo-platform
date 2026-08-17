@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import {usePathname} from 'next/navigation';
 import {useEffect,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {User} from '@supabase/supabase-js';
@@ -16,6 +17,7 @@ const exploreLinks=[['Community','/community'],['Insights','/blog'],['Spotlight'
 function Chevron({open=false}:{open?:boolean}){return <span className="mobilePublicChevron" aria-hidden="true">{open?'⌃':'⌄'}</span>}
 
 export default function MobileMenuEnhancer(){
+  const pathname=usePathname();
   const [mounted,setMounted]=useState(false);
   const [account,setAccount]=useState<AccountState>(null);
   const [openSection,setOpenSection]=useState<OpenSection>(null);
@@ -58,6 +60,7 @@ export default function MobileMenuEnhancer(){
 
   function closeMenu(){const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');if(menu){menu.open=false;document.body.classList.remove('mobileNavOpen');document.querySelector<HTMLButtonElement>('.mobileMenuBackdrop')?.setAttribute('hidden','')}setOpenSection(null);menu?.querySelector<HTMLElement>('summary')?.focus()}
   function toggle(section:Exclude<OpenSection,null>){setOpenSection(current=>current===section?null:section)}
+  function active(href:string){return href==='/'?pathname==='/':pathname===href||pathname.startsWith(`${href}/`)}
   async function signOut(){const supabase=createClient();await supabase.auth.signOut();setAccount(null);closeMenu();window.location.assign('/')}
 
   if(!mounted)return null;
@@ -66,16 +69,19 @@ export default function MobileMenuEnhancer(){
 
   const nav=<div className="mobilePublicNav" aria-label="Mobile website navigation">
     <nav className="mobilePublicPrimary" aria-label="Primary mobile navigation">
-      {primaryLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}</Link>)}
+      {primaryLinks.map(([label,href])=><Link href={href} key={href} className={active(href)?'isActive':undefined} aria-current={active(href)?'page':undefined} onClick={closeMenu}><span>{label}</span></Link>)}
     </nav>
 
-    <nav className="mobilePublicSecondary" aria-label="Secondary mobile navigation">
-      {secondaryLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}</Link>)}
-    </nav>
+    <div className="mobilePublicSecondaryWrap">
+      <span className="mobilePublicSectionLabel">Mettelo</span>
+      <nav className="mobilePublicSecondary" aria-label="Mettelo navigation">
+        {secondaryLinks.map(([label,href])=><Link href={href} key={href} className={active(href)?'isActive':undefined} aria-current={active(href)?'page':undefined} onClick={closeMenu}><span>{label}</span></Link>)}
+      </nav>
+    </div>
 
     <section className="mobilePublicExplore" aria-labelledby="mobile-public-explore-label">
       <button id="mobile-public-explore-label" type="button" className="mobilePublicDisclosure" aria-expanded={openSection==='explore'} aria-controls="mobile-public-explore" onClick={()=>toggle('explore')}><span>Explore</span><Chevron open={openSection==='explore'}/></button>
-      <div id="mobile-public-explore" className="mobilePublicExploreGrid" hidden={openSection!=='explore'}>{exploreLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}</Link>)}</div>
+      <div id="mobile-public-explore" className="mobilePublicExploreGrid" hidden={openSection!=='explore'}>{exploreLinks.map(([label,href])=><Link href={href} key={href} className={active(href)?'isActive':undefined} aria-current={active(href)?'page':undefined} onClick={closeMenu}>{label}</Link>)}</div>
     </section>
 
     <div className="mobilePublicFooter">

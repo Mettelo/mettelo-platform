@@ -23,7 +23,9 @@ export default function SubmissionForm({formType,children,submitLabel,className=
     const form=event.currentTarget;
     const data=Object.fromEntries(new FormData(form).entries());
     try{
-      const response=await fetch('/api/forms',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({formType,data})});
+      const projectInterest=formType==='project_application';
+      const requestBody=projectInterest?{project_id:data.project_id,application_kind:'interest',requested_role:data.role,contribution_statement:data.contribution,portfolio_url:data.profile}:{formType,data};
+      const response=await fetch(projectInterest?'/api/project-applications':'/api/forms',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(requestBody)});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(payload.error||'We could not submit this form. Please try again.');
       if(typeof window!=='undefined' && (window as Window & {gtag?:(...args:unknown[])=>void}).gtag){

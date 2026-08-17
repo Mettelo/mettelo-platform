@@ -21,6 +21,7 @@ jobs:
       NEXT_PUBLIC_SITE_URL: https://mettelo.com
       NEXT_PUBLIC_SUPABASE_URL: https://aconptuqupsgznyrxhrh.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_C5OTze0onbkbLl7Lorpjcg_FX1kDL6P
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,6 +31,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run audit:interactions
+      - run: npm run test:project-interest-flow
       - run: npm run audit:phase0
       - run: npm run audit:phase1
       - run: npm run audit:phase2

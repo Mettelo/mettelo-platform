@@ -1,0 +1,17 @@
+/* Mobile-only quick-filter disclosure. Desktop/tablet keep the existing pill row. */
+.opportunityQuickFilterDisclosure{display:none}
+
+@media(max-width:480px){
+  .opportunityQuickFiltersDesktop{display:none!important}
+  .opportunityQuickFilterDisclosure{display:block;border-top:1px solid #e7e1d6}
+  .opportunityQuickFilterDisclosure summary{position:relative;min-height:52px;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'label icon' 'hint icon';column-gap:12px;align-items:center;padding:10px 12px;cursor:pointer;list-style:none;border:1px solid #b9b1a4;border-radius:12px;background:#fff;color:#10131d;font-size:.82rem;font-weight:800}
+  .opportunityQuickFilterDisclosure summary::-webkit-details-marker{display:none}
+  .opportunityQuickFilterDisclosure summary::after{content:'⌄';grid-area:icon;display:grid;place-items:center;width:28px;height:28px;color:#5b6472;font-size:.9rem;line-height:1}
+  .opportunityQuickFilterDisclosure[open] summary::after{content:'⌃'}
+  .opportunityQuickFilterDisclosure summary>span:first-child{grid-area:label}
+  .opportunityQuickFilterHint{grid-area:hint;margin-top:2px;color:#66707d;font-size:.67rem;font-weight:600;line-height:1.35}
+  .opportunityQuickFilterDisclosure summary:focus-visible{outline:3px solid rgba(198,137,42,.34);outline-offset:2px}
+  .opportunityQuickFiltersMobile{display:grid!important;grid-template-columns:1fr;gap:7px;padding:10px 0 2px;overflow:visible!important}
+  .opportunityQuickFiltersMobile button{width:100%;min-height:44px;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:10px;text-align:left}
+  .opportunityQuickFiltersMobile button.isActive::after{content:'Selected';font-size:.62rem;font-weight:800;color:#6a430f}
+}

@@ -23,8 +23,8 @@ expect('app/layout.tsx',['<HeaderNavigation/>','<MobileMenuEnhancer/>','<FooterN
 expect('app/home-social-proof.css',['heroCommunityProof','heroCommunityAvatar','1500px','@media(max-width:480px)','@media(min-width:481px) and (max-width:1024px)','@media(min-width:1025px)','grid-template-columns:minmax(0,1fr)!important','word-break:normal','homeHeroCopy h1 br{display:none}','heroExperience','overflow-x:clip'],'homepage hero resets desktop constraints at narrow widths');
 expect('components/HomeLiveContent.tsx',['safeText','liveCardTitle','liveCardSummary','replace(/\\S{56,}/g'],'live homepage data display is bounded');
 expect('app/home-overhaul.css',['overflow-wrap:anywhere','word-break:break-word','-webkit-line-clamp:4','grid-template-columns:repeat(4,minmax(0,1fr))','@media(max-width:480px)','@media(min-width:481px) and (max-width:1024px)','@media(min-width:1025px)','prefers-reduced-motion'],'homepage containment and responsive overhaul');
-expect('app/about/page.tsx',['technology-led organisation','Africa and beyond','African ambition and global usefulness','href="/auth/signup"'],'About mission and vision positioning');
-expect('app/join/page.tsx',["redirect('/auth/signup')"],'Join route collapses to signup');
+expect('app/about/page.tsx',['technology-led organisation','Africa and beyond','African ambition and global usefulness','href="/signin?mode=signup"'],'About mission and vision positioning');
+expect('app/join/page.tsx',["redirect('/signin?mode=signup')"],'Join route collapses to signup');
 expect('middleware.ts',["pathname==='/project-architect'","target.pathname='/member/project-architect'","'/project-architect'"],'Project Architect member-only redirect');
 expect('components/FAQAccordion.tsx',['aria-expanded','aria-controls','role="region"','hidden={!expanded}'],'FAQ accordion accessibility');
 expect('app/faq/page.tsx',['What is Mettelo, and who is it for?','How do project applications work?','What does “Proof” mean on Mettelo?','Is Mettelo only for people in Africa?','STILL HAVE QUESTIONS?'],'FAQ content coverage');

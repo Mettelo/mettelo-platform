@@ -5,7 +5,7 @@ const checks=[
   ['supabase/migrations/20260816014500_phase3_career_role_defaults.sql',['expected_response_days set default 14','No additional eligibility restrictions are specified','Mettelo then reviews your application']],
   ['supabase/migrations/20260816015000_phase3_career_rls_performance.sql',['user_id = (select auth.uid())','career onboarding readable by owner or admin','admins insert career onboarding','admins update career onboarding','admins delete career onboarding']],
   ['app/careers/[slug]/page.tsx',['Eligibility','Response target','What happens after you apply','application_process','application_questions','initialValues']],
-  ['components/CareerApplicationForm.tsx',['localStorage','Draft saved automatically','Review application','Confirm & submit application','XMLHttpRequest','uploadProgress','question_']],
+  ['components/CareerApplicationForm.tsx',['localStorage','Draft saved automatically','Review application','Confirm & submit application','XMLHttpRequest','uploadProgress','question_','hidden={reviewing}','aria-hidden={reviewing}','@media(max-width:420px)','min-width:0']],
   ['app/api/careers/apply/route.ts',['application_questions','answers','career_submitted','This role is not accepting applications','An application for this role already exists','career_application_submitted']],
   ['app/api/careers/applications/route.ts',['WITHDRAWABLE','career_withdrawn','Candidate withdrew application','communication_records','communication_audit_log']],
   ['components/CareerApplicationTracker.tsx',['Recruitment progress','What this means','What happens next','Do I need to do something?','Congratulations — you have an offer','Your interview details','Get ready for your first day','Withdraw application','View application history']],

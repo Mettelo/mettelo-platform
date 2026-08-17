@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {deliverOutboxItem,enqueueEmail,notifyAdmins,notifyUser,serviceDb} from '@/lib/project-flow';
 
-const allowedTypes=new Set(['contact','partnership','project_application','feedback']);
+const allowedTypes=new Set(['contact','partnership','feedback']);
 const fieldLimits:Record<string,number>={name:140,full_name:140,email:254,role:160,project:180,profile:400,organisation:180,organization:180,subject:180,partnership_type:120,area:120,category:120,message:3000,details:3000,feedback:3000,contribution:2000,motivation:2500,experience:2500,summary:600,description:2000,notes:3000};
 const longTextFields=new Set(['message','details','feedback','contribution','motivation','experience','summary','description','notes']);
 
@@ -47,34 +47,6 @@ export async function POST(request:Request){
     let safeData:Record<string,unknown>;
     try{safeData=sanitizePayload(data as Record<string,unknown>)}catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Please check the text you entered.'},{status:422})}
 
-    if(formType==='project_application'){
-      const auth=await createServerSupabaseClient();
-      const {data:{user}}=await auth.auth.getUser();
-      if(!user)return NextResponse.json({error:'Sign in first so this project interest can be tracked in My Mettelo.'},{status:401});
-      const projectId=String(safeData.project_id||'').trim();
-      const projectTitle=String(safeData.project||'').trim();
-      const requestedRole=String(safeData.role||'').trim();
-      const statement=String(safeData.contribution||'').trim();
-      const portfolio=String(safeData.profile||'').trim();
-      if((!projectId&&!projectTitle)||!requestedRole||statement.length<20)return NextResponse.json({error:'Choose a project, contribution area and describe how you can contribute.'},{status:400});
-      const privilegedDb=serviceDb();
-      const db=privilegedDb||auth;
-      const projectQuery=db.from('projects').select('id,title,status').eq('visibility','public').in('status',['pilot','recruiting','open','forming','active','review']);
-      const {data:project,error:projectError}=projectId?await projectQuery.eq('id',projectId).maybeSingle():await projectQuery.eq('title',projectTitle).maybeSingle();
-      if(projectError||!project)return NextResponse.json({error:'This project is no longer accepting interest.'},{status:409});
-      const {data:existing}=await db.from('project_applications').select('id,status').eq('project_id',project.id).eq('user_id',user.id).eq('application_kind','interest').neq('status','withdrawn').maybeSingle();
-      if(existing)return NextResponse.json({error:'You already registered interest in this project. Track it in My Mettelo.'},{status:409});
-      const {data:created,error}=await db.from('project_applications').insert({project_id:project.id,project_role_id:null,user_id:user.id,portfolio_url:portfolio||null,contribution_statement:statement,availability:null,status:'submitted',application_kind:'interest',requested_role:requestedRole}).select('id,status').single();
-      if(error)throw error;
-      const name=String(user.user_metadata?.full_name||user.email?.split('@')[0]||'A member');
-      if(privilegedDb){
-        await Promise.all([
-          notifyUser(privilegedDb,{userId:user.id,email:user.email,projectId:project.id,applicationId:created.id,type:'project_interest_submitted',eventKey:'project_interest_submitted',title:'Project interest received',body:`We received your interest in ${project.title} — ${requestedRole}. Track it from My Mettelo.`,actionUrl:'/member/applications',subject:`Project interest received — ${project.title}`,dedupeKey:`project-interest:${created.id}`}),
-          notifyAdmins(privilegedDb,{projectId:project.id,applicationId:created.id,type:'new_project_interest',eventKey:'project_interest_submitted',title:`New project interest — ${project.title}`,body:`${name} registered interest in ${requestedRole}.`,actionUrl:'/admin/project-operations',subject:`New project interest — ${project.title}`,dedupeKey:`admin-project-interest:${created.id}`})
-        ]);
-      }
-      return NextResponse.json({ok:true,tracked:true,application:created});
-    }
 
     const invalid=validatePublicForm(formType,safeData);if(invalid)return NextResponse.json({error:invalid},{status:400});
     const url=process.env.NEXT_PUBLIC_SUPABASE_URL;

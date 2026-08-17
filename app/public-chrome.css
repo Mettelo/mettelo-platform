@@ -7,9 +7,11 @@
 @media(max-width:1080px){
   body.mobileNavOpen .mobileMenuBackdrop{display:block;pointer-events:auto}
   body.publicMobileNavV2 .mobileMenuPanel>.metteloMobileNav{display:none!important}
-  body.publicMobileNavV2 .mobileMenuPanel>.mobilePublicNav{display:grid!important}
+  body.publicMobileNavV2 .mobileMenuPanel>.mobilePublicNav{display:grid!important;visibility:visible!important;opacity:1!important}
   body.publicMobileNavV2 .mobileMenuPanel{z-index:100!important;pointer-events:auto!important;isolation:isolate;padding:0!important;overflow-y:auto!important;overflow-x:hidden!important;background:#fff!important;border:1px solid rgba(16,19,29,.09)!important;border-radius:16px!important;box-shadow:0 24px 64px rgba(16,19,29,.18)!important;max-height:calc(100dvh - 76px)!important}
   .mobilePublicNav{display:grid;gap:0;width:100%;min-width:0;padding:10px 14px 14px;color:#10131d;background:#fff}
+  body.publicMobileNavV2 .mobilePublicPrimary{display:grid!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important;padding-top:8px!important}
+  body.publicMobileNavV2 .mobilePublicPrimary>a,body.publicMobileNavV2 .mobilePublicPrimary>.mobilePublicDisclosure{display:flex!important;visibility:visible!important;opacity:1!important}
   .mobilePublicNav a,.mobilePublicNav button{font:inherit;color:inherit}
   .mobilePublicNav a:focus-visible,.mobilePublicNav button:focus-visible{outline:3px solid rgba(198,137,42,.34);outline-offset:2px;border-radius:8px}
 

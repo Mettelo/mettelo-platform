@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {User} from '@supabase/supabase-js';
 import {createClient} from '@/lib/supabase/client';
@@ -14,7 +14,7 @@ const primaryLinks=[['Home','/','home'],['Projects','/projects','projects'],['Op
 const secondaryLinks=[['For organisations','/organisations','organisations'],['About Mettelo','/about','about']] as const;
 const exploreLinks=[['Community','/community'],['Insights','/blog'],['Spotlight','/spotlight'],['Careers','/careers'],['FAQ','/faq'],['Contact','/contact'],['Feedback','/feedback']] as const;
 
-function Chevron({open=false}:{open?:boolean}){return <span className="mobilePublicChevron" aria-hidden="true">{open?'⌃':'⌄'}</span>}
+function Chevron({open=false}:{open?:boolean}){return <span className={`mobilePublicChevron${open?' isOpen':''}`} aria-hidden="true">⌄</span>}
 
 function NavIcon({name}:{name:string}){
   const common={fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round' as const,strokeLinejoin:'round' as const};
@@ -30,11 +30,14 @@ function NavIcon({name}:{name:string}){
 export default function MobileMenuEnhancer(){
   const pathname=usePathname();
   const [mounted,setMounted]=useState(false);
+  const [target,setTarget]=useState<HTMLElement|null>(null);
   const [account,setAccount]=useState<AccountState>(null);
   const [openSection,setOpenSection]=useState<OpenSection>(null);
+  const returnFocus=useRef<HTMLElement|null>(null);
 
   useEffect(()=>{
     setMounted(true);
+    setTarget(document.querySelector<HTMLElement>('.mobileMenuPanel'));
     document.body.classList.add('publicMobileNavV2');
     const supabase=createClient();
     let active=true;
@@ -55,41 +58,68 @@ export default function MobileMenuEnhancer(){
   },[]);
 
   useEffect(()=>{
-    if(!mounted)return;
+    if(!mounted||!target)return;
     const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');
     if(!menu)return;
     let backdrop=document.querySelector<HTMLButtonElement>('.mobileMenuBackdrop');
     if(!backdrop){backdrop=document.createElement('button');backdrop.type='button';backdrop.className='mobileMenuBackdrop';backdrop.setAttribute('aria-label','Close navigation menu');backdrop.hidden=true;document.body.appendChild(backdrop)}
-    const sync=()=>{document.body.classList.toggle('mobileNavOpen',menu.open);backdrop!.hidden=!menu.open;if(!menu.open)setOpenSection(null)};
-    const close=()=>{menu.open=false;sync();menu.querySelector<HTMLElement>('summary')?.focus()};
+    const focusable=()=>Array.from(target?.querySelectorAll<HTMLElement>('a[href],button:not([disabled])')||[]).filter(element=>element.tabIndex!==-1&&!element.hidden);
+    const sync=()=>{
+      document.body.classList.toggle('mobileNavOpen',menu.open);
+      backdrop!.hidden=!menu.open;
+      if(menu.open){
+        returnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+        requestAnimationFrame(()=>target?.querySelector<HTMLElement>('.mobilePublicClose')?.focus());
+      }else{
+        setOpenSection(null);
+        const opener=returnFocus.current||menu.querySelector<HTMLElement>('summary');
+        requestAnimationFrame(()=>opener?.focus());
+      }
+    };
+    const close=()=>{menu.open=false};
     const outside=(event:PointerEvent)=>{if(menu.open&&!menu.contains(event.target as Node)&&event.target!==backdrop)close()};
-    const key=(event:KeyboardEvent)=>{if(event.key==='Escape'&&menu.open)close()};
+    const key=(event:KeyboardEvent)=>{
+      if(!menu.open)return;
+      if(event.key==='Escape'){event.preventDefault();close();return}
+      if(event.key!=='Tab')return;
+      const controls=focusable();
+      if(!controls.length)return;
+      const first=controls[0],last=controls[controls.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+    };
     const backdropClick=()=>close();
     menu.addEventListener('toggle',sync);backdrop.addEventListener('click',backdropClick);document.addEventListener('pointerdown',outside);document.addEventListener('keydown',key);sync();
     return()=>{menu.removeEventListener('toggle',sync);backdrop?.removeEventListener('click',backdropClick);document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',key);backdrop?.remove()};
-  },[mounted]);
+  },[mounted,target]);
 
-  function closeMenu(){const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');if(menu){menu.open=false;document.body.classList.remove('mobileNavOpen');document.querySelector<HTMLButtonElement>('.mobileMenuBackdrop')?.setAttribute('hidden','')}setOpenSection(null);menu?.querySelector<HTMLElement>('summary')?.focus()}
+  function closeMenu(){const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');if(menu)menu.open=false;setOpenSection(null)}
   function toggle(section:Exclude<OpenSection,null>){setOpenSection(current=>current===section?null:section)}
   async function signOut(){const supabase=createClient();await supabase.auth.signOut();setAccount(null);closeMenu();window.location.assign('/')}
 
   if(!mounted)return null;
-  const target=document.querySelector('.mobileMenuPanel');
   if(!target)return null;
 
+  const exploreOpen=openSection==='explore';
   const nav=<div className="mobilePublicNav" aria-label="Mobile website navigation">
-    <nav className="mobilePublicPrimary" aria-label="Primary mobile navigation">
-      {primaryLinks.map(([label,href,icon])=><Link href={href} key={href} onClick={closeMenu} className={pathname===href?'isActive':undefined}><NavIcon name={icon}/><span>{label}</span></Link>)}
-    </nav>
+    <header className="mobilePublicMenuHead">
+      <strong>Menu</strong>
+      <button type="button" className="mobilePublicClose" onClick={closeMenu} aria-label="Close navigation menu"><span aria-hidden="true">×</span></button>
+    </header>
+    <div className="mobilePublicScroll">
+      <nav className="mobilePublicPrimary" aria-label="Primary mobile navigation">
+        {primaryLinks.map(([label,href,icon])=><Link href={href} key={href} onClick={closeMenu} className={pathname===href?'isActive':undefined}><NavIcon name={icon}/><span>{label}</span></Link>)}
+      </nav>
 
-    <nav className="mobilePublicSecondary" aria-label="Secondary mobile navigation">
-      {secondaryLinks.map(([label,href,icon])=><Link href={href} key={href} onClick={closeMenu} className={pathname===href?'isActive':undefined}><NavIcon name={icon}/><span>{label}</span></Link>)}
-    </nav>
+      <nav className="mobilePublicSecondary" aria-label="Secondary mobile navigation">
+        {secondaryLinks.map(([label,href,icon])=><Link href={href} key={href} onClick={closeMenu} className={pathname===href?'isActive':undefined}><NavIcon name={icon}/><span>{label}</span></Link>)}
+      </nav>
 
-    <section className="mobilePublicExplore" aria-labelledby="mobile-public-explore-label">
-      <button id="mobile-public-explore-label" type="button" className="mobilePublicDisclosure" aria-expanded={openSection==='explore'} aria-controls="mobile-public-explore" onClick={()=>toggle('explore')}><NavIcon name="explore"/><span>Explore</span><Chevron open={openSection==='explore'}/></button>
-      <div id="mobile-public-explore" className="mobilePublicExploreGrid" hidden={openSection!=='explore'}>{exploreLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}</Link>)}</div>
-    </section>
+      <section className="mobilePublicExplore" aria-labelledby="mobile-public-explore-label">
+        <button id="mobile-public-explore-label" type="button" className="mobilePublicDisclosure" aria-expanded={exploreOpen} aria-controls="mobile-public-explore" onClick={()=>toggle('explore')}><NavIcon name="explore"/><span>Explore</span><Chevron open={exploreOpen}/></button>
+        <div id="mobile-public-explore" className={`mobilePublicExploreGrid${exploreOpen?' isOpen':''}`} aria-hidden={!exploreOpen}><div className="mobilePublicExploreInner">{exploreLinks.map(([label,href])=><Link href={href} key={href} tabIndex={exploreOpen?0:-1} onClick={closeMenu}>{label}</Link>)}</div></div>
+      </section>
+    </div>
 
     <div className="mobilePublicFooter">
       {!account&&<div className="mobilePublicGuestActions"><Link className="mobilePublicJoin" href="/signin?mode=signup" onClick={closeMenu}>Join Mettelo</Link><Link className="mobilePublicSignIn" href="/signin" onClick={closeMenu}>Sign in</Link></div>}

@@ -13,17 +13,17 @@
 /* Project-card geometry lives in this server-loaded stylesheet so route transitions
    paint the final desktop grid before the paginator hydrates. */
 .projectGrid.projectBriefGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:18px!important;align-items:stretch!important;min-width:0}
-.projectGrid.projectBriefGrid>.projectBriefCard{display:flex!important;flex-direction:column!important;width:100%!important;min-width:0!important;min-height:560px;height:100%!important}
+.projectGrid.projectBriefGrid>.projectBriefCard{display:flex!important;flex-direction:column!important;width:100%!important;min-width:0!important;min-height:500px;height:100%!important}
 .projectBriefGrid .projectBriefHeader{display:flex;flex-direction:column}
 .projectBriefGrid .projectBriefHeader h3{min-height:2.34em}
 .projectBriefGrid .projectBriefSummary{min-height:4.86em}
-.projectBriefGrid .projectBriefBody{grid-auto-rows:minmax(68px,auto);align-content:start}
-.projectBriefGrid .projectBriefBody section{min-height:68px}
+.projectBriefGrid .projectBriefBody{grid-auto-rows:minmax(54px,auto);align-content:start}
+.projectBriefGrid .projectBriefBody section{min-height:54px}
 .projectBriefGrid .projectSkillList{max-height:none;min-height:30px;overflow:visible}
 .projectBriefGrid .projectSkillList span:nth-child(n){display:inline-flex}
 .projectBriefGrid .projectSkillMore{border-style:dashed;background:#f5f1e9;color:#62420f}
 .projectBriefGrid .projectBriefFoot{margin-top:auto!important}
-.projectBriefGrid .projectBriefFoot>div:first-child{min-height:4.5em}
+.projectBriefGrid .projectBriefFoot>div:first-child{min-height:3.25em}
 .projectBriefGrid .projectCardActions{min-height:44px}
 .projectBriefGrid .projectCardActions.hasPrimaryActionOnly{justify-content:flex-end}
 @media(min-width:481px) and (max-width:1024px){.projectGrid.projectBriefGrid>.projectBriefCard{min-height:0;height:auto!important}.projectsHero{padding:38px 0 28px}.projectsHeroInner{grid-template-columns:1fr;gap:24px}.projectsHeroCopy h1{font-size:clamp(2.8rem,6vw,3.6rem)}.projectPathwayGrid{grid-template-columns:1fr 1fr}.projectJourney{grid-template-columns:repeat(2,minmax(0,1fr));gap:0}.projectJourney li:nth-child(3){border-left:0;padding-left:0;margin-top:22px}.projectJourney li:nth-child(4){margin-top:22px}.discoveryIntro{grid-template-columns:1fr;gap:10px}.projectFilterPanel{grid-template-columns:repeat(2,minmax(0,1fr))}.projectBriefGrid{grid-template-columns:1fr!important}.projectBriefCard{height:auto!important;gap:18px!important}.projectBriefHeader h3{min-height:0}.projectBriefSummary{min-height:0}.projectsCapabilityLayout{grid-template-columns:1fr;gap:30px}.projectsProofLayout{grid-template-columns:1fr;gap:30px}.projectsProofLayout ol{grid-template-columns:repeat(3,minmax(0,1fr))}.projectsProofLayout li:nth-child(3):after{display:none}.projectsOrganisationBand{align-items:flex-start}}

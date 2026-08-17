@@ -100,38 +100,37 @@
 
 @media(prefers-reduced-motion:reduce){.mobileMenuBackdrop,.mobilePublicNav *{transition:none!important;animation:none!important}}
 
-/* Verified drawer treatment: the mobile navigation is a right-hand sheet, not a
-   compact dropdown.  Keep this layer last so legacy header styles cannot turn
-   it back into the older menu. */
-@media(max-width:1080px){
+/* Mobile-only left drawer.  The header keeps the existing hamburger control;
+   the panel itself stays compact, familiar and easy to scan. */
+@media(max-width:767px){
+  .mobileMenuBackdrop{inset:60px 0 0!important;z-index:98!important;background:rgba(8,14,23,.52)!important}
   body.publicMobileNavV2 .mobileMenuPanel{
-    top:60px!important;right:0!important;left:auto!important;
-    width:min(70vw,360px)!important;min-width:0!important;max-width:none!important;
+    top:60px!important;left:0!important;right:auto!important;
+    width:min(84vw,320px)!important;min-width:0!important;max-width:320px!important;
     height:calc(100dvh - 60px)!important;max-height:none!important;
-    padding:0!important;overflow:visible!important;border:0!important;border-radius:0!important;
-    box-shadow:-18px 0 42px rgba(8,14,23,.16)!important
+    padding:0!important;overflow:hidden!important;border:0!important;border-radius:0!important;
+    box-shadow:18px 0 42px rgba(8,14,23,.2)!important;z-index:100!important
   }
-  .mobilePublicNav{position:relative;min-height:100%;padding:22px 20px 24px!important;overflow-y:auto;background:#fff}
-  .mobilePublicClose{position:absolute;z-index:2;left:-82px;top:16px;width:62px;height:62px;border:1px solid rgba(16,19,29,.12);border-radius:50%;background:#fff;box-shadow:0 12px 28px rgba(8,14,23,.17);font-size:1.65rem}
-  .mobilePublicPrimary{padding-top:0!important}
-  .mobilePublicPrimary>a,.mobilePublicSecondary>a,.mobilePublicDisclosure{display:grid!important;grid-template-columns:26px minmax(0,1fr) auto;gap:11px;min-height:56px!important;padding:11px 14px!important;border-bottom:1px solid rgba(16,19,29,.08)!important;font-size:.88rem!important;font-weight:720!important;color:#293141!important}
-  .mobilePublicPrimary>a svg,.mobilePublicSecondary>a svg,.mobilePublicDisclosure>svg{width:21px;height:21px;color:#313957}
+  .mobilePublicNav{display:flex!important;min-height:100%;padding:12px 14px calc(14px + env(safe-area-inset-bottom))!important;overflow-y:auto;background:#fff}
+  .mobilePublicPrimary{padding:0!important}
+  .mobilePublicPrimary>a,.mobilePublicSecondary>a,.mobilePublicDisclosure{display:grid!important;grid-template-columns:22px minmax(0,1fr) auto;gap:12px;min-height:52px!important;padding:10px 8px!important;border-bottom:1px solid rgba(16,19,29,.09)!important;font-size:.88rem!important;font-weight:700!important;color:#293141!important}
+  .mobilePublicPrimary>a svg,.mobilePublicSecondary>a svg,.mobilePublicDisclosure>svg{width:19px;height:19px;color:#313957}
   .mobilePublicPrimary>a.isActive,.mobilePublicSecondary>a.isActive{position:relative;background:#fbf7ee;color:#8b641f;border-bottom-color:#c6892a!important}
-  .mobilePublicPrimary>a.isActive:before,.mobilePublicSecondary>a.isActive:before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:3px;border-radius:999px;background:#c6892a}
-  .mobilePublicSecondary{padding:14px 0!important;border-top:1px solid #e7e1d6!important}
-  .mobilePublicExplore{margin-top:14px;border-top:1px solid #e7e1d6!important;border-bottom:1px solid #e7e1d6!important}
+  .mobilePublicPrimary>a.isActive:before,.mobilePublicSecondary>a.isActive:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:999px;background:#c6892a}
+  .mobilePublicSecondary{padding:8px 0!important;border-top:0!important}
+  .mobilePublicExplore{margin-top:8px;border-top:1px solid #e7e1d6!important;border-bottom:1px solid #e7e1d6!important}
   .mobilePublicDisclosure{border-bottom:0!important;cursor:pointer}
-  .mobilePublicDisclosure .mobilePublicChevron{grid-column:3;grid-row:1;width:28px;height:28px}
-  .mobilePublicExploreGrid{padding:0 18px 16px 65px!important}
-  .mobilePublicFooter{padding:20px 0 0!important}
-  .mobilePublicGuestActions{gap:12px!important}
-  .mobilePublicGuestActions a{min-height:56px!important;border-radius:11px!important;font-size:.9rem!important;justify-content:flex-start!important;padding:11px 16px!important}
+  .mobilePublicDisclosure .mobilePublicChevron{grid-column:3;grid-row:1;width:24px;height:24px}
+  .mobilePublicExploreGrid{grid-template-columns:1fr!important;gap:0!important;padding:0 8px 8px 42px!important}
+  .mobilePublicExploreGrid a{min-height:42px!important;font-size:.78rem!important}
+  .mobilePublicFooter{margin-top:auto;padding:14px 0 0!important;border-top:1px solid #e7e1d6!important}
+  .mobilePublicGuestActions{gap:8px!important}
+  .mobilePublicGuestActions a{min-height:48px!important;border-radius:10px!important;font-size:.84rem!important;justify-content:flex-start!important;padding:10px 14px!important}
+  .mobilePublicAccountTrigger{min-height:52px!important}
 }
 
-@media(max-width:480px){
-  body.publicMobileNavV2 .mobileMenuPanel{top:60px!important;width:70vw!important;height:calc(100dvh - 60px)!important}
-  .mobilePublicNav{padding:16px 16px 22px!important}
-  .mobilePublicClose{left:-76px;top:14px;width:58px;height:58px}
-  .mobilePublicPrimary>a,.mobilePublicSecondary>a,.mobilePublicDisclosure{min-height:54px!important;padding:10px 12px!important;font-size:.86rem!important}
-  .mobilePublicGuestActions a{min-height:54px!important;padding:10px 15px!important}
+@media(max-width:360px){
+  body.publicMobileNavV2 .mobileMenuPanel{width:88vw!important}
+  .mobilePublicNav{padding-inline:12px!important}
+  .mobilePublicPrimary>a,.mobilePublicSecondary>a,.mobilePublicDisclosure{font-size:.84rem!important}
 }

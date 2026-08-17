@@ -78,8 +78,6 @@ export default function MobileMenuEnhancer(){
   if(!target)return null;
 
   const nav=<div className="mobilePublicNav" aria-label="Mobile website navigation">
-    <button type="button" className="mobilePublicClose" onClick={closeMenu} aria-label="Close navigation menu">×</button>
-
     <nav className="mobilePublicPrimary" aria-label="Primary mobile navigation">
       {primaryLinks.map(([label,href,icon])=><Link href={href} key={href} onClick={closeMenu} className={pathname===href?'isActive':undefined}><NavIcon name={icon}/><span>{label}</span></Link>)}
     </nav>

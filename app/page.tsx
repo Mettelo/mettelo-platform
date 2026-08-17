@@ -74,7 +74,7 @@ export default async function HomePage(){
             <p className="heroSupport">Use that evidence to strengthen your profile, demonstrate your capability, and become easier to discover for opportunities.</p>
             <div className="homeHeroActions">
               <a className="button primary" href="/projects">Explore projects →</a>
-              <a className="button heroGhost" href="/auth/signup">Join Mettelo</a>
+              <a className="button heroGhost" href="/signin?mode=signup">Join Mettelo</a>
             </div>
             <div className="heroCommunityProof" aria-label={`${communityValue.toLocaleString('en-GB')} plus ${communityLabel}`}>
               <div className="heroCommunityAvatars" aria-hidden="true">
@@ -149,7 +149,7 @@ export default async function HomePage(){
     </section>
 
     <section className="section homeFinalSection" aria-labelledby="home-final-title">
-      <div className="shell"><div className="ctaBand"><div><div className="cardNumber">YOUR NEXT STEP</div><h2 id="home-final-title">Build the evidence behind your skills.</h2><p>Join Mettelo, find a Data &amp; AI project and start turning real contribution into stronger professional Proof.</p></div><div className="actions"><a className="button dark" href="/projects">Explore projects →</a><a className="button ghost" href="/auth/signup">Join Mettelo</a><a className="linkArrow" href="/signin">Already a member? Sign in →</a></div></div></div>
+      <div className="shell"><div className="ctaBand"><div><div className="cardNumber">YOUR NEXT STEP</div><h2 id="home-final-title">Build the evidence behind your skills.</h2><p>Join Mettelo, find a Data &amp; AI project and start turning real contribution into stronger professional Proof.</p></div><div className="actions"><a className="button dark" href="/projects">Explore projects →</a><a className="button ghost" href="/signin?mode=signup">Join Mettelo</a><a className="linkArrow" href="/signin">Already a member? Sign in →</a></div></div></div>
     </section>
   </>;
 }

@@ -12,6 +12,7 @@ const documentsApi=read('app/api/admin/communications/documents/route.ts');
 const careerApply=read('app/api/careers/apply/route.ts');
 const careerAdmin=read('app/api/admin/careers/applications/route.ts');
 const forms=read('app/api/forms/route.ts');
+const projectApplications=read('app/api/project-applications/route.ts');
 const eventCron=read('app/api/cron/project-event-reminders/route.ts');
 const savedCron=read('app/api/cron/saved-opportunity-reminders/route.ts');
 const signin=read('app/signin/page.tsx');
@@ -39,7 +40,7 @@ const checks=[
  ['Events group complete',completion.includes("'event_invitation'")&&completion.includes("'event_reminder'")&&completion.includes("'event_waitlist_offer'")],
  ['event reminder trigger exists',eventCron.includes("type:'event_reminder'")],
  ['General group complete',completion.includes("'project_interest_submitted'")&&completion.includes("'organisation_intake_received'")&&completion.includes("'saved_opportunity_closing'")],
- ['general project/partnership triggers exist',forms.includes("eventKey:'project_interest_submitted'")&&forms.includes("eventKey:'organisation_intake_received'")],
+ ['general project/partnership triggers exist',projectApplications.includes("'project_interest_submitted'")&&forms.includes("'organisation_intake_received'")],
  ['saved opportunity trigger exists',savedCron.includes("eventKey:'saved_opportunity_closing'")],
  ['exactly 25 Phase 0 default template keys',new Set([...templates.matchAll(/\('([a-z0-9_]+)','(?:Careers|Project Applications|Project Delivery|Proof & Credentials|Project Architect|Account \/ Auth|Events|General)'/g)].map(m=>m[1])).size===25],
 ];

@@ -50,8 +50,9 @@ export async function POST(request:Request){
     const update:Record<string,unknown>={status:requestedStatus,updated_at:new Date().toISOString()};if(requestedStatus==='submitted')update.submitted_at=new Date().toISOString();
     const {data:application,error:updateError}=await supabase.from('project_architect_applications').update(update).eq('id',applicationId).select('*').single();if(updateError)throw updateError;
     if(requestedStatus==='submitted'){const db=serviceDb();if(db)await notifyAdmins(db,{type:'project_architect_application_submitted',title:'Project Architect application submitted',body:'A Member has submitted evidence for Project Architect review.',actionUrl:'/admin/project-architect-applications',dedupeKey:`architect-application:${applicationId}:submitted`});}
+    console.info('[project-architect-application] saved',{status:requestedStatus,evidenceCount:evidence.length,notificationsConfigured:Boolean(serviceDb())});
     return NextResponse.json({application,message:requestedStatus==='submitted'?'Application submitted for review.':'Draft saved.'});
-  }catch(error){console.error('project architect application error',error);return NextResponse.json({error:'Unable to save the Project Architect application.'},{status:500});}
+  }catch(error){console.error('[project-architect-application] failed',{message:error instanceof Error?error.message:'unknown'});return NextResponse.json({error:'Unable to save the Project Architect application.'},{status:500});}
 }
 
 export async function PATCH(request:Request){

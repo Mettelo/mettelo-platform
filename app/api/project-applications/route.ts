@@ -55,7 +55,16 @@ export async function POST(request:Request){
     }).select('id,status,application_kind').single();
 
     if(error){
-      if(error.code==='23505') return NextResponse.json({error:isInterest?'You already registered interest in this project.':'You already have an active application for this project role. Track it in My Mettelo, or reapply after a previous application is withdrawn or declined.'},{status:409});
+      if(error.code==='23505'){
+        let existingQuery=supabase.from('project_applications').select('id,status,application_kind').eq('project_id',projectId).eq('user_id',user.id).eq('application_kind',isInterest?'interest':'application');
+        if(!isInterest) existingQuery=existingQuery.eq('project_role_id',role?.id||'');
+        const {data:existing}=await existingQuery.maybeSingle();
+        if(existing){
+          console.info('[project-applications] idempotent duplicate accepted',{kind:existing.application_kind,status:existing.status});
+          return NextResponse.json({ok:true,already_submitted:true,application:existing});
+        }
+        return NextResponse.json({error:isInterest?'You already registered interest in this project.':'You already have an active application for this project role. Track it in My Mettelo, or reapply after a previous application is withdrawn or declined.'},{status:409});
+      }
       throw error;
     }
 
@@ -71,6 +80,7 @@ export async function POST(request:Request){
       ]);
     }
 
+    console.info('[project-applications] submission accepted',{kind:data.application_kind,status:data.status,notificationsConfigured:Boolean(db)});
     return NextResponse.json({ok:true,application:data});
   }catch(error){
     console.error('project application error',error);

@@ -81,7 +81,7 @@ export default function MobileMenuEnhancer(){
     </section>
 
     <div className="mobilePublicFooter">
-      {!account&&<div className="mobilePublicGuestActions"><Link className="mobilePublicJoin" href="/auth/signup" onClick={closeMenu}>Join Mettelo</Link><Link className="mobilePublicSignIn" href="/signin" onClick={closeMenu}>Sign in</Link></div>}
+      {!account&&<div className="mobilePublicGuestActions"><Link className="mobilePublicJoin" href="/signin?mode=signup" onClick={closeMenu}>Join Mettelo</Link><Link className="mobilePublicSignIn" href="/signin" onClick={closeMenu}>Sign in</Link></div>}
 
       {account&&<section className="mobilePublicAccount" aria-label="Account shortcuts">
         <button className="mobilePublicAccountTrigger" type="button" aria-expanded={openSection==='account'} aria-controls="mobile-public-account-panel" onClick={()=>toggle('account')}>

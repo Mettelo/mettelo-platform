@@ -42,16 +42,18 @@ export async function POST(request:Request){
   try{
     const {formType,data}=await request.json();
     if(!allowedTypes.has(formType) || !data || typeof data!=='object'){
+      console.info('[public-form] validation rejected',{reason:'invalid_form_type'});
       return NextResponse.json({error:'Invalid form submission.'},{status:400});
     }
     let safeData:Record<string,unknown>;
     try{safeData=sanitizePayload(data as Record<string,unknown>)}catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Please check the text you entered.'},{status:422})}
 
 
-    const invalid=validatePublicForm(formType,safeData);if(invalid)return NextResponse.json({error:invalid},{status:400});
+    const invalid=validatePublicForm(formType,safeData);if(invalid){console.info('[public-form] validation rejected',{formType});return NextResponse.json({error:invalid},{status:400});}
     const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
     if(!url || !serviceKey){
+      console.error('[public-form] configuration missing',{hasUrl:Boolean(url),hasServiceKey:Boolean(serviceKey)});
       return NextResponse.json({error:'Submissions are temporarily unavailable. Please contact Mettelo through the Community page.'},{status:503});
     }
     const supabase=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -68,6 +70,7 @@ export async function POST(request:Request){
       const outbox=await enqueueEmail(supabase,{to:email,templateKey:'organisation_intake_received',eventKey:'organisation_intake_received',subject:'We received your Mettelo partnership enquiry',body:'Thank you for contacting Mettelo. Your organisation or partnership enquiry has been received and will be reviewed by the team.',actionUrl:'/partnership',dedupeKey:`form:${submission.id}:receipt`});
       if(outbox)await deliverOutboxItem(supabase,outbox);
     }
+    console.info('[public-form] submission accepted',{formType,adminNotification:true});
     return NextResponse.json({ok:true});
   }catch(error){
     console.error('form request error',error);

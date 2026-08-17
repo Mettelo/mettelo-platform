@@ -8,13 +8,23 @@ type RoleQuestion={id?:string;label?:string;required?:boolean}|string;
 function clean(value:FormDataEntryValue|null,max:number){return String(value||'').trim().slice(0,max);}
 function validUrl(value:string){if(!value)return true;try{const url=new URL(value);return ['http:','https:'].includes(url.protocol);}catch{return false;}}
 function normaliseQuestion(item:RoleQuestion,index:number){if(typeof item==='string')return{id:`q${index+1}`,label:item,required:true};return{id:item.id||`q${index+1}`,label:item.label||`Question ${index+1}`,required:item.required!==false};}
+function requiredFieldError(input:{roleId:string;fullName:string;email:string;motivation:string;experience:string;file:FormDataEntryValue|null}){
+  if(!input.roleId)return 'Choose a role before applying.';
+  if(!input.fullName)return 'Enter your full name.';
+  if(!/^\S+@\S+\.\S+$/.test(input.email))return 'Enter a valid email address.';
+  if(input.motivation.length<80)return 'Add at least 80 characters explaining why you want this role.';
+  if(input.experience.length<100)return 'Add at least 100 characters describing your relevant experience.';
+  if(!(input.file instanceof File)||input.file.size<=0)return 'Choose your CV before submitting.';
+  return null;
+}
 
 export async function POST(request:Request){
   try{
     const db=serviceDb();if(!db)return NextResponse.json({error:'Career application service is not configured.'},{status:503});
     const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();
     const form=await request.formData();const roleId=clean(form.get('role_id'),80),fullName=clean(form.get('full_name'),140),email=clean(form.get('email'),254).toLowerCase(),phone=clean(form.get('phone'),50),location=clean(form.get('location'),160),linkedin=clean(form.get('linkedin_url'),800),portfolio=clean(form.get('portfolio_url'),800),workAuth=clean(form.get('work_authorisation'),300),motivation=clean(form.get('motivation'),3000),experience=clean(form.get('relevant_experience'),4000);const file=form.get('cv');
-    if(!roleId||!fullName||!/^\S+@\S+\.\S+$/.test(email)||motivation.length<80||experience.length<100||!(file instanceof File)||file.size<=0)return NextResponse.json({error:'Complete the required application fields and choose your CV.'},{status:400});
+    const missing=requiredFieldError({roleId,fullName,email,motivation,experience,file});
+    if(missing){console.info('[career-apply] validation rejected',{reason:missing});return NextResponse.json({error:missing},{status:400});}
     if(user?.email&&user.email.toLowerCase()!==email)return NextResponse.json({error:'When signed in, use the email address linked to your Mettelo account.'},{status:400});
     if(!validUrl(linkedin)||!validUrl(portfolio))return NextResponse.json({error:'LinkedIn and portfolio links must be valid URLs.'},{status:400});
     if(!['application/pdf',DOCX].includes(file.type)||file.size>5*1024*1024)return NextResponse.json({error:'CV must be PDF or DOCX and no larger than 5MB.'},{status:400});
@@ -28,6 +38,7 @@ export async function POST(request:Request){
     await db.from('communication_records').insert({recipient_user_id:user?.id||null,recipient_email:email,template_key:'career_submitted',journey:'Careers',related_type:'career_application',related_id:application.id,subject:message.subject,body:message.body,send_mode:message.template?.send_mode||'automatic',status:emailResult.sent?'sent':'queued',outbox_id:emailResult.outboxId,actor_user_id:user?.id||null,sent_at:emailResult.sent?new Date().toISOString():null});
     await db.from('communication_audit_log').insert({actor_user_id:user?.id||null,action:'career_application_submitted',entity_type:'career_application',entity_id:application.id,metadata:{role_id:roleId,linked_account:Boolean(user)}});
     await notifyAdmins(db,{type:'career_application_received',title:'New Mettelo career application',body:`${fullName} applied for ${role.title}.`,actionUrl:'/admin/careers',subject:`New career application: ${role.title}`,payload:{career_application_id:application.id}});
+    console.info('[career-apply] submission accepted',{emailSent:emailResult.sent,linkedAccount:Boolean(user)});
     return NextResponse.json({ok:true,id:application.id,email_sent:emailResult.sent},{status:201});
   }catch(error){console.error('career application error',error);return NextResponse.json({error:'Unable to submit the application right now. Your answers remain saved on this device so you can try again.'},{status:500});}
 }

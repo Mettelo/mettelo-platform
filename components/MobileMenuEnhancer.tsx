@@ -7,13 +7,13 @@ import type {User} from '@supabase/supabase-js';
 import {createClient} from '@/lib/supabase/client';
 
 type AccountState={email:string;name:string;isAdmin:boolean;avatarUrl:string|null}|null;
-type OpenSection='account'|'discover'|'explore'|'support'|null;
+type OpenSection='account'|'explore'|null;
 
-const discoverLinks=[['Projects','/projects'],['Opportunities','/opportunities'],['Proof','/showcase'],['Events','/events']] as const;
-const exploreLinks=[['Community','/community'],['Insights','/blog'],['Spotlight','/spotlight'],['Careers','/careers'],['FAQ','/faq']] as const;
-const supportLinks=[['Contact','/contact'],['Feedback','/feedback']] as const;
+const primaryLinks=[['Home','/'],['Projects','/projects'],['Opportunities','/opportunities'],['Proof','/showcase'],['Events','/events']] as const;
+const secondaryLinks=[['For organisations','/organisations'],['About Mettelo','/about']] as const;
+const exploreLinks=[['Community','/community'],['Insights','/blog'],['Spotlight','/spotlight'],['Careers','/careers'],['FAQ','/faq'],['Contact','/contact'],['Feedback','/feedback']] as const;
 
-function Chevron({open=false}:{open?:boolean}){return <span className="mobilePublicChevron" aria-hidden="true">{open?'−':'+'}</span>}
+function Chevron({open=false}:{open?:boolean}){return <span className="mobilePublicChevron" aria-hidden="true">{open?'⌃':'⌄'}</span>}
 
 export default function MobileMenuEnhancer(){
   const [mounted,setMounted]=useState(false);
@@ -56,7 +56,7 @@ export default function MobileMenuEnhancer(){
     return()=>{menu.removeEventListener('toggle',sync);backdrop?.removeEventListener('click',backdropClick);document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',key);backdrop?.remove()};
   },[mounted]);
 
-  function closeMenu(){const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');if(menu){menu.open=false;document.body.classList.remove('mobileNavOpen');document.querySelector<HTMLButtonElement>('.mobileMenuBackdrop')?.setAttribute('hidden','')}setOpenSection(null)}
+  function closeMenu(){const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');if(menu){menu.open=false;document.body.classList.remove('mobileNavOpen');document.querySelector<HTMLButtonElement>('.mobileMenuBackdrop')?.setAttribute('hidden','')}setOpenSection(null);menu?.querySelector<HTMLElement>('summary')?.focus()}
   function toggle(section:Exclude<OpenSection,null>){setOpenSection(current=>current===section?null:section)}
   async function signOut(){const supabase=createClient();await supabase.auth.signOut();setAccount(null);closeMenu();window.location.assign('/')}
 
@@ -65,37 +65,38 @@ export default function MobileMenuEnhancer(){
   if(!target)return null;
 
   const nav=<div className="mobilePublicNav" aria-label="Mobile website navigation">
-    {account&&<section className="mobilePublicAccount" aria-label="Account shortcuts">
-      <button className="mobilePublicAccountTrigger" type="button" aria-expanded={openSection==='account'} aria-controls="mobile-public-account-panel" onClick={()=>toggle('account')}>
-        <span className="mobilePublicAvatar" style={account.avatarUrl?{backgroundImage:`url(${account.avatarUrl})`,backgroundSize:'cover',backgroundPosition:'center'}:undefined}>{account.avatarUrl?'':account.name.slice(0,1).toUpperCase()}</span>
-        <span className="mobilePublicIdentity"><strong>{account.name}</strong><small>{account.isAdmin?'Admin access':'Member account'}</small></span>
-        <span className="mobilePublicAccountArrow" aria-hidden="true">›</span>
-      </button>
-      <div id="mobile-public-account-panel" className="mobilePublicSubmenu" hidden={openSection!=='account'}>
-        <Link href="/member" onClick={closeMenu}>My dashboard <span aria-hidden="true">→</span></Link>
-        <Link href="/member/profile" onClick={closeMenu}>Profile <span aria-hidden="true">→</span></Link>
-        {account.isAdmin&&<Link href="/admin" onClick={closeMenu}>Admin console <span aria-hidden="true">→</span></Link>}
-        <button type="button" className="mobilePublicSignOut" onClick={signOut}>Sign out <span aria-hidden="true">→</span></button>
-      </div>
-    </section>}
-
-    {!account&&<div className="mobilePublicGuestActions"><Link href="/auth/signup" onClick={closeMenu}>Join Mettelo</Link><Link href="/signin" onClick={closeMenu}>Sign in</Link></div>}
+    <div className="mobilePublicMenuHead"><strong>Menu</strong><button type="button" className="mobilePublicClose" onClick={closeMenu} aria-label="Close navigation menu">×</button></div>
 
     <nav className="mobilePublicPrimary" aria-label="Primary mobile navigation">
-      <Link className="mobilePublicHome" href="/" onClick={closeMenu}><span aria-hidden="true">⌂</span><span>Home</span><span aria-hidden="true">→</span></Link>
-
-      <button type="button" className="mobilePublicDisclosure" aria-expanded={openSection==='discover'} aria-controls="mobile-public-discover" onClick={()=>toggle('discover')}><span>Discover &amp; participate</span><Chevron open={openSection==='discover'}/></button>
-      <div id="mobile-public-discover" className="mobilePublicSubmenu" hidden={openSection!=='discover'}>{discoverLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}<span aria-hidden="true">→</span></Link>)}</div>
-
-      <button type="button" className="mobilePublicDisclosure" aria-expanded={openSection==='explore'} aria-controls="mobile-public-explore" onClick={()=>toggle('explore')}><span>Explore Mettelo</span><Chevron open={openSection==='explore'}/></button>
-      <div id="mobile-public-explore" className="mobilePublicSubmenu" hidden={openSection!=='explore'}>{exploreLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}<span aria-hidden="true">→</span></Link>)}</div>
-
-      <Link href="/organisations" onClick={closeMenu}>For organisations <span aria-hidden="true">→</span></Link>
-      <Link href="/about" onClick={closeMenu}>About Mettelo <span aria-hidden="true">→</span></Link>
-
-      <button type="button" className="mobilePublicDisclosure" aria-expanded={openSection==='support'} aria-controls="mobile-public-support" onClick={()=>toggle('support')}><span>Help &amp; support</span><Chevron open={openSection==='support'}/></button>
-      <div id="mobile-public-support" className="mobilePublicSubmenu" hidden={openSection!=='support'}>{supportLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}<span aria-hidden="true">→</span></Link>)}</div>
+      {primaryLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}</Link>)}
     </nav>
+
+    <nav className="mobilePublicSecondary" aria-label="Secondary mobile navigation">
+      {secondaryLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}</Link>)}
+    </nav>
+
+    <section className="mobilePublicExplore" aria-labelledby="mobile-public-explore-label">
+      <button id="mobile-public-explore-label" type="button" className="mobilePublicDisclosure" aria-expanded={openSection==='explore'} aria-controls="mobile-public-explore" onClick={()=>toggle('explore')}><span>Explore</span><Chevron open={openSection==='explore'}/></button>
+      <div id="mobile-public-explore" className="mobilePublicExploreGrid" hidden={openSection!=='explore'}>{exploreLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}</Link>)}</div>
+    </section>
+
+    <div className="mobilePublicFooter">
+      {!account&&<div className="mobilePublicGuestActions"><Link className="mobilePublicJoin" href="/auth/signup" onClick={closeMenu}>Join Mettelo</Link><Link className="mobilePublicSignIn" href="/signin" onClick={closeMenu}>Sign in</Link></div>}
+
+      {account&&<section className="mobilePublicAccount" aria-label="Account shortcuts">
+        <button className="mobilePublicAccountTrigger" type="button" aria-expanded={openSection==='account'} aria-controls="mobile-public-account-panel" onClick={()=>toggle('account')}>
+          <span className="mobilePublicAvatar" style={account.avatarUrl?{backgroundImage:`url(${account.avatarUrl})`,backgroundSize:'cover',backgroundPosition:'center'}:undefined}>{account.avatarUrl?'':account.name.slice(0,1).toUpperCase()}</span>
+          <span className="mobilePublicIdentity"><strong>{account.name}</strong><small>{account.isAdmin?'Admin access':'Member account'}</small></span>
+          <Chevron open={openSection==='account'}/>
+        </button>
+        <div id="mobile-public-account-panel" className="mobilePublicAccountLinks" hidden={openSection!=='account'}>
+          <Link href="/member" onClick={closeMenu}>Dashboard</Link>
+          <Link href="/member/profile" onClick={closeMenu}>Profile</Link>
+          {account.isAdmin&&<Link href="/admin" onClick={closeMenu}>Admin console</Link>}
+          <button type="button" className="mobilePublicSignOut" onClick={signOut}>Sign out</button>
+        </div>
+      </section>}
+    </div>
   </div>;
 
   return createPortal(nav,target);

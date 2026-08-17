@@ -1,19 +1,94 @@
-import type { Metadata } from 'next';
-import { createPublicSupabaseClient } from '@/lib/supabase/public';
+import type {Metadata} from 'next';
+import {createPublicSupabaseClient} from '@/lib/supabase/public';
 import OpportunityBoard from '@/components/OpportunityBoard';
 import './opportunities.css';
 
-export const metadata:Metadata={title:'Opportunities',description:'Explore current Data & AI jobs, internships, volunteering, fellowships and apprenticeships selected by Mettelo.'};
+export const metadata:Metadata={
+  title:'Data & AI Opportunities',
+  description:'Find current Data & AI jobs, internships, graduate roles, fellowships, apprenticeships and volunteering opportunities with clearer context on location, eligibility, remote work and sponsorship.'
+};
 export const dynamic='force-dynamic';
 
 type Opportunity={id:string;title:string;organisation:string|null;opportunity_type:string;summary:string|null;location:string|null;eligibility:string|null;source_url:string|null;official_application_url:string|null;closes_at:string|null;published_at:string|null;data_ai_relevance_score:number|null;remote_scope:string|null;source_organisation:string|null;country_code:string|null;region_code:string|null;applicant_scope:string;work_arrangement:string|null;sponsorship_status:string};
 
 export default async function OpportunitiesPage(){
-  const supabase=createPublicSupabaseClient();let opportunities:Opportunity[]=[];let loadError=false;
-  if(supabase){const result=await supabase.from('opportunities').select('id,title,organisation,opportunity_type,summary,location,eligibility,source_url,official_application_url,closes_at,published_at,data_ai_relevance_score,remote_scope,source_organisation,country_code,region_code,applicant_scope,work_arrangement,sponsorship_status').eq('status','published').eq('access_level','public').eq('data_ai_relevance_status','high').order('published_at',{ascending:false}).limit(500);if(result.error)loadError=true;else{const now=Date.now();opportunities=((result.data||[]) as Opportunity[]).filter(item=>!item.closes_at||new Date(item.closes_at).getTime()>now);}}else loadError=true;
+  const supabase=createPublicSupabaseClient();
+  let opportunities:Opportunity[]=[];
+  let loadError=false;
+
+  if(supabase){
+    const result=await supabase
+      .from('opportunities')
+      .select('id,title,organisation,opportunity_type,summary,location,eligibility,source_url,official_application_url,closes_at,published_at,data_ai_relevance_score,remote_scope,source_organisation,country_code,region_code,applicant_scope,work_arrangement,sponsorship_status')
+      .eq('status','published')
+      .eq('access_level','public')
+      .eq('data_ai_relevance_status','high')
+      .order('published_at',{ascending:false})
+      .limit(500);
+    if(result.error)loadError=true;
+    else{
+      const now=Date.now();
+      opportunities=((result.data||[]) as Opportunity[]).filter(item=>!item.closes_at||new Date(item.closes_at).getTime()>now);
+    }
+  }else loadError=true;
+
   return <>
-    <section className="hero"><div className="shell heroGrid"><div><div className="eyebrow">Mettelo Talent · Data & AI opportunities</div><h1>Find relevant opportunities without digging through a noisy job board.</h1><p className="heroLead">Search current Data & AI jobs, internships, graduate roles, apprenticeships, fellowships and volunteering by country, region, work arrangement, international eligibility and visa sponsorship.</p><div className="actions"><a className="button dark" href="#opportunity-feed">Browse current roles →</a></div></div><aside className="heroPanel"><span className="chip">DATA & AI ONLY</span><h3 style={{marginTop:18}}>Relevant, current and easier to act on.</h3><p>Listings must pass Mettelo&apos;s Data & AI relevance threshold before publication and are automatically retired when they expire or can no longer be verified.</p><div className="path"><span>Discover</span><span>Qualify</span><span>Publish</span><span>Recheck</span></div></aside></div></section>
-    <section className="section" id="opportunity-feed"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">Current opportunities</div><h2>{opportunities.length?`${opportunities.length} current Data & AI opportunit${opportunities.length===1?'y':'ies'}.`:'No relevant openings are live right now.'}</h2></div><p>Ten listings per page with search, country/region, type, work-arrangement and sponsorship filters.</p></div>{loadError?<div className="panel emptyState"><h3>Opportunity data is temporarily unavailable.</h3><p>Please try again shortly.</p></div>:opportunities.length?<OpportunityBoard items={opportunities}/>:<div className="panel emptyState"><h3>No Data & AI opportunities are currently published.</h3><p>The feed stays empty rather than showing roles that fail the relevance threshold.</p><div className="actions"><a className="button dark" href="/newsletter">Get opportunity alerts →</a></div></div>}</div></section>
-    <section className="section softSection"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">Mettelo standard</div><h2>Relevant first. Current always.</h2></div><p>Discovery, international context and lifecycle checks work together so the board stays useful.</p></div><div className="grid3"><article className="card"><span className="chip">RELEVANCE</span><h3 style={{marginTop:18}}>Data & AI threshold</h3><p>Strong role-title and technical-signal matching is required before automated publication.</p></article><article className="card"><span className="chip">CONTEXT</span><h3 style={{marginTop:18}}>Country & sponsorship</h3><p>Where available, listings expose country, region, international-applicant context and sponsorship signals without overstating eligibility.</p></article><article className="card"><span className="chip">FRESHNESS</span><h3 style={{marginTop:18}}>Automatic expiry</h3><p>Closing dates and source rechecks automatically remove stale opportunities from the public feed.</p></article></div></div></section>
+    <section className="opportunityHero" aria-labelledby="opportunity-page-title">
+      <div className="shell opportunityHeroInner">
+        <div className="opportunityHeroCopy">
+          <div className="eyebrow">DATA &amp; AI OPPORTUNITIES</div>
+          <h1 id="opportunity-page-title">Find opportunities worth your attention.</h1>
+          <p className="opportunityHeroLead">Explore Data &amp; AI jobs, internships, graduate roles, fellowships and other opportunities with clearer context on location, remote work, eligibility and sponsorship.</p>
+        </div>
+        <div className="opportunityHeroProof" aria-label="Opportunity feed summary">
+          <div><strong>{opportunities.length}</strong><span>live Data &amp; AI opportunit{opportunities.length===1?'y':'ies'}</span></div>
+          <ul>
+            <li>Focused on Data &amp; AI relevance</li>
+            <li>Expired roles are removed</li>
+            <li>Eligibility context shown when available</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <main id="opportunity-feed" className="opportunityDiscovery">
+      <div className="shell">
+        <div className="opportunityDiscoveryIntro">
+          <div>
+            <div className="eyebrow">DISCOVER</div>
+            <h2>Search first. Filter only when you need to.</h2>
+          </div>
+          <p>Start with a role, company, skill or location. Use quick filters for common searches, then open advanced filters for more control.</p>
+        </div>
+
+        {loadError?
+          <div className="panel emptyState" role="status"><h3>Opportunity data is temporarily unavailable.</h3><p>Please try again shortly.</p></div>
+          :opportunities.length?
+          <OpportunityBoard items={opportunities}/>
+          :<div className="panel emptyState"><h3>No Data &amp; AI opportunities are live right now.</h3><p>We keep the feed focused rather than showing expired or low-relevance listings.</p><div className="actions"><a className="button dark" href="/newsletter">Get opportunity alerts →</a></div></div>}
+      </div>
+    </main>
+
+    <section className="opportunityTrustSection" aria-labelledby="opportunity-trust-title">
+      <div className="shell opportunityTrustGrid">
+        <div className="opportunityTrustIntro">
+          <div className="eyebrow">WHY METTELO</div>
+          <h2 id="opportunity-trust-title">Less noise. More useful context.</h2>
+          <p>We surface the information that helps you decide whether an opportunity deserves your time.</p>
+        </div>
+        <div className="opportunityTrustItems">
+          <article><span>01</span><h3>Relevant</h3><p>Focused on Data &amp; AI opportunities rather than a general-purpose jobs feed.</p></article>
+          <article><span>02</span><h3>Current</h3><p>Roles leave the public feed when their closing date has passed.</p></article>
+          <article><span>03</span><h3>Clearer</h3><p>Location, work arrangement, applicant scope and sponsorship are surfaced when known.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section className="opportunityAlertCta">
+      <div className="shell opportunityAlertBand">
+        <div><div className="eyebrow">STAY CLOSE TO THE MARKET</div><h2>Don&apos;t want to keep checking?</h2><p>Get new Data &amp; AI opportunities and Mettelo updates in your inbox.</p></div>
+        <div className="actions"><a className="button dark" href="/newsletter">Get opportunity alerts →</a></div>
+      </div>
+    </section>
   </>;
 }

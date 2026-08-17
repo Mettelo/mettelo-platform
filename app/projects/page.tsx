@@ -50,7 +50,7 @@ export default async function ProjectsPage({searchParams}:{searchParams?:Promise
   const hasFilters=Boolean(q||quick||typeFilter||domain||tool||level||statusFilter);
   const interestProjects=projects.map(p=>({id:p.id,title:p.title}));
   const selectedInterestProject=interestProjects.find(p=>p.id===selectedInterestId)||null;
-  const interestDestination=(id:string)=>{const target=`/projects?interest=${encodeURIComponent(id)}#interest`;return user?target:`/signin?next=${encodeURIComponent(target)}`};
+  const interestDestination=(id:string)=>{const target=`/projects/${id}#interest`;return user?target:`/signin?next=${encodeURIComponent(target)}`};
 
   return <>
     <section className="projectsHero" aria-labelledby="projects-page-title">

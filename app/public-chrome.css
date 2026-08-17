@@ -104,11 +104,9 @@
    same (right) edge as its trigger. This override intentionally replaces the
    older floating/left-hand panel at phone widths only. */
 @media(max-width:767px){
-  .mobileMenuBackdrop{inset:0!important;z-index:120!important;background:rgba(8,14,23,.56)!important}
-  /* The panel lives inside .mobileMenu. Raise that stacking context above the
-     body-level backdrop so the backdrop can dim the page without intercepting
-     taps on drawer links, buttons, or the Explore disclosure. */
+  .mobileMenuBackdrop{inset:0!important;z-index:0!important;background:rgba(8,14,23,.56)!important}
   body.mobileNavOpen .mobileMenu{z-index:122!important}
+  body.mobileNavOpen .mobileMenu>summary{position:relative;z-index:2!important}
   body.publicMobileNavV2 .mobileMenuPanel{
     display:block!important;position:fixed!important;inset:0 0 0 auto!important;
     left:auto!important;right:0!important;top:0!important;
@@ -117,7 +115,7 @@
     padding:0!important;overflow:hidden!important;opacity:0!important;visibility:hidden!important;
     transform:translateX(100%)!important;pointer-events:none!important;
     background:#fff!important;border:0!important;border-radius:0!important;
-    box-shadow:-18px 0 42px rgba(8,14,23,.24)!important;z-index:121!important;
+    box-shadow:-18px 0 42px rgba(8,14,23,.24)!important;z-index:1!important;
     transition:transform 220ms ease,opacity 180ms ease,visibility 0s linear 220ms!important
   }
   body.mobileNavOpen.publicMobileNavV2 .mobileMenuPanel{

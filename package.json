@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npm run check:deployment-config",
     "build": "npm run audit:interactions && next build",
+    "check:deployment-config": "node scripts/check-deployment-config.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

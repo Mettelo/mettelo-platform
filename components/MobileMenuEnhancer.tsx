@@ -62,7 +62,16 @@ export default function MobileMenuEnhancer(){
     const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');
     if(!menu)return;
     let backdrop=document.querySelector<HTMLButtonElement>('.mobileMenuBackdrop');
-    if(!backdrop){backdrop=document.createElement('button');backdrop.type='button';backdrop.className='mobileMenuBackdrop';backdrop.setAttribute('aria-label','Close navigation menu');backdrop.hidden=true;document.body.appendChild(backdrop)}
+    if(!backdrop){
+      backdrop=document.createElement('button');
+      backdrop.type='button';
+      backdrop.className='mobileMenuBackdrop';
+      backdrop.setAttribute('aria-label','Close navigation menu');
+      backdrop.hidden=true;
+      // The panel is inside the header. Keeping the backdrop in that same
+      // stacking context prevents it from painting over every drawer control.
+      menu.insertBefore(backdrop,target);
+    }
     const focusable=()=>Array.from(target?.querySelectorAll<HTMLElement>('a[href],button:not([disabled])')||[]).filter(element=>element.tabIndex!==-1&&!element.hidden);
     const sync=()=>{
       document.body.classList.toggle('mobileNavOpen',menu.open);

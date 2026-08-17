@@ -65,8 +65,6 @@ export default function MobileMenuEnhancer(){
   if(!target)return null;
 
   const nav=<div className="mobilePublicNav" aria-label="Mobile website navigation">
-    <div className="mobilePublicMenuHead"><strong>Menu</strong><button type="button" className="mobilePublicClose" onClick={closeMenu} aria-label="Close navigation menu">×</button></div>
-
     <nav className="mobilePublicPrimary" aria-label="Primary mobile navigation">
       {primaryLinks.map(([label,href])=><Link href={href} key={href} onClick={closeMenu}>{label}</Link>)}
     </nav>
@@ -99,5 +97,7 @@ export default function MobileMenuEnhancer(){
     </div>
   </div>;
 
-  return createPortal(nav,target);
+  const closeControl=<button type="button" className="mobilePublicFloatingClose" onClick={closeMenu} aria-label="Close navigation menu">×</button>;
+
+  return <>{createPortal(nav,target)}{createPortal(closeControl,document.body)}</>;
 }

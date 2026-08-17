@@ -20,6 +20,23 @@ function sanitizePayload(input:Record<string,unknown>){
   }
   return clean;
 }
+function value(data:Record<string,unknown>,key:string){return String(data[key]??'').trim()}
+function validEmail(email:string){return /^\S+@\S+\.\S+$/.test(email)}
+function validatePublicForm(formType:string,data:Record<string,unknown>){
+  if(formType==='contact'){
+    if(!value(data,'name')||!validEmail(value(data,'email'))||!value(data,'topic')||!value(data,'subject')||value(data,'message').length<10)return 'Add your name, valid email, topic, subject and a short message.';
+    if(value(data,'consent')!=='yes')return 'Confirm that Mettelo can use this information to respond to your enquiry.';
+  }
+  if(formType==='partnership'){
+    if(!value(data,'organisation')||!value(data,'name')||!validEmail(value(data,'email'))||!value(data,'role')||!value(data,'partnershipType')||value(data,'objective').length<10||value(data,'contribution').length<10)return 'Complete the organisation, contact, partnership type, objective and contribution fields.';
+    if(value(data,'consent')!=='yes')return 'Confirm that Mettelo can use this information to assess and respond to the enquiry.';
+  }
+  if(formType==='feedback'){
+    const email=value(data,'email');if(email&&!validEmail(email))return 'Enter a valid email address or leave the email field blank.';
+    if(!value(data,'area')||value(data,'message').length<10)return 'Choose an area and add enough detail for the team to understand your feedback.';
+  }
+  return null;
+}
 
 export async function POST(request:Request){
   try{
@@ -54,6 +71,7 @@ export async function POST(request:Request){
       return NextResponse.json({ok:true,tracked:true,application:created});
     }
 
+    const invalid=validatePublicForm(formType,safeData);if(invalid)return NextResponse.json({error:invalid},{status:400});
     const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
     if(!url || !serviceKey){
@@ -69,7 +87,7 @@ export async function POST(request:Request){
     const email=String(safeData.email||'').trim().toLowerCase();
     const isPartnership=formType==='partnership';
     await notifyAdmins(supabase,{type:isPartnership?'admin_intake_received':'contact_received',eventKey:isPartnership?'admin_intake_received':'contact_received',title:isPartnership?'New partnership / organisation intake':`New ${formType} submission`,body:`${name||'A visitor'} submitted the ${formType} form.`,actionUrl:'/admin/intake',subject:isPartnership?'New Mettelo partnership intake':`New Mettelo ${formType} submission`,dedupeKey:`form:${submission.id}:admin`});
-    if(isPartnership&&/^\S+@\S+\.\S+$/.test(email)){
+    if(isPartnership&&validEmail(email)){
       const outbox=await enqueueEmail(supabase,{to:email,templateKey:'organisation_intake_received',eventKey:'organisation_intake_received',subject:'We received your Mettelo partnership enquiry',body:'Thank you for contacting Mettelo. Your organisation or partnership enquiry has been received and will be reviewed by the team.',actionUrl:'/partnership',dedupeKey:`form:${submission.id}:receipt`});
       if(outbox)await deliverOutboxItem(supabase,outbox);
     }

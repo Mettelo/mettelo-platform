@@ -74,7 +74,7 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
       <div className="shell formShell">
         <div><div className="eyebrow">SUBMIT INTEREST</div><h2>Tell us how you could contribute.</h2><p className="lead">Your interest stays connected to this project so the team can contact you about a suitable next step.</p></div>
         {user?<SubmissionForm formType="project_application" submitLabel="Submit my interest →">
-          <input type="hidden" name="project" value={project.title}/>
+          <input type="hidden" name="project_id" value={project.id}/><input type="hidden" name="project" value={project.title}/>
           <label htmlFor="interest-name">Full name *</label><input id="interest-name" required name="name" autoComplete="name"/>
           <label htmlFor="interest-email">Email address *</label><input id="interest-email" required name="email" type="email" autoComplete="email"/>
           <label htmlFor="interest-role">Where could you contribute? *</label><select id="interest-role" name="role" required defaultValue=""><option value="" disabled>Select an area</option><option>Data Analysis / BI</option><option>Data Engineering</option><option>AI / ML</option><option>Research / UX</option><option>Project Lead</option><option>QA / Technical Review</option><option>Documentation / Storytelling</option></select>

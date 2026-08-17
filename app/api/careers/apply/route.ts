@@ -22,9 +22,11 @@ export async function POST(request:Request){
   try{
     const db=serviceDb();if(!db)return NextResponse.json({error:'Career application service is not configured.'},{status:503});
     const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();
-    const form=await request.formData();const roleId=clean(form.get('role_id'),80),fullName=clean(form.get('full_name'),140),email=clean(form.get('email'),254).toLowerCase(),phone=clean(form.get('phone'),50),location=clean(form.get('location'),160),linkedin=clean(form.get('linkedin_url'),800),portfolio=clean(form.get('portfolio_url'),800),workAuth=clean(form.get('work_authorisation'),300),motivation=clean(form.get('motivation'),3000),experience=clean(form.get('relevant_experience'),4000);const file=form.get('cv');
-    const missing=requiredFieldError({roleId,fullName,email,motivation,experience,file});
+    const form=await request.formData();const roleId=clean(form.get('role_id'),80),fullName=clean(form.get('full_name'),140),email=clean(form.get('email'),254).toLowerCase(),phone=clean(form.get('phone'),50),location=clean(form.get('location'),160),linkedin=clean(form.get('linkedin_url'),800),portfolio=clean(form.get('portfolio_url'),800),workAuth=clean(form.get('work_authorisation'),300),motivation=clean(form.get('motivation'),3000),experience=clean(form.get('relevant_experience'),4000);const submittedFile=form.get('cv');
+    const missing=requiredFieldError({roleId,fullName,email,motivation,experience,file:submittedFile});
     if(missing){console.info('[career-apply] validation rejected',{reason:missing});return NextResponse.json({error:missing},{status:400});}
+    if(!(submittedFile instanceof File))return NextResponse.json({error:'Choose your CV before submitting.'},{status:400});
+    const file=submittedFile;
     if(user?.email&&user.email.toLowerCase()!==email)return NextResponse.json({error:'When signed in, use the email address linked to your Mettelo account.'},{status:400});
     if(!validUrl(linkedin)||!validUrl(portfolio))return NextResponse.json({error:'LinkedIn and portfolio links must be valid URLs.'},{status:400});
     if(!['application/pdf',DOCX].includes(file.type)||file.size>5*1024*1024)return NextResponse.json({error:'CV must be PDF or DOCX and no larger than 5MB.'},{status:400});

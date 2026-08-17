@@ -105,6 +105,10 @@
    older floating/left-hand panel at phone widths only. */
 @media(max-width:767px){
   .mobileMenuBackdrop{inset:0!important;z-index:120!important;background:rgba(8,14,23,.56)!important}
+  /* The panel lives inside .mobileMenu. Raise that stacking context above the
+     body-level backdrop so the backdrop can dim the page without intercepting
+     taps on drawer links, buttons, or the Explore disclosure. */
+  body.mobileNavOpen .mobileMenu{z-index:122!important}
   body.publicMobileNavV2 .mobileMenuPanel{
     display:block!important;position:fixed!important;inset:0 0 0 auto!important;
     left:auto!important;right:0!important;top:0!important;

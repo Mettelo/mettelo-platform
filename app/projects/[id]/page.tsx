@@ -2,6 +2,7 @@ import {notFound} from 'next/navigation';
 import {createPublicSupabaseClient} from '@/lib/supabase/public';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import ProjectApplicationForm from '@/components/ProjectApplicationForm';
+import SubmissionForm from '@/components/SubmissionForm';
 
 export const dynamic='force-dynamic';
 type Role={id:string;title:string;description:string|null;skills:string[];openings:number;discipline:string|null};
@@ -21,7 +22,8 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   const domains=(project.project_domains||[]).map(x=>x.domains).filter(Boolean) as TaxonomyRef[];const tools=(project.project_tools||[]).map(x=>x.tools).filter(Boolean) as TaxonomyRef[];const methods=(project.project_methods||[]).map(x=>x.methods).filter(Boolean) as TaxonomyRef[];
   const applicationProjects=[{id:project.id,title:project.title,roles:roles.map(role=>({id:role.id,title:role.title}))}];
   const signinNext=`/projects/${project.id}#apply`;
-  const interestHref=user?`/projects?interest=${encodeURIComponent(project.id)}#interest`:`/signin?next=${encodeURIComponent(`/projects?interest=${project.id}#interest`)}`;
+  const interestReturn=`/projects/${project.id}#interest`;
+  const interestHref=user?'#interest':`/signin?next=${encodeURIComponent(interestReturn)}`;
   const facts=[
     ['Stage',displayStatus],
     ['Commitment',project.duration_weeks?`${project.duration_weeks} weeks`:'To be confirmed'],
@@ -67,6 +69,21 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
     </div></section>
 
     {canApply&&<section className="section softSection" id="apply"><div className="shell formShell"><div><div className="eyebrow">Apply</div><h2>Apply with the full project context in view.</h2><p className="lead">Your draft saves automatically. We check profile readiness first, then you review the application before final submission.</p></div>{user?<ProjectApplicationForm projects={applicationProjects} selectedProjectId={project.id} profileMissing={profileMissing}/>:<div className="formCard"><span className="chip">SIGN IN REQUIRED</span><h3>Sign in without losing this task.</h3><p>After sign in, Mettelo returns you to this project application.</p><a className="button dark" href={`/signin?next=${encodeURIComponent(signinNext)}`}>Sign in to apply →</a></div>}</div></section>}
+
+    <section className="section softSection" id="interest">
+      <div className="shell formShell">
+        <div><div className="eyebrow">SUBMIT INTEREST</div><h2>Tell us how you could contribute.</h2><p className="lead">Your interest stays connected to this project so the team can contact you about a suitable next step.</p></div>
+        {user?<SubmissionForm formType="project_application" submitLabel="Submit my interest →">
+          <input type="hidden" name="project" value={project.title}/>
+          <label htmlFor="interest-name">Full name *</label><input id="interest-name" required name="name" autoComplete="name"/>
+          <label htmlFor="interest-email">Email address *</label><input id="interest-email" required name="email" type="email" autoComplete="email"/>
+          <label htmlFor="interest-role">Where could you contribute? *</label><select id="interest-role" name="role" required defaultValue=""><option value="" disabled>Select an area</option><option>Data Analysis / BI</option><option>Data Engineering</option><option>AI / ML</option><option>Research / UX</option><option>Project Lead</option><option>QA / Technical Review</option><option>Documentation / Storytelling</option></select>
+          <label htmlFor="interest-profile">LinkedIn, GitHub or portfolio</label><input id="interest-profile" name="profile" type="url" placeholder="https://"/>
+          <label htmlFor="interest-contribution">Tell us what you could bring to this project *</label><textarea id="interest-contribution" name="contribution" required/>
+          <label className="consent"><input required type="checkbox" name="consent" value="yes"/><span>I agree that Mettelo can use this information to review my interest in this project.</span></label>
+        </SubmissionForm>:<div className="formCard"><span className="chip">SIGN IN REQUIRED</span><h3>Sign in to submit your interest.</h3><p>After sign in, Mettelo returns you to this project and opens the interest form.</p><a className="button dark" href={`/signin?next=${encodeURIComponent(interestReturn)}`}>Sign in to continue →</a></div>}
+      </div>
+    </section>
 
     <style>{`
       .projectDetailHeroV2{padding:34px 0 26px;background:linear-gradient(180deg,#fbf7ee 0%,#fcfbf7 100%);border-bottom:1px solid #e7e1d6}

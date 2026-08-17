@@ -56,7 +56,8 @@ export async function POST(request:Request){
       const statement=String(safeData.contribution||'').trim();
       const portfolio=String(safeData.profile||'').trim();
       if(!projectTitle||!requestedRole||statement.length<20)return NextResponse.json({error:'Choose a project, contribution area and describe how you can contribute.'},{status:400});
-      const db=serviceDb();if(!db)return NextResponse.json({error:'Project request service is not configured.'},{status:503});
+      const privilegedDb=serviceDb();
+      const db=privilegedDb||auth;
       const {data:project,error:projectError}=await db.from('projects').select('id,title,status').eq('title',projectTitle).eq('status','pilot').maybeSingle();
       if(projectError||!project)return NextResponse.json({error:'This pilot brief is no longer accepting interest.'},{status:409});
       const {data:existing}=await db.from('project_applications').select('id,status').eq('project_id',project.id).eq('user_id',user.id).eq('application_kind','interest').neq('status','withdrawn').maybeSingle();
@@ -64,10 +65,12 @@ export async function POST(request:Request){
       const {data:created,error}=await db.from('project_applications').insert({project_id:project.id,project_role_id:null,user_id:user.id,portfolio_url:portfolio||null,contribution_statement:statement,availability:null,status:'submitted',application_kind:'interest',requested_role:requestedRole}).select('id,status').single();
       if(error)throw error;
       const name=String(user.user_metadata?.full_name||user.email?.split('@')[0]||'A member');
-      await Promise.all([
-        notifyUser(db,{userId:user.id,email:user.email,projectId:project.id,applicationId:created.id,type:'project_interest_submitted',eventKey:'project_interest_submitted',title:'Project interest received',body:`We received your interest in ${project.title} — ${requestedRole}. Track it from My Mettelo.`,actionUrl:'/member/applications',subject:`Project interest received — ${project.title}`,dedupeKey:`project-interest:${created.id}`}),
-        notifyAdmins(db,{projectId:project.id,applicationId:created.id,type:'new_project_interest',eventKey:'project_interest_submitted',title:`New project interest — ${project.title}`,body:`${name} registered interest in ${requestedRole}.`,actionUrl:'/admin/project-operations',subject:`New project interest — ${project.title}`,dedupeKey:`admin-project-interest:${created.id}`})
-      ]);
+      if(privilegedDb){
+        await Promise.all([
+          notifyUser(privilegedDb,{userId:user.id,email:user.email,projectId:project.id,applicationId:created.id,type:'project_interest_submitted',eventKey:'project_interest_submitted',title:'Project interest received',body:`We received your interest in ${project.title} — ${requestedRole}. Track it from My Mettelo.`,actionUrl:'/member/applications',subject:`Project interest received — ${project.title}`,dedupeKey:`project-interest:${created.id}`}),
+          notifyAdmins(privilegedDb,{projectId:project.id,applicationId:created.id,type:'new_project_interest',eventKey:'project_interest_submitted',title:`New project interest — ${project.title}`,body:`${name} registered interest in ${requestedRole}.`,actionUrl:'/admin/project-operations',subject:`New project interest — ${project.title}`,dedupeKey:`admin-project-interest:${created.id}`})
+        ]);
+      }
       return NextResponse.json({ok:true,tracked:true,application:created});
     }
 

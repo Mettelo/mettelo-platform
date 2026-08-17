@@ -121,6 +121,9 @@ export default async function ProjectsPage({searchParams}:{searchParams?:Promise
           const primary=p.project_domains?.find(x=>x.is_primary)?.domains||p.project_domains?.[0]?.domains;
           const projectTools=(p.project_tools||[]).map(x=>x.tools).filter(Boolean) as TaxonomyRef[];
           const methods=(p.project_methods||[]).map(x=>x.methods).filter(Boolean) as TaxonomyRef[];
+          const workWith=[primary,...projectTools,...methods].filter((item):item is TaxonomyRef=>Boolean(item)).filter((item,index,items)=>items.findIndex(candidate=>candidate.slug===item.slug)===index);
+          const visibleWorkWith=workWith.slice(0,3);
+          const remainingWorkWith=Math.max(0,workWith.length-visibleWorkWith.length);
           const roles=p.project_roles||[];
           const roleCount=roles.length;
           const runs=p.project_runs||[];const completed=runs.filter(r=>r.status==='completed').length;const active=runs.filter(r=>r.status==='active').length;const forming=runs.filter(r=>r.status==='forming').length;
@@ -131,10 +134,10 @@ export default async function ProjectsPage({searchParams}:{searchParams?:Promise
             <div className="projectBriefBody">
               <section aria-label="Project roles"><span className="projectBriefLabel">Roles</span>{roleCount>0?<div className="projectRoleList">{roles.slice(0,3).map(role=><span key={role.id}>{role.title}{role.openings>1?` · ${role.openings} openings`:''}</span>)}{roleCount>3&&<span>+{roleCount-3} more</span>}</div>:<p className="projectMuted">Roles are being prepared.</p>}</section>
               <section aria-label="Project commitment"><span className="projectBriefLabel">Commitment</span><p className="projectCommitment">{[p.difficulty_level?titleCase(p.difficulty_level):null,p.duration_weeks?`${p.duration_weeks} weeks`:null,p.weekly_commitment,p.location_type?titleCase(p.location_type):p.location].filter(Boolean).join(' · ')||'See project brief'}</p></section>
-              {(projectTools.length>0||methods.length>0||primary)&&<section aria-label="Project tools and methods"><span className="projectBriefLabel">Work with</span><div className="projectSkillList">{primary&&<span>{primary.name}</span>}{projectTools.slice(0,4).map(item=><span key={item.slug}>{item.name}</span>)}{methods.slice(0,2).map(item=><span key={item.slug}>{item.name}</span>)}</div></section>}
+              {workWith.length>0&&<section aria-label="Project tools and methods"><span className="projectBriefLabel">Work with</span><div className="projectSkillList">{visibleWorkWith.map(item=><span key={item.slug}>{item.name}</span>)}{remainingWorkWith>0&&<span className="projectSkillMore" aria-label={`${remainingWorkWith} more tools or methods`}>+{remainingWorkWith} more</span>}</div></section>}
               {p.project_type==='open'&&(completed>0||active>0||forming>0)&&<section className="projectRunSignal" aria-label="Open project team activity"><span className="projectBriefLabel">Team activity</span><p>{completed>0&&<><strong>{completed}</strong> team{completed===1?'':'s'} completed</>}{completed>0&&(active>0||forming>0)?' · ':''}{active>0&&<><strong>{active}</strong> active</>}{active>0&&forming>0?' · ':''}{forming>0&&<><strong>{forming}</strong> forming</>}</p></section>}
             </div>
-            <footer className="projectBriefFoot"><div><span>{availabilityCopy}</span>{deadline&&<small>Applications close {deadline.toLocaleDateString('en-GB')}</small>}</div><div className="projectCardActions"><a className="button dark" href={`/projects/${p.id}`}>View project →</a>{isPilot&&<a className="button ghost" href={interestDestination(p.id)}>Register interest</a>}</div></footer>
+            <footer className="projectBriefFoot"><div><span>{availabilityCopy}</span>{deadline&&<small>Applications close {deadline.toLocaleDateString('en-GB')}</small>}</div><div className={`projectCardActions ${isPilot?'hasSecondaryAction':'hasPrimaryActionOnly'}`}><a className="button dark" href={`/projects/${p.id}`}>View project →</a>{isPilot&&<a className="button ghost" href={interestDestination(p.id)}>Register interest</a>}</div></footer>
           </article>})}</PaginatedCardGrid>:<div className="emptyState panel"><h3>Nothing matches those filters yet.</h3><p>Try removing a filter or widening your search.</p>{hasFilters&&<a className="button ghost" href="/projects#projects">Clear filters</a>}</div>}
       </div>
     </section>

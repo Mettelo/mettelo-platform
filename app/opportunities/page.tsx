@@ -3,6 +3,7 @@ import {createPublicSupabaseClient} from '@/lib/supabase/public';
 import OpportunityBoard from '@/components/OpportunityBoard';
 import './opportunities.css';
 import './opportunity-card-polish.css';
+import './opportunity-mobile-filters.css';
 
 export const metadata:Metadata={
   title:'Data & AI Opportunities',

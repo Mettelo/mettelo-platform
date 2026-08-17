@@ -24,12 +24,12 @@ export async function POST(request:Request){
 
     if(!projectId||statement.length<40) return NextResponse.json({error:'Choose a project and explain your contribution in at least 40 characters.'},{status:400});
 
-    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status,project_type,application_deadline').eq('id',projectId).single();
+    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status,visibility,project_type,application_deadline').eq('id',projectId).single();
     if(projectError||!project) return NextResponse.json({error:'Project not found.'},{status:404});
     if(project.application_deadline&&new Date(project.application_deadline).getTime()<Date.now())return NextResponse.json({error:'The application deadline for this project has passed.'},{status:409});
 
     const isInterest=requestedKind==='interest';
-    if(isInterest&&project.status!=='pilot') return NextResponse.json({error:'This project is already open for applications. Apply to a project role instead.'},{status:400});
+    if(isInterest&&(!['pilot','recruiting','open','forming','active','review'].includes(project.status)||project.visibility!=='public')) return NextResponse.json({error:'This project is not currently accepting interest.'},{status:400});
     if(!isInterest&&!acceptsApplications(project)) return NextResponse.json({error:'This project is not currently accepting applications.'},{status:400});
 
     let role:{id:string;title:string}|null=null;

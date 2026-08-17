@@ -61,15 +61,26 @@ export default function OpportunityBoard({items}:{items:Opportunity[]}){
   function goPage(next:number){const target=Math.max(1,Math.min(totalPages,next));if(target===safePage)return;setPage(target);requestAnimationFrame(()=>document.querySelector('.opportunityResultsBar')?.scrollIntoView({behavior:'smooth',block:'start'}))}
   function clearFilters(){setQuery('');setType('all');setCountry('all');setRegion('all');setArrangement('all');setSponsorship('all');setScope('all');setSort('newest');setQuick([]);setPage(1)}
 
+  const quickFilterButtons=quickFilters.map(([value,label])=><button key={value} type="button" className={quick.includes(value)?'isActive':''} aria-pressed={quick.includes(value)} onClick={()=>toggleQuick(value)}>{label}</button>);
+
   return <div className="opportunityBoard">
     <section className="opportunitySearchPanel" aria-labelledby="opportunity-search-label">
       <div className="opportunitySearchMain">
         <label id="opportunity-search-label" htmlFor="opportunity-search">Search opportunities</label>
         <div className="opportunitySearchField"><span aria-hidden="true">⌕</span><input id="opportunity-search" value={query} onChange={event=>{setQuery(event.target.value);resetPage()}} placeholder="Role, company, skill or location" autoComplete="off"/></div>
       </div>
-      <div className="opportunityQuickFilters" aria-label="Quick filters">
-        {quickFilters.map(([value,label])=><button key={value} type="button" className={quick.includes(value)?'isActive':''} aria-pressed={quick.includes(value)} onClick={()=>toggleQuick(value)}>{label}</button>)}
+
+      <div className="opportunityQuickFilters opportunityQuickFiltersDesktop" aria-label="Quick filters">
+        {quickFilterButtons}
       </div>
+
+      <details className="opportunityQuickFilterDisclosure">
+        <summary><span>Quick filters{quick.length?` (${quick.length})`:''}</span><span className="opportunityQuickFilterHint">Remote, international, graduate and more</span></summary>
+        <div className="opportunityQuickFilters opportunityQuickFiltersMobile" aria-label="Quick filters">
+          {quickFilterButtons}
+        </div>
+      </details>
+
       <details className="opportunityAdvancedFilters">
         <summary><span>Filters</span><span className="opportunityFilterSummary">Country, type, work style, eligibility, sponsorship</span></summary>
         <div className="opportunityToolbar">

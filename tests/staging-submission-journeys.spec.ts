@@ -17,9 +17,10 @@ async function poll<T>(description:string,load:()=>Promise<T|null>,timeout=20_00
 
 async function signIn(page:Page,email:string,password:string,next='/member'){
   await page.goto(`${baseURL()}/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});
-  await page.locator('input[type="email"]').fill(email);
-  await page.locator('input[type="password"]').fill(password);
-  await page.getByRole('button',{name:'Sign in →'}).click();
+  const main=page.locator('main');
+  await main.locator('input[type="email"]').fill(email);
+  await main.locator('input[type="password"]').fill(password);
+  await main.getByRole('button',{name:'Sign in →'}).click();
   await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000});
 }
 
@@ -73,7 +74,7 @@ test.describe.serial('staging submission journeys',()=>{
     const contactSubject=`${marker} contact`;
     await page.goto('/contact');
     await page.locator('[name="name"]').fill(`${marker} Contact`);
-    await page.locator('[name="email"]').fill(`${runId}-contact@example.test`);
+    await page.locator('main').locator('[name="email"]').fill(`${runId}-contact@example.test`);
     await page.locator('[name="topic"]').selectOption({label:'Technical issue'});
     await page.locator('[name="subject"]').fill(contactSubject);
     await page.locator('[name="message"]').fill(`${marker} verifies browser to API to database to admin intake.`);
@@ -86,7 +87,7 @@ test.describe.serial('staging submission journeys',()=>{
     await page.goto('/partnership');
     await page.locator('[name="organisation"]').fill(partnershipOrganisation);
     await page.locator('[name="name"]').fill(`${marker} Partner`);
-    await page.locator('[name="email"]').fill(`${runId}-partner@example.test`);
+    await page.locator('main').locator('[name="email"]').fill(`${runId}-partner@example.test`);
     await page.locator('[name="role"]').fill('E2E lead');
     await page.locator('[name="organisationType"]').selectOption({index:1});
     await page.locator('[name="partnershipType"]').selectOption({index:1});
@@ -99,7 +100,7 @@ test.describe.serial('staging submission journeys',()=>{
 
     const feedbackMessage=`${marker} confirms feedback reaches the admin queue.`;
     await page.goto('/feedback');
-    await page.locator('[name="email"]').fill(`${runId}-feedback@example.test`);
+    await page.locator('main').locator('[name="email"]').fill(`${runId}-feedback@example.test`);
     await page.locator('[name="area"]').selectOption({label:'Navigation / mobile'});
     await page.locator('[name="message"]').fill(feedbackMessage);
     await page.getByRole('button',{name:'Send feedback →'}).click();
@@ -108,7 +109,7 @@ test.describe.serial('staging submission journeys',()=>{
 
     const newsletterEmail=`${runId}-newsletter@example.test`;created.newsletterEmails.push(newsletterEmail);
     await page.goto('/newsletter');
-    await page.locator('[name="email"]').fill(newsletterEmail);
+    await page.locator('main').locator('[name="email"]').fill(newsletterEmail);
     await page.getByRole('button',{name:'Subscribe →'}).click();
     await page.waitForURL(/\/newsletter\?subscribed=1/);
     await poll('newsletter database record',async()=>{const {data,error}=await db.from('newsletter_subscribers').select('email,status').eq('email',newsletterEmail).maybeSingle();if(error)throw error;return data;});
@@ -172,7 +173,7 @@ test.describe.serial('staging submission journeys',()=>{
     const page=await newAppContext(context);
     await page.goto(`/careers/${role.slug}`,{waitUntil:'networkidle'});
     await page.locator('[name="full_name"]').fill(`${marker} Candidate`);
-    await page.locator('[name="email"]').fill(email);
+    await page.locator('main').locator('[name="email"]').fill(email);
     await page.locator('[name="location"]').fill('Staging');
     await page.locator('[name="motivation"]').fill(`${marker} I want to protect Mettelo releases by validating every critical customer and administrator journey before deployment.`);
     await page.locator('[name="relevant_experience"]').fill(`${marker} I have delivered end-to-end automated testing across responsive interfaces, API contracts, relational data persistence, access control and operational queues.`);

@@ -11,9 +11,10 @@ function credentials(prefix:'MEMBER'|'ARCHITECT'|'ADMIN'):Credentials{
 
 async function signIn(page:Page,account:Credentials,next:string){
   await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});
-  await page.locator('input[type="email"]').fill(account.email);
-  await page.locator('input[type="password"]').fill(account.password);
-  await page.getByRole('button',{name:'Sign in →'}).click();
+  const main=page.locator('#main-content');
+  await main.locator('input[type="email"]').fill(account.email);
+  await main.locator('input[type="password"]').fill(account.password);
+  await main.getByRole('button',{name:'Sign in →'}).click();
   await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000});
 }
 
@@ -22,25 +23,25 @@ test.describe('authenticated staging smoke tests',()=>{
     const account=credentials('MEMBER');
     await signIn(page,account,'/member/applications');
     await page.goto('/member/applications',{waitUntil:'networkidle'});
-    await expect(page.locator('main,section').first()).toBeVisible();
-    await expect(page).not.toHaveURL(/\/signin/);
+    await expect(page.locator('#main-content')).toBeVisible();
+    await expect(page).toHaveURL(/\/member\/applications/);
   });
 
   test('Project Architect can open their project workspace',async({page})=>{
     const account=credentials('ARCHITECT');
     await signIn(page,account,'/member/architect-projects');
     await page.goto('/member/architect-projects',{waitUntil:'networkidle'});
-    await expect(page.locator('main,section').first()).toBeVisible();
-    await expect(page).not.toHaveURL(/\/signin|\/member$/);
+    await expect(page.locator('#main-content')).toBeVisible();
+    await expect(page).toHaveURL(/\/member\/architect-projects/);
   });
 
   test('admin can open project applications and intake queues',async({page})=>{
     const account=credentials('ADMIN');
     await signIn(page,account,'/admin');
     await page.goto('/admin/project-operations/applications',{waitUntil:'networkidle'});
-    await expect(page.getByRole('heading',{name:/Applications/i})).toBeVisible();
+    await expect(page.getByRole('heading',{level:1,name:/^Applications\b/i})).toBeVisible();
     await page.goto('/admin/intake',{waitUntil:'networkidle'});
-    await expect(page.locator('main,section').first()).toBeVisible();
-    await expect(page).not.toHaveURL(/\/signin|\/member/);
+    await expect(page.locator('#main-content')).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/intake/);
   });
 });

@@ -34,20 +34,12 @@ test.describe('authenticated staging smoke tests',()=>{
     const account=credentials('MEMBER');
     const team1Url=`/member/projects/${labProjectId}?run=${labTeam1RunId}`;
     await signIn(page,account,team1Url);
-    const team1Response=await page.goto(team1Url,{waitUntil:'networkidle'});
-    if(!page.getByText('METTELO LAB',{exact:true})){
-      console.log('Mettelo Lab diagnostic',JSON.stringify({status:team1Response?.status()||null,url:page.url(),title:await page.title(),body:(await page.locator('body').innerText()).slice(0,1200)}));
-    }
-    console.log('Mettelo Lab diagnostic',JSON.stringify({status:team1Response?.status()||null,url:page.url(),title:await page.title(),body:(await page.locator('body').innerText()).slice(0,1200)}));
-    await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
-    await expect(page.getByText('Team 1',{exact:true}).first()).toBeVisible();
-    await expect(page.getByText('Team 2',{exact:true}).first()).toBeVisible();
-    await expect(page.getByTitle('Not a member of this cohort')).toContainText('Team 2');
-    await expect(page.getByRole('link',{name:/Team 2/i})).toHaveCount(0);
 
     const apiResponse=await page.context().request.get(`/api/project-team-overview?project_id=${labProjectId}&project_run_id=${labTeam1RunId}`);
+    const apiBody=await apiResponse.text();
+    console.log('Team overview diagnostic',JSON.stringify({status:apiResponse.status(),body:apiBody.slice(0,1200)}));
     expect(apiResponse.status()).toBe(200);
-    const payload=await apiResponse.json();
+    const payload=JSON.parse(apiBody);
     const own=payload.teams.find((team:{run_number:number})=>team.run_number===1);
     const other=payload.teams.find((team:{run_number:number})=>team.run_number===2);
     expect(own).toMatchObject({id:labTeam1RunId,is_member:true});
@@ -55,6 +47,14 @@ test.describe('authenticated staging smoke tests',()=>{
     expect(own.members.length).toBeGreaterThan(0);
     expect(other).toMatchObject({id:'cohort-2',run_number:2,status:'forming',is_member:false,required_team_size:null,has_started:null,members:[]});
     expect(JSON.stringify(other)).not.toContain(labTeam2RunId);
+
+    const team1Response=await page.goto(team1Url,{waitUntil:'networkidle'});
+    console.log('Mettelo Lab diagnostic',JSON.stringify({status:team1Response?.status()||null,url:page.url(),title:await page.title(),body:(await page.locator('body').innerText()).slice(0,1200)}));
+    await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
+    await expect(page.getByText('Team 1',{exact:true}).first()).toBeVisible();
+    await expect(page.getByText('Team 2',{exact:true}).first()).toBeVisible();
+    await expect(page.getByTitle('Not a member of this cohort')).toContainText('Team 2');
+    await expect(page.getByRole('link',{name:/Team 2/i})).toHaveCount(0);
 
     const forbidden=await page.goto(`/member/projects/${labProjectId}?run=${labTeam2RunId}`,{waitUntil:'domcontentloaded'});
     expect(forbidden?.status()).toBe(404);

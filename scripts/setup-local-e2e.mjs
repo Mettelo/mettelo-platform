@@ -37,18 +37,34 @@ if(architectIdentityError)throw architectIdentityError;
 const {error:memberIdentityError}=await db.from('account_identities').upsert({user_id:users.member.id,account_type:'member',show_project_architect_designation:false},{onConflict:'user_id'});
 if(memberIdentityError)throw memberIdentityError;
 
+const projectId='00000000-0000-4000-8000-00000000e2e1';
+const team1RunId='00000000-0000-4000-8000-00000000e211';
+const team2RunId='00000000-0000-4000-8000-00000000e212';
 const {error:projectError}=await db.from('projects').upsert({
+  id:projectId,
   slug:'e2e-local-release-project',
   title:'E2E Local Release Project',
   summary:'Disposable local project used only by the GitHub Actions release gate.',
   problem_statement:'Verify browser to API to database submission behavior without hosted staging infrastructure.',
-  status:'pilot',
+  status:'active',
   visibility:'public',
   project_type:'open',
+  applications_open:true,
+  project_type_review_required:false,
   location:'CI',
   weekly_commitment:'E2E only'
-},{onConflict:'slug'});
+},{onConflict:'id'});
 if(projectError)throw projectError;
+
+const {error:runError}=await db.from('project_runs').upsert([
+  {id:team1RunId,project_id:projectId,run_number:1,status:'active',team_size_threshold:5,required_team_size:5,has_started:true,started_at:new Date().toISOString()},
+  {id:team2RunId,project_id:projectId,run_number:2,status:'forming',team_size_threshold:5,required_team_size:5,has_started:false}
+],{onConflict:'id'});
+if(runError)throw runError;
+
+await db.from('project_members').delete().eq('project_id',projectId).eq('user_id',users.member.id);
+const {error:membershipError}=await db.from('project_members').insert({project_id:projectId,project_run_id:team1RunId,user_id:users.member.id,team_role:'contributor',membership_status:'active'});
+if(membershipError)throw membershipError;
 
 const {error:careerError}=await db.from('career_roles').upsert({
   slug:'e2e-local-quality-role',

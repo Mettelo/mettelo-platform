@@ -36,10 +36,8 @@ test.describe('authenticated staging smoke tests',()=>{
     await signIn(page,account,team1Url);
 
     const apiResponse=await page.context().request.get(`/api/project-team-overview?project_id=${labProjectId}&project_run_id=${labTeam1RunId}`);
-    const apiBody=await apiResponse.text();
-    console.log('Team overview diagnostic',JSON.stringify({status:apiResponse.status(),body:apiBody.slice(0,1200)}));
     expect(apiResponse.status()).toBe(200);
-    const payload=JSON.parse(apiBody);
+    const payload=await apiResponse.json();
     const own=payload.teams.find((team:{run_number:number})=>team.run_number===1);
     const other=payload.teams.find((team:{run_number:number})=>team.run_number===2);
     expect(own).toMatchObject({id:labTeam1RunId,is_member:true});
@@ -49,12 +47,13 @@ test.describe('authenticated staging smoke tests',()=>{
     expect(JSON.stringify(other)).not.toContain(labTeam2RunId);
 
     const team1Response=await page.goto(team1Url,{waitUntil:'networkidle'});
-    console.log('Mettelo Lab diagnostic',JSON.stringify({status:team1Response?.status()||null,url:page.url(),title:await page.title(),body:(await page.locator('body').innerText()).slice(0,1200)}));
+    expect(team1Response?.status()).toBe(200);
     await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
-    await expect(page.getByText('Team 1',{exact:true}).first()).toBeVisible();
-    await expect(page.getByText('Team 2',{exact:true}).first()).toBeVisible();
-    await expect(page.getByTitle('Not a member of this cohort')).toContainText('Team 2');
-    await expect(page.getByRole('link',{name:/Team 2/i})).toHaveCount(0);
+    const activeCohort=page.locator('nav[aria-label="Open project cohorts"] a[aria-current="page"]:visible');
+    await expect(activeCohort).toContainText('Team 1');
+    const lockedCohort=page.locator('nav[aria-label="Open project cohorts"] [title="Not a member of this cohort"]:visible');
+    await expect(lockedCohort).toContainText('Team 2');
+    await expect(page.locator('nav[aria-label="Open project cohorts"] a').filter({hasText:'Team 2'})).toHaveCount(0);
 
     const forbidden=await page.goto(`/member/projects/${labProjectId}?run=${labTeam2RunId}`,{waitUntil:'domcontentloaded'});
     expect(forbidden?.status()).toBe(404);

@@ -23,16 +23,29 @@ The `verify` job uses Node 22 and runs:
 3. interaction and regression-coverage audits
 4. project-interest and phase/domain contract audits
 5. Chromium installation
-6. `npm run test:regression`
-7. the production build (including deployment-configuration and interaction prechecks)
+6. `npm run test:phase1-browser`
+7. `npm run test:regression`
+8. the production build (including deployment-configuration and interaction prechecks)
 
-On failure it uploads the interaction audit artifact when available.
+On failure it uploads the interaction audit artifact when available. The Phase 1 browser acceptance suite is now part of the required fast gate rather than an optional/manual layer.
 
 #### Staging submission journeys
 
-The `staging-e2e` job runs for pushes and same-repository pull requests (not untrusted forks). It requires the complete `E2E_*` secret set, installs Chromium, and runs authenticated smoke plus database-backed staging submissions with one worker. Failure evidence is retained for seven days.
+The `staging-e2e` job runs for pushes and same-repository pull requests (not untrusted forks). It no longer requires a paid hosted Supabase staging project or repository `E2E_*` secrets.
 
-The config guard rejects missing values, production origins/projects, and unsafe credentials before the suite mutates data. Test records use dedicated accounts/markers and must be cleaned up.
+Instead, the job uses the official Supabase CLI to create an isolated local Supabase stack inside the GitHub runner:
+
+1. `scripts/prepare-local-supabase.mjs` builds an ephemeral `.supabase-ci/` workdir and normalizes the historical baseline migration ordering for a clean boot.
+2. `supabase start` launches local Postgres, Auth and Storage using Docker.
+3. The generated local API URL, anon key and service-role key are exported only inside the job.
+4. `scripts/setup-local-e2e.mjs` creates separate disposable member, Project Architect and Admin identities, one public project and one published career role.
+5. Mettelo starts locally at `127.0.0.1:3000` against the disposable Supabase instance.
+6. `npm run test:e2e:staging` runs authenticated smoke plus database-backed submission journeys with one worker.
+7. The stack is destroyed with `supabase stop --no-backup` even when tests fail.
+
+The config guard rejects the known Production Supabase project. When `CI_LOCAL_SUPABASE=1`, it additionally requires a loopback Supabase hostname. The committed local fixture emails/passwords are intentionally non-secret because they exist only for the disposable runner-local Auth service and must never be reused on a hosted environment.
+
+Failure evidence is retained for seven days, including Playwright output, the local Mettelo server log and the generated migration manifest when available.
 
 #### Release gate
 
@@ -50,22 +63,33 @@ The project ref is currently present in workflow/script configuration. Treat it 
 | --- | --- | --- |
 | `npm run test:forms` | `tests/form-route-contracts.spec.ts` | Form UI, payload, validation, and route contracts |
 | `npm run test:regression` | form contracts + `tests/critical-ui.spec.ts` | Critical public UI, mobile menu, routes, and forms |
-| `npm run test:phase1-browser` | `tests/phase1-browser.spec.ts` | Full Phase 1 auth/onboarding responsive browser acceptance |
+| `npm run test:phase1-browser` | `tests/phase1-browser.spec.ts` | Full Phase 1 auth/onboarding responsive browser acceptance; required in CI |
 | `npm run test:e2e:smoke` | `tests/authenticated-smoke.spec.ts` | Member, Architect, and Admin protected-route checks |
-| `npm run test:e2e:staging` | authenticated smoke + staging journeys | Browser → API → database → Admin queue → notification evidence |
+| `npm run test:e2e:staging` | authenticated smoke + staging journeys | Browser → API → isolated database → Admin queue → notification evidence |
 
-Playwright enables full parallel execution, one retry, and four CI/two local workers for standard tests. The staging command overrides to one worker to keep destructive fixtures deterministic. When `E2E_BASE_URL` is absent, Playwright starts the local Next.js dev server at `127.0.0.1:3000`; a remote E2E URL disables that web server.
+Playwright enables full parallel execution, one retry, and four CI/two local workers for standard tests. The staging command overrides to one worker to keep destructive fixtures deterministic. In CI, Mettelo is started explicitly against the local Supabase stack before the E2E command runs.
 
-The Phase 1 browser suite is not currently included in `npm run test:regression` or the CI workflow. See [Open issues](OPEN-ISSUES.md#p1-phase-1-browser-gate-is-not-part-of-ci).
+## Supabase CI compatibility baseline
+
+The hosted database contains several tables and the private `career-cvs` bucket that pre-date the repository's canonical migration history. A clean local stack also exposed historical migration ordering: the launch-readiness and product-core files use older 8-digit names even though later 14-digit migrations depend on them.
+
+`scripts/prepare-local-supabase.mjs` solves that only for the disposable CI environment by:
+
+- copying `20260809_launch_readiness.sql` to an early normalized timestamp;
+- copying `20260809_product_core.sql` immediately after it;
+- inserting the version-controlled `supabase/ci/20260809020000_missing_hosted_baseline.sql` compatibility layer;
+- then copying the remainder of the canonical migration directory unchanged.
+
+This keeps Production untouched and makes CI reproducible, but it does not rewrite hosted migration history. The canonical reconciliation remains tracked in [Open issues](OPEN-ISSUES.md#p0-canonical-supabase-migration-history-still-needs-reconciliation).
 
 ## Vercel flow
 
 Expected operating model (external settings must be confirmed):
 
 1. Push a feature branch and open a pull request.
-2. GitHub Actions runs the fast and staging gates.
+2. GitHub Actions runs the fast and isolated submission gates.
 3. Vercel creates a Preview deployment with Preview-scoped environment variables.
-4. Verify the affected journey on Preview/staging, including Admin/data evidence where applicable.
+4. Verify the affected UI journey on Preview where relevant; database-destructive acceptance remains inside isolated CI unless an approved non-production hosted environment exists.
 5. Merge only when the required release gate is green.
 6. Vercel builds `main` as Production using Production-scoped variables.
 7. Run read-only Production smoke checks; do not submit destructive fixtures to Production.
@@ -76,19 +100,20 @@ Vercel Cron invokes the routes listed in [Architecture](ARCHITECTURE.md#schedule
 
 | Environment | Supabase | Data rule | Credentials |
 | --- | --- | --- | --- |
-| Local | Local or dedicated development project | Never silently point destructive tests at Production | `.env.local`, never committed |
-| Preview/staging | Dedicated Supabase project/branch | Disposable accounts and test-tagged records; migrations match branch | Vercel Preview variables + GitHub `E2E_*` secrets |
+| Local developer | Local Supabase CLI stack or an explicitly approved development project | Never silently point destructive tests at Production | `.env.local`, never committed |
+| Pull-request release E2E | Ephemeral local Supabase stack inside GitHub Actions | Disposable runner-local accounts and test-tagged records only; stack destroyed after job | Generated local keys + local-only fixture credentials |
+| Vercel Preview | Preview deployment using Preview-scoped runtime variables | UI/read-path verification; no destructive Production data tests | Vercel Preview variables |
 | Production | Production Supabase project | Read-only smoke unless a specifically approved synthetic journey exists | Vercel Production variables |
 
-A single Supabase project/environment uses one service-role key. Forms do not need separate service-role keys. Rotate the key if exposed, update every server/CI consumer, and redeploy.
+A single Supabase project/environment uses one service-role key. Forms do not need separate service-role keys. Rotate a hosted key if exposed, update every server/CI consumer that genuinely uses that hosted environment, and redeploy.
 
 ## Pre-merge checklist
 
 - Documentation and a decision entry are included when architecture/behavior changed.
 - Migration and RLS changes are versioned and advisor-reviewed.
-- `npm ci`, lint, typecheck, audits, regression tests, and build pass.
-- Credentialed staging journey passes for any form, auth, queue, notification, or protected-role change.
-- Preview is checked at mobile, tablet, and desktop widths, keyboard-only, and relevant error states.
+- `npm ci`, lint, typecheck, audits, Phase 1 browser acceptance, regression tests, and build pass.
+- Isolated database-backed journey passes for any form, auth, queue, notification, or protected-role change.
+- Preview is checked at mobile, tablet, and desktop widths, keyboard-only, and relevant error states when the change is visual/interactive.
 - Environment additions appear in `.env.example` without values.
 - Rollback impact is described in the PR.
 
@@ -107,7 +132,7 @@ A single Supabase project/environment uses one service-role key. Forms do not ne
 2. Do not run a destructive reverse migration against Production from memory.
 3. Prefer a reviewed forward/compensating migration that preserves rows and restores compatibility.
 4. If an application rollback expects an older schema, confirm forward/backward compatibility before promoting it.
-5. Run Supabase security/performance advisors and the staging journey before Production.
+5. Run Supabase security/performance advisors and the isolated submission journey before Production.
 
 ### Secret/configuration incident
 

@@ -28,8 +28,8 @@ const checks=[
   ['components/ProjectTeamRoster.tsx',['COHORTS','Final Proof delegate','profile photo','cohortSwitcher','is_member','lockedCohort','Not a member','initialOverview']],
   ['app/api/project-team-overview/route.ts',['resolveProjectTeamOverview','Project membership is required.']],
   ['lib/project-team-overview.ts',['ownRunIds','readableRuns','readableRunIds','is_member:isMember','members:isMember?']],
-  ['components/MetteloLabPanel.tsx',['resolveProjectTeamOverview','MetteloLabClient','teamOverview']],
-  ['components/MetteloLabClient.tsx',['METTELO LAB','YOUR NEXT ACTION','TEAM & ROLE SUMMARY','RECENT TEAM ACTIVITY','Go to Conversation →','grid-template-columns:repeat(2,minmax(0,1fr))','min-height:44px']],
+  ['components/MetteloLabPanel.tsx',['resolveProjectTeamOverview','METTELO LAB','Open project cohorts','Not a member of this cohort','teamOverview','MetteloLabPanel.module.css']],
+  ['components/MetteloLabPanel.module.css',['grid-template-columns:repeat(2,minmax(0,1fr))','min-height:44px','@media(max-width:480px)']],
   ['app/member/projects/[id]/layout.tsx',['Mettelo Lab','href="#mettelo-lab"','Move through the project with confidence.','Collaborate with your cohort and see what to do next.']],
   ['app/member/projects/[id]/page.tsx',['MetteloLabPanel','reviewSlot','href="#mettelo-lab">Mettelo Lab','recentDiscussions']],
   ['components/AdminCompletionRequirements.tsx',['Verified presentation required','Published GitHub repository required','Final Proof / deliverable URL required']],
@@ -51,6 +51,8 @@ const page=fs.readFileSync('app/member/projects/[id]/page.tsx','utf8');
 if(layout.includes('href="#team">Team')||page.includes('href="#team">Team')){console.error('The branded project navigation destination must be Mettelo Lab, not Team.');failed=true;}
 const teamResolver=fs.readFileSync('lib/project-team-overview.ts','utf8');
 if(teamResolver.includes(".in('project_run_id',runIds)")){console.error('Team overview must not load every cohort roster for an ordinary project member.');failed=true;}
+const labPanel=fs.readFileSync('components/MetteloLabPanel.tsx','utf8');
+if(labPanel.includes('MetteloLabClient')){console.error('Mettelo Lab secure cohort roster must remain server-rendered and outside a hydration-owned client boundary.');failed=true;}
 
 const openRuns=[{run_number:1,status:'active',has_started:true,filled:3,required:3},{run_number:2,status:'forming',has_started:false,filled:1,required:3}];
 const recruiting=openRuns.filter(run=>run.status==='forming'&&!run.has_started&&run.filled<run.required).sort((a,b)=>a.run_number-b.run_number)[0];

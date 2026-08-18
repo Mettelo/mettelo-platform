@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 const read=(path)=>fs.existsSync(path)?fs.readFileSync(path,'utf8'):'';
-const signin=read('app/signin/page.tsx');
+const signin=[read('app/signin/page.tsx'),read('app/signin/AuthAccountClient.tsx'),read('app/signin/signin.css')].join('\n');
 const callback=read('app/auth/callback/route.ts');
 const socialComplete=read('app/auth/social-complete/page.tsx');
 const checkEmail=read('app/auth/check-email/page.tsx');

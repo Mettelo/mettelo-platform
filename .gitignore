@@ -78,6 +78,9 @@ web_modules/
 .next
 out
 
+# Supabase CLI disposable CI workdir
+.supabase-ci/
+
 # Nuxt.js build / generate output
 .nuxt
 dist

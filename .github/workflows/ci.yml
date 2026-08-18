@@ -194,7 +194,7 @@ jobs:
   deployment-gate:
     name: Deployment gate
     needs: release-gate
-    if: needs.release-gate.result == 'success'
+    if: always() && needs.release-gate.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Confirm release is eligible for deployment validation

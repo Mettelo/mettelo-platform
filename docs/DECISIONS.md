@@ -2,6 +2,30 @@
 
 This is a running record of consequential choices. Add new entries at the top. Do not record a commit message alone: capture the problem, root cause, fix, reasoning, and source.
 
+## Scope Open-project cohort data to membership while preserving cohort awareness
+**Date:** 18 August 2026  
+**Problem:** A Team 1 user could appear able to inspect Team 2. The original screenshot was taken with an account whose project role was Contributor but whose platform role was Admin, making the visual evidence ambiguous. A deeper API audit then found that `/api/project-team-overview` returned every Open-project cohort roster to any project member.  
+**Root cause:** The page route correctly required membership in an explicitly requested run unless the viewer was Admin, but the team-overview API authorized only at project level and then loaded members/profiles for every run. The UI also rendered every returned cohort as an interactive link.  
+**Fix:** Keep Open-project cohort number/status discoverable, but load roster/profile/delegation data only for runs the viewer belongs to unless the viewer is platform Admin. Return `is_member` for each cohort, return an empty `members` array for non-member cohorts, and render those cohorts as static disabled items with “Not a member” microcopy. Leaders and Project Architects remain scoped to their assigned cohort membership by default; project-wide cross-cohort access requires explicit elevated oversight/Admin capability.  
+**Reasoning:** Cohort existence is useful project context, but people/task/evidence data is team-specific. The authorization boundary must be server-side and must not depend on hiding links in the browser.  
+**Author/source:** Product-owner Mettelo Lab specification plus live production role/membership audit, 18 August 2026; branch `feature/mettelo-lab`.
+
+## Consolidate collaboration into Mettelo Lab and trim Overview
+**Date:** 18 August 2026  
+**Problem:** The project workspace mixed project orientation, team identity, next action, data governance, personal contributions, delivery health, duplicated team stats, roster and reviewer content in one long scroll. The most useful orientation item—Next Action—was visually secondary while team/status information appeared twice.  
+**Root cause:** Team context had accumulated across the outer project layout and the inner collaboration page. Neither layer was the single owner of role/team/cohort presentation.  
+**Fix:** Make Overview the high-level Plan → Work → Mettelo Lab → Events → Finish orientation plus project-level Data Governance, My Contributions and Delivery Health. Move Next Action, consolidated role/team stats, cohort switching, roster, recent Conversation preview and reviewer-only evidence queue into Mettelo Lab. Keep full Conversation, Events, resources and delivery controls in their existing dedicated workspace sections.  
+**Reasoning:** One bounded collaboration destination reduces scroll cost and duplication while preserving the existing project-work tools and navigation order.  
+**Author/source:** Product-owner Mettelo Lab specification and live workspace export, 18 August 2026; branch `feature/mettelo-lab`.
+
+## Name the collaborative destination Mettelo Lab
+**Date:** 18 August 2026  
+**Problem:** “Team” described the people but not the broader collaborative space containing cohort context, next action, role clarity, roster and activity. It was also easy to confuse the destination label with literal cohort names such as Team 1 and Team 2.  
+**Root cause:** The workspace navigation label evolved from the roster concept even as the product area expanded into a distinct collaboration experience.  
+**Fix:** Rename only the branded workspace destination from “Team” to **Mettelo Lab**. Preserve literal uses of team/cohort terminology such as Team 1, Team 2, team member counts and role labels. The tab remains in the same navigation position.  
+**Reasoning:** The name creates a recognisable collaborative destination without changing the underlying cohort language or current navigation muscle memory.  
+**Author/source:** Product-owner naming decision, 18 August 2026; branch `feature/mettelo-lab`.
+
 ## Make backend E2E scope-aware and deployment gate strictly last
 **Date:** 18 August 2026  
 **Problem:** Documentation-only and CI-policy changes were blocked by a destructive staging job that could not even start because hosted `E2E_*` credentials were absent. At the same time, deployment eligibility needed an explicit final-stage dependency so it could never run when an earlier required gate failed.  

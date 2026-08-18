@@ -1,0 +1,45 @@
+import type {ReactNode} from 'react';
+import {serviceDb} from '@/lib/project-flow';
+import {resolveProjectTeamOverview,type ProjectTeamOverview,type ProjectTeamOverviewMember} from '@/lib/project-team-overview';
+import {createServerSupabaseClient} from '@/lib/supabase/server';
+import styles from './MetteloLabPanel.module.css';
+
+type TeamMember={id:string;name:string;headline:string|null;role:string};
+type Discussion={id:string;author_user_id:string;body:string;created_at:string};
+type NextTask={title:string;due_at:string|null}|null;
+type NextMeeting={title:string;starts_at:string}|null;
+type Props={projectId:string;projectRunId:string|null;projectTitle:string;projectSummary:string|null;projectType:string;runNumber:number|null;runStatus:string;currentUserId:string;workspaceRole:string;team:TeamMember[];projectArchitectName:string|null;canManageSubmissionPermissions:boolean;completedMilestones:number;totalMilestones:number;completedTasks:number;totalTasks:number;nextTask:NextTask;nextMeeting:NextMeeting;recentDiscussions:Discussion[];reviewSlot?:ReactNode};
+
+function humanise(value:string){return value.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase())}
+function formatDate(value:string){return new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}
+function initials(name:string){return name.split(/\s+/).map(part=>part[0]).join('').slice(0,2).toUpperCase()}
+function roleLabel(role:string){return role==='project_lead'?'Leader':role==='project_architect'?'Architect':role==='reviewer'?'Reviewer':role.replaceAll('_',' ')}
+
+export default async function MetteloLabPanel(props:Props){
+ const db=serviceDb();
+ const auth=await createServerSupabaseClient();
+ const {data:{user}}=await auth.auth.getUser();
+ const isAdmin=user?.id===props.currentUserId&&user.app_metadata?.role==='admin';
+ const fallbackOverview:ProjectTeamOverview={project_type:props.projectType,current_run_id:props.projectRunId,teams:[]};
+ const teamOverview=db?await resolveProjectTeamOverview({db,projectId:props.projectId,userId:props.currentUserId,isAdmin,currentRunId:props.projectRunId})||fallbackOverview:fallbackOverview;
+ const teams=teamOverview.teams;
+ const current=teams.find(team=>team.id===props.projectRunId&&team.is_member)||teams.find(team=>team.is_member)||null;
+ const lead=props.team.find(member=>member.role==='project_lead');
+ const architect=props.projectArchitectName||props.team.find(member=>member.role==='project_architect')?.name||null;
+ const names=new Map(props.team.map(member=>[member.id,member.name]));
+ const noTeam=!props.projectRunId;
+ const actionTitle=noTeam?'Your team is still being formed':props.nextTask?.title||'No task needs your attention yet';
+ const actionCopy=noTeam?'We’ll notify you when you are placed into a cohort.':props.nextTask?(props.nextTask.due_at?`Due ${new Intl.DateTimeFormat('en-GB',{dateStyle:'medium'}).format(new Date(props.nextTask.due_at))}.`:'Open the task to review what is required.'):(props.nextMeeting?`Next team event: ${props.nextMeeting.title} · ${formatDate(props.nextMeeting.starts_at)}`:'Your Project Lead will notify you when the next action is ready.');
+ const actionHref=noTeam?'#team':props.nextTask?'#delivery':props.nextMeeting?'#meetings':'#team';
+ const actionLabel=noTeam?'View team status':props.nextTask?'Open my tasks':props.nextMeeting?'View next event':'View team';
+ return <section className={styles.metteloLab} id="mettelo-lab" aria-labelledby="mettelo-lab-title">
+  <header className={styles.labHeader}><span className={styles.labEyebrow}>METTELO LAB</span><h2 id="mettelo-lab-title">{props.projectTitle}</h2><p>Your team, your role, and what to do next.</p></header>
+  <section className={styles.nextAction} aria-labelledby="lab-next-action"><div><span className={styles.labLabel}>YOUR NEXT ACTION</span><h3 id="lab-next-action">{actionTitle}</h3><p>{actionCopy}</p></div><a className={styles.labButton} href={actionHref}>{actionLabel}</a></section>
+  <section className={styles.summary} aria-labelledby="lab-summary-title"><div className={styles.sectionTitle}><span className={styles.labLabel}>TEAM & ROLE SUMMARY</span><h3 id="lab-summary-title">At a glance</h3></div><div className={styles.summaryGrid}><Stat label="Your role" value={humanise(props.workspaceRole)}/><Stat label="Project Lead" value={lead?.name||'Not assigned yet'}/><Stat label="Project Architect" value={architect||'Not assigned yet'}/><Stat label="Team status" value={humanise(props.runStatus)}/><Stat label="Milestones" value={`${props.completedMilestones}/${props.totalMilestones}`}/><Stat label="Tasks done" value={`${props.completedTasks}/${props.totalTasks}`}/></div></section>
+  <section className={styles.teamRoster} id="team" aria-labelledby="team-roster-title"><div className={styles.panelHead}><div><span className={styles.cardNumber}>{teamOverview.project_type==='open'?'COHORTS':'TEAM'}</span><h3 id="team-roster-title">People working on this project</h3></div><span className={styles.chip}>{teamOverview.project_type==='open'?`${teams.length} TEAMS`:`${current?.members.length||0} MEMBERS`}</span></div>{teamOverview.project_type==='open'&&teams.length>1&&<nav className={styles.cohortSwitcher} aria-label="Open project cohorts">{teams.map(team=>team.is_member?<a key={team.id} aria-current={team.id===current?.id?'page':undefined} href={`?run=${team.id}#team`}>Team {team.run_number}<small>{humanise(team.status)}</small></a>:<span className={styles.lockedCohort} key={team.id} aria-disabled="true" title="Not a member of this cohort">Team {team.run_number}<small>{humanise(team.status)} · Not a member</small></span>)}</nav>}{current?<><div className={styles.teamMeta}><span><strong>Team {current.run_number}</strong> · {humanise(current.status)}</span><span>{current.members.length}/{current.required_team_size??current.members.length} members</span></div><div className={styles.teamGrid}>{current.members.length?current.members.map(member=><RosterMember key={member.id} member={member} currentUserId={props.currentUserId} canManageSubmissionPermissions={props.canManageSubmissionPermissions}/>):<div className={styles.labEmpty}><strong>You’re the first member of this team.</strong><p>Other approved members will appear here as the cohort fills.</p></div>}</div></>:<div className={styles.labEmpty}><strong>Teams will appear here once you are placed.</strong><p>You can see project cohorts, but roster details are available only for the cohort you belong to.</p></div>}</section>
+  <section className={styles.activity} aria-labelledby="lab-activity-title"><div className={styles.sectionTitle}><span className={styles.labLabel}>RECENT TEAM ACTIVITY</span><h3 id="lab-activity-title">Latest from Conversation</h3></div>{props.recentDiscussions.length?<div className={styles.activityList}>{props.recentDiscussions.slice(0,3).map(item=><article key={item.id}><strong>{names.get(item.author_user_id)||'Mettelo member'}</strong><p>{item.body}</p><small>{formatDate(item.created_at)}</small></article>)}</div>:<div className={styles.labEmpty}><strong>No team activity yet.</strong><p>Conversation updates will appear here once your team starts collaborating.</p></div>}<a className={styles.labLink} href="#discussion">Go to Conversation →</a></section>
+  {props.reviewSlot}
+ </section>;
+}
+function Stat({label,value}:{label:string;value:string}){return <div className={styles.stat}><strong>{value}</strong><span>{label}</span></div>}
+function RosterMember({member,currentUserId,canManageSubmissionPermissions}:{member:ProjectTeamOverviewMember;currentUserId:string;canManageSubmissionPermissions:boolean}){return <article className={styles.teamMember}>{member.avatar_url?<span className={`${styles.personAvatar} ${styles.personAvatarPhoto}`} style={{backgroundImage:`url(${member.avatar_url})`}} aria-label={`${member.name} profile photo`}/>:<span className={styles.personAvatar} aria-hidden="true">{initials(member.name)}</span>}<div><strong>{member.name}</strong><div className={styles.memberBadges}><span>{roleLabel(member.role)}</span><span>{humanise(member.status)}</span>{member.can_submit_final_proof&&<span>Final Proof delegate</span>}</div>{member.headline&&<small>{member.headline}</small>}{canManageSubmissionPermissions&&member.id!==currentUserId&&<a className={styles.permissionLink} href="#completion">Manage permissions</a>}</div></article>}

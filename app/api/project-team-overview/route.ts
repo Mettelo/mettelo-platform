@@ -1,8 +1,17 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
+import {resolveProjectTeamOverview} from '@/lib/project-team-overview';
 
 export async function GET(request:Request){
- const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});const url=new URL(request.url),projectId=url.searchParams.get('project_id')||'',runId=url.searchParams.get('project_run_id')||'';if(!projectId)return NextResponse.json({error:'Project is required.'},{status:400});const db=serviceDb();if(!db)return NextResponse.json({error:'Project service is not configured.'},{status:503});const {data:own}=await db.from('project_members').select('id').eq('project_id',projectId).eq('user_id',user.id).limit(1).maybeSingle();if(!own&&user.app_metadata?.role!=='admin')return NextResponse.json({error:'Project membership is required.'},{status:403});
- const [{data:project},{data:runs}]=await Promise.all([db.from('projects').select('id,project_type,title').eq('id',projectId).maybeSingle(),db.from('project_runs').select('id,run_number,status,required_team_size,has_started').eq('project_id',projectId).order('run_number',{ascending:true})]);if(!project)return NextResponse.json({error:'Project not found.'},{status:404});const visibleRuns=project.project_type==='partner'?(runs||[]).slice(0,1):(runs||[]);const runIds=visibleRuns.map(run=>run.id);const {data:members}=runIds.length?await db.from('project_members').select('project_run_id,user_id,team_role,membership_status').in('project_run_id',runIds).in('membership_status',['waiting','active','completed']):{data:[]};const userIds=[...new Set((members||[]).map(member=>member.user_id))];const {data:profiles}=userIds.length?await db.from('profiles').select('id,full_name,headline,avatar_url').in('id',userIds):{data:[]};const map=new Map((profiles||[]).map(profile=>[profile.id,profile]));const {data:permissions}=runIds.length?await db.from('project_submission_permissions').select('project_run_id,user_id,granted_by_user_id,granted_at').in('project_run_id',runIds).is('revoked_at',null):{data:[]};const teams=visibleRuns.map(run=>({id:run.id,run_number:run.run_number,status:run.status,required_team_size:run.required_team_size,has_started:run.has_started,members:(members||[]).filter(member=>member.project_run_id===run.id).map(member=>({id:member.user_id,name:map.get(member.user_id)?.full_name||'Mettelo member',headline:map.get(member.user_id)?.headline||null,avatar_url:map.get(member.user_id)?.avatar_url||null,role:member.team_role,status:member.membership_status,can_submit_final_proof:(permissions||[]).some(permission=>permission.project_run_id===run.id&&permission.user_id===member.user_id)}))}));return NextResponse.json({project_type:project.project_type,current_run_id:runId||null,teams});
+ const auth=await createServerSupabaseClient();
+ const {data:{user}}=await auth.auth.getUser();
+ if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});
+ const url=new URL(request.url),projectId=url.searchParams.get('project_id')||'',runId=url.searchParams.get('project_run_id')||'';
+ if(!projectId)return NextResponse.json({error:'Project is required.'},{status:400});
+ const db=serviceDb();
+ if(!db)return NextResponse.json({error:'Project service is not configured.'},{status:503});
+ const overview=await resolveProjectTeamOverview({db,projectId,userId:user.id,isAdmin:user.app_metadata?.role==='admin',currentRunId:runId||null});
+ if(!overview)return NextResponse.json({error:'Project membership is required.'},{status:403});
+ return NextResponse.json(overview);
 }

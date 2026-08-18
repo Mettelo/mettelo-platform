@@ -8,7 +8,7 @@ const groups=[
   {key:'overview',label:'Overview',description:'Status, progress and the next place to work.',areas:[]},
   {key:'plan',label:'Plan',description:'Define the problem and governed data sources.',areas:[['problem','Problem'],['data-sources','Data']]},
   {key:'work',label:'Work',description:'Organise workstreams, tasks and reviewed deliverables.',areas:[['workstreams','Workstreams'],['delivery','Tasks'],['deliverables','Deliverables']]},
-  {key:'team',label:'Team',description:'Collaborate with the team and share project resources.',areas:[['team','Members'],['discussion','Discussion'],['resources','Resources']]},
+  {key:'team',label:'Mettelo Lab',description:'Collaborate with your cohort and see what to do next.',areas:[['mettelo-lab','Lab'],['discussion','Conversation'],['resources','Resources']]},
   {key:'events',label:'Events',description:'Run working sessions, reviews and final presentations.',areas:[['meetings','Schedule & sessions'],['presentation','Final presentation']]},
   {key:'finish',label:'Finish',description:'Complete verified Proof and project close-out.',areas:[['proof','Proof'],['completion','Completion']]},
 ] as const;
@@ -82,7 +82,7 @@ export default function WorkspaceRouteTabs({preview=false}:{preview?:boolean}={}
         <div><span className="cardNumber">PROJECT WORKSPACE</span><h3 style={{marginTop:8}}>Move through the project with confidence.</h3></div>
         <span className="chip">5 WORK AREAS</span>
       </div>
-      <p className="routedWorkspaceIntro">Start with the plan, organise the work, collaborate with the team, run project events and finish with verified Proof.</p>
+      <p className="routedWorkspaceIntro">Start with the plan, organise the work, collaborate in Mettelo Lab, run project events and finish with verified Proof.</p>
       <div className="routedWorkspaceGrid">{groups.slice(1).map(group=><Link className="workspaceOverviewCard" href={hrefFor(group.key,group.areas[0]?.[0])} key={group.key}><span className="workspaceCardIndex">0{groups.findIndex(item=>item.key===group.key)}</span><span><strong>{group.label}</strong><small>{group.description}</small></span><span className="workspaceCardArrow" aria-hidden="true">→</span></Link>)}</div>
     </section>}
     <style jsx>{`

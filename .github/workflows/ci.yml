@@ -146,7 +146,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.111.0
       - name: Prepare isolated Supabase migration set
         run: node scripts/prepare-local-supabase.mjs
       - name: Start isolated Supabase stack

@@ -34,7 +34,7 @@ update public.communication_templates set allow_attachments=true
 where template_key in ('career_offer','career_interview','career_hired','project_completed');
 
 insert into public.communication_templates(template_key,journey,name,description,send_mode,subject_template,body_template,cta_label,cta_url_template,variables,active,version,allow_attachments)
-values('project_application_terms','Projects','Project application terms','Governed participation terms referenced by every future project application.','manual','Project Participation Terms','Read the current Project Participation Terms before submitting a project application.',null,null,array[]::text[],true,1,true)
+values('project_application_terms','Projects','Project application terms','Governed participation terms referenced by every future project application.','manual','Project Participation Terms','Read the current Project Participation Terms before submitting a project application.',null,null,'[]'::jsonb,true,1,true)
 on conflict (template_key) do update set allow_attachments=true,active=true;
 
 alter table public.project_applications

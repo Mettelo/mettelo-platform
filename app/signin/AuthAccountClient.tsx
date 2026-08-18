@@ -1,0 +1,65 @@
+'use client';
+
+import {FormEvent,useEffect,useMemo,useState} from 'react';
+import {createClient} from '@/lib/supabase/client';
+
+type Mode='signin'|'signup'|'reset';
+type Status='idle'|'working'|'success'|'error';
+type OAuthProvider='google'|'github';
+type Props={memberCount:number|null};
+
+function safeNext(){if(typeof window==='undefined')return '/member';const value=new URLSearchParams(window.location.search).get('next')||'/member';return value.startsWith('/')&&!value.startsWith('//')?value:'/member'}
+function requestedMode():Mode{if(typeof window==='undefined')return 'signin';const value=new URLSearchParams(window.location.search).get('mode');return value==='signup'||value==='reset'?value:'signin'}
+function authOrigin(){const configured=(process.env.NEXT_PUBLIC_AUTH_CALLBACK_ORIGIN||'').trim().replace(/\/$/,'');if(configured)return configured;return typeof window!=='undefined'?window.location.origin:'https://mettelo-platform.vercel.app'}
+function GoogleIcon(){return <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M21.35 12.2c0-.64-.06-1.25-.17-1.84H12v3.48h5.25a4.48 4.48 0 0 1-1.95 2.94v2.26h3.16c1.85-1.7 2.89-4.22 2.89-6.84Z"/><path fill="currentColor" d="M12 21.5c2.64 0 4.86-.88 6.48-2.38l-3.16-2.26c-.88.59-2 .94-3.32.94-2.55 0-4.71-1.72-5.49-4.03H3.25v2.34A9.8 9.8 0 0 0 12 21.5Z"/><path fill="currentColor" d="M6.51 13.77a5.9 5.9 0 0 1 0-3.54V7.89H3.25a9.8 9.8 0 0 0 0 8.22l3.26-2.34Z"/><path fill="currentColor" d="M12 6.2c1.44 0 2.73.5 3.75 1.47l2.81-2.81A9.42 9.42 0 0 0 3.25 7.89l3.26 2.34C7.29 7.92 9.45 6.2 12 6.2Z"/></svg>}
+function GitHubIcon(){return <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-1.05-.02-1.9-2.78.62-3.37-1.21-3.37-1.21-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.3 9.3 0 0 1 12 6.95a9.3 9.3 0 0 1 2.5.35c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.81-4.58 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.59.69.49A10.03 10.03 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/></svg>}
+function EyeIcon({open}:{open:boolean}){return <svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19"><path d={open?'M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 4.3A10.8 10.8 0 0112 4c5.5 0 9 5 9 5s-1.2 1.7-3.3 3.1M6.2 6.2C4.2 7.5 3 9 3 9s3.5 5 9 5c1 0 2-.2 2.9-.5':'M3 12s3.5-5 9-5 9 5 9 5-3.5 5-9 5-9-5-9-5zm9 2.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z'} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+
+function passwordStrength(value:string){
+  if(!value)return {score:0,label:'Not entered'};
+  let score=0;
+  if(value.length>=8)score++;
+  if(value.length>=12)score++;
+  if(/[a-z]/.test(value)&&/[A-Z]/.test(value))score++;
+  if(/\d/.test(value)&&/[^A-Za-z0-9]/.test(value))score++;
+  const labels=['Weak','Weak','Good','Strong','Strong'];
+  return {score,label:labels[score]};
+}
+
+export default function AuthAccountClient({memberCount}:Props){
+  const [mode,setMode]=useState<Mode>('signin');
+  const [status,setStatus]=useState<Status>('idle');
+  const [message,setMessage]=useState('');
+  const [oauthWorking,setOauthWorking]=useState<OAuthProvider|null>(null);
+  const [signupRecovery,setSignupRecovery]=useState(false);
+  const [showPassword,setShowPassword]=useState(false);
+  const [password,setPassword]=useState('');
+  const configured=useMemo(()=>Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL&&process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),[]);
+  const strength=passwordStrength(password);
+
+  useEffect(()=>{let active=true;const initialMode=requestedMode();setMode(initialMode);const params=new URLSearchParams(window.location.search);const error=params.get('error');if(error){setStatus('error');setMessage(error==='oauth-cancelled'?'Social sign-in was cancelled. You can try again or continue with email.':error==='oauth-failed'?'We could not complete social sign-in. Please try again or continue with email.':error==='expired-link'?(initialMode==='reset'?'This password reset link is invalid, expired, or has already been used. Please request a new reset email.':initialMode==='signup'?'This verification link is invalid or has expired. Please request a new verification email.':'This account link is invalid or has expired. Please request a new email.'):'We could not complete this account request. Please try again or request a new email.')}if(configured){const supabase=createClient();void supabase.auth.getSession().then(({data})=>{if(active&&data.session)window.location.replace(safeNext())}).catch(()=>{})}return()=>{active=false}},[configured]);
+
+  async function signInWithProvider(provider:OAuthProvider){setStatus('idle');setMessage('');setSignupRecovery(false);setOauthWorking(provider);try{if(!configured)throw new Error('Authentication is not available on this deployment. Please contact Mettelo Support.');const supabase=createClient();const socialSignup=mode==='signup';const next=socialSignup?'/onboarding':safeNext();const flow=socialSignup?'social-signup':'oauth';const {error}=await supabase.auth.signInWithOAuth({provider,options:{redirectTo:`${authOrigin()}/auth/callback?flow=${flow}&next=${encodeURIComponent(next)}`}});if(error)throw error}catch(error){setStatus('error');setMessage(error instanceof Error?error.message:'We could not start social sign-in. Please try again.');setOauthWorking(null)}}
+
+  async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();setStatus('working');setMessage('');setSignupRecovery(false);try{if(!configured)throw new Error('Authentication is not available on this deployment. Please contact Mettelo Support.');const form=new FormData(event.currentTarget);const email=String(form.get('email')||'').trim();const submittedPassword=String(form.get('password')||'');const fullName=String(form.get('fullName')||'').trim();const supabase=createClient();const next=safeNext();
+    if(mode==='signup'){
+      const redirect=`${authOrigin()}/auth/callback?flow=signup&next=${encodeURIComponent('/onboarding')}`;
+      const {data,error}=await supabase.auth.signUp({email,password:submittedPassword,options:{data:{full_name:fullName},emailRedirectTo:redirect}});if(error)throw error;
+      if(data.session){window.location.assign('/auth/verified?next=%2Fonboarding');return}
+      if(data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0){setStatus('error');setSignupRecovery(true);setMessage('This email may already have a Mettelo account. For your security, we do not confirm account existence here. You can sign in, continue with the same Google or GitHub account, or reset your password.');return}
+      window.location.assign(`/auth/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent('/onboarding')}`);return;
+    }else if(mode==='reset'){
+      const redirect=`${authOrigin()}/auth/callback?flow=recovery&next=${encodeURIComponent('/auth/update-password')}`;
+      const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:redirect});if(error)throw error;window.location.assign(`/auth/reset-sent?email=${encodeURIComponent(email)}`);return;
+    }else{const {error}=await supabase.auth.signInWithPassword({email,password:submittedPassword});if(error){const code=(error as {code?:string}).code;const detail=error.message.toLowerCase();if(code==='email_not_confirmed'||detail.includes('email not confirmed')){window.location.assign(`/auth/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);return}throw error}window.location.assign(next)}
+  }catch(error){setStatus('error');setMessage(error instanceof Error?error.message:'We could not complete your request. Please try again.')}}
+
+  function switchMode(next:Mode){setMode(next);setStatus('idle');setMessage('');setSignupRecovery(false);setOauthWorking(null);setPassword('');setShowPassword(false);const url=new URL(window.location.href);if(next==='signin')url.searchParams.delete('mode');else url.searchParams.set('mode',next);url.searchParams.delete('error');window.history.replaceState({},'',url)}
+  const socialLabel=mode==='signup'?'Create account with':'Continue with';
+  const title=mode==='signup'?'Create your Mettelo account':mode==='reset'?'Reset your password':'Sign in to My Mettelo';
+
+  const modeTabs=<div className="authModeTabs" role="group" aria-label="Account access options"><button aria-pressed={mode==='signin'} type="button" onClick={()=>switchMode('signin')}>Sign in</button><button aria-pressed={mode==='signup'} type="button" onClick={()=>switchMode('signup')}>Create account</button></div>;
+  const oauth=<><div className="oauthStack"><button className="button authOauthButton" type="button" onClick={()=>signInWithProvider('google')} disabled={oauthWorking!==null}><GoogleIcon/>{oauthWorking==='google'?'Connecting…':`${socialLabel} Google`}</button><button className="button authOauthButton" type="button" onClick={()=>signInWithProvider('github')} disabled={oauthWorking!==null}><GitHubIcon/>{oauthWorking==='github'?'Connecting…':`${socialLabel} GitHub`}</button></div><div className="authDivider" aria-hidden="true"><span/><b>OR CONTINUE WITH EMAIL</b><span/></div></>;
+
+  return <section className="section softSection authPage"><div className="shell formShell authShell"><header className="authIntro"><div className="eyebrow">My Mettelo</div><h1>{title}</h1><p className="lead">Access your profile, applications, projects, and verified Proof from one secure account.</p>{mode==='signup'&&<div className="authProgress"><span>Step 1 of 6</span><small>Account creation · profile setup follows</small></div>}<div className="authDesktopTabs">{modeTabs}</div></header><div className="authMobileOptionsCard">{modeTabs}{mode!=='reset'&&oauth}</div><form className="formCard authFormCard" onSubmit={submit}>{mode!=='reset'&&<div className="authDesktopOauth">{oauth}</div>}{mode==='signup'&&<><label htmlFor="fullName">Full name *</label><input id="fullName" name="fullName" required autoComplete="name"/></>}<label htmlFor="email">Email address *</label><input id="email" name="email" type="email" required autoComplete="email" inputMode="email"/>{mode!=='reset'&&<><div className="authPasswordLabel"><label htmlFor="password">Password *</label>{mode==='signin'&&<button className="authTextLink" type="button" onClick={()=>switchMode('reset')}>Forgot password?</button>}</div><div className="passwordField"><input id="password" name="password" type={showPassword?'text':'password'} minLength={8} required autoComplete={mode==='signup'?'new-password':'current-password'} value={password} onChange={event=>setPassword(event.target.value)} aria-describedby={mode==='signup'?'password-help password-strength':undefined}/><button className="passwordToggle" type="button" onClick={()=>setShowPassword(value=>!value)} aria-label={showPassword?'Hide password':'Show password'}><EyeIcon open={showPassword}/></button></div>{mode==='signup'&&<><p id="password-help" className="passwordHelp">Use at least 8 characters. For stronger security, use a unique password that you do not use elsewhere.</p><div id="password-strength" className="passwordStrength" aria-live="polite"><div className="strengthSegments" aria-hidden="true">{[1,2,3,4].map(segment=><span key={segment} data-active={strength.score>=segment}/>)}</div><span>Password strength: <strong>{strength.label}</strong></span></div></>}</>}{mode==='reset'&&<button className="authTextLink authBackLink" type="button" onClick={()=>switchMode('signin')}>← Back to sign in</button>}{mode==='signup'&&memberCount!==null&&<p className="authTrustLine"><span aria-hidden="true">✓</span><strong>{memberCount.toLocaleString('en-GB')}+</strong> professionals already have a Mettelo profile.</p>}<button className="button dark authSubmit" type="submit" disabled={status==='working'||oauthWorking!==null}>{status==='working'?'Please wait…':mode==='signup'?'Create Mettelo account →':mode==='reset'?'Send reset link →':'Sign in →'}</button>{!configured&&<div className="formStatus error" role="status">Authentication is not currently available on this deployment.</div>}<div className={`formStatus ${status}`} role="status" aria-live="polite">{message}</div>{signupRecovery&&<div className="authRecoveryActions"><button className="button dark" type="button" onClick={()=>switchMode('signin')}>Sign in instead</button><button className="button ghost" type="button" onClick={()=>switchMode('reset')}>Reset password</button></div>}{mode!=='reset'&&<p className="authLegal">By continuing, you agree to the <a href="/terms"><u>Terms of Use</u></a> and acknowledge the <a href="/privacy"><u>Privacy Policy</u></a>.</p>}</form></div></section>;
+}

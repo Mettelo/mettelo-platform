@@ -13,8 +13,10 @@ const checks=[
   ['app/member/applications/page.tsx',['project_application_events','project_run_id','forming_deadline','MemberApplicationTracker','Know exactly what is happening next.','Find another project']],
   ['components/MemberApplicationTracker.tsx',['WHAT THIS MEANS','WHAT HAPPENS NEXT','DO I NEED TO DO SOMETHING?','Application timeline','View history','formationTrack']],
   ['app/api/project-applications/route.ts',['application_deadline','applications_open','team_place_released','waiting_for_team']],
-  ['app/api/admin/applications/route.ts',["project.project_type==='open'","order('run_number',{ascending:true})","cohort_auto_started","project.project_type==='partner'","full&&project.project_type==='open'","required_team_size"]],
+  ['app/api/admin/applications/route.ts',["project.project_type==='open'","order('run_number',{ascending:true})","cohort_auto_started","project.project_type==='partner'","full&&project.project_type==='open'","required_team_size","if(!run&&project.project_type==='open')","if(!run){"]],
   ['app/api/project-team-lifecycle/route.ts',["project.project_type!=='partner'",'Partner projects never auto-start','partner_manual_start','Project Architect','project_lead']],
+  ['app/api/admin/projects/route.ts',['export async function POST','Choose Open Project or Partner Project. Project type cannot be inferred.','Team size required is mandatory.','projectType===\'partner\'','run_number:1','project_type_review_required:false']],
+  ['components/AdminProjectCreateButton.tsx',['Choose project type','Open Project','Partner Project','Team size required','Create private draft']],
   ['components/AdminProjectDetailActions.tsx',['Start Partner project','Team size required','applications_open']],
   ['app/admin/project-operations/projects/[id]/page.tsx',['cohortGrid','Team {run.run_number}','TYPE REVIEW REQUIRED','applications_open','AdminCompletionRequirements']],
   ['app/api/project-final-proof/route.ts',['project_submission_permissions','final_proof_submitted','open_cohort_auto_completed','partner_completion_ready_for_review',"project.project_type==='open'","presentation.status!=='verified'",'delegated:access.delegated']],
@@ -30,10 +32,11 @@ const checks=[
   ['supabase/migrations/20260816010500_restrict_project_application_updates.sql',['applications updatable by admin','public.is_admin()']]
 ];
 let failed=false;
-for(const [file,needles] of checks){
-  if(!fs.existsSync(file)){console.error(`Missing ${file}`);failed=true;continue;}
-  const text=fs.readFileSync(file,'utf8');
-  for(const needle of needles){if(!text.includes(needle)){console.error(`${file}: missing ${needle}`);failed=true;}}
-}
+for(const [file,needles] of checks){if(!fs.existsSync(file)){console.error(`Missing ${file}`);failed=true;continue;}const text=fs.readFileSync(file,'utf8');for(const needle of needles){if(!text.includes(needle)){console.error(`${file}: missing ${needle}`);failed=true;}}}
+const openRuns=[{run_number:1,status:'active',has_started:true,filled:3,required:3},{run_number:2,status:'forming',has_started:false,filled:1,required:3}];
+const recruiting=openRuns.filter(run=>run.status==='forming'&&!run.has_started&&run.filled<run.required).sort((a,b)=>a.run_number-b.run_number)[0];
+if(recruiting?.run_number!==2){console.error('Open project must continue forming a later cohort after an earlier cohort starts.');failed=true;}
+const openShouldStart=(type,current,required,started)=>type==='open'&&!started&&current>=required;
+if(!openShouldStart('open',3,3,false)||openShouldStart('partner',3,3,false)||openShouldStart('open',2,3,false)){console.error('Project team auto-start invariant failed.');failed=true;}
 if(failed)process.exit(1);
 console.log('Phase 2 member/project deterministic audit passed.');

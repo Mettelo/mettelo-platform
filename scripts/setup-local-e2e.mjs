@@ -66,6 +66,16 @@ await db.from('project_members').delete().eq('project_id',projectId).eq('user_id
 const {error:membershipError}=await db.from('project_members').insert({project_id:projectId,project_run_id:team1RunId,user_id:users.member.id,team_role:'contributor',membership_status:'active'});
 if(membershipError)throw membershipError;
 
+const [{data:verifiedProject,error:verifiedProjectError},{data:verifiedMembership,error:verifiedMembershipError},{data:verifiedRun,error:verifiedRunError}]=await Promise.all([
+  db.from('projects').select('id,title,summary,status,project_type,github_url,weekly_commitment,presentation_required').eq('id',projectId).maybeSingle(),
+  db.from('project_members').select('id,team_role,joined_at,project_run_id').eq('project_id',projectId).eq('user_id',users.member.id).eq('project_run_id',team1RunId).in('membership_status',['waiting','active','completed']).maybeSingle(),
+  db.from('project_runs').select('id,run_number,status').eq('id',team1RunId).eq('project_id',projectId).maybeSingle()
+]);
+if(verifiedProjectError)throw verifiedProjectError;
+if(verifiedMembershipError)throw verifiedMembershipError;
+if(verifiedRunError)throw verifiedRunError;
+if(!verifiedProject||!verifiedMembership||!verifiedRun)throw new Error('Scoped E2E project fixture failed exact workspace-gate verification.');
+
 const {error:careerError}=await db.from('career_roles').upsert({
   slug:'e2e-local-quality-role',
   title:'E2E Quality Role',
@@ -84,4 +94,4 @@ const {error:careerError}=await db.from('career_roles').upsert({
 },{onConflict:'slug'});
 if(careerError)throw careerError;
 
-console.log('Created isolated local E2E identities and deterministic fixture records.');
+console.log('Created and verified isolated local E2E identities and deterministic fixture records.');

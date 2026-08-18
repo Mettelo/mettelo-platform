@@ -132,15 +132,11 @@ test.describe.serial('staging submission journeys',()=>{
     const {data:users,error:userError}=await db.auth.admin.listUsers({page:1,perPage:1000});if(userError)throw userError;
     const member=users.users.find(user=>user.email?.toLowerCase()===memberEmail.toLowerCase());
     if(!member)throw new Error('E2E member account was not found in the staging Supabase project.');
-    const {data:projects,error:projectError}=await db.from('projects').select('id,title,status,visibility').eq('visibility','public').in('status',['pilot','recruiting','open','forming','active','review']).limit(20);if(projectError)throw projectError;
-    let project:{id:string;title:string}|null=null;
-    for(const candidate of projects||[]){
-      const {data:existing}=await db.from('project_applications').select('id,contribution_statement').eq('project_id',candidate.id).eq('user_id',member.id).neq('status','withdrawn');
-      const disposable=(existing||[]).filter(row=>String(row.contribution_statement||'').startsWith('[E2E:'));
-      for(const row of disposable)await db.from('project_applications').delete().eq('id',row.id);
-      if((existing||[]).length===disposable.length){project=candidate;break;}
-    }
-    if(!project)throw new Error('No staging project is available for the disposable member account. Add a public E2E fixture project.');
+    const {data:project,error:projectError}=await db.from('projects').select('id,title,status,visibility').eq('slug','e2e-local-release-project').eq('visibility','public').single();if(projectError)throw projectError;
+    const {data:existing,error:existingError}=await db.from('project_applications').select('id,contribution_statement').eq('project_id',project.id).eq('user_id',member.id).neq('status','withdrawn');if(existingError)throw existingError;
+    const disposable=(existing||[]).filter(row=>String(row.contribution_statement||'').startsWith('[E2E:'));
+    for(const row of disposable)await db.from('project_applications').delete().eq('id',row.id);
+    if((existing||[]).length!==disposable.length)throw new Error('The deterministic E2E project already has a non-disposable application for the local member fixture.');
 
     const memberContext=await browser.newContext({baseURL:baseURL()});
     const memberPage=await newAppContext(memberContext);
@@ -149,7 +145,7 @@ test.describe.serial('staging submission journeys',()=>{
       const result=await fetch('/api/project-applications',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
       return{status:result.status,body:await result.json()};
     },{project_id:project.id,application_kind:'interest',requested_role:'Quality assurance',contribution_statement:`${marker} can protect the project application workflow from regressions.`,availability:'E2E only'});
-    expect(response.status).toBe(200);
+    expect(response.status,JSON.stringify(response.body)).toBe(200);
     const applicationId=String(response.body.application?.id||'');expect(applicationId).not.toBe('');created.projectApplicationIds.push(applicationId);
     await memberContext.close();
 
@@ -166,8 +162,8 @@ test.describe.serial('staging submission journeys',()=>{
 
   test('career application survives review, persists, appears in admin and records communication',async({browser})=>{
     const db=serviceDb();
-    const {data:role,error}=await db.from('career_roles').select('id,slug,title,application_questions').eq('status','published').order('published_at',{ascending:false}).limit(1).maybeSingle();if(error)throw error;
-    if(!role)throw new Error('No published career role exists in staging. Seed one E2E fixture role.');
+    const {data:role,error}=await db.from('career_roles').select('id,slug,title,application_questions').eq('slug','e2e-local-quality-role').eq('status','published').maybeSingle();if(error)throw error;
+    if(!role)throw new Error('The deterministic published E2E career role is missing.');
     const email=`${runId}-career@example.test`;
     const context=await browser.newContext({baseURL:baseURL()});
     const page=await newAppContext(context);

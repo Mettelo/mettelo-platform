@@ -21,7 +21,7 @@ const checks=[
   ['app/api/admin/careers/onboarding/route.ts',['career_onboarding_items','career_onboarding_updated','Admin access required']],
   ['app/api/admin/communications/documents/route.ts',['application/pdf','10*1024*1024','career-offer-documents','MAX_EMAIL_ATTACHMENTS','offer_document_attached','export async function DELETE','offer_document_removed']],
   ['app/api/careers/offer-documents/[id]/route.ts',['application?.user_id!==user.id','createSignedUrl','60']],
-  ['lib/email-attachments.ts',['MAX_EMAIL_ATTACHMENTS=4','MAX_EMAIL_ATTACHMENT_RAW_BYTES=28*1024*1024','templateKey===\'career_offer\'','career_offer_documents','career-offer-documents','toString(\'base64\')']],
+  ['lib/email-attachments.ts',['MAX_EMAIL_ATTACHMENTS=4','MAX_EMAIL_ATTACHMENT_RAW_BYTES=28*1024*1024',"item.template_key!=='career_offer'",'career_offer_documents','career-offer-documents','toString(\'base64\')']],
   ['lib/notifications.ts',['resolveEmailAttachments','attachments:attachments.length?attachments:undefined']],
   ['lib/career-notifications.ts',['careerMessageForDb','resolveCommunication','sendCareerEmail','notifyUser']],
   ['app/submitted/page.tsx',['career_application','APPLICATION RECEIVED','WHAT HAPPENS NEXT','Sign in to track']],

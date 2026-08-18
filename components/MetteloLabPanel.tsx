@@ -1,37 +1,12 @@
-import type {ReactNode} from 'react';
-import ProjectTeamRoster from '@/components/ProjectTeamRoster';
+import MetteloLabClient,{type MetteloLabClientProps} from '@/components/MetteloLabClient';
 import {serviceDb} from '@/lib/project-flow';
 import {resolveProjectTeamOverview,type ProjectTeamOverview} from '@/lib/project-team-overview';
 
-type TeamMember={id:string;name:string;headline:string|null;role:string};
-type Discussion={id:string;author_user_id:string;body:string;created_at:string};
-type NextTask={title:string;due_at:string|null}|null;
-type NextMeeting={title:string;starts_at:string}|null;
-
-type Props={projectId:string;projectRunId:string|null;projectTitle:string;projectSummary:string|null;projectType:string;runNumber:number|null;runStatus:string;currentUserId:string;workspaceRole:string;team:TeamMember[];projectArchitectName:string|null;canManageSubmissionPermissions:boolean;completedMilestones:number;totalMilestones:number;completedTasks:number;totalTasks:number;nextTask:NextTask;nextMeeting:NextMeeting;recentDiscussions:Discussion[];reviewSlot?:ReactNode};
-function humanise(value:string){return value.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase())}
-function formatDate(value:string){return new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}
+type Props=Omit<MetteloLabClientProps,'teamOverview'>;
 
 export default async function MetteloLabPanel(props:Props){
- const lead=props.team.find(member=>member.role==='project_lead');
- const architect=props.projectArchitectName||props.team.find(member=>member.role==='project_architect')?.name||null;
- const names=new Map(props.team.map(member=>[member.id,member.name]));
- const noTeam=!props.projectRunId;
- const actionTitle=noTeam?'Your team is still being formed':props.nextTask?.title||'No task needs your attention yet';
- const actionCopy=noTeam?'We’ll notify you when you are placed into a cohort.':props.nextTask?(props.nextTask.due_at?`Due ${new Intl.DateTimeFormat('en-GB',{dateStyle:'medium'}).format(new Date(props.nextTask.due_at))}.`:'Open the task to review what is required.'):(props.nextMeeting?`Next team event: ${props.nextMeeting.title} · ${formatDate(props.nextMeeting.starts_at)}`:'Your Project Lead will notify you when the next action is ready.');
- const actionHref=noTeam?'#team':props.nextTask?'#delivery':props.nextMeeting?'#meetings':'#team';
- const actionLabel=noTeam?'View team status':props.nextTask?'Open my tasks':props.nextMeeting?'View next event':'View team';
  const db=serviceDb();
  const fallbackOverview:ProjectTeamOverview={project_type:props.projectType,current_run_id:props.projectRunId,teams:[]};
  const teamOverview=db?await resolveProjectTeamOverview({db,projectId:props.projectId,userId:props.currentUserId,isAdmin:props.workspaceRole==='admin',currentRunId:props.projectRunId})||fallbackOverview:fallbackOverview;
- return <section className="metteloLab" id="mettelo-lab" aria-labelledby="mettelo-lab-title">
-  <header className="labHeader"><span className="labEyebrow">METTELO LAB</span><h2 id="mettelo-lab-title">{props.projectTitle}</h2><p>Your team, your role, and what to do next.</p></header>
-  <section className="nextAction" aria-labelledby="lab-next-action"><div><span className="labLabel">YOUR NEXT ACTION</span><h3 id="lab-next-action">{actionTitle}</h3><p>{actionCopy}</p></div><a className="labButton" href={actionHref}>{actionLabel}</a></section>
-  <section className="summary" aria-labelledby="lab-summary-title"><div className="sectionTitle"><span className="labLabel">TEAM & ROLE SUMMARY</span><h3 id="lab-summary-title">At a glance</h3></div><div className="summaryGrid"><Stat label="Your role" value={humanise(props.workspaceRole)}/><Stat label="Project Lead" value={lead?.name||'Not assigned yet'}/><Stat label="Project Architect" value={architect||'Not assigned yet'}/><Stat label="Team status" value={humanise(props.runStatus)}/><Stat label="Milestones" value={`${props.completedMilestones}/${props.totalMilestones}`}/><Stat label="Tasks done" value={`${props.completedTasks}/${props.totalTasks}`}/></div></section>
-  <ProjectTeamRoster projectId={props.projectId} projectRunId={props.projectRunId} currentUserId={props.currentUserId} canManageSubmissionPermissions={props.canManageSubmissionPermissions} initialOverview={teamOverview}/>
-  <section className="activity" aria-labelledby="lab-activity-title"><div className="sectionTitle"><span className="labLabel">RECENT TEAM ACTIVITY</span><h3 id="lab-activity-title">Latest from Conversation</h3></div>{props.recentDiscussions.length?<div className="activityList">{props.recentDiscussions.slice(0,3).map(item=><article key={item.id}><strong>{names.get(item.author_user_id)||'Mettelo member'}</strong><p>{item.body}</p><small>{formatDate(item.created_at)}</small></article>)}</div>:<div className="labEmpty"><strong>No team activity yet.</strong><p>Conversation updates will appear here once your team starts collaborating.</p></div>}<a className="labLink" href="#discussion">Go to Conversation →</a></section>
-  {props.reviewSlot}
-  <style jsx>{`.metteloLab{display:grid;gap:16px;scroll-margin-top:20px}.labHeader,.nextAction,.summary,.activity{border:1px solid #d9dde2;border-radius:16px;background:#fff}.labHeader{padding:20px}.labHeader h2{margin:6px 0 8px;font-size:clamp(1.6rem,4vw,2.4rem);letter-spacing:-.035em;line-height:1.05}.labHeader p,.nextAction p,.labEmpty p,.activity article p{margin:0;color:#596472;line-height:1.5}.labEyebrow,.labLabel{font-family:var(--font-mono,monospace);font-size:.68rem;font-weight:800;letter-spacing:.08em;color:#8a5b16}.nextAction{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;padding:18px}.nextAction h3,.sectionTitle h3{margin:5px 0 7px}.labButton{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 16px;border-radius:10px;background:#10131d;color:#fff;font-weight:800;text-decoration:none}.labButton:focus-visible,.labLink:focus-visible{outline:3px solid #8b6b2e;outline-offset:3px}.summary,.activity{padding:18px}.summaryGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:12px}.stat{min-width:0;padding:12px;border:1px solid #e3e6e9;border-radius:11px;background:#fafbfc}.stat strong{display:block;overflow-wrap:anywhere;font-size:.92rem}.stat span{display:block;margin-top:4px;color:#68727e;font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.activityList{display:grid;gap:8px;margin-top:12px}.activity article{padding:11px;border:1px solid #e3e6e9;border-radius:10px;background:#fafbfc}.activity article p{margin:4px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.activity article small{color:#7a8490}.labEmpty{margin-top:12px;padding:14px;border:1px dashed #c9cfd6;border-radius:10px}.labLink{display:inline-flex;min-height:44px;align-items:center;margin-top:8px;color:#5d4015;font-weight:800}.metteloLab :global(.teamRoster){scroll-margin-top:20px}@media(max-width:1024px){.summaryGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:640px){.nextAction{grid-template-columns:1fr}.labButton{width:100%}.summaryGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.labHeader,.nextAction,.summary,.activity{border-radius:13px;padding:14px}}`}</style>
- </section>;
+ return <MetteloLabClient {...props} teamOverview={teamOverview}/>;
 }
-function Stat({label,value}:{label:string;value:string}){return <div className="stat"><strong>{value}</strong><span>{label}</span></div>}

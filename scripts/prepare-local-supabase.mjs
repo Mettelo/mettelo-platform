@@ -12,30 +12,41 @@ await mkdir(targetMigrations,{recursive:true});
 await cp(path.join(root,'supabase','config.toml'),path.join(targetSupabase,'config.toml'));
 
 const files=(await readdir(sourceMigrations)).filter(name=>name.endsWith('.sql')).sort();
-const launch='20260809_launch_readiness.sql';
-const core='20260809_product_core.sql';
-for(const required of [launch,core]){
-  if(!files.includes(required))throw new Error(`Required historical baseline migration is missing: ${required}`);
+const legacyOrder=[
+  ['20260809_launch_readiness.sql','20260809000000_launch_readiness.sql'],
+  ['20260809_product_core.sql','20260809010000_product_core.sql'],
+  ['20260809_performance_indexes.sql','20260809025000_performance_indexes.sql'],
+  ['20260809_security_hardening.sql','20260809030000_security_hardening.sql'],
+  ['20260809_seed_labs_pilots.sql','20260809035000_seed_labs_pilots.sql']
+];
+for(const [source] of legacyOrder){
+  if(!files.includes(source))throw new Error(`Required historical migration is missing: ${source}`);
 }
 
-await cp(path.join(sourceMigrations,launch),path.join(targetMigrations,'20260809000000_launch_readiness.sql'));
-await cp(path.join(sourceMigrations,core),path.join(targetMigrations,'20260809010000_product_core.sql'));
+for(const [source,destination] of legacyOrder.slice(0,2)){
+  await cp(path.join(sourceMigrations,source),path.join(targetMigrations,destination));
+}
 await cp(path.join(root,'supabase','ci','20260809020000_missing_hosted_baseline.sql'),path.join(targetMigrations,'20260809020000_missing_hosted_baseline.sql'));
+for(const [source,destination] of legacyOrder.slice(2)){
+  await cp(path.join(sourceMigrations,source),path.join(targetMigrations,destination));
+}
 
+const legacySources=new Set(legacyOrder.map(([source])=>source));
 for(const file of files){
-  if(file===launch||file===core)continue;
+  if(legacySources.has(file))continue;
   await cp(path.join(sourceMigrations,file),path.join(targetMigrations,file));
 }
 
+const normalized=[
+  ...legacyOrder.slice(0,2).map(([source,destination])=>`${source} -> ${destination}`),
+  'supabase/ci/20260809020000_missing_hosted_baseline.sql',
+  ...legacyOrder.slice(2).map(([source,destination])=>`${source} -> ${destination}`)
+];
 const manifest={
   generatedAt:new Date().toISOString(),
   sourceMigrationCount:files.length,
   localMigrationCount:(await readdir(targetMigrations)).filter(name=>name.endsWith('.sql')).length,
-  normalized:[
-    `${launch} -> 20260809000000_launch_readiness.sql`,
-    `${core} -> 20260809010000_product_core.sql`,
-    'supabase/ci/20260809020000_missing_hosted_baseline.sql'
-  ]
+  normalized
 };
 await writeFile(path.join(target,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
 

@@ -3,7 +3,12 @@ import fs from 'node:fs';
 const checks=[
   ['components/AdminShell.tsx',['Recruiting','Projects','Community & Proof','Content & Comms','System','Admin primary navigation','adminBreadcrumb','/admin/project-operations/projects','/admin/project-operations/applications']],
   ['components/AdminStatusBadge.tsx',['adminStatusBadge','iconByStatus','success','warning','danger','neutral','info']],
-  ['app/admin/page.tsx',['NEEDS ATTENTION','WORKSPACE SHORTCUTS','Nothing needs attention right now','Applications to review','Teams forming','overviewStats']],
+  ['app/admin/page.tsx',['NEEDS ATTENTION','WORKSPACE SHORTCUTS','Nothing needs attention right now','Applications to review','Teams forming','overviewStats','Platform settings','/admin/settings']],
+  ['app/admin/settings/page.tsx',['Platform settings','AdminPlatformSettings','project_role_catalogue','General contact']],
+  ['components/AdminPlatformSettings.tsx',['General contact','Social & community','Save settings','role catalogue','aria-live','@media(max-width:']],
+  ['app/api/admin/settings/route.ts',['Admin access required','platform_settings','updated_by']],
+  ['components/PlatformSocialLinks.tsx',['platform_settings','public_read','social_instagram','social_youtube','aria-label']],
+  ['supabase/migrations/20260818184000_platform_settings.sql',['platform_settings','contact_email','social_linkedin','social_x','public_read']],
   ['app/admin/project-operations/projects/page.tsx',['Admin / Projects / Projects','Create project','AdminProjectManager']],
   ['components/AdminProjectManager.tsx',['Search by project name or partner','Team fill % ascending','Rows per page','Archive selected','Make public','Make private','No projects match these filters','rowMenu','mobileProjectList']],
   ['app/admin/project-operations/projects/[id]/page.tsx',['Admin / Projects / Projects /','Project brief','BRIEF DETAILS','TEAM FILL','APPLICATION DEADLINE','PROJECT METADATA','Applications received','Open Team Formation','AdminProjectVisibilityControl','AdminExpandableText']],

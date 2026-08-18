@@ -2,7 +2,6 @@ import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {notifyUser,serviceDb} from '@/lib/project-flow';
 
-async function emailFor(db:NonNullable<ReturnType<typeof serviceDb>>,userId:string){const {data}=await db.auth.admin.getUserById(userId);return data.user?.email||null}
 function clean(value:unknown,max=100){return String(value??'').trim().slice(0,max)}
 
 export async function POST(request:Request){
@@ -18,6 +17,8 @@ export async function POST(request:Request){
     ]);
     if(!project||!run)return NextResponse.json({error:'Project team not found.'},{status:404});
     if(project.project_type!=='partner')return NextResponse.json({error:'Open project cohorts start automatically when their own required team size is reached.'},{status:409});
+    // Partner projects never auto-start: an Admin, assigned Project Architect, or
+    // active Project Leader must perform this explicit, audited action.
     const authorised=user.app_metadata?.role==='admin'||Boolean(architect)||Boolean(membership&&membership.membership_status==='active'&&membership.team_role==='project_lead');if(!authorised)return NextResponse.json({error:'Admin, the assigned Project Architect, or the Project Leader is required to start a Partner project.'},{status:403});
     if(run.has_started||run.status==='active')return NextResponse.json({ok:true,already_started:true});
     const {count}=await db.from('project_members').select('id',{count:'exact',head:true}).eq('project_run_id',runId).in('membership_status',['waiting','active']);const filled=count||0;const threshold=Math.max(1,Number(run.required_team_size||1));if(filled<threshold)return NextResponse.json({error:`This Partner team has ${filled}/${threshold} members. Reach the required team size before starting.`},{status:409});

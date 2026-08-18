@@ -80,7 +80,7 @@ A failed, cancelled, or unexpectedly skipped required backend job is not accepte
 
 #### Deployment gate
 
-`Deployment gate` depends directly on `Release gate` and does **not** use `always()`. GitHub therefore does not run it when Release gate fails or is skipped. It is the final in-repository eligibility signal before deployment validation/promotion.
+`Deployment gate` depends directly on `Release gate` and uses `if: always() && needs.release-gate.result == 'success'`. The `always()` term is required only to bypass GitHub Actions' transitive-skip behavior when staging was intentionally scope-exempt; the explicit result check still prevents this job from running after a failed, cancelled, or skipped Release gate. It is the final in-repository eligibility signal before deployment validation/promotion.
 
 This does not control whether an external Vercel Git integration creates a Preview early. Preview creation is separate from release approval. Production promotion must still respect the release/deployment gates.
 

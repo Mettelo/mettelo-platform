@@ -16,9 +16,9 @@ const checks=[
   ['components/AdminProjectVisibilityControl.tsx',['Confirm visibility','Change visibility','removed from public discovery','Make this project']],
   ['components/AdminProjectDetailActions.tsx',['Delete this project permanently?','applications, team members and workspace data','Edit project','Open team formation']],
   ['app/admin/project-operations/applications/page.tsx',['Admin / Projects / Applications','focusProjectId','query.eq(\'project_id\',focusProjectId)','AdminApplicationQueue']],
-  ['components/AdminApplicationQueue.tsx',['Project','Applied from','Applied to','Approve selected → team','MESSAGE PREVIEW','Confirm status & send','Edit message before sending','Rows per page','No applications match your filters','applicationTable','applicationMobileList']],
+  ['components/AdminApplicationQueue.tsx',['Current applications','All statuses','Filter applications by status','Rows per page','Previous','Next','No applications match your filters','applicationTable','applicationMobileList']],
   ['app/admin/project-operations/team-formation/page.tsx',['Admin / Projects / Team Formation','AdminTeamFormation']],
-  ['components/AdminTeamFormation.tsx',['Search project or team member','Not yet full','Start this team','Pause reason','Make lead','Save role','teamTable','Page']],
+  ['components/AdminTeamFormation.tsx',['Search project or team member','Current teams','All statuses','Filter teams by status','Not yet full','Projects per page','Previous','Next','Start this team','Pause reason','Make lead','Save role','teamTable']],
   ['app/admin/opportunity-sources/page.tsx',['AdminOpportunitySources']],
   ['components/AdminOpportunitySources.tsx',['AUTOMATION HEALTH','sourceAlert','Sync all official sources','Search by company name','Auto-publish','Never synced','Advanced: add a specific official employer source','sourceTable','sourceMobileList']],
   ['app/api/admin/opportunity-sources/route.ts',['export async function DELETE','organisation_name','source_key','employer_domain']],
@@ -32,6 +32,9 @@ for(const [file,needles] of checks){
   if(!fs.existsSync(file)){console.error(`FAIL missing ${file}`);failed=true;continue;}
   const text=fs.readFileSync(file,'utf8');let ok=true;
   for(const needle of needles){if(!text.includes(needle)){console.error(`FAIL ${file}: missing ${needle}`);failed=true;ok=false;}}
+  if(file==='components/AdminApplicationQueue.tsx'||file==='components/AdminTeamFormation.tsx'){
+    if(text.includes('select multiple')){console.error(`FAIL ${file}: status filters must not use native multi-select controls`);failed=true;ok=false;}
+  }
   if(ok){console.log(`PASS ${file}`);passed++;}
 }
 if(failed)process.exit(1);

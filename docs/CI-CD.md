@@ -14,8 +14,8 @@ change-scope classification
   -> authenticated backend/database E2E when required by scope
   -> aggregate Release gate
   -> Deployment gate
-  -> deployment validation/promotion
-  -> verify resulting main/deployed SHA
+  -> deployment validation/promotion when required by scope
+  -> verify resulting main/deployed state
   -> advance Rolling Green Baseline
 ```
 
@@ -35,10 +35,11 @@ Triggers on every pull request and push to `main`. Concurrency cancels supersede
 
 #### Change scope
 
-The `scope` job classifies whether authenticated destructive backend E2E is required.
+The `scope` job classifies whether authenticated destructive backend E2E is required on both pull requests and pushes to `main`.
 
-- Every push to `main` is classified `main-push-full-release` and **always requires** authenticated backend E2E.
-- A pull request is exempt only when every changed file is Markdown documentation or a GitHub workflow-policy YAML file. That class is `docs-or-ci-policy-only`.
+- The classifier computes the actual changed files. Pull requests compare base SHA to head SHA; `main` pushes compare the event's `before` SHA to the resulting `github.sha`.
+- If a `main` push has no trustworthy predecessor (for example an all-zero `before` SHA), classification fails closed to `unscoped-main-push-full-release` and authenticated backend E2E is mandatory.
+- A change is exempt only when every changed file is Markdown documentation or a GitHub workflow-policy YAML file. That class is `docs-or-ci-policy-only`.
 - Any application source, API route, migration, Supabase configuration, test, package/dependency file, runtime configuration, script, asset, or other non-documentation file is classified `runtime-or-backend-impact` and requires authenticated backend E2E.
 - The classifier prints the changed-file list and classification in the job log. The exemption is therefore explicit release evidence, not a hidden skip.
 - If classification itself fails, Release gate fails.
@@ -65,7 +66,7 @@ The `staging-e2e` job runs only when `Change scope` says authenticated backend E
 
 The config guard rejects missing values, production origins/projects, and unsafe credentials before the suite mutates data. Test records use dedicated accounts/markers and must be cleaned up.
 
-For `docs-or-ci-policy-only` pull requests this job is expected to be `skipped` by scope. That is not equivalent to silently skipping a required test: the Release gate verifies that the classifier explicitly said backend E2E was not required. If backend E2E is required, anything other than `success` blocks release.
+For `docs-or-ci-policy-only` changes this job is expected to be `skipped` by scope. That is not equivalent to silently skipping a required test: the Release gate verifies that the classifier explicitly said backend E2E was not required. If backend E2E is required, anything other than `success` blocks release.
 
 #### Release gate
 
@@ -80,7 +81,9 @@ A failed, cancelled, or unexpectedly skipped required backend job is not accepte
 
 #### Deployment gate
 
-`Deployment gate` depends directly on `Release gate` and uses `if: always() && needs.release-gate.result == 'success'`. The `always()` term is required only to bypass GitHub Actions' transitive-skip behavior when staging was intentionally scope-exempt; the explicit result check still prevents this job from running after a failed, cancelled, or skipped Release gate. It is the final in-repository eligibility signal before deployment validation/promotion.
+`Deployment gate` depends on `Release gate` (and reads `Change scope`) and uses `if: always() && needs.release-gate.result == 'success'`. The `always()` term is required only to bypass GitHub Actions' transitive-skip behavior when staging was intentionally scope-exempt; the explicit result check still prevents this job from running after a failed, cancelled, or skipped Release gate. It is the final in-repository eligibility signal before deployment validation/promotion.
+
+For a documentation/CI-policy-only change, Deployment gate records eligibility but no runtime Production deployment is required to prove application behavior because no runtime application artifact changed. For runtime/backend-impacting changes, deployment validation remains part of release evidence.
 
 This does not control whether an external Vercel Git integration creates a Preview early. Preview creation is separate from release approval. Production promotion must still respect the release/deployment gates.
 
@@ -116,11 +119,11 @@ Expected operating model (external settings must be confirmed):
 6. `Release gate` must succeed.
 7. `Deployment gate` runs only after successful Release gate.
 8. Merge only when all required PR checks are green.
-9. Vercel builds `main` as Production using Production-scoped variables.
-10. The `main` push runs the complete backend gate regardless of PR scope.
-11. Run read-only Production smoke checks; do not submit destructive fixtures to Production.
-12. Verify the exact resulting `main` SHA and intended deployed SHA.
-13. Only after all required evidence is green does that `main` SHA become the new Rolling Green Baseline.
+9. On `main`, GitHub Actions classifies the actual merge/push diff again and runs all checks required by that exact scope.
+10. Runtime/backend-impacting changes require deployment validation and read-only Production smoke checks; destructive fixtures must never target Production.
+11. Documentation/CI-policy-only changes do not require a new runtime deployment to prove application behavior, though external Vercel Git integration may still attempt one until separately reconfigured.
+12. Verify the exact resulting `main` SHA and any required deployed SHA/state.
+13. Only after all required evidence for that scope is green does that `main` SHA become the new Rolling Green Baseline.
 
 Vercel Cron invokes the routes listed in [Architecture](ARCHITECTURE.md#scheduled-operations). Cron endpoints require the expected bearer secret.
 
@@ -154,10 +157,11 @@ A single Supabase project/environment uses one service-role key. Forms do not ne
 After every merge to `main`:
 
 1. fetch the exact resulting `main` SHA;
-2. verify the complete `main` push gate, including authenticated backend E2E;
-3. verify Production deployment points to the intended SHA when applicable;
-4. keep the previous green baseline available for rollback/recovery;
-5. only then declare the new `main` SHA the Rolling Green Baseline.
+2. verify `Change scope` for the exact push/merge diff;
+3. verify every check required by that classification;
+4. verify Production deployment points to the intended SHA/state when runtime deployment is required;
+5. keep the previous green baseline available for rollback/recovery;
+6. only then declare the new `main` SHA the Rolling Green Baseline.
 
 If post-merge verification fails, stop additional improvement merges. The previous green baseline remains authoritative until the new failure is fixed or rolled back through the release process.
 

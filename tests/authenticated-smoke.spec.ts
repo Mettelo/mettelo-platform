@@ -32,7 +32,7 @@ test.describe('authenticated staging smoke tests',()=>{
 
   test('non-admin member sees other cohorts without cross-cohort data access and Mettelo Lab never overflows',async({page})=>{
     const account=credentials('MEMBER');
-    const team1Url=`/member/projects/${labProjectId}?run=${labTeam1RunId}`;
+    const team1Url=`/member/projects/${labProjectId}?run=${labTeam1RunId}&view=team&area=mettelo-lab`;
     await signIn(page,account,team1Url);
 
     const apiResponse=await page.context().request.get(`/api/project-team-overview?project_id=${labProjectId}&project_run_id=${labTeam1RunId}`);
@@ -48,9 +48,9 @@ test.describe('authenticated staging smoke tests',()=>{
 
     const team1Response=await page.goto(team1Url,{waitUntil:'networkidle'});
     expect(team1Response?.status()).toBe(200);
+    await expect(page.getByRole('navigation',{name:'Project workspace sections'}).getByRole('link',{name:'Mettelo Lab'})).toHaveAttribute('aria-current','page');
     await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
     const cohortNav=page.getByRole('navigation',{name:'Open project cohorts'});
-    await cohortNav.scrollIntoViewIfNeeded();
     await expect(cohortNav).toBeVisible();
     const activeCohort=cohortNav.getByRole('link',{name:/Team 1/i});
     await expect(activeCohort).toBeVisible();
@@ -60,7 +60,7 @@ test.describe('authenticated staging smoke tests',()=>{
     await expect(lockedCohort).toContainText('Team 2');
     await expect(cohortNav.getByRole('link',{name:/Team 2/i})).toHaveCount(0);
 
-    const forbidden=await page.goto(`/member/projects/${labProjectId}?run=${labTeam2RunId}`,{waitUntil:'domcontentloaded'});
+    const forbidden=await page.goto(`/member/projects/${labProjectId}?run=${labTeam2RunId}&view=team&area=mettelo-lab`,{waitUntil:'domcontentloaded'});
     expect(forbidden?.status()).toBe(404);
 
     for(const width of [375,390,414,768]){

@@ -5,10 +5,17 @@ This documentation lives in the repository and is a living part of the codebase,
 
 This directory is the entry point for understanding, operating, and extending the Mettelo platform. It was audited against the application code, migrations, workflows, tests, and Git history on 18 August 2026.
 
+## Mandatory first step
+
+Every human developer, contractor, contributor, coding agent, and new ChatGPT development session must begin with [Developer start here](DEVELOPER-START-HERE.md) **before making product or infrastructure changes**.
+
+That document defines the Rolling Green Baseline, the required current-state verification, change-scope protections, deployment ordering, and the exact procedure for deciding when a newer `main` commit is allowed to become the baseline. A handoff or previous chat is context only; it is not proof of current repository state.
+
 ## Start here
 
 | Document | Use it for |
 | --- | --- |
+| [Developer start here](DEVELOPER-START-HERE.md) | Mandatory cold start, Rolling Green Baseline, scope protection, pre-change verification, and post-merge baseline advancement |
 | [Architecture](ARCHITECTURE.md) | Runtime boundaries, folders, data model, environment variables, auth, RLS, storage, and scheduled jobs |
 | [Features](FEATURES.md) | Product capabilities, canonical routes, dependencies, and implementation trade-offs |
 | [Design system](DESIGN-SYSTEM.md) | Ink and Value tokens, typography, spacing, responsive rules, accessibility, and component patterns |
@@ -28,7 +35,8 @@ This directory is the entry point for understanding, operating, and extending th
 
 ## How to use this handbook
 
-- New developer: read [Onboarding](ONBOARDING.md), [Architecture](ARCHITECTURE.md), then [Engineering rules](../CONTRIBUTING.md).
+- Everyone: start with [Developer start here](DEVELOPER-START-HERE.md) and verify the current Rolling Green Baseline before work begins.
+- New developer: then read [Onboarding](ONBOARDING.md), [Architecture](ARCHITECTURE.md), and [Engineering rules](../CONTRIBUTING.md).
 - Feature owner: read [Features](FEATURES.md), the relevant source routes, and [Regression testing](REGRESSION_TESTING.md).
 - Designer/frontend engineer: read [Design system](DESIGN-SYSTEM.md) and the responsive/accessibility sections of [Engineering rules](../CONTRIBUTING.md).
 - Backend/data engineer: read [Architecture](ARCHITECTURE.md), especially the Supabase boundaries and schema-bootstrap warning.

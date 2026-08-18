@@ -52,3 +52,9 @@ create policy "members read own application roles" on public.project_application
 for select to authenticated using (
   exists(select 1 from public.project_applications a where a.id=application_id and (a.user_id=(select auth.uid()) or coalesce((select auth.jwt()->'app_metadata'->>'role'),'')='admin'))
 );
+
+drop policy if exists "members add own application roles" on public.project_application_roles;
+create policy "members add own application roles" on public.project_application_roles
+for insert to authenticated with check (
+  exists(select 1 from public.project_applications a where a.id=application_id and a.user_id=(select auth.uid()))
+);

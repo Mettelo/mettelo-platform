@@ -25,7 +25,11 @@ const checks=[
   ['app/api/project-final-proof/status/route.ts',['can_grant','can_submit','delegated','project_final_proof_submissions','project_completion_requests']],
   ['app/api/project-completion/route.ts',['changes_requested','reviewed_by_user_id','assigned Project Architect','Partner project completion approved']],
   ['components/ProjectFinalProofPanel.tsx',['FINAL PROOF & COMPLETION','Delegate final Proof submission','actual submitter','Reviewer-gated completion','Automatic cohort completion']],
-  ['components/ProjectTeamRoster.tsx',['COHORTS','Final Proof delegate','profile photo','cohortSwitcher']],
+  ['components/ProjectTeamRoster.tsx',['COHORTS','Final Proof delegate','profile photo','cohortSwitcher','is_member','lockedCohort','Not a member']],
+  ['app/api/project-team-overview/route.ts',['ownRunIds','readableRuns','readableRunIds','is_member:isMember','members:isMember?','Project membership is required.']],
+  ['components/MetteloLabPanel.tsx',['METTELO LAB','YOUR NEXT ACTION','TEAM & ROLE SUMMARY','RECENT TEAM ACTIVITY','Go to Conversation →','grid-template-columns:repeat(2,minmax(0,1fr))','min-height:44px']],
+  ['app/member/projects/[id]/layout.tsx',['Mettelo Lab','href="#mettelo-lab"','Move through the project with confidence.','Collaborate with your cohort and see what to do next.']],
+  ['app/member/projects/[id]/page.tsx',['MetteloLabPanel','reviewSlot','href="#mettelo-lab">Mettelo Lab','recentDiscussions']],
   ['components/AdminCompletionRequirements.tsx',['Verified presentation required','Published GitHub repository required','Final Proof / deliverable URL required']],
   ['supabase/migrations/20260818190000_project_completion_permissions.sql',['project_submission_permissions','project_final_proof_submissions','github_repo_required','final_proof_required']],
   ['app/api/admin/project-role-catalogue/route.ts',['export async function POST','export async function PATCH','project_role_catalogue']],
@@ -39,6 +43,12 @@ const checks=[
 ];
 let failed=false;
 for(const [file,needles] of checks){if(!fs.existsSync(file)){console.error(`Missing ${file}`);failed=true;continue;}const text=fs.readFileSync(file,'utf8');for(const needle of needles){if(!text.includes(needle)){console.error(`${file}: missing ${needle}`);failed=true;}}}
+
+const layout=fs.readFileSync('app/member/projects/[id]/layout.tsx','utf8');
+const page=fs.readFileSync('app/member/projects/[id]/page.tsx','utf8');
+if(layout.includes('href="#team">Team')||page.includes('href="#team">Team')){console.error('The branded project navigation destination must be Mettelo Lab, not Team.');failed=true;}
+const teamApi=fs.readFileSync('app/api/project-team-overview/route.ts','utf8');
+if(teamApi.includes(".in('project_run_id',runIds)")){console.error('Team overview must not load every cohort roster for an ordinary project member.');failed=true;}
 
 const openRuns=[{run_number:1,status:'active',has_started:true,filled:3,required:3},{run_number:2,status:'forming',has_started:false,filled:1,required:3}];
 const recruiting=openRuns.filter(run=>run.status==='forming'&&!run.has_started&&run.filled<run.required).sort((a,b)=>a.run_number-b.run_number)[0];

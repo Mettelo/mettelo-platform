@@ -11,7 +11,7 @@ function credentials(prefix:'MEMBER'|'ARCHITECT'|'ADMIN'):Credentials{
 
 async function signIn(page:Page,account:Credentials,next:string){
   await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});
-  const main=page.locator('main');
+  const main=page.locator('#main-content');
   await main.locator('input[type="email"]').fill(account.email);
   await main.locator('input[type="password"]').fill(account.password);
   await main.getByRole('button',{name:'Sign in →'}).click();
@@ -23,7 +23,7 @@ test.describe('authenticated staging smoke tests',()=>{
     const account=credentials('MEMBER');
     await signIn(page,account,'/member/applications');
     await page.goto('/member/applications',{waitUntil:'networkidle'});
-    await expect(page.locator('main')).toBeVisible();
+    await expect(page.locator('#main-content')).toBeVisible();
     await expect(page).toHaveURL(/\/member\/applications/);
   });
 
@@ -31,7 +31,7 @@ test.describe('authenticated staging smoke tests',()=>{
     const account=credentials('ARCHITECT');
     await signIn(page,account,'/member/architect-projects');
     await page.goto('/member/architect-projects',{waitUntil:'networkidle'});
-    await expect(page.locator('main')).toBeVisible();
+    await expect(page.locator('#main-content')).toBeVisible();
     await expect(page).toHaveURL(/\/member\/architect-projects/);
   });
 
@@ -41,7 +41,7 @@ test.describe('authenticated staging smoke tests',()=>{
     await page.goto('/admin/project-operations/applications',{waitUntil:'networkidle'});
     await expect(page.getByRole('heading',{level:1,name:/^Applications\b/i})).toBeVisible();
     await page.goto('/admin/intake',{waitUntil:'networkidle'});
-    await expect(page.locator('main')).toBeVisible();
+    await expect(page.locator('#main-content')).toBeVisible();
     await expect(page).toHaveURL(/\/admin\/intake/);
   });
 });

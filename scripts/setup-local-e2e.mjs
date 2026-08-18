@@ -44,6 +44,7 @@ const {error:projectError}=await db.from('projects').upsert({
   problem_statement:'Verify browser to API to database submission behavior without hosted staging infrastructure.',
   status:'pilot',
   visibility:'public',
+  project_type:'open',
   location:'CI',
   weekly_commitment:'E2E only'
 },{onConflict:'slug'});

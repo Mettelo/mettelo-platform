@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {notifyAdmins,notifyUser,serviceDb} from '@/lib/project-flow';
 
-function acceptsApplications(project:{status:string;project_type:string}){
+function acceptsApplications(project:{status:string;project_type:string;applications_open?:boolean|null}){
+  if(project.applications_open===false)return false;
   if(project.project_type==='open')return !['pilot','completed','archived','cancelled'].includes(project.status);
   return ['recruiting','open','forming'].includes(project.status);
 }
@@ -24,11 +25,12 @@ export async function POST(request:Request){
 
     if(!projectId||statement.length<40) return NextResponse.json({error:'Choose a project and explain your contribution in at least 40 characters.'},{status:400});
 
-    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status,visibility,project_type,application_deadline').eq('id',projectId).single();
+    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status,visibility,project_type,application_deadline,applications_open').eq('id',projectId).single();
     if(projectError||!project) return NextResponse.json({error:'Project not found.'},{status:404});
     if(project.application_deadline&&new Date(project.application_deadline).getTime()<Date.now())return NextResponse.json({error:'The application deadline for this project has passed.'},{status:409});
 
     const isInterest=requestedKind==='interest';
+    if(project.applications_open===false)return NextResponse.json({error:'Applications are currently closed for this project.'},{status:409});
     if(isInterest&&(!['pilot','recruiting','open','forming','active','review'].includes(project.status)||project.visibility!=='public')) return NextResponse.json({error:'This project is not currently accepting interest.'},{status:400});
     if(!isInterest&&!acceptsApplications(project)) return NextResponse.json({error:'This project is not currently accepting applications.'},{status:400});
 

@@ -30,7 +30,7 @@ const checks=[
  ['components/AdminEventCatalogueTable.tsx',['Search event key or description','Event key','Channels','Priority','Description','adminDataTable']],
  ['components/AdminShell.tsx',['Content & Comms','Communications','/admin/content/news','/admin/notifications/overview','/admin/careers/roles','Structured Content','Delivery Queue','Event Catalogue']],
  ['components/AdminCareerOfferComposer.tsx',['MAX_DOCUMENTS=4','EMAIL DOCUMENTS','attachment_ids']],
- ['lib/email-attachments.ts',['MAX_EMAIL_ATTACHMENTS=4',"templateKey==='career_offer'",'offer_document_ids']],
+ ['lib/email-attachments.ts',['MAX_EMAIL_ATTACHMENTS=4',"item.template_key!=='career_offer'",'offer_document_ids','governedTemplateKey']],
 ];
 let failed=false,passed=0;
 for(const [file,needles] of checks){if(!fs.existsSync(file)){console.error(`FAIL missing ${file}`);failed=true;continue}const text=fs.readFileSync(file,'utf8');let ok=true;for(const needle of needles){if(!text.includes(needle)){console.error(`FAIL ${file}: missing ${needle}`);failed=true;ok=false}}if(ok){console.log(`PASS ${file}`);passed++}}

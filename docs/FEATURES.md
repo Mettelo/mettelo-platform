@@ -14,6 +14,7 @@ This document describes the implementation that exists. Product readiness remain
 | Identity and onboarding | Email/password, Google/GitHub OAuth, verification, reset/update password, onboarding/resume, profile | One account connects applications, work, and Proof. Hosted Supabase redirect/template configuration is an external dependency. | Supabase Auth, `profiles`, middleware, auth templates |
 | Projects and applications | Public briefs/cards, interest registration, role applications, member tracking/withdrawal, Admin review, team formation | A canonical application record avoids disconnected intake. Interest and role applications share storage but have distinct lifecycle rules. | `projects`, `project_roles`, `project_applications`, RLS, notifications |
 | Delivery workspace | Member projects, milestones, tasks, discussions, resources, data workspace, evidence, presentations, completion | Structured delivery makes contribution reviewable. The richer model increases RLS and lifecycle complexity. | project workspace tables, LiveKit, service operations |
+| Mettelo Lab | Named collaboration destination inside each project workspace: next action, team/role summary, cohort switcher, scoped roster, recent team activity and reviewer queue | Consolidates collaboration context without duplicating the full Conversation or project-delivery tools. Non-member Open-project cohorts expose only cohort number/status, not roster data. | `project_runs`, `project_members`, team-overview API, discussions, completion/delegation permissions |
 | Proof and credentials | Contributions, review history, proof visibility, public proof/credential pages, reputation/Spotlight | Proof is derived from reviewed work rather than self-assertion. Publication depends on review and consent. | contribution, review, credential, Spotlight tables |
 | Project Architect | Member progression application, evidence, credential, governed projects, Admin review and assignment | Architect is an earned member state, not a separate anonymous identity. It requires strong authorization and audit history. | account identities, architect/governance tables, middleware |
 | Careers | Published roles, multi-section application with local draft/review, private CV upload, member tracking, Admin pipeline, interview/offer/onboarding communications | Review-before-submit improves confidence; preserving DOM fields retains selected files. Privileged storage and several schema objects must exist. | service role, careers tables, `career-cvs`, communications |
@@ -73,6 +74,16 @@ The career form supports optional authenticated account linking, local-device au
 The server validates role state, identity/email consistency, links, question requirements, file MIME type, and 5 MB size. It removes the uploaded CV if database insertion fails. Admins can manage stages, communications, interview/offer details, offer documents, and onboarding items.
 
 Known dependency: the repository does not currently version the base careers tables or `career-cvs` bucket. See [Open issues](OPEN-ISSUES.md).
+
+## Mettelo Lab
+
+Within an authenticated project workspace, the collaboration destination is branded **Mettelo Lab**. The workspace navigation order stays Overview → Tasks → Conversation → Data → Events → Contributions → Mettelo Lab; the literal cohort labels Team 1, Team 2, member counts and role labels remain unchanged.
+
+Mettelo Lab elevates the current member's next action, consolidates role/Lead/Architect/status/milestone/task information into one summary, shows Open-project cohort state, renders the member's own cohort roster with profile imagery/fallback initials, previews recent Conversation activity, and hosts the reviewer-only evidence queue. Full Conversation, Events, resources, delivery controls and Final Proof remain in their dedicated workspace sections so the Lab connects the project without duplicating those tools.
+
+For Open projects, cohort existence and status are project-visible context, but roster/profile/delegation data is cohort-scoped. `/api/project-team-overview` loads member data only for runs the viewer belongs to unless the viewer is platform Admin. Non-member cohorts are returned with `is_member: false`, an empty roster and a non-interactive “Not a member” treatment. Project Leads and Project Architects are scoped to the runs they are assigned to by default; cross-cohort oversight requires explicit elevated authority.
+
+The responsive contract is fluid at mobile/tablet/desktop breakpoints, keeps cohort navigation horizontally scrollable instead of clipped, uses a two-column summary on narrow screens, and maintains at least 44px interaction targets for primary actions and cohort navigation.
 
 ## Project work, governance, and Proof
 

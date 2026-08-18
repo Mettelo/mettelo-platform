@@ -29,19 +29,25 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Every push to main re-runs the complete backend gate. Scope-based
-          # exemption exists only for pull requests whose changed files are
-          # limited to documentation and CI-policy definitions.
           if [ "${{ github.event_name }}" = "push" ]; then
-            echo "requires_staging=true" >> "$GITHUB_OUTPUT"
-            echo "classification=main-push-full-release" >> "$GITHUB_OUTPUT"
-            echo "Push to main: authenticated backend E2E is mandatory."
-            exit 0
-          fi
+            before="${{ github.event.before }}"
+            after="${{ github.sha }}"
 
-          git diff --name-only \
-            "${{ github.event.pull_request.base.sha }}" \
-            "${{ github.event.pull_request.head.sha }}" > /tmp/changed-files.txt
+            # A missing/all-zero predecessor cannot be scoped safely, so fail
+            # closed and require the full authenticated backend gate.
+            if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+              echo "requires_staging=true" >> "$GITHUB_OUTPUT"
+              echo "classification=unscoped-main-push-full-release" >> "$GITHUB_OUTPUT"
+              echo "Main push has no trustworthy predecessor: authenticated backend E2E is mandatory."
+              exit 0
+            fi
+
+            git diff --name-only "$before" "$after" > /tmp/changed-files.txt
+          else
+            git diff --name-only \
+              "${{ github.event.pull_request.base.sha }}" \
+              "${{ github.event.pull_request.head.sha }}" > /tmp/changed-files.txt
+          fi
 
           echo "Changed files:"
           cat /tmp/changed-files.txt
@@ -66,7 +72,7 @@ jobs:
           else
             echo "requires_staging=false" >> "$GITHUB_OUTPUT"
             echo "classification=docs-or-ci-policy-only" >> "$GITHUB_OUTPUT"
-            echo "Documentation/CI-policy-only change: destructive backend E2E is not required by scope."
+            echo "Documentation/CI-policy-only change: destructive backend E2E is explicitly not required by scope."
           fi
 
   verify:
@@ -193,10 +199,13 @@ jobs:
 
   deployment-gate:
     name: Deployment gate
-    needs: release-gate
+    needs: [scope, release-gate]
     if: always() && needs.release-gate.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Confirm release is eligible for deployment validation
+        env:
+          CLASSIFICATION: ${{ needs.scope.outputs.classification }}
         run: |
-          echo "All release prerequisites passed. Deployment validation/promotion may run now."
+          echo "All required release prerequisites passed for scope=$CLASSIFICATION."
+          echo "Deployment validation/promotion may run now when deployment is required by that scope."

@@ -4,6 +4,20 @@ This document defines the non-negotiable way we design, build, review and releas
 
 The goal is simple: improvements must not silently break functionality that already works.
 
+## 0. Rolling Green Baseline and mandatory cold start
+
+Before any product, design, backend, database, test, CI/CD, or infrastructure change, read [docs/DEVELOPER-START-HERE.md](docs/DEVELOPER-START-HERE.md) and complete its cold-start procedure.
+
+Mettelo uses a **Rolling Green Baseline**:
+
+> The authoritative baseline is the latest commit on `main` that has successfully passed every required quality, regression, security, database, browser, release-gate, and deployment check.
+
+A newer `main` commit does not become the baseline merely because it was merged. If any required check fails or is skipped, the previous verified green `main` commit remains the baseline. After every merge, verify the exact resulting `main` SHA and its required checks before calling it the new baseline.
+
+Never trust an old chat, handoff, screenshot, local branch, or stale status as proof that the current baseline is green. Verify current GitHub and deployment state directly.
+
+Do not begin broad implementation until the current baseline and the relevant existing journey have been inspected. Default to extending working behavior rather than replacing it.
+
 ## 1. Define success before implementation
 
 Every material change must begin with written, testable success criteria. Include:
@@ -153,6 +167,8 @@ Do not weaken assertions, increase arbitrary timeouts, disable lint rules or mar
 
 The `Release gate` GitHub check must be required by branch protection. A production deployment must not be promoted unless the release gate succeeds.
 
+After merge, re-check the resulting `main` SHA. Only a fully verified green `main` advances the Rolling Green Baseline. If post-merge checks fail, freeze further improvements and treat the previous green baseline as authoritative until the failure is resolved.
+
 ## 9. Secrets and deployment configuration
 
 - Never commit real `.env` values, access tokens, service keys or credentials.
@@ -176,9 +192,10 @@ A change is done only when:
 - staging proves database/Admin/notification journeys when applicable;
 - documentation and environment examples are current;
 - rollback or recovery is understood;
-- the required release gate is green.
+- the required release gate is green;
+- the resulting `main` SHA is verified before it is declared the new baseline.
 
-If any item cannot be verified, state that limitation explicitly. Never report a test, deployment or merge as successful without evidence.
+If any item cannot be verified, state that limitation explicitly. Never report a test, deployment, merge or baseline as successful without evidence.
 
 ## 11. Incident and rollback rule
 

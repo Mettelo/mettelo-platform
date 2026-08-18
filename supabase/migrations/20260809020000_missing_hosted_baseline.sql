@@ -4,6 +4,68 @@
 
 create extension if not exists pgcrypto;
 
+-- Taxonomy tables must exist before 20260809072000_taxonomy_preferences_security.sql,
+-- which adds their first project-visibility policies. The later 20260809090000_project_taxonomy.sql
+-- remains the canonical owner of taxonomy policy definitions, indexes and seed data.
+create table if not exists public.domains (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null unique,
+  description text,
+  sort_order integer not null default 100,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.tools (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null unique,
+  category text not null,
+  sort_order integer not null default 100,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.methods (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null unique,
+  category text not null default 'analytics',
+  sort_order integer not null default 100,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.project_domains (
+  project_id uuid not null references public.projects(id) on delete cascade,
+  domain_id uuid not null references public.domains(id) on delete cascade,
+  is_primary boolean not null default false,
+  created_at timestamptz not null default now(),
+  primary key(project_id,domain_id)
+);
+
+create table if not exists public.project_tools (
+  project_id uuid not null references public.projects(id) on delete cascade,
+  tool_id uuid not null references public.tools(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key(project_id,tool_id)
+);
+
+create table if not exists public.project_methods (
+  project_id uuid not null references public.projects(id) on delete cascade,
+  method_id uuid not null references public.methods(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key(project_id,method_id)
+);
+
+alter table public.domains enable row level security;
+alter table public.tools enable row level security;
+alter table public.methods enable row level security;
+alter table public.project_domains enable row level security;
+alter table public.project_tools enable row level security;
+alter table public.project_methods enable row level security;
+
 create table if not exists public.career_roles (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique,

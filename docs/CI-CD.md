@@ -9,20 +9,21 @@ Mettelo uses a **Rolling Green Baseline**. The authoritative baseline is the lat
 Required release order:
 
 ```text
-static/type/audit checks
-  -> browser/regression checks
-  -> isolated backend/database E2E
+change-scope classification
+  -> static/type/audit + browser/regression checks
+  -> authenticated backend/database E2E when required by scope
   -> aggregate Release gate
+  -> Deployment gate
   -> deployment validation/promotion
   -> verify resulting main/deployed SHA
   -> advance Rolling Green Baseline
 ```
 
-If any prerequisite fails or a critical test is skipped, the baseline does not move and Production must not be promoted on the strength of that failed run.
+If any required prerequisite fails, the baseline does not move and Production must not be promoted on the strength of that failed run.
 
 The repository defines quality gates in GitHub Actions and is connected to Vercel for Preview/Production deployments. The repository does not contain a Vercel CLI deployment workflow, so the exact Git integration, Production branch, required checks, and promotion protection are external settings.
 
-**TODO: confirm in GitHub/Vercel that `main` is the Production branch, pull requests receive Preview deployments, and the `Release gate` check is required before merge.** A green Vercel deployment by itself is not the release gate.
+**TODO: confirm in GitHub/Vercel that `main` is the Production branch, pull requests receive Preview deployments, and the `Release gate`/`Deployment gate` policy is enforced before Production promotion.** A green Vercel deployment by itself is not the release gate.
 
 Important: an externally-created Vercel Preview may start before GitHub Actions finishes. That Preview is development evidence only. It must never be interpreted as approval to merge or promote Production when prerequisite checks are red.
 
@@ -31,6 +32,18 @@ Important: an externally-created Vercel Preview may start before GitHub Actions 
 ### `Mettelo CI` — `.github/workflows/ci.yml`
 
 Triggers on every pull request and push to `main`. Concurrency cancels superseded work for the same branch/PR.
+
+#### Change scope
+
+The `scope` job classifies whether authenticated destructive backend E2E is required.
+
+- Every push to `main` is classified `main-push-full-release` and **always requires** authenticated backend E2E.
+- A pull request is exempt only when every changed file is Markdown documentation or a GitHub workflow-policy YAML file. That class is `docs-or-ci-policy-only`.
+- Any application source, API route, migration, Supabase configuration, test, package/dependency file, runtime configuration, script, asset, or other non-documentation file is classified `runtime-or-backend-impact` and requires authenticated backend E2E.
+- The classifier prints the changed-file list and classification in the job log. The exemption is therefore explicit release evidence, not a hidden skip.
+- If classification itself fails, Release gate fails.
+
+This exception exists to keep unrelated hosted-staging configuration gaps from blocking safe documentation/policy work. It must not be expanded casually. Changes that can alter user journeys, data, auth, runtime behavior, or release artifacts require the backend gate.
 
 #### Fast regression gate
 
@@ -48,15 +61,28 @@ On failure it uploads the interaction audit artifact when available.
 
 #### Staging submission journeys
 
-The `staging-e2e` job runs for pushes and same-repository pull requests (not untrusted forks). It requires the complete `E2E_*` secret set, installs Chromium, and runs authenticated smoke plus database-backed staging submissions with one worker. Failure evidence is retained for seven days.
+The `staging-e2e` job runs only when `Change scope` says authenticated backend E2E is required, and only for pushes or same-repository pull requests. It requires the complete `E2E_*` secret set, installs Chromium, and runs authenticated smoke plus database-backed staging submissions with one worker. Failure evidence is retained for seven days.
 
 The config guard rejects missing values, production origins/projects, and unsafe credentials before the suite mutates data. Test records use dedicated accounts/markers and must be cleaned up.
 
+For `docs-or-ci-policy-only` pull requests this job is expected to be `skipped` by scope. That is not equivalent to silently skipping a required test: the Release gate verifies that the classifier explicitly said backend E2E was not required. If backend E2E is required, anything other than `success` blocks release.
+
 #### Release gate
 
-The `release-gate` job runs even when dependencies fail and succeeds only when both `verify` and `staging-e2e` report `success`. A skipped staging job is not accepted as a pass.
+The `release-gate` job runs even when dependencies fail so it can produce a deterministic aggregate decision. It requires:
 
-The release gate is the approval boundary for merge/promotion. Deployment validation/promotion belongs after this boundary. A Preview that appears earlier due to external Git integration is not release approval.
+- successful `Change scope` classification;
+- successful `Fast regression gate`;
+- successful `Staging submission journeys` whenever scope requires backend E2E;
+- otherwise an expected `skipped` (or successful) staging result only for an explicit `docs-or-ci-policy-only` classification.
+
+A failed, cancelled, or unexpectedly skipped required backend job is not accepted as green.
+
+#### Deployment gate
+
+`Deployment gate` depends directly on `Release gate` and does **not** use `always()`. GitHub therefore does not run it when Release gate fails or is skipped. It is the final in-repository eligibility signal before deployment validation/promotion.
+
+This does not control whether an external Vercel Git integration creates a Preview early. Preview creation is separate from release approval. Production promotion must still respect the release/deployment gates.
 
 ### `Sync Supabase Auth Templates`
 
@@ -76,7 +102,7 @@ The project ref is currently present in workflow/script configuration. Treat it 
 
 Playwright enables full parallel execution, one retry, and four CI/two local workers for standard tests. The staging command overrides to one worker to keep destructive fixtures deterministic. When `E2E_BASE_URL` is absent, Playwright starts the local Next.js dev server at `127.0.0.1:3000`; a remote E2E URL disables that web server.
 
-The Phase 1 browser suite is not currently included in `npm run test:regression` or the CI workflow. See [Open issues](OPEN-ISSUES.md#p1-phase-1-browser-gate-is-not-part-of-ci).
+The Phase 1 browser suite is not currently included in `npm run test:regression` or the `main` CI workflow. See [Open issues](OPEN-ISSUES.md#p1-phase-1-browser-gate-is-not-part-of-ci).
 
 ## Vercel flow
 
@@ -84,14 +110,17 @@ Expected operating model (external settings must be confirmed):
 
 1. Start from the current verified Rolling Green Baseline.
 2. Push a focused feature branch and open a pull request.
-3. GitHub Actions runs the fast and staging gates.
+3. GitHub Actions classifies change scope and runs the required gates.
 4. Vercel may create a Preview deployment with Preview-scoped environment variables; this is not release approval.
 5. Verify the affected journey on Preview/staging, including Admin/data evidence where applicable.
-6. Merge only when the required release gate is green.
-7. Vercel builds `main` as Production using Production-scoped variables.
-8. Run read-only Production smoke checks; do not submit destructive fixtures to Production.
-9. Verify the exact resulting `main` SHA and intended deployed SHA.
-10. Only after all required evidence is green does that `main` SHA become the new Rolling Green Baseline.
+6. `Release gate` must succeed.
+7. `Deployment gate` runs only after successful Release gate.
+8. Merge only when all required PR checks are green.
+9. Vercel builds `main` as Production using Production-scoped variables.
+10. The `main` push runs the complete backend gate regardless of PR scope.
+11. Run read-only Production smoke checks; do not submit destructive fixtures to Production.
+12. Verify the exact resulting `main` SHA and intended deployed SHA.
+13. Only after all required evidence is green does that `main` SHA become the new Rolling Green Baseline.
 
 Vercel Cron invokes the routes listed in [Architecture](ARCHITECTURE.md#scheduled-operations). Cron endpoints require the expected bearer secret.
 
@@ -112,18 +141,20 @@ A single Supabase project/environment uses one service-role key. Forms do not ne
 - Documentation and a decision entry are included when architecture/behavior changed.
 - Migration and RLS changes are versioned and advisor-reviewed.
 - `npm ci`, lint, typecheck, audits, regression tests, and build pass.
-- Credentialed staging journey passes for any form, auth, queue, notification, or protected-role change.
-- Preview is checked at mobile, tablet, and desktop widths, keyboard-only, and relevant error states.
+- Credentialed staging journey passes whenever `Change scope` requires authenticated backend E2E.
+- A docs/CI-policy-only exemption is accepted only when the classifier records that exact scope.
+- Preview is checked at mobile, tablet, and desktop widths, keyboard-only, and relevant error states when UI changed.
 - Environment additions appear in `.env.example` without values.
 - Rollback impact is described in the PR.
-- No failing or skipped required check is treated as green.
+- No failing or unexpectedly skipped required check is treated as green.
+- Deployment gate is the final GitHub Actions release stage.
 
 ## Post-merge baseline check
 
 After every merge to `main`:
 
 1. fetch the exact resulting `main` SHA;
-2. verify required GitHub checks for that exact SHA;
+2. verify the complete `main` push gate, including authenticated backend E2E;
 3. verify Production deployment points to the intended SHA when applicable;
 4. keep the previous green baseline available for rollback/recovery;
 5. only then declare the new `main` SHA the Rolling Green Baseline.

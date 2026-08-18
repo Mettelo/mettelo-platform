@@ -7,14 +7,20 @@ This directory is the entry point for understanding, operating, and extending th
 
 ## Mandatory first step
 
-Every human developer, contractor, contributor, coding agent, and new ChatGPT development session must begin with [Developer start here](DEVELOPER-START-HERE.md) **before making product or infrastructure changes**.
+Every human developer, contractor, contributor, coding agent, and new ChatGPT development session must begin with the root [AGENTS.md](../AGENTS.md), then [Developer start here](DEVELOPER-START-HERE.md), **before making product or infrastructure changes**.
 
-That document defines the Rolling Green Baseline, the required current-state verification, change-scope protections, deployment ordering, and the exact procedure for deciding when a newer `main` commit is allowed to become the baseline. A handoff or previous chat is context only; it is not proof of current repository state.
+`AGENTS.md` is the mandatory senior-engineering startup contract. It requires live repository verification, the engineering reading sequence, preservation boundaries, written success criteria, and a Repository Readiness Brief before implementation work is allowed.
+
+For a copy/paste first message to use in a new ChatGPT or coding-agent session, use [AI senior developer startup prompt](AI-SENIOR-DEVELOPER-STARTUP-PROMPT.md).
+
+These documents define the Rolling Green Baseline, required current-state verification, change-scope protections, deployment ordering, and the exact procedure for deciding when a newer `main` commit is allowed to become the baseline. A handoff or previous chat is context only; it is not proof of current repository state.
 
 ## Start here
 
 | Document | Use it for |
 | --- | --- |
+| [Root AGENTS.md](../AGENTS.md) | Mandatory senior software/UIUX/backend startup contract and Repository Readiness Brief |
+| [AI senior developer startup prompt](AI-SENIOR-DEVELOPER-STARTUP-PROMPT.md) | Copy/paste first prompt or short-form instruction for every new AI development session |
 | [Developer start here](DEVELOPER-START-HERE.md) | Mandatory cold start, Rolling Green Baseline, scope protection, pre-change verification, and post-merge baseline advancement |
 | [Architecture](ARCHITECTURE.md) | Runtime boundaries, folders, data model, environment variables, auth, RLS, storage, and scheduled jobs |
 | [Features](FEATURES.md) | Product capabilities, canonical routes, dependencies, and implementation trade-offs |
@@ -28,6 +34,7 @@ That document defines the Rolling Green Baseline, the required current-state ver
 
 ## Repository-level source material
 
+- [AI/developer startup contract](../AGENTS.md) — mandatory first instruction before any implementation session.
 - [Project README](../README.md) — concise introduction and developer entry point.
 - [Engineering rules](../CONTRIBUTING.md) — non-negotiable implementation, security, review, and definition-of-done rules.
 - [Launch readiness](../LAUNCH_READINESS.md) — the 9 August 2026 launch audit. Treat its status assertions as historical until re-verified; see [Open issues](OPEN-ISSUES.md).
@@ -35,7 +42,8 @@ That document defines the Rolling Green Baseline, the required current-state ver
 
 ## How to use this handbook
 
-- Everyone: start with [Developer start here](DEVELOPER-START-HERE.md) and verify the current Rolling Green Baseline before work begins.
+- Everyone: start with [AGENTS.md](../AGENTS.md), then [Developer start here](DEVELOPER-START-HERE.md), and verify the current Rolling Green Baseline before work begins.
+- New AI session: execute [AI senior developer startup prompt](AI-SENIOR-DEVELOPER-STARTUP-PROMPT.md) or the short form it contains.
 - New developer: then read [Onboarding](ONBOARDING.md), [Architecture](ARCHITECTURE.md), and [Engineering rules](../CONTRIBUTING.md).
 - Feature owner: read [Features](FEATURES.md), the relevant source routes, and [Regression testing](REGRESSION_TESTING.md).
 - Designer/frontend engineer: read [Design system](DESIGN-SYSTEM.md) and the responsive/accessibility sections of [Engineering rules](../CONTRIBUTING.md).

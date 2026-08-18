@@ -20,7 +20,7 @@ const checks=[
   ['components/AdminProjectDetailActions.tsx',['Start Partner project','Team size required','applications_open']],
   ['app/admin/project-operations/projects/[id]/page.tsx',['cohortGrid','Team {run.run_number}','TYPE REVIEW REQUIRED','applications_open']],
   ['app/api/project-terms/route.ts',['project_application_terms','communication_template_attachments','attachment_id']],
-  ['app/api/admin/communications/attachments/route.ts',['communication-template-documents','application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','MAX_EMAIL_ATTACHMENTS']],
+  ['app/api/admin/communications/attachments/route.ts',['communication-template-documents','application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','MAX_FILES=4','MAX_BYTES=10*1024*1024']],
   ['supabase/migrations/20260818182000_communication_template_attachments.sql',['communication_template_attachments','communication-template-documents','project_application_terms','terms_attachment_id','terms_accepted_at']],
   ['supabase/migrations/20260818174500_project_cohort_lifecycle.sql',['applications_open','project_type_review_required','required_team_size','has_started','project_activity_log']],
   ['supabase/migrations/20260816001500_phase2_project_application_events.sql',['project_application_events','record_project_application_event','members read own project application events']],

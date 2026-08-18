@@ -25,7 +25,7 @@ flowchart TD
 | Live project events | LiveKit client/server SDK | project-event route handlers and LiveKit components |
 | Browser/E2E tests | Playwright, Chromium project | `tests/`, `playwright.config.ts` |
 | Static contract checks | Node audit scripts | `scripts/audit-*.mjs` |
-| CI | GitHub Actions | `.github/workflows/` |
+| CI | GitHub Actions plus ephemeral local Supabase for destructive release E2E | `.github/workflows/ci.yml`, `supabase/config.toml`, `supabase/ci/` |
 | Hosting/scheduling | Vercel deployment plus Vercel Cron route invocations | `vercel.json` |
 
 The package manifest currently requests `next ^15.2.4`; do not document an exact installed patch without checking `package-lock.json`.
@@ -37,10 +37,12 @@ The package manifest currently requests `next ^15.2.4`; do not document an exact
 | `app/` | App Router pages, layouts, metadata, route handlers, global CSS, public/member/Admin route trees |
 | `components/` | Reusable client/server UI, forms, queues, navigation, workspace and Admin controls |
 | `lib/` | Supabase factories, notifications, project lifecycle/governance, opportunity processing, templates, and domain helpers |
-| `scripts/` | Contract audits, configuration checks, Admin promotion, and hosted auth-template sync |
-| `supabase/migrations/` | Versioned SQL schema, RLS, functions, indexes, seed data, and Storage bucket definitions |
+| `scripts/` | Contract audits, configuration checks, Admin promotion, hosted auth-template sync, and local CI Supabase preparation/fixtures |
+| `supabase/migrations/` | Canonical versioned SQL schema, RLS, functions, indexes, seed data, and Storage bucket definitions |
+| `supabase/ci/` | CI-only compatibility baseline used to reproduce hosted pre-history objects inside disposable local Supabase |
+| `supabase/config.toml` | Safe, committed local Supabase CLI configuration for development/CI |
 | `supabase/templates/auth/` | Version-controlled Supabase Auth email templates |
-| `tests/` | Playwright UI/API contracts, protected-route smoke tests, and staging submission journeys |
+| `tests/` | Playwright UI/API contracts, protected-route smoke tests, and isolated submission journeys |
 | `public/` | Static logos and social/SEO assets |
 | `.github/workflows/` | Regression/build gate and Supabase auth-template synchronization |
 | `docs/` | Living engineering and product handover documentation |
@@ -86,25 +88,33 @@ Sign-up is not a separate page in the intended journey: `/signin?mode=signup` se
 
 The database is organized around these domains:
 
-| Domain | Representative versioned tables |
+| Domain | Representative tables |
 | --- | --- |
 | Identity and preferences | `profiles`, `account_identities`, domain/tool taxonomy and profile preferences |
 | Projects and intake | `projects`, `project_roles`, `project_applications`, `project_application_events`, `project_members` |
 | Delivery workspace | milestones, workstreams, tasks/events, discussions/reads, resources, deliverables, data sources and versions |
-| Contribution and proof | `contributions`, `contribution_evidence_links`, `contribution_review_events`, public proof/credential data |
+| Contribution and proof | `contributions`, `contribution_evidence_links`, contribution review events, public proof/credential data |
 | Project Architect/governance | applications, evidence, history, credentials, assignments, reviews, and governance events |
 | Opportunities | `opportunities`, saved items, source registry, ingestion runs, verification checks, role taxonomy |
 | Events | public events/registrations plus governed project meetings, participants, registrations, attendance, reviews, resources, and audit |
-| Careers | offer documents and onboarding items are versioned; see the baseline warning below |
+| Careers | roles, applications, application events, offer documents and onboarding items |
 | Organisations and intake | organisations, partnerships, form submissions, notes, history, and proposal documents |
 | Communications | templates, template versions, records, audit logs, notifications/outbox data |
 | Editorial/recognition | content posts and Spotlight data |
 
-### Schema-bootstrap warning
+### Canonical migration-history warning
 
-A static audit found application queries for tables that are not created by any migration currently in `supabase/migrations/`: `career_application_events`, `career_applications`, `career_roles`, `content_posts`, `email_delivery_attempts`, `email_outbox`, `notification_event_catalogue`, `notification_preferences`, `notifications`, and `project_runs`.
+The hosted Production database contains objects whose original creation predates the canonical `supabase/migrations/` history: `career_application_events`, `career_applications`, `career_roles`, `content_posts`, `email_delivery_attempts`, `email_outbox`, `notification_event_catalogue`, `notification_preferences`, `notifications`, and `project_runs`, plus the private `career-cvs` Storage bucket.
 
-Later migrations alter or reference several of them, so an existing hosted database may contain an older/manual baseline. That provenance is not captured in this repository. **Do not bootstrap a blank Supabase project as production-equivalent until the missing baseline is pulled, reviewed, and committed.** See [Open issues](OPEN-ISSUES.md#p0-versioned-supabase-baseline-is-incomplete).
+The release pipeline now reproduces those objects in a **CI-only compatibility baseline** at `supabase/ci/20260809020000_missing_hosted_baseline.sql`. `scripts/prepare-local-supabase.mjs` also normalizes the historical 8-digit launch-readiness/product-core migration names in the generated `.supabase-ci/` workdir so a blank local stack can apply dependencies in the intended order. This workdir is disposable and ignored by Git.
+
+This makes destructive CI acceptance reproducible without a paid staging project, but it does **not** declare the canonical Production migration history fully reconciled. Do not promote a new long-lived Supabase environment from `supabase/migrations/` alone until the hosted provenance is reconciled. See [Open issues](OPEN-ISSUES.md#p0-canonical-supabase-migration-history-still-needs-reconciliation).
+
+## Ephemeral Supabase release environment
+
+For trusted pull requests and `main` pushes, GitHub Actions starts Supabase locally in the runner using the official CLI and Docker. The job creates disposable Member, Project Architect and Admin identities, a public project, and a published career role, starts Mettelo against the loopback instance, runs the authenticated/submission journeys, then destroys the stack.
+
+The generated service-role key exists only inside the runner. `scripts/check-e2e-config.mjs` rejects the known Production project and requires a loopback Supabase hostname when `CI_LOCAL_SUPABASE=1`. Production remains outside destructive E2E execution.
 
 ## RLS and database security
 
@@ -113,23 +123,22 @@ Later migrations alter or reference several of them, so an existing hosted datab
 - Admin authorization is based on `app_metadata`, not editable `user_metadata`.
 - Security-definer functions are explicitly hardened and have controlled `search_path`/execute grants in migrations.
 - Foreign-key/filter indexes are maintained in the migration history; the latest hardening pass is `20260817120000_harden_backend_indexes_and_function_path.sql`.
-- Run Supabase security and performance advisors after any DDL, function, view, policy, or index change.
+- Run Supabase security and performance advisors after any canonical DDL, function, view, policy, or index change.
 
 ## Storage
 
-Versioned migrations create these buckets:
+Canonical/hosted storage includes:
 
 | Bucket | Visibility | Purpose |
 | --- | --- | --- |
 | `profile-images` | Public | Member profile avatars; ownership policies restrict mutation |
 | `career-offer-documents` | Private | PDF offer documents served by short-lived signed URL |
 | `intake-proposals` | Private | Admin-managed partnership proposal PDFs |
-
-The careers application endpoint uploads CVs to private bucket `career-cvs`, but no migration in the repository creates that bucket or its policies. This is part of the P0 schema-baseline issue.
+| `career-cvs` | Private | Candidate CV uploads; reproduced by the CI compatibility baseline while canonical provenance remains open |
 
 ## Environment variables
 
-Use `.env.example` as the authoritative name list. Never commit values.
+Use `.env.example` as the authoritative name list for hosted/runtime variables. Never commit hosted secrets.
 
 | Variable | Exposure | Requirement/use |
 | --- | --- | --- |
@@ -142,7 +151,8 @@ Use `.env.example` as the authoritative name list. Never commit values.
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Browser | Optional Google Analytics measurement ID |
 | `LUMA_API_KEY`, `YOUTUBE_API_KEY` | Server only | Optional content/event integrations; current use must be confirmed before enabling |
 | `MAKE_WEBHOOK_SECRET` | Server only | Optional webhook verification; current integration scope is TODO: confirm |
-| `E2E_*` | CI/test process | Dedicated staging URL, Supabase project, service key, and disposable test identities |
+| `E2E_*` | CI/test process | Generated local Supabase values plus disposable local identities in the release E2E job; never Production |
+| `CI_LOCAL_SUPABASE` | CI/test process | When `1`, the E2E guard requires the Supabase host to be loopback |
 
 `scripts/check-deployment-config.mjs` fails the production build when the two public Supabase variables or service-role key are absent. Feature-specific variables fail at the relevant route with a clear `503` rather than at build time.
 

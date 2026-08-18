@@ -4,6 +4,59 @@
 
 create extension if not exists pgcrypto;
 
+-- Taxonomy objects existed in the hosted database before the current migration history.
+create table if not exists public.domains (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null unique,
+  description text,
+  sort_order integer not null default 100,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.tools (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null unique,
+  category text not null,
+  sort_order integer not null default 100,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.methods (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null unique,
+  category text not null default 'analytics',
+  sort_order integer not null default 100,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.project_domains (
+  project_id uuid not null references public.projects(id) on delete cascade,
+  domain_id uuid not null references public.domains(id) on delete cascade,
+  is_primary boolean not null default false,
+  created_at timestamptz not null default now(),
+  primary key(project_id,domain_id)
+);
+
+create table if not exists public.project_tools (
+  project_id uuid not null references public.projects(id) on delete cascade,
+  tool_id uuid not null references public.tools(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key(project_id,tool_id)
+);
+
+create table if not exists public.project_methods (
+  project_id uuid not null references public.projects(id) on delete cascade,
+  method_id uuid not null references public.methods(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key(project_id,method_id)
+);
+
 create table if not exists public.career_roles (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique,
@@ -182,6 +235,12 @@ create table if not exists public.project_runs (
   unique(project_id,run_number)
 );
 
+alter table public.domains enable row level security;
+alter table public.tools enable row level security;
+alter table public.methods enable row level security;
+alter table public.project_domains enable row level security;
+alter table public.project_tools enable row level security;
+alter table public.project_methods enable row level security;
 alter table public.career_roles enable row level security;
 alter table public.career_applications enable row level security;
 alter table public.career_application_events enable row level security;
@@ -193,6 +252,9 @@ alter table public.notification_preferences enable row level security;
 alter table public.notifications enable row level security;
 alter table public.project_runs enable row level security;
 
+create policy "active domains are public" on public.domains for select to anon,authenticated using (is_active);
+create policy "active tools are public" on public.tools for select to anon,authenticated using (is_active);
+create policy "active methods are public" on public.methods for select to anon,authenticated using (is_active);
 create policy "public can view published career roles" on public.career_roles
   for select using (status='published' and (closes_at is null or closes_at > now()));
 create policy "members can view own career applications" on public.career_applications
@@ -212,6 +274,9 @@ create policy "notifications_update_own" on public.notifications
 create policy "Public can view runs for public projects" on public.project_runs
   for select to anon,authenticated using (public.is_admin() or exists(select 1 from public.projects p where p.id=project_id and p.visibility='public'));
 
+create index if not exists idx_project_domains_domain on public.project_domains(domain_id,project_id);
+create index if not exists idx_project_tools_tool on public.project_tools(tool_id,project_id);
+create index if not exists idx_project_methods_method on public.project_methods(method_id,project_id);
 create index if not exists idx_career_applications_role on public.career_applications(role_id);
 create index if not exists idx_career_applications_user on public.career_applications(user_id);
 create index if not exists idx_career_application_events_application on public.career_application_events(application_id,created_at desc);

@@ -29,7 +29,7 @@ export async function GET(request:Request){
  const {data:permissions}=readableRunIds.length?await db.from('project_submission_permissions').select('project_run_id,user_id,granted_by_user_id,granted_at').in('project_run_id',readableRunIds).is('revoked_at',null):{data:[]};
  const teams=visibleRuns.map(run=>{
   const isMember=isAdmin||ownRunIds.has(run.id);
-  return{id:run.id,run_number:run.run_number,status:run.status,required_team_size:run.required_team_size,has_started:run.has_started,is_member:isMember,members:isMember?(members||[]).filter(member=>member.project_run_id===run.id).map(member=>({id:member.user_id,name:map.get(member.user_id)?.full_name||'Mettelo member',headline:map.get(member.user_id)?.headline||null,avatar_url:map.get(member.user_id)?.avatar_url||null,role:member.team_role,status:member.membership_status,can_submit_final_proof:(permissions||[]).some(permission=>permission.project_run_id===run.id&&permission.user_id===member.user_id)})):[]};
+  return{id:isMember?run.id:`cohort-${run.run_number}`,run_number:run.run_number,status:run.status,required_team_size:isMember?run.required_team_size:null,has_started:isMember?run.has_started:null,is_member:isMember,members:isMember?(members||[]).filter(member=>member.project_run_id===run.id).map(member=>({id:member.user_id,name:map.get(member.user_id)?.full_name||'Mettelo member',headline:map.get(member.user_id)?.headline||null,avatar_url:map.get(member.user_id)?.avatar_url||null,role:member.team_role,status:member.membership_status,can_submit_final_proof:(permissions||[]).some(permission=>permission.project_run_id===run.id&&permission.user_id===member.user_id)})):[]};
  });
  return NextResponse.json({project_type:project.project_type,current_run_id:runId||null,teams});
 }

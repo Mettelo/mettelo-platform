@@ -1,9 +1,12 @@
--- CI compatibility baseline for hosted objects that pre-date the repository migration history.
--- This file is applied only by scripts/prepare-local-supabase.mjs in an ephemeral local stack.
--- Production remains authoritative until these objects are reconciled into canonical migrations.
+-- Canonical historical baseline for hosted objects that pre-date the repository migration history.
+-- This migration is intentionally idempotent so an existing hosted project keeps its current
+-- objects/policies while a blank Supabase stack can be reconstructed from supabase/migrations.
 
 create extension if not exists pgcrypto;
 
+-- Taxonomy tables must exist before 20260809072000_taxonomy_preferences_security.sql,
+-- which adds their first project-visibility policies. The later 20260809090000_project_taxonomy.sql
+-- remains the canonical owner of taxonomy policy definitions, indexes and seed data.
 create table if not exists public.domains (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique,
@@ -56,6 +59,13 @@ create table if not exists public.project_methods (
   primary key(project_id,method_id)
 );
 
+alter table public.domains enable row level security;
+alter table public.tools enable row level security;
+alter table public.methods enable row level security;
+alter table public.project_domains enable row level security;
+alter table public.project_tools enable row level security;
+alter table public.project_methods enable row level security;
+
 create table if not exists public.career_roles (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique,
@@ -75,10 +85,7 @@ create table if not exists public.career_roles (
   closes_at timestamptz,
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  eligibility text,
-  expected_response_days integer default 14 check (expected_response_days is null or expected_response_days > 0),
-  application_process text
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists public.career_applications (
@@ -102,21 +109,7 @@ create table if not exists public.career_applications (
   interview_details text,
   offer_details text,
   submitted_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  interview_timezone text,
-  interview_format text,
-  interview_url text,
-  interviewer text,
-  interview_instructions text,
-  offer_salary_rate text,
-  offer_start_date date,
-  offer_employment_type text,
-  offer_manager text,
-  offer_working_arrangement text,
-  offer_conditions text,
-  offer_acceptance_deadline timestamptz,
-  offer_personal_message text,
-  withdrawn_at timestamptz
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists public.career_application_events (
@@ -234,12 +227,6 @@ create table if not exists public.project_runs (
   unique(project_id,run_number)
 );
 
-alter table public.domains enable row level security;
-alter table public.tools enable row level security;
-alter table public.methods enable row level security;
-alter table public.project_domains enable row level security;
-alter table public.project_tools enable row level security;
-alter table public.project_methods enable row level security;
 alter table public.career_roles enable row level security;
 alter table public.career_applications enable row level security;
 alter table public.career_application_events enable row level security;
@@ -251,22 +238,38 @@ alter table public.notification_preferences enable row level security;
 alter table public.notifications enable row level security;
 alter table public.project_runs enable row level security;
 
-create policy "active domains are public" on public.domains for select to anon,authenticated using (is_active);
-create policy "active tools are public" on public.tools for select to anon,authenticated using (is_active);
-create policy "active methods are public" on public.methods for select to anon,authenticated using (is_active);
-create policy "public can view published career roles" on public.career_roles for select using (status='published' and (closes_at is null or closes_at > now()));
-create policy "members can view own career applications" on public.career_applications for select to authenticated using (user_id=(select auth.uid()));
-create policy "members can view own career application events" on public.career_application_events for select to authenticated using (exists(select 1 from public.career_applications ca where ca.id=application_id and ca.user_id=(select auth.uid())));
-create policy "published content is public" on public.content_posts for select to anon,authenticated using (status='published' and published_at is not null and published_at <= now());
-create policy "catalogue readable by authenticated users" on public.notification_event_catalogue for select to authenticated using (true);
-create policy "users manage own notification preferences" on public.notification_preferences for all to authenticated using ((select auth.uid())=user_id) with check ((select auth.uid())=user_id);
-create policy "notifications_select_own" on public.notifications for select to authenticated using (user_id=(select auth.uid()));
-create policy "notifications_update_own" on public.notifications for update to authenticated using (user_id=(select auth.uid())) with check (user_id=(select auth.uid()));
-create policy "Public can view runs for public projects" on public.project_runs for select to anon,authenticated using (public.is_admin() or exists(select 1 from public.projects p where p.id=project_id and p.visibility='public'));
+-- Create only missing historical policies. Hosted policy definitions are authoritative and
+-- must not be dropped/replaced when this migration is recorded after the fact.
+do $$ begin
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='career_roles' and policyname='public can view published career roles') then
+    create policy "public can view published career roles" on public.career_roles for select using (status='published' and (closes_at is null or closes_at > now()));
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='career_applications' and policyname='members can view own career applications') then
+    create policy "members can view own career applications" on public.career_applications for select to authenticated using (user_id=(select auth.uid()));
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='career_application_events' and policyname='members can view own career application events') then
+    create policy "members can view own career application events" on public.career_application_events for select to authenticated using (exists(select 1 from public.career_applications ca where ca.id=application_id and ca.user_id=(select auth.uid())));
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='content_posts' and policyname='published content is public') then
+    create policy "published content is public" on public.content_posts for select to anon,authenticated using (status='published' and published_at is not null and published_at <= now());
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='notification_event_catalogue' and policyname='catalogue readable by authenticated users') then
+    create policy "catalogue readable by authenticated users" on public.notification_event_catalogue for select to authenticated using (true);
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='notification_preferences' and policyname='users manage own notification preferences') then
+    create policy "users manage own notification preferences" on public.notification_preferences for all to authenticated using ((select auth.uid())=user_id) with check ((select auth.uid())=user_id);
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='notifications' and policyname='notifications_select_own') then
+    create policy "notifications_select_own" on public.notifications for select to authenticated using (user_id=(select auth.uid()));
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='notifications' and policyname='notifications_update_own') then
+    create policy "notifications_update_own" on public.notifications for update to authenticated using (user_id=(select auth.uid())) with check (user_id=(select auth.uid()));
+  end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='project_runs' and policyname='Public can view runs for public projects') then
+    create policy "Public can view runs for public projects" on public.project_runs for select to anon,authenticated using (public.is_admin() or exists(select 1 from public.projects p where p.id=project_id and p.visibility='public'));
+  end if;
+end $$;
 
-create index if not exists idx_project_domains_domain on public.project_domains(domain_id,project_id);
-create index if not exists idx_project_tools_tool on public.project_tools(tool_id,project_id);
-create index if not exists idx_project_methods_method on public.project_methods(method_id,project_id);
 create index if not exists idx_career_applications_role on public.career_applications(role_id);
 create index if not exists idx_career_applications_user on public.career_applications(user_id);
 create index if not exists idx_career_application_events_application on public.career_application_events(application_id,created_at desc);

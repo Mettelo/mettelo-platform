@@ -10,6 +10,7 @@ type OfferDocument={id:string;application_id:string;storage_path:string;file_nam
 type TemplateAttachment={id:string;storage_path:string;file_name:string;size_bytes:number;content_type:AttachmentContentType;active:boolean;sort_order:number};
 
 function stringArray(value:unknown){return Array.isArray(value)?value.filter((item):item is string=>typeof item==='string'&&Boolean(item.trim())).map(item=>item.trim()):[];}
+function governedTemplateKey(item:OutboxLike){const source=item.payload?.source_template_key;return item.template_key==='admin_template_test'&&typeof source==='string'&&source.trim()?source.trim():item.template_key}
 async function download(db:SupabaseClient,bucket:string,path:string,fileName:string,contentType:AttachmentContentType){const result=await db.storage.from(bucket).download(path);if(result.error||!result.data)throw new Error(`Unable to load ${fileName} for email delivery.`);const bytes=Buffer.from(await result.data.arrayBuffer());return{filename:fileName,content:bytes.toString('base64'),content_type:contentType} satisfies ProviderAttachment}
 
 async function templateAttachments(db:SupabaseClient,templateKey:string){
@@ -23,7 +24,7 @@ async function offerAttachments(db:SupabaseClient,item:OutboxLike){
 }
 
 export async function resolveEmailAttachments(db:SupabaseClient,item:OutboxLike):Promise<ProviderAttachment[]>{
-  const [governed,offer]=await Promise.all([templateAttachments(db,item.template_key),offerAttachments(db,item)]);
+  const [governed,offer]=await Promise.all([templateAttachments(db,governedTemplateKey(item)),offerAttachments(db,item)]);
   const totalCount=governed.length+offer.length;if(totalCount>MAX_EMAIL_ATTACHMENTS)throw new Error(`This email resolves to ${totalCount} attachments. Keep the combined governed and per-send documents at or below ${MAX_EMAIL_ATTACHMENTS}.`);
   const totalBytes=governed.reduce((sum,document)=>sum+Number(document.size_bytes||0),0)+offer.reduce((sum,document)=>sum+Number(document.size_bytes||0),0);if(totalBytes>MAX_EMAIL_ATTACHMENT_RAW_BYTES)throw new Error('Email documents are too large to attach to one message. Keep the combined files at or below 28MB.');
   const attachments:ProviderAttachment[]=[];

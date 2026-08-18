@@ -6,6 +6,19 @@ type PublicForm={
   endpoint:string;
 };
 
+async function horizontalOverflowReport(page:import('@playwright/test').Page){
+  return page.evaluate(()=>{
+    const viewport=document.documentElement.clientWidth;
+    const offenders=[...document.querySelectorAll<HTMLElement>('body *')].flatMap(element=>{
+      const rect=element.getBoundingClientRect();
+      if(rect.width<=0||rect.height<=0||rect.right<=viewport+1||rect.left>=viewport)return[];
+      const style=getComputedStyle(element);
+      return[{tag:element.tagName.toLowerCase(),id:element.id,className:element.className,text:(element.textContent||'').trim().slice(0,100),left:Math.round(rect.left),right:Math.round(rect.right),width:Math.round(rect.width),scrollWidth:element.scrollWidth,whiteSpace:style.whiteSpace,overflowWrap:style.overflowWrap}];
+    });
+    return{viewport,scrollWidth:document.documentElement.scrollWidth,offenders:offenders.slice(0,12)};
+  });
+}
+
 const publicForms:PublicForm[]=[
   {path:'/contact',submit:'Send message →',endpoint:'/api/forms'},
   {path:'/partnership',submit:'Submit partnership enquiry →',endpoint:'/api/forms'},
@@ -106,7 +119,8 @@ test.describe('public form contracts',()=>{
       await expect(review).toBeVisible();
       await expect(page.getByRole('button',{name:/Edit application/i})).toBeVisible();
       await expect(page.getByRole('button',{name:/Confirm & submit application/i})).toBeVisible();
-      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+      const overflow=await horizontalOverflowReport(page);
+      expect(overflow.scrollWidth,JSON.stringify(overflow,null,2)).toBeLessThanOrEqual(overflow.viewport+1);
       for(const locator of [review,...await review.locator('.careerReviewGrid > div').all(),page.getByRole('button',{name:/Edit application/i}),page.getByRole('button',{name:/Confirm & submit application/i})]){
         const box=await locator.boundingBox();
         expect(box).not.toBeNull();

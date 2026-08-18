@@ -21,6 +21,8 @@ export async function POST(request:Request){
     const statement=String(body.contribution_statement||'').trim().slice(0,2000);
     const portfolio=String(body.portfolio_url||'').trim().slice(0,400);
     const availability=String(body.availability||'').trim().slice(0,160);
+    const termsAttachmentId=String(body.terms_attachment_id||'');
+    const acceptedTerms=body.terms_accepted===true;
 
     if(!projectId||statement.length<40) return NextResponse.json({error:'Choose a project and explain your contribution in at least 40 characters.'},{status:400});
 
@@ -38,6 +40,10 @@ export async function POST(request:Request){
       const {data,error}=await supabase.from('project_roles').select('id,project_id,title').eq('id',roleId).eq('project_id',projectId).single();
       if(error||!data) return NextResponse.json({error:'Choose a valid role for this project.'},{status:400});
       role={id:data.id,title:data.title};
+      if(!acceptedTerms||!termsAttachmentId)return NextResponse.json({error:'Read and agree to the current Project Participation Terms before submitting.'},{status:400});
+      const db=serviceDb();if(!db)return NextResponse.json({error:'Project terms service is not configured.'},{status:503});
+      const {data:template}=await db.from('communication_templates').select('id').eq('template_key','project_application_terms').eq('active',true).maybeSingle();if(!template)return NextResponse.json({error:'Project Participation Terms are not currently published.'},{status:503});
+      const {data:terms}=await db.from('communication_template_attachments').select('id').eq('id',termsAttachmentId).eq('template_id',template.id).eq('active',true).maybeSingle();if(!terms)return NextResponse.json({error:'The Project Participation Terms changed. Re-open the application and accept the current document.'},{status:409});
     }else if(!requestedRole){
       return NextResponse.json({error:'Choose the contribution area you are interested in.'},{status:400});
     }
@@ -51,7 +57,9 @@ export async function POST(request:Request){
       availability:availability||null,
       status:'submitted',
       application_kind:isInterest?'interest':'application',
-      requested_role:isInterest?requestedRole:null
+      requested_role:isInterest?requestedRole:null,
+      terms_attachment_id:isInterest?null:termsAttachmentId,
+      terms_accepted_at:isInterest?null:new Date().toISOString()
     }).select('id,status,application_kind').single();
 
     if(error){

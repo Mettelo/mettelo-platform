@@ -11,11 +11,11 @@ const groups:NavGroup[]=[
  {label:'Recruiting',items:[{label:'Careers',href:'/admin/careers/roles'},{label:'Project applications',href:'/admin/project-operations/applications'},{label:'Opportunity review',href:'/admin/opportunities'},{label:'Job sources',href:'/admin/opportunity-sources'}]},
  {label:'Projects',items:[{label:'Project operations',href:'/admin/project-operations/projects'},{label:'Project Architect',href:'/admin/project-architect-applications'},{label:'Project governance',href:'/admin/project-governance'}]},
  {label:'Community & Proof',items:[{label:'Proof review',href:'/admin/proof'},{label:'Spotlight & awards',href:'/admin/spotlights'},{label:'Events',href:'/admin/events'}]},
- {label:'Content & Comms',items:[{label:'Content & Insights',href:'/admin/content/news'},{label:'Communications',href:'/admin/notifications/overview'}]},
+ {label:'Content & Comms',items:[{label:'Content & Insights',href:'/admin/content/news'},{label:'Communications',href:'/admin/notifications/overview'},{label:'Communication templates',href:'/admin/notifications/templates'}]},
  {label:'System',items:[{label:'QA team',href:'/admin/qa'},{label:'Intake',href:'/admin/intake'},{label:'Admin access',href:'/admin/access'}]}
 ];
 const flat=groups.flatMap(group=>group.items);
-function activeHref(pathname:string,href:string){if(href==='/admin/careers/roles')return pathname.startsWith('/admin/careers');if(href==='/admin/content/news')return pathname.startsWith('/admin/content');if(href==='/admin/notifications/overview')return pathname.startsWith('/admin/notifications');return pathname===href||pathname.startsWith(`${href}/`)}
+function activeHref(pathname:string,href:string){if(href==='/admin/careers/roles')return pathname.startsWith('/admin/careers');if(href==='/admin/content/news')return pathname.startsWith('/admin/content');if(href==='/admin/notifications/templates')return pathname.startsWith('/admin/notifications/templates');if(href==='/admin/notifications/overview')return pathname.startsWith('/admin/notifications')&&!pathname.startsWith('/admin/notifications/templates');return pathname===href||pathname.startsWith(`${href}/`)}
 function currentItem(pathname:string){return flat.find(item=>activeHref(pathname,item.href))||null}
 function breadcrumb(pathname:string){
  if(pathname==='/admin'||pathname==='/admin/overview')return ['Admin','Overview'];

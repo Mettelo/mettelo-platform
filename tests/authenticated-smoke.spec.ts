@@ -34,7 +34,11 @@ test.describe('authenticated staging smoke tests',()=>{
     const account=credentials('MEMBER');
     const team1Url=`/member/projects/${labProjectId}?run=${labTeam1RunId}`;
     await signIn(page,account,team1Url);
-    await page.goto(team1Url,{waitUntil:'networkidle'});
+    const team1Response=await page.goto(team1Url,{waitUntil:'networkidle'});
+    if(!page.getByText('METTELO LAB',{exact:true})){
+      console.log('Mettelo Lab diagnostic',JSON.stringify({status:team1Response?.status()||null,url:page.url(),title:await page.title(),body:(await page.locator('body').innerText()).slice(0,1200)}));
+    }
+    console.log('Mettelo Lab diagnostic',JSON.stringify({status:team1Response?.status()||null,url:page.url(),title:await page.title(),body:(await page.locator('body').innerText()).slice(0,1200)}));
     await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
     await expect(page.getByText('Team 1',{exact:true}).first()).toBeVisible();
     await expect(page.getByText('Team 2',{exact:true}).first()).toBeVisible();

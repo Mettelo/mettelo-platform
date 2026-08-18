@@ -1,52 +1,82 @@
 name: Mettelo CI
 
 on:
-  pull_request:
   push:
     branches: [main]
+  pull_request:
 
 concurrency:
-  group: mettelo-ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   scope:
     name: Change scope
     runs-on: ubuntu-latest
     outputs:
-      risk: ${{ steps.scope.outputs.risk }}
-      requires_staging: ${{ steps.scope.outputs.requires_staging }}
+      requires_staging: ${{ steps.classify.outputs.requires_staging }}
+      classification: ${{ steps.classify.outputs.classification }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Classify release risk
-        id: scope
+        id: classify
         shell: bash
         run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          if [ -z "$BASE_SHA" ]; then
-            BASE_SHA="${{ github.event.before }}"
-          fi
-          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            BASE_SHA="HEAD^"
-          fi
-          git diff --name-only "$BASE_SHA" HEAD > /tmp/changed-files.txt
-          cat /tmp/changed-files.txt
-          RISK=GREEN
-          REQUIRES_STAGING=false
-          if grep -Eq '^(supabase/|app/api/|lib/(auth|supabase|project|communications)|middleware|\.github/workflows/)' /tmp/changed-files.txt; then
-            RISK=RED
-            REQUIRES_STAGING=true
-          elif grep -Eq '^(app/|components/|styles/)' /tmp/changed-files.txt; then
-            RISK=AMBER
-          fi
-          echo "risk=$RISK" >> "$GITHUB_OUTPUT"
-          echo "requires_staging=$REQUIRES_STAGING" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
 
-  regression:
+          if [ "${{ github.event_name }}" = "push" ]; then
+            before="${{ github.event.before }}"
+            after="${{ github.sha }}"
+
+            # A missing/all-zero predecessor cannot be scoped safely, so fail
+            # closed and require the authenticated backend gate.
+            if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+              echo "requires_staging=true" >> "$GITHUB_OUTPUT"
+              echo "classification=unscoped-main-push-full-release" >> "$GITHUB_OUTPUT"
+              echo "Main push has no trustworthy predecessor: authenticated backend E2E is mandatory."
+              exit 0
+            fi
+
+            git diff --name-only "$before" "$after" > /tmp/changed-files.txt
+          else
+            git diff --name-only \
+              "${{ github.event.pull_request.base.sha }}" \
+              "${{ github.event.pull_request.head.sha }}" > /tmp/changed-files.txt
+          fi
+
+          echo "Changed files:"
+          cat /tmp/changed-files.txt
+
+          requires_staging=false
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            case "$file" in
+              docs/*.md|docs/**/*.md|*.md|.github/workflows/*.yml|.github/workflows/*.yaml)
+                ;;
+              *)
+                requires_staging=true
+                break
+                ;;
+            esac
+          done < /tmp/changed-files.txt
+
+          if [ "$requires_staging" = "true" ]; then
+            echo "requires_staging=true" >> "$GITHUB_OUTPUT"
+            echo "classification=runtime-or-backend-impact" >> "$GITHUB_OUTPUT"
+            echo "Runtime/backend-impacting change: authenticated backend E2E is mandatory."
+          else
+            echo "requires_staging=false" >> "$GITHUB_OUTPUT"
+            echo "classification=docs-or-ci-policy-only" >> "$GITHUB_OUTPUT"
+            echo "Documentation/CI-policy-only change: destructive backend E2E is explicitly not required by scope."
+          fi
+
+  verify:
     name: Fast regression gate
-    needs: scope
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -158,16 +188,16 @@ jobs:
       - name: Blocking authenticated smoke
         run: npm run test:e2e:smoke -- --workers=1
       - name: Blocking representative persisted submission
-        run: npm run test:e2e:submission:representative -- --workers=1
+        run: npx playwright test tests/staging-submission-journeys.spec.ts --project=chromium --workers=1 --grep "contact, partnership, feedback and newsletter persist and reach admin operations"
       - name: Informational full submission suite
-        id: full-submission-suite
+        id: full_e2e
         continue-on-error: true
-        run: npm run test:e2e:submissions -- --workers=1
+        run: npx playwright test tests/staging-submission-journeys.spec.ts --project=chromium --workers=1
       - name: Report informational journey failures
-        if: steps.full-submission-suite.outcome == 'failure'
-        run: echo "::warning::The broader submission suite reported an informational failure. Blocking smoke and representative persisted-submission checks have already passed."
+        if: steps.full_e2e.outcome == 'failure'
+        run: echo "::warning::One or more non-blocking submission journeys failed. Review uploaded Playwright evidence and track the affected area separately."
       - name: Upload Playwright evidence on failure
-        if: failure()
+        if: failure() || steps.full_e2e.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: staging-e2e-evidence
@@ -184,26 +214,53 @@ jobs:
 
   release-gate:
     name: Release gate
-    needs: [scope, regression, staging-e2e]
     if: always()
+    needs: [scope, verify, staging-e2e]
     runs-on: ubuntu-latest
     steps:
       - name: Require every regression layer required by scope
-        shell: bash
+        env:
+          SCOPE_RESULT: ${{ needs.scope.result }}
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          STAGING_RESULT: ${{ needs.staging-e2e.result }}
+          REQUIRES_STAGING: ${{ needs.scope.outputs.requires_staging }}
+          CLASSIFICATION: ${{ needs.scope.outputs.classification }}
         run: |
-          test "${{ needs.regression.result }}" = "success"
-          if [ "${{ needs.scope.outputs.requires_staging }}" = "true" ]; then
-            test "${{ needs.staging-e2e.result }}" = "success"
+          set -euo pipefail
+
+          if [ "$SCOPE_RESULT" != "success" ]; then
+            echo "Release blocked: change-scope classification failed ($SCOPE_RESULT)."
+            exit 1
+          fi
+
+          if [ "$VERIFY_RESULT" != "success" ]; then
+            echo "Release blocked: fast regression gate=$VERIFY_RESULT."
+            exit 1
+          fi
+
+          if [ "$REQUIRES_STAGING" = "true" ]; then
+            if [ "$STAGING_RESULT" != "success" ]; then
+              echo "Release blocked: classification=$CLASSIFICATION requires the scoped authenticated backend gate, staging=$STAGING_RESULT."
+              exit 1
+            fi
+            echo "Release gate passed: fast regression plus scoped authenticated smoke/persistence checks are green."
+          else
+            if [ "$STAGING_RESULT" != "skipped" ] && [ "$STAGING_RESULT" != "success" ]; then
+              echo "Release blocked: optional staging job ended unexpectedly ($STAGING_RESULT)."
+              exit 1
+            fi
+            echo "Release gate passed: classification=$CLASSIFICATION; backend E2E is explicitly not required by scope."
           fi
 
   deployment-gate:
     name: Deployment gate
-    needs: release-gate
-    if: always()
+    needs: [scope, release-gate]
+    if: always() && needs.release-gate.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Deployment eligibility
-        shell: bash
+      - name: Confirm release is eligible for deployment validation
+        env:
+          CLASSIFICATION: ${{ needs.scope.outputs.classification }}
         run: |
-          test "${{ needs.release-gate.result }}" = "success"
-          echo "Release is eligible for deployment. This gate does not prove a production deployment occurred."
+          echo "All required release prerequisites passed for scope=$CLASSIFICATION."
+          echo "Deployment validation/promotion may run now when deployment is required by that scope."

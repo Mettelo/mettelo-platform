@@ -65,6 +65,26 @@ test.describe('public form contracts',()=>{
     await expect(page.getByRole('button',{name:/Review application/i})).toBeVisible();
   });
 
+  for(const width of [375,390,414])test(`career role detail has no horizontal overflow at ${width}px`,async({page})=>{
+    await page.setViewportSize({width,height:844});
+    await page.goto('/careers',{waitUntil:'networkidle'});
+    const links=page.locator('a[href*="/careers/"]');
+    const count=await links.count();
+    test.skip(count===0,'No published career role is available for this environment.');
+    await links.first().click();
+    await expect(page.locator('.roleMain')).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Responsibilities'})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Requirements'})).toBeVisible();
+    const overflow=await horizontalOverflowReport(page);
+    expect(overflow.scrollWidth,JSON.stringify(overflow,null,2)).toBeLessThanOrEqual(overflow.viewport+1);
+    for(const locator of [page.locator('.roleMain'),...await page.locator('.roleBlock').all(),...await page.locator('.roleList li').all()]){
+      const box=await locator.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x+box!.width).toBeLessThanOrEqual(width+1);
+    }
+  });
+
   test('career application keeps reviewed values in the final request payload',async({page})=>{
     await page.goto('/careers',{waitUntil:'networkidle'});
     const links=page.locator('a[href*="/careers/"]');

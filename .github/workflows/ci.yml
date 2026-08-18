@@ -13,6 +13,68 @@ permissions:
   contents: read
 
 jobs:
+  scope:
+    name: Change scope
+    runs-on: ubuntu-latest
+    outputs:
+      requires_staging: ${{ steps.classify.outputs.requires_staging }}
+      classification: ${{ steps.classify.outputs.classification }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Classify release risk
+        id: classify
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "push" ]; then
+            before="${{ github.event.before }}"
+            after="${{ github.sha }}"
+
+            # A missing/all-zero predecessor cannot be scoped safely, so fail
+            # closed and require the full authenticated backend gate.
+            if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+              echo "requires_staging=true" >> "$GITHUB_OUTPUT"
+              echo "classification=unscoped-main-push-full-release" >> "$GITHUB_OUTPUT"
+              echo "Main push has no trustworthy predecessor: authenticated backend E2E is mandatory."
+              exit 0
+            fi
+
+            git diff --name-only "$before" "$after" > /tmp/changed-files.txt
+          else
+            git diff --name-only \
+              "${{ github.event.pull_request.base.sha }}" \
+              "${{ github.event.pull_request.head.sha }}" > /tmp/changed-files.txt
+          fi
+
+          echo "Changed files:"
+          cat /tmp/changed-files.txt
+
+          requires_staging=false
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            case "$file" in
+              docs/*.md|docs/**/*.md|*.md|.github/workflows/*.yml|.github/workflows/*.yaml)
+                ;;
+              *)
+                requires_staging=true
+                break
+                ;;
+            esac
+          done < /tmp/changed-files.txt
+
+          if [ "$requires_staging" = "true" ]; then
+            echo "requires_staging=true" >> "$GITHUB_OUTPUT"
+            echo "classification=runtime-or-backend-impact" >> "$GITHUB_OUTPUT"
+            echo "Runtime/backend-impacting change: authenticated backend E2E is mandatory."
+          else
+            echo "requires_staging=false" >> "$GITHUB_OUTPUT"
+            echo "classification=docs-or-ci-policy-only" >> "$GITHUB_OUTPUT"
+            echo "Documentation/CI-policy-only change: destructive backend E2E is explicitly not required by scope."
+          fi
+
   verify:
     name: Fast regression gate
     runs-on: ubuntu-latest
@@ -59,7 +121,8 @@ jobs:
 
   staging-e2e:
     name: Staging submission journeys
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: scope
+    if: needs.scope.outputs.requires_staging == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -97,16 +160,52 @@ jobs:
   release-gate:
     name: Release gate
     if: always()
-    needs: [verify, staging-e2e]
+    needs: [scope, verify, staging-e2e]
     runs-on: ubuntu-latest
     steps:
-      - name: Require every regression layer
+      - name: Require every regression layer required by scope
         env:
+          SCOPE_RESULT: ${{ needs.scope.result }}
           VERIFY_RESULT: ${{ needs.verify.result }}
           STAGING_RESULT: ${{ needs.staging-e2e.result }}
+          REQUIRES_STAGING: ${{ needs.scope.outputs.requires_staging }}
+          CLASSIFICATION: ${{ needs.scope.outputs.classification }}
         run: |
-          if [ "$VERIFY_RESULT" != "success" ] || [ "$STAGING_RESULT" != "success" ]; then
-            echo "Release blocked: fast=$VERIFY_RESULT staging=$STAGING_RESULT"
+          set -euo pipefail
+
+          if [ "$SCOPE_RESULT" != "success" ]; then
+            echo "Release blocked: change-scope classification failed ($SCOPE_RESULT)."
             exit 1
           fi
-          echo "Release gate passed."
+
+          if [ "$VERIFY_RESULT" != "success" ]; then
+            echo "Release blocked: fast regression gate=$VERIFY_RESULT."
+            exit 1
+          fi
+
+          if [ "$REQUIRES_STAGING" = "true" ]; then
+            if [ "$STAGING_RESULT" != "success" ]; then
+              echo "Release blocked: classification=$CLASSIFICATION requires authenticated backend E2E, staging=$STAGING_RESULT."
+              exit 1
+            fi
+            echo "Release gate passed: fast regression and required authenticated backend E2E are green."
+          else
+            if [ "$STAGING_RESULT" != "skipped" ] && [ "$STAGING_RESULT" != "success" ]; then
+              echo "Release blocked: optional staging job ended unexpectedly ($STAGING_RESULT)."
+              exit 1
+            fi
+            echo "Release gate passed: classification=$CLASSIFICATION; backend E2E is explicitly not required by scope."
+          fi
+
+  deployment-gate:
+    name: Deployment gate
+    needs: [scope, release-gate]
+    if: always() && needs.release-gate.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm release is eligible for deployment validation
+        env:
+          CLASSIFICATION: ${{ needs.scope.outputs.classification }}
+        run: |
+          echo "All required release prerequisites passed for scope=$CLASSIFICATION."
+          echo "Deployment validation/promotion may run now when deployment is required by that scope."

@@ -2,15 +2,28 @@
 
 Last audited: 18 August 2026
 
+## Mandatory first action
+
+Before installing dependencies, opening an implementation branch, or changing any file, complete [Developer start here](DEVELOPER-START-HERE.md).
+
+You must identify the current `main` SHA, verify whether that exact SHA is fully green, identify the current Rolling Green Baseline, inspect overlapping open pull requests, and read the mandatory engineering sources. A previous developer handoff or ChatGPT conversation is not current-state verification.
+
+Do not begin feature/design/backend improvement work while the baseline state is unknown.
+
 ## Before you start
 
 Read, in order:
 
-1. [Engineering rules](../CONTRIBUTING.md)
-2. [Architecture](ARCHITECTURE.md)
-3. [Features](FEATURES.md)
-4. [Regression testing](REGRESSION_TESTING.md)
-5. [Open issues](OPEN-ISSUES.md)
+1. [Developer start here](DEVELOPER-START-HERE.md)
+2. [Engineering rules](../CONTRIBUTING.md)
+3. [Documentation index](README.md)
+4. [Architecture](ARCHITECTURE.md)
+5. [Design system](DESIGN-SYSTEM.md)
+6. [Features](FEATURES.md)
+7. [CI/CD](CI-CD.md)
+8. [Regression testing](REGRESSION_TESTING.md)
+9. [Open issues](OPEN-ISSUES.md)
+10. the newest relevant entries in [Decisions](DECISIONS.md)
 
 Do not use Production as a development database. Do not copy real service-role keys, member credentials, CVs, or intake content into issues, logs, tests, screenshots, or chat.
 
@@ -34,6 +47,8 @@ cp .env.example .env.local
 ```
 
 Use `npm ci`, not an unreviewed dependency update, for the initial setup.
+
+Before creating a work branch, fetch the latest remote state and verify the branch starts from the current intended baseline. Do not branch from an old local `main` merely because it builds locally.
 
 ## Configure local environment
 
@@ -104,6 +119,28 @@ npm run dev
 ```
 
 Open `http://localhost:3000`. Verify at least the home page, `/signin`, one public project, and the route relevant to your change. Missing required Supabase variables prevent the application build and make protected routes return to sign-in.
+
+## Before implementing an improvement
+
+State written success criteria first. Include:
+
+- exact journey being changed;
+- expected user outcome;
+- current behavior that must not regress;
+- security/permission boundary;
+- mobile (`<=480px`), tablet (`481-1024px`) and desktop (`>=1025px`) behavior;
+- WCAG 2.2 AA requirements;
+- loading/empty/success/error states;
+- tests/evidence to verify the change;
+- rollback path.
+
+Trace the existing journey before editing it:
+
+```text
+User action -> UI validation -> API route -> database/RLS -> Admin visibility -> notification -> confirmation
+```
+
+Default to extending the existing canonical implementation. Do not replace unrelated working systems as part of a local improvement.
 
 ## Run the quality gates
 
@@ -196,3 +233,4 @@ Record the approved design in [DECISIONS.md](DECISIONS.md) before implementation
 - Include responsive and accessibility evidence for UI work.
 - Include migration, environment, data-backfill, and rollback notes for backend work.
 - Do not merge with a failing or skipped required release gate.
+- After merge, verify the exact resulting `main` SHA and every required check before calling it the new Rolling Green Baseline.

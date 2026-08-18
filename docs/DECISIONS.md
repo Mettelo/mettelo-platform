@@ -2,6 +2,22 @@
 
 This is a running record of consequential choices. Add new entries at the top. Do not record a commit message alone: capture the problem, root cause, fix, reasoning, and source.
 
+## Make backend E2E scope-aware and deployment gate strictly last
+**Date:** 18 August 2026  
+**Problem:** Documentation-only and CI-policy changes were blocked by a destructive staging job that could not even start because hosted `E2E_*` credentials were absent. At the same time, deployment eligibility needed an explicit final-stage dependency so it could never run when an earlier required gate failed.  
+**Root cause:** The workflow treated every change as backend-impacting and required staging E2E unconditionally, even when no runtime code, API, schema, auth, package, test, or application configuration changed. It also had no final GitHub Actions job representing deployment eligibility after the aggregate release decision.  
+**Fix:** Add a `Change scope` classifier for pull requests and `main` pushes. Changes limited to Markdown documentation and CI workflow-policy files are classified `docs-or-ci-policy-only`; all other files require authenticated backend E2E. Main pushes are classified from the event's `before` SHA to the resulting SHA; an untrustworthy/missing predecessor fails closed to full backend E2E. The `Release gate` validates the classifier result, fast regression result, and staging result according to scope. Add a `Deployment gate` with `needs: [scope, release-gate]` and `if: always() && needs.release-gate.result == 'success'`. The `always()` term bypasses GitHub Actions' transitive-skip behavior only when staging was intentionally scope-exempt; the explicit release-gate result check still prevents deployment eligibility from running after a failed, cancelled, or skipped Release gate.  
+**Reasoning:** Critical backend journeys must remain protected, but unrelated hosted-staging gaps must not block safe documentation/policy work or make the resulting documentation-only `main` commit immediately red. The exemption is explicit, file-scoped and visible in CI rather than a hidden skip. Runtime/backend-impacting changes still require the full backend evidence before they can become the Rolling Green Baseline.  
+**Author/source:** ChatGPT senior-development session with product owner, 18 August 2026; PR #52.
+
+## Adopt a Rolling Green Baseline and mandatory developer cold start
+**Date:** 18 August 2026  
+**Problem:** Repeated infrastructure/debug cycles were consuming time and creating uncertainty about which state of Mettelo was safe to preserve. A future developer or new ChatGPT session could also inherit a detailed handoff and begin changing the platform without first confirming the actual current `main`, checks, deployment, open PRs, or implementation.  
+**Root cause:** The repository had strong test/release rules but no single mandatory entry-point defining when `main` becomes the authoritative baseline, how that baseline advances, or the exact verification a new development session must perform before improvement work.  
+**Fix:** Adopt the Rolling Green Baseline: the latest `main` SHA becomes authoritative only after every required quality, regression, security, database, browser, release-gate, and deployment check for that exact state succeeds. Add `docs/DEVELOPER-START-HERE.md`; make it mandatory from `CONTRIBUTING.md`, the docs index, onboarding, and CI/CD guidance; require current-state verification before implementation; define red/amber/green change boundaries; require focused branches/PRs; and require post-merge verification before the baseline advances.  
+**Reasoning:** Mettelo must keep improving without turning each improvement into a platform rewrite. A rolling baseline preserves the latest proven working system while allowing intentional changes to become the next baseline only after they earn it through verification. Handoffs remain useful context but cannot replace live repository/deployment evidence.  
+**Author/source:** ChatGPT senior-development session with product owner, 18 August 2026; branch `docs/rolling-green-baseline`.
+
 ## Normalize optional career links and contain every review column
 **Date:** 18 August 2026  
 **Problem:** Career candidates who entered a normal protocol-free address such as `linkedin.com/in/name` could not reach Review, and long Review values could force the mobile page wider than the viewport.  

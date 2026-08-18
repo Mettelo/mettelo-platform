@@ -12,7 +12,12 @@ const checks=[
   ['components/ProjectApplicationForm.tsx',['localStorage','Draft saved automatically','Complete these','REVIEW APPLICATION','Confirm & submit']],
   ['app/member/applications/page.tsx',['project_application_events','project_run_id','forming_deadline','MemberApplicationTracker','Know exactly what is happening next.','Find another project']],
   ['components/MemberApplicationTracker.tsx',['WHAT THIS MEANS','WHAT HAPPENS NEXT','DO I NEED TO DO SOMETHING?','Application timeline','View history','formationTrack']],
-  ['app/api/project-applications/route.ts',['application_deadline','team_place_released','waiting_for_team']],
+  ['app/api/project-applications/route.ts',['application_deadline','applications_open','team_place_released','waiting_for_team']],
+  ['app/api/admin/applications/route.ts',["project.project_type==='open'","order('run_number',{ascending:true})","cohort_auto_started","project.project_type==='partner'","full&&project.project_type==='open'","required_team_size"]],
+  ['app/api/project-team-lifecycle/route.ts',["project.project_type!=='partner'",'Partner projects never auto-start','partner_manual_start','Project Architect','project_lead']],
+  ['components/AdminProjectDetailActions.tsx',['Start Partner project','Team size required','applications_open']],
+  ['app/admin/project-operations/projects/[id]/page.tsx',['cohortGrid','Team {run.run_number}','TYPE REVIEW REQUIRED','applications_open']],
+  ['supabase/migrations/20260818174500_project_cohort_lifecycle.sql',['applications_open','project_type_review_required','required_team_size','has_started','project_activity_log']],
   ['supabase/migrations/20260816001500_phase2_project_application_events.sql',['project_application_events','record_project_application_event','members read own project application events']],
   ['supabase/migrations/20260816004500_allow_open_forming_public_projects.sql',['open','forming','public projects readable anon','projects readable authenticated']],
   ['supabase/migrations/20260816010500_restrict_project_application_updates.sql',['applications updatable by admin','public.is_admin()']]

@@ -15,7 +15,9 @@ const forms=read('app/api/forms/route.ts');
 const projectApplications=read('app/api/project-applications/route.ts');
 const eventCron=read('app/api/cron/project-event-reminders/route.ts');
 const savedCron=read('app/api/cron/saved-opportunity-reminders/route.ts');
-const signin=read('app/signin/page.tsx');
+const signinPage=read('app/signin/page.tsx');
+const signinClient=read('app/signin/AuthAccountClient.tsx');
+const signin=`${signinPage}\n${signinClient}`;
 
 const checks=[
  ['communication_templates table',foundation.includes('create table if not exists public.communication_templates')],

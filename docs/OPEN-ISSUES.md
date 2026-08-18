@@ -4,9 +4,9 @@ Last audited: 18 August 2026
 
 This file records gaps evidenced by the repository or unresolved by the dated launch/Phase 1 documents. “TODO: confirm” means the answer depends on hosted configuration or current production evidence that is not stored in Git.
 
-## P0: Versioned Supabase baseline is incomplete
+## P0: Canonical Supabase migration history still needs reconciliation
 
-**Evidence:** Application code queries these tables, but no migration in `supabase/migrations/` creates them:
+**Evidence:** The hosted Production database contains these tables, but no canonical migration in `supabase/migrations/` creates them:
 
 - `career_application_events`
 - `career_applications`
@@ -19,27 +19,29 @@ This file records gaps evidenced by the repository or unresolved by the dated la
 - `notifications`
 - `project_runs`
 
-The careers endpoint also uploads to `career-cvs`, while no versioned migration creates that bucket or its Storage policies. Later migrations alter/reference some missing objects, which suggests an older or manual hosted baseline that is not in the repository.
+The hosted careers flow also uses the private `career-cvs` bucket, whose original creation is not represented in the canonical migration history. Historical baseline files `20260809_launch_readiness.sql` and `20260809_product_core.sql` use 8-digit names that sort after later 14-digit migrations on a clean replay.
 
-**Impact:** A new developer cannot prove that a blank Supabase project can be built to production-equivalent state from Git. Careers, content, notifications/email delivery, and project-run features may fail on a clean environment.
+**Mitigation now versioned:** `scripts/prepare-local-supabase.mjs` creates an ephemeral CI migration workdir that normalizes those two historical baseline migrations and injects `supabase/ci/20260809020000_missing_hosted_baseline.sql`. This makes the destructive release E2E environment reproducible without querying or mutating Production.
 
-**Resolution:** Pull/derive the authoritative schema from the approved hosted project, review it for secrets and production-only data, add an idempotent baseline migration (or ordered create migrations), include bucket policies, run security/performance advisors, and prove a clean staging bootstrap. Document the process here and in [Architecture](ARCHITECTURE.md).
+**Impact:** CI can now prove the current application journeys on a clean disposable stack, but the repository still cannot claim that the canonical `supabase/migrations/` history alone is a faithful reconstruction of the hosted Production database. A new long-lived Supabase environment should not be promoted from that canonical history until provenance is reconciled.
 
-## P0: Credentialed staging environment is not evidenced in the repository
+**Resolution:** Pull/derive the authoritative hosted schema and migration-history state, review it for production-only data/secrets, convert the CI compatibility objects/order into canonical idempotent migrations without replaying already-applied hosted changes incorrectly, include the `career-cvs` bucket/policies, run security/performance advisors, and prove `supabase db reset` from canonical migrations alone.
 
-**Evidence:** The release workflow requires `E2E_BASE_URL`, a non-production Supabase URL/keys, and disposable member/Architect/Admin accounts. External secrets and a staging project cannot be verified from Git.
+## Resolved 18 August 2026: Paid/credentialed staging environment blocked the release gate
 
-**Impact:** If secrets are absent, stale, or point at an unsafe project, `staging-e2e`/`Release gate` cannot pass. Backend journeys remain unproven even if the static build is green.
+**Previous evidence:** `staging-e2e` required `E2E_BASE_URL`, a non-production Supabase URL/keys and disposable member/Architect/Admin accounts. Those secrets and a hosted staging project did not exist, so the release gate failed before browser tests started.
 
-**Resolution:** TODO: provision/confirm the dedicated Supabase staging project or branch, apply the complete schema, seed a public project and career role, configure all `E2E_*` secrets, run the suite, and capture a green release-gate run.
+**Resolution implemented:** `.github/workflows/ci.yml` now starts an ephemeral local Supabase Postgres/Auth/Storage stack with the official CLI, exports generated local keys only inside the runner, creates deterministic local-only identities/fixtures, runs the same destructive browser/API/database/Admin journeys, and destroys the stack afterward. `scripts/check-e2e-config.mjs` still rejects Production and requires loopback when `CI_LOCAL_SUPABASE=1`.
 
-## P1: Phase 1 browser gate is not part of CI
+**Verification required before closing operationally:** Capture a green `Staging submission journeys` and aggregate `Release gate` run on the implementation PR. If CI fails, keep this item operationally open until the failure is fixed rather than weakening the test.
 
-**Evidence:** `npm run test:phase1-browser` exists, and commit `4a9c85b` parallelized it, but `.github/workflows/ci.yml` runs `npm run test:regression`, whose file list excludes `tests/phase1-browser.spec.ts`.
+## Resolved 18 August 2026: Phase 1 browser gate was not part of CI
 
-**Impact:** Authentication/onboarding UI can regress while the current required CI commands remain green.
+**Previous evidence:** `npm run test:phase1-browser` existed but `.github/workflows/ci.yml` did not execute it.
 
-**Resolution:** Add the Phase 1 browser suite to CI or include it in the regression command, then manage runtime through sharding/parallelism rather than dropping criteria.
+**Resolution implemented:** The fast regression gate now installs Chromium once, runs `npm run test:phase1-browser`, then the standard regression suite and production build. Runtime is managed by existing Playwright parallelism rather than dropping criteria.
+
+**Verification required before closing operationally:** Capture a green fast-gate run with the Phase 1 browser step present.
 
 ## P1: Hosted deployment protections need confirmation
 
@@ -96,7 +98,7 @@ Carried forward from [LAUNCH_READINESS.md](../LAUNCH_READINESS.md):
 - verify every official social URL, especially LinkedIn/Instagram decisions;
 - publish only events, opportunities, projects, testimonials, logos, and member proof backed by real owners/permission;
 - assign owners for recurring editorial, opportunity, event, and project data quality;
-- confirm the Admin content workflow and missing `content_posts` baseline are sufficient before calling the CMS/data path operational.
+- confirm the Admin content workflow and canonical `content_posts` baseline are sufficient before calling the CMS/data path operational.
 
 ## P2: Analytics reporting is not evidenced
 
@@ -134,7 +136,7 @@ Examples:
 
 - `LAUNCH_READINESS.md` says a lockfile must be added; `package-lock.json` now exists.
 - It says project applications beyond interest need project-specific entities/Admin review; those routes and tables are now represented.
-- It says recurring content needs a data/CMS workflow; Admin content code now exists, although its table baseline is missing.
+- It says recurring content needs a data/CMS workflow; Admin content code now exists, although canonical baseline provenance is still open.
 - External configuration, real content, analytics, legal, and device QA items remain unverified.
 
 **Resolution:** Re-run the launch audit after the P0/P1 items, date every verification, and update the original document without erasing its historical context.

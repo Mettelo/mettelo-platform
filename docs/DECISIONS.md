@@ -2,6 +2,14 @@
 
 This is a running record of consequential choices. Add new entries at the top. Do not record a commit message alone: capture the problem, root cause, fix, reasoning, and source.
 
+## Run destructive release E2E against ephemeral local Supabase
+**Date:** 18 August 2026  
+**Problem:** The required `staging-e2e` gate could not run because no non-production Supabase project or `E2E_*` secrets existed, while creating a hosted Supabase branch would introduce an hourly cost the owner does not want to incur. The repository also had a known Phase 1 browser suite that was not required by CI.  
+**Root cause:** The release workflow assumed paid/external staging infrastructure. Separately, the hosted database contains baseline objects that pre-date the repository migration history, and the historical `20260809_launch_readiness.sql`/`20260809_product_core.sql` filenames sort after later 14-digit migrations on a clean replay.  
+**Fix:** Use the official Supabase CLI in GitHub Actions to start a disposable runner-local Postgres/Auth/Storage stack; generate a temporary ordered migration workdir that normalizes the two historical baseline files and adds a version-controlled CI compatibility baseline for hosted objects that pre-date Git history; create local-only member, Project Architect and Admin identities plus deterministic project/career fixtures; start Mettelo against the loopback stack; run the existing authenticated/submission Playwright journeys; destroy the stack on completion. Keep the production-project guard and additionally require loopback when `CI_LOCAL_SUPABASE=1`. Add `npm run test:phase1-browser` to the required fast gate.  
+**Reasoning:** This preserves browser → API → database/RLS → Admin → notification/storage evidence without paying for a hosted staging database or weakening the release gate. Production is never used as a destructive test target. The CI compatibility layer is intentionally isolated from canonical production migrations until hosted migration-history provenance is reconciled.  
+**Author/source:** Codex session, 18 August 2026; `.github/workflows/ci.yml`, `supabase/config.toml`, `supabase/ci/20260809020000_missing_hosted_baseline.sql`, `scripts/prepare-local-supabase.mjs`, and `scripts/setup-local-e2e.mjs`.
+
 ## Normalize optional career links and contain every review column
 **Date:** 18 August 2026  
 **Problem:** Career candidates who entered a normal protocol-free address such as `linkedin.com/in/name` could not reach Review, and long Review values could force the mobile page wider than the viewport.  

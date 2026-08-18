@@ -8,11 +8,11 @@ This reconciliation moves the schema-bearing compatibility layers into canonical
 
 ## Canonical historical baselines
 
-- `20260809020000_missing_hosted_baseline.sql` — Careers, content, email/notification infrastructure, `project_runs`, and the private `career-cvs` bucket.
+- `20260809020000_missing_hosted_baseline.sql` — early taxonomy table prerequisites, Careers, content, email/notification infrastructure, `project_runs`, and the private `career-cvs` bucket.
 - `20260812090000_project_run_hosted_baseline.sql` — historical project-run columns, run foreign keys/indexes and prerequisite run helper functions.
 - `20260816095000_spotlight_hosted_baseline.sql` — historical Spotlight reputation fields and constraints.
 
-The project taxonomy schema is intentionally **not** duplicated in the first baseline because `20260809090000_project_taxonomy.sql` already owns domains, tools, methods and the project taxonomy relation tables canonically.
+The first baseline creates the six taxonomy tables early because `20260809072000_taxonomy_preferences_security.sql` already references their relation tables. Policy, index and seed ownership remains with the existing `20260809072000` and `20260809090000_project_taxonomy.sql` migrations; the baseline does not duplicate that later behavior.
 
 ## Production replay safety
 

@@ -100,6 +100,21 @@
 
 @media(prefers-reduced-motion:reduce){.mobileMenuBackdrop,.mobilePublicNav *{transition:none!important;animation:none!important}}
 
+/* The existing mobile toggle remains in place while its three bars morph
+   into a close icon. This keeps the interaction spatially predictable. */
+@media(max-width:1080px){
+  .mobileMenu>summary .hamburgerIcon{position:relative!important;display:block!important;width:20px!important;height:16px!important}
+  .mobileMenu>summary .hamburgerIcon i{position:absolute!important;left:0;width:20px!important;height:2px!important;margin:0!important;transform-origin:center;transition:top 180ms ease,transform 180ms ease,opacity 120ms ease}
+  .mobileMenu>summary .hamburgerIcon i:nth-child(1){top:0}
+  .mobileMenu>summary .hamburgerIcon i:nth-child(2){top:7px}
+  .mobileMenu>summary .hamburgerIcon i:nth-child(3){top:14px}
+  .mobileMenu[open]>summary .hamburgerIcon i:nth-child(1){top:7px;transform:rotate(45deg)}
+  .mobileMenu[open]>summary .hamburgerIcon i:nth-child(2){opacity:0;transform:scaleX(.35)}
+  .mobileMenu[open]>summary .hamburgerIcon i:nth-child(3){top:7px;transform:rotate(-45deg)}
+}
+
+@media(prefers-reduced-motion:reduce){.mobileMenu>summary .hamburgerIcon i{transition:none!important}}
+
 /* Mobile drawer: an opaque, viewport-height panel which enters from the
    same (right) edge as its trigger. This override intentionally replaces the
    older floating/left-hand panel at phone widths only. */

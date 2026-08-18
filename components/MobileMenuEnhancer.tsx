@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {useEffect,useRef,useState} from 'react';
-import {createPortal} from 'react-dom';
 import type {User} from '@supabase/supabase-js';
 import {createClient} from '@/lib/supabase/client';
 
@@ -29,15 +28,11 @@ function NavIcon({name}:{name:string}){
 
 export default function MobileMenuEnhancer(){
   const pathname=usePathname();
-  const [mounted,setMounted]=useState(false);
-  const [target,setTarget]=useState<HTMLElement|null>(null);
   const [account,setAccount]=useState<AccountState>(null);
   const [openSection,setOpenSection]=useState<OpenSection>(null);
   const returnFocus=useRef<HTMLElement|null>(null);
 
   useEffect(()=>{
-    setMounted(true);
-    setTarget(document.querySelector<HTMLElement>('.mobileMenuPanel'));
     document.body.classList.add('publicMobileNavV2');
     const supabase=createClient();
     let active=true;
@@ -58,9 +53,10 @@ export default function MobileMenuEnhancer(){
   },[]);
 
   useEffect(()=>{
-    if(!mounted||!target)return;
     const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');
-    if(!menu)return;
+    const target=menu?.querySelector<HTMLElement>('.mobileMenuPanel');
+    const menuToggle=menu?.querySelector<HTMLElement>('summary');
+    if(!menu||!target||!menuToggle)return;
     let backdrop=document.querySelector<HTMLButtonElement>('.mobileMenuBackdrop');
     if(!backdrop){
       backdrop=document.createElement('button');
@@ -72,13 +68,15 @@ export default function MobileMenuEnhancer(){
       // stacking context prevents it from painting over every drawer control.
       menu.insertBefore(backdrop,target);
     }
-    const focusable=()=>Array.from(target?.querySelectorAll<HTMLElement>('a[href],button:not([disabled])')||[]).filter(element=>element.tabIndex!==-1&&!element.hidden);
+    const focusable=()=>[menuToggle,...Array.from(target.querySelectorAll<HTMLElement>('a[href],button:not([disabled])'))].filter(element=>element.tabIndex!==-1&&!element.hidden);
     const sync=()=>{
       document.body.classList.toggle('mobileNavOpen',menu.open);
       backdrop!.hidden=!menu.open;
+      menuToggle.setAttribute('aria-expanded',String(menu.open));
+      menuToggle.setAttribute('aria-label',menu.open?'Close menu':'Open menu');
       if(menu.open){
         returnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
-        requestAnimationFrame(()=>target?.querySelector<HTMLElement>('.mobilePublicClose')?.focus());
+        requestAnimationFrame(()=>menuToggle.focus());
       }else{
         setOpenSection(null);
         const opener=returnFocus.current||menu.querySelector<HTMLElement>('summary');
@@ -100,20 +98,16 @@ export default function MobileMenuEnhancer(){
     const backdropClick=()=>close();
     menu.addEventListener('toggle',sync);backdrop.addEventListener('click',backdropClick);document.addEventListener('pointerdown',outside);document.addEventListener('keydown',key);sync();
     return()=>{menu.removeEventListener('toggle',sync);backdrop?.removeEventListener('click',backdropClick);document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',key);backdrop?.remove()};
-  },[mounted,target]);
+  },[]);
 
   function closeMenu(){const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');if(menu)menu.open=false;setOpenSection(null)}
   function toggle(section:Exclude<OpenSection,null>){setOpenSection(current=>current===section?null:section)}
   async function signOut(){const supabase=createClient();await supabase.auth.signOut();setAccount(null);closeMenu();window.location.assign('/')}
 
-  if(!mounted)return null;
-  if(!target)return null;
-
   const exploreOpen=openSection==='explore';
   const nav=<div className="mobilePublicNav" aria-label="Mobile website navigation">
     <header className="mobilePublicMenuHead">
       <strong>Menu</strong>
-      <button type="button" className="mobilePublicClose" onClick={closeMenu} aria-label="Close navigation menu"><span aria-hidden="true">×</span></button>
     </header>
     <div className="mobilePublicScroll">
       <nav className="mobilePublicPrimary" aria-label="Primary mobile navigation">
@@ -149,5 +143,5 @@ export default function MobileMenuEnhancer(){
     </div>
   </div>;
 
-  return createPortal(nav,target);
+  return nav;
 }

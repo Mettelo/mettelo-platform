@@ -17,8 +17,9 @@ test.describe('public form contracts',()=>{
   for(const form of publicForms){
     test(`${form.path} exposes its submit control`,async({page})=>{
       await page.goto(form.path,{waitUntil:'networkidle'});
-      await expect(page.getByRole('button',{name:form.submit})).toBeVisible();
-      await expect(page.locator('form')).toBeVisible();
+      const submit=page.getByRole('button',{name:form.submit});
+      await expect(submit).toBeVisible();
+      await expect(submit.locator('xpath=ancestor::form')).toBeVisible();
     });
   }
 
@@ -57,29 +58,30 @@ test.describe('public form contracts',()=>{
     const count=await links.count();
     test.skip(count===0,'No published career role is available for this environment.');
     await links.first().click();
-    await page.locator('input[name="full_name"]').fill('Career Test Candidate');
-    await page.locator('input[name="email"]').fill('career-test@example.test');
-    await page.locator('input[name="linkedin_url"]').fill('linkedin.com/in/career-test');
-    await page.locator('input[name="portfolio_url"]').fill('career-test.example/work');
-    await page.locator('textarea[name="motivation"]').fill('I want to contribute practical, reliable work to Mettelo because the role matches the kind of platform work I enjoy doing.');
-    await page.locator('textarea[name="relevant_experience"]').fill('I have delivered software and data projects from discovery through release, collaborating with stakeholders, documenting decisions and measuring useful outcomes.');
-    const questions=page.locator('textarea[name^="question_"]');
+    const form=page.locator('form.careerApplyForm');
+    await form.locator('input[name="full_name"]').fill('Career Test Candidate');
+    await form.locator('input[name="email"]').fill('career-test@example.test');
+    await form.locator('input[name="linkedin_url"]').fill('linkedin.com/in/career-test');
+    await form.locator('input[name="portfolio_url"]').fill('career-test.example/work');
+    await form.locator('textarea[name="motivation"]').fill('I want to contribute practical, reliable work to Mettelo because the role matches the kind of platform work I enjoy doing.');
+    await form.locator('textarea[name="relevant_experience"]').fill('I have delivered software and data projects from discovery through release, collaborating with stakeholders, documenting decisions and measuring useful outcomes.');
+    const questions=form.locator('textarea[name^="question_"]');
     for(let index=0;index<await questions.count();index++)await questions.nth(index).fill('This is a complete answer to the role-specific application question.');
-    await page.locator('input[name="cv"]').setInputFiles({name:'career-test.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 test CV')});
-    await page.getByRole('button',{name:/Review application/i}).click();
+    await form.locator('input[name="cv"]').setInputFiles({name:'career-test.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 test CV')});
+    await form.getByRole('button',{name:/Review application/i}).click();
     await expect(page.getByRole('heading',{name:/Check your application before submitting/i})).toBeVisible();
     await expect(page.getByRole('link',{name:'https://linkedin.com/in/career-test'})).toBeVisible();
     await expect(page.getByRole('link',{name:'https://career-test.example/work'})).toBeVisible();
-    await expect(page.locator('input[name="full_name"]')).toHaveValue('Career Test Candidate');
-    await expect(page.locator('input[name="email"]')).toHaveValue('career-test@example.test');
-    await expect(page.locator('input[name="linkedin_url"]')).toHaveValue('https://linkedin.com/in/career-test');
-    await expect(page.locator('input[name="portfolio_url"]')).toHaveValue('https://career-test.example/work');
-    expect(await page.locator('input[name="cv"]').evaluate(input=>(input as HTMLInputElement).files?.[0]?.name)).toBe('career-test.pdf');
+    await expect(form.locator('input[name="full_name"]')).toHaveValue('Career Test Candidate');
+    await expect(form.locator('input[name="email"]')).toHaveValue('career-test@example.test');
+    await expect(form.locator('input[name="linkedin_url"]')).toHaveValue('https://linkedin.com/in/career-test');
+    await expect(form.locator('input[name="portfolio_url"]')).toHaveValue('https://career-test.example/work');
+    expect(await form.locator('input[name="cv"]').evaluate(input=>(input as HTMLInputElement).files?.[0]?.name)).toBe('career-test.pdf');
     await page.getByRole('button',{name:/Edit application/i}).click();
-    await expect(page.locator('input[name="full_name"]')).toBeVisible();
-    await expect(page.locator('input[name="full_name"]')).toHaveValue('Career Test Candidate');
-    await expect(page.locator('input[name="linkedin_url"]')).toHaveValue('https://linkedin.com/in/career-test');
-    expect(await page.locator('input[name="cv"]').evaluate(input=>(input as HTMLInputElement).files?.[0]?.name)).toBe('career-test.pdf');
+    await expect(form.locator('input[name="full_name"]')).toBeVisible();
+    await expect(form.locator('input[name="full_name"]')).toHaveValue('Career Test Candidate');
+    await expect(form.locator('input[name="linkedin_url"]')).toHaveValue('https://linkedin.com/in/career-test');
+    expect(await form.locator('input[name="cv"]').evaluate(input=>(input as HTMLInputElement).files?.[0]?.name)).toBe('career-test.pdf');
   });
 
   for(const width of [375,390,414])test(`career review has no horizontal overflow at ${width}px`,async({page})=>{
@@ -91,15 +93,15 @@ test.describe('public form contracts',()=>{
       await links.first().click();
       const form=page.locator('form.careerApplyForm');
       await expect(form).toBeVisible();
-      await page.locator('input[name="full_name"]').fill('Mobile Career Candidate With A Long Name');
-      await page.locator('input[name="email"]').fill('mobile-career-candidate@example.test');
-      await page.locator('input[name="linkedin_url"]').fill(`linkedin.com/in/${'long-profile-segment-'.repeat(8)}`);
-      await page.locator('textarea[name="motivation"]').fill(`I want to contribute to Mettelo and help build reliable professional infrastructure. ${'longmotivationtoken'.repeat(18)}`);
-      await page.locator('textarea[name="relevant_experience"]').fill(`I have delivered software and data projects from discovery through release with measurable outcomes. ${'longexperiencetoken'.repeat(18)}`);
-      const questions=page.locator('textarea[name^="question_"]');
+      await form.locator('input[name="full_name"]').fill('Mobile Career Candidate With A Long Name');
+      await form.locator('input[name="email"]').fill('mobile-career-candidate@example.test');
+      await form.locator('input[name="linkedin_url"]').fill(`linkedin.com/in/${'long-profile-segment-'.repeat(8)}`);
+      await form.locator('textarea[name="motivation"]').fill(`I want to contribute to Mettelo and help build reliable professional infrastructure. ${'longmotivationtoken'.repeat(18)}`);
+      await form.locator('textarea[name="relevant_experience"]').fill(`I have delivered software and data projects from discovery through release with measurable outcomes. ${'longexperiencetoken'.repeat(18)}`);
+      const questions=form.locator('textarea[name^="question_"]');
       for(let index=0;index<await questions.count();index++)await questions.nth(index).fill('A complete mobile test answer for this role-specific application question.');
-      await page.locator('input[name="cv"]').setInputFiles({name:`${'long-cv-name-'.repeat(12)}.pdf`,mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 test CV')});
-      await page.getByRole('button',{name:/Review application/i}).click();
+      await form.locator('input[name="cv"]').setInputFiles({name:`${'long-cv-name-'.repeat(12)}.pdf`,mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 test CV')});
+      await form.getByRole('button',{name:/Review application/i}).click();
       const review=page.locator('.careerReview');
       await expect(review).toBeVisible();
       await expect(page.getByRole('button',{name:/Edit application/i})).toBeVisible();

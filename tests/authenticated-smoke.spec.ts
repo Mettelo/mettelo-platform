@@ -11,9 +11,10 @@ function credentials(prefix:'MEMBER'|'ARCHITECT'|'ADMIN'):Credentials{
 
 async function signIn(page:Page,account:Credentials,next:string){
   await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});
-  await page.locator('input[type="email"]').fill(account.email);
-  await page.locator('input[type="password"]').fill(account.password);
-  await page.getByRole('button',{name:'Sign in →'}).click();
+  const main=page.locator('main');
+  await main.locator('input[type="email"]').fill(account.email);
+  await main.locator('input[type="password"]').fill(account.password);
+  await main.getByRole('button',{name:'Sign in →'}).click();
   await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000});
 }
 

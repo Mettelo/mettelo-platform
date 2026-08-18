@@ -16,7 +16,7 @@ jobs:
   verify:
     name: Fast regression gate
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       NEXT_PUBLIC_SITE_URL: https://mettelo.com
       NEXT_PUBLIC_SUPABASE_URL: https://aconptuqupsgznyrxhrh.supabase.co
@@ -44,8 +44,9 @@ jobs:
       - run: npm run audit:journey-phase7
       - run: npm run audit:journey-phase8
       - run: npm run audit:platform-resilience
-      - name: Install Chromium for regression tests
+      - name: Install Chromium for browser gates
         run: npx playwright install --with-deps chromium
+      - run: npm run test:phase1-browser
       - run: npm run test:regression
       - run: npm run build
       - name: Upload interaction audit on failure
@@ -61,19 +62,18 @@ jobs:
     name: Staging submission journeys
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
-      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-      E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
-      E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
-      E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
-      E2E_MEMBER_EMAIL: ${{ secrets.E2E_MEMBER_EMAIL }}
-      E2E_MEMBER_PASSWORD: ${{ secrets.E2E_MEMBER_PASSWORD }}
-      E2E_ARCHITECT_EMAIL: ${{ secrets.E2E_ARCHITECT_EMAIL }}
-      E2E_ARCHITECT_PASSWORD: ${{ secrets.E2E_ARCHITECT_PASSWORD }}
-      E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
-      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      CI_LOCAL_SUPABASE: '1'
+      E2E_BASE_URL: http://127.0.0.1:3000
+      E2E_MEMBER_EMAIL: member.e2e@example.test
+      E2E_MEMBER_PASSWORD: Local-E2E-member-2026!
+      E2E_ARCHITECT_EMAIL: architect.e2e@example.test
+      E2E_ARCHITECT_PASSWORD: Local-E2E-architect-2026!
+      E2E_ADMIN_EMAIL: admin.e2e@example.test
+      E2E_ADMIN_PASSWORD: Local-E2E-admin-2026!
       PRODUCTION_SUPABASE_URL: https://aconptuqupsgznyrxhrh.supabase.co
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -81,7 +81,46 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Prepare isolated Supabase migration set
+        run: node scripts/prepare-local-supabase.mjs
+      - name: Start isolated Supabase stack
+        run: supabase start --workdir .supabase-ci -x studio,imgproxy,logflare,vector,supavisor
+      - name: Export isolated Supabase credentials
+        shell: bash
+        run: |
+          supabase status --workdir .supabase-ci -o env > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+      - name: Seed disposable local identities and fixtures
+        run: node scripts/setup-local-e2e.mjs
       - run: npx playwright install --with-deps chromium
+      - name: Start Mettelo against isolated Supabase
+        shell: bash
+        run: |
+          npm run dev -- --hostname 127.0.0.1 > /tmp/mettelo-e2e.log 2>&1 &
+          echo $! > /tmp/mettelo-e2e.pid
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/signin > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/mettelo-e2e.log
+          exit 1
       - run: npm run test:e2e:staging
       - name: Upload Playwright evidence on failure
         if: failure()
@@ -91,8 +130,13 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            /tmp/mettelo-e2e.log
+            .supabase-ci/manifest.json
           if-no-files-found: ignore
           retention-days: 7
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: supabase stop --workdir .supabase-ci --no-backup
 
   release-gate:
     name: Release gate

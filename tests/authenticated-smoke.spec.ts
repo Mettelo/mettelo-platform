@@ -1,6 +1,9 @@
 import {expect,test,type Page} from '@playwright/test';
 
 type Credentials={email:string;password:string};
+const labProjectId='00000000-0000-4000-8000-00000000e2e1';
+const labTeam1RunId='00000000-0000-4000-8000-00000000e211';
+const labTeam2RunId='00000000-0000-4000-8000-00000000e212';
 
 function credentials(prefix:'MEMBER'|'ARCHITECT'|'ADMIN'):Credentials{
   const email=process.env[`E2E_${prefix}_EMAIL`]?.trim();
@@ -25,6 +28,44 @@ test.describe('authenticated staging smoke tests',()=>{
     await page.goto('/member/applications',{waitUntil:'networkidle'});
     await expect(page.locator('#main-content')).toBeVisible();
     await expect(page).toHaveURL(/\/member\/applications/);
+  });
+
+  test('non-admin member sees other cohorts without cross-cohort data access and Mettelo Lab never overflows',async({page})=>{
+    const account=credentials('MEMBER');
+    const team1Url=`/member/projects/${labProjectId}?run=${labTeam1RunId}`;
+    await signIn(page,account,team1Url);
+    await page.goto(team1Url,{waitUntil:'networkidle'});
+    await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
+    await expect(page.getByText('Team 1',{exact:true}).first()).toBeVisible();
+    await expect(page.getByText('Team 2',{exact:true}).first()).toBeVisible();
+    await expect(page.getByTitle('Not a member of this cohort')).toContainText('Team 2');
+    await expect(page.getByRole('link',{name:/Team 2/i})).toHaveCount(0);
+
+    const apiResponse=await page.context().request.get(`/api/project-team-overview?project_id=${labProjectId}&project_run_id=${labTeam1RunId}`);
+    expect(apiResponse.status()).toBe(200);
+    const payload=await apiResponse.json();
+    const own=payload.teams.find((team:{run_number:number})=>team.run_number===1);
+    const other=payload.teams.find((team:{run_number:number})=>team.run_number===2);
+    expect(own).toMatchObject({id:labTeam1RunId,is_member:true});
+    expect(Array.isArray(own.members)).toBe(true);
+    expect(own.members.length).toBeGreaterThan(0);
+    expect(other).toMatchObject({id:'cohort-2',run_number:2,status:'forming',is_member:false,required_team_size:null,has_started:null,members:[]});
+    expect(JSON.stringify(other)).not.toContain(labTeam2RunId);
+
+    const forbidden=await page.goto(`/member/projects/${labProjectId}?run=${labTeam2RunId}`,{waitUntil:'domcontentloaded'});
+    expect(forbidden?.status()).toBe(404);
+
+    for(const width of [375,390,414,768]){
+      await page.setViewportSize({width,height:900});
+      await page.goto(team1Url,{waitUntil:'networkidle'});
+      await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
+      const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
+      expect(dimensions.scrollWidth,`Mettelo Lab page overflowed at ${width}px`).toBeLessThanOrEqual(dimensions.clientWidth);
+      const cta=page.locator('#mettelo-lab').getByRole('link',{name:/Open my tasks|View next event|View team|View team status/}).first();
+      await expect(cta).toBeVisible();
+      const box=await cta.boundingBox();
+      expect(box?.height||0).toBeGreaterThanOrEqual(44);
+    }
   });
 
   test('Project Architect can open their project workspace',async({page})=>{

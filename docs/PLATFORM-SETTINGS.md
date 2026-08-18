@@ -16,7 +16,7 @@ The Settings workspace also provides an operational entry point to the governed 
 
 ## Admin experience
 
-`/admin/settings` groups editable contact/social configuration separately from role-catalogue management. Controls are labelled, keyboard accessible, have visible focus states, and collapse to a single-column form on narrow screens. Settings are also reachable from the persistent Admin workspace rather than requiring a hidden URL.
+`/admin/settings` groups editable contact/social configuration separately from role-catalogue management. Controls are labelled, keyboard accessible, have visible focus states, and collapse to a single-column form on narrow screens. The Admin Overview exposes a Platform settings shortcut so the workspace does not depend on a hidden URL.
 
 ## Public behavior
 

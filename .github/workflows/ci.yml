@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   verify:
-    name: Lint, typecheck, interactions and build
+    name: Fast regression gate
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -27,10 +27,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run audit:interactions
+      - run: npm run audit:regression-coverage
       - run: npm run test:project-interest-flow
       - run: npm run audit:phase0
       - run: npm run audit:phase1
@@ -43,6 +44,9 @@ jobs:
       - run: npm run audit:journey-phase7
       - run: npm run audit:journey-phase8
       - run: npm run audit:platform-resilience
+      - name: Install Chromium for regression tests
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:regression
       - run: npm run build
       - name: Upload interaction audit on failure
         if: failure()
@@ -52,3 +56,57 @@ jobs:
           path: artifacts/interaction-audit.*
           if-no-files-found: ignore
           retention-days: 3
+
+  staging-e2e:
+    name: Staging submission journeys
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_MEMBER_EMAIL: ${{ secrets.E2E_MEMBER_EMAIL }}
+      E2E_MEMBER_PASSWORD: ${{ secrets.E2E_MEMBER_PASSWORD }}
+      E2E_ARCHITECT_EMAIL: ${{ secrets.E2E_ARCHITECT_EMAIL }}
+      E2E_ARCHITECT_PASSWORD: ${{ secrets.E2E_ARCHITECT_PASSWORD }}
+      E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      PRODUCTION_SUPABASE_URL: https://aconptuqupsgznyrxhrh.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:staging
+      - name: Upload Playwright evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-e2e-evidence
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release-gate:
+    name: Release gate
+    if: always()
+    needs: [verify, staging-e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every regression layer
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          STAGING_RESULT: ${{ needs.staging-e2e.result }}
+        run: |
+          if [ "$VERIFY_RESULT" != "success" ] || [ "$STAGING_RESULT" != "success" ]; then
+            echo "Release blocked: fast=$VERIFY_RESULT staging=$STAGING_RESULT"
+            exit 1
+          fi
+          echo "Release gate passed."

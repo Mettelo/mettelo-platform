@@ -2,7 +2,7 @@
 .mobileMenuBackdrop{display:none;position:fixed;inset:64px 0 0;z-index:30;border:0;background:rgba(8,14,23,.46);cursor:default}
 .mobileMenuBackdrop[hidden]{display:none!important}
 .mobileNavOpen{overflow:hidden}
-.footerNewsletterForm{width:100%}.footerNewsletterInline{display:flex;width:100%}.footerNewsletterInline input{min-width:0;flex:1}.footerNewsletterInline button{flex:none}.footerNewsletterStatus{margin:9px 0 0;max-width:42ch;font-size:.72rem;line-height:1.45}.footerNewsletterStatus.success{color:#d8efd8}.footerNewsletterStatus.error{color:#ffd3cf}.footerNewsletterForm :is(input,button):focus-visible{outline:3px solid #e0ad59;outline-offset:2px}
+.footerNewsletter .footerNewsletterForm{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:0;width:100%;min-width:0;padding:0;border:0;background:transparent;border-radius:0}.footerNewsletterInline{display:flex;align-items:center;width:100%;min-width:0;padding:4px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.055);border-radius:12px}.footerNewsletterInline input{min-width:0;flex:1}.footerNewsletterInline button{flex:none}.footerNewsletterStatus{display:block;width:100%;min-width:0;max-width:none;margin:9px 0 0;font-size:.72rem;line-height:1.5;overflow-wrap:anywhere}.footerNewsletterStatus.success{color:#d8efd8}.footerNewsletterStatus.validation,.footerNewsletterStatus.server{color:#ffd3cf}.footerNewsletterForm :is(input,button):focus-visible{outline:3px solid #e0ad59;outline-offset:2px}
 
 /* Search remains available contextually, but is deliberately removed from the public top chrome. */
 .globalSearchPortal,.mobileHeaderSearch{display:none!important}

@@ -2,6 +2,14 @@
 
 This is a running record of consequential choices. Add new entries at the top. Do not record a commit message alone: capture the problem, root cause, fix, reasoning, and source.
 
+## Adopt a Rolling Green Baseline and mandatory developer cold start
+**Date:** 18 August 2026  
+**Problem:** Repeated infrastructure/debug cycles were consuming time and creating uncertainty about which state of Mettelo was safe to preserve. A future developer or new ChatGPT session could also inherit a detailed handoff and begin changing the platform without first confirming the actual current `main`, checks, deployment, open PRs, or implementation.  
+**Root cause:** The repository had strong test/release rules but no single mandatory entry-point defining when `main` becomes the authoritative baseline, how that baseline advances, or the exact verification a new development session must perform before improvement work.  
+**Fix:** Adopt the Rolling Green Baseline: the latest `main` SHA becomes authoritative only after every required quality, regression, security, database, browser, release-gate, and deployment check for that exact state succeeds. Add `docs/DEVELOPER-START-HERE.md`; make it mandatory from `CONTRIBUTING.md`, the docs index, onboarding, and CI/CD guidance; require current-state verification before implementation; define red/amber/green change boundaries; require focused branches/PRs; and require post-merge verification before the baseline advances.  
+**Reasoning:** Mettelo must keep improving without turning each improvement into a platform rewrite. A rolling baseline preserves the latest proven working system while allowing intentional changes to become the next baseline only after they earn it through verification. Handoffs remain useful context but cannot replace live repository/deployment evidence.  
+**Author/source:** ChatGPT senior-development session with product owner, 18 August 2026; branch `docs/rolling-green-baseline`.
+
 ## Normalize optional career links and contain every review column
 **Date:** 18 August 2026  
 **Problem:** Career candidates who entered a normal protocol-free address such as `linkedin.com/in/name` could not reach Review, and long Review values could force the mobile page wider than the viewport.  

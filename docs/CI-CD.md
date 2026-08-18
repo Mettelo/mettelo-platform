@@ -4,14 +4,16 @@ Last audited: 18 August 2026
 
 ## Release model
 
-Mettelo uses a **Rolling Green Baseline**. The authoritative baseline is the latest `main` commit that has successfully passed every required quality, regression, security, database, browser, release-gate, and deployment check. A merge alone does not advance the baseline.
+Mettelo uses a **Rolling Green Baseline**. The authoritative baseline is the latest `main` commit that has successfully passed every quality, regression, security, database, browser, release-gate, and deployment check **required for that exact change scope**. A merge alone does not advance the baseline.
+
+Mettelo also uses **risk-scoped blocking**. A failing check blocks release when it indicates meaningful risk in the code area changed by the pull request. Unrelated journey failures may still run and report evidence without automatically blocking an otherwise safe focused change. This does not permit hiding failures, weakening security assertions, or making a directly affected failing journey non-blocking just to obtain green CI. See [Risk-scoped release gates](RISK-SCOPED-RELEASE-GATES.md).
 
 Required release order:
 
 ```text
 change-scope classification
   -> static/type/audit + browser/regression checks
-  -> authenticated backend/database E2E when required by scope
+  -> scoped authenticated backend/database E2E when required
   -> aggregate Release gate
   -> Deployment gate
   -> deployment validation/promotion when required by scope
@@ -21,9 +23,11 @@ change-scope classification
 
 If any required prerequisite fails, the baseline does not move and Production must not be promoted on the strength of that failed run.
 
-The repository defines quality gates in GitHub Actions and is connected to Vercel for Preview/Production deployments. The repository does not contain a Vercel CLI deployment workflow, so the exact Git integration, Production branch, required checks, and promotion protection are external settings.
+The repository defines quality gates in GitHub Actions and is connected to Vercel for Preview/Production deployments. GitHub protection is external repository configuration rather than code stored in this repository.
 
-**TODO: confirm in GitHub/Vercel that `main` is the Production branch, pull requests receive Preview deployments, and the `Release gate`/`Deployment gate` policy is enforced before Production promotion.** A green Vercel deployment by itself is not the release gate.
+**Confirmed 18 August 2026:** the repository owner confirmed an active GitHub ruleset named `Protect main - Rolling Green Baseline`, targeting `main`, with pull-request and required-check protection configured for the repository release gates. `Release gate` is the aggregate release decision and `Deployment gate` is the final in-repository deployment-eligibility signal. GitHub's legacy branch-protection endpoint does not necessarily expose ruleset configuration, so protection verification must inspect the active ruleset rather than infer its absence from that legacy endpoint.
+
+Vercel Production-branch selection, Preview behavior, promotion controls, and rollback permissions remain external settings that must be verified separately. A green Vercel deployment by itself is not the release gate.
 
 Important: an externally-created Vercel Preview may start before GitHub Actions finishes. That Preview is development evidence only. It must never be interpreted as approval to merge or promote Production when prerequisite checks are red.
 
@@ -35,16 +39,16 @@ Triggers on every pull request and push to `main`. Concurrency cancels supersede
 
 #### Change scope
 
-The `scope` job classifies whether authenticated destructive backend E2E is required on both pull requests and pushes to `main`.
+The `scope` job classifies whether authenticated backend E2E is required on both pull requests and pushes to `main`.
 
 - The classifier computes the actual changed files. Pull requests compare base SHA to head SHA; `main` pushes compare the event's `before` SHA to the resulting `github.sha`.
 - If a `main` push has no trustworthy predecessor (for example an all-zero `before` SHA), classification fails closed to `unscoped-main-push-full-release` and authenticated backend E2E is mandatory.
 - A change is exempt only when every changed file is Markdown documentation or a GitHub workflow-policy YAML file. That class is `docs-or-ci-policy-only`.
-- Any application source, API route, migration, Supabase configuration, test, package/dependency file, runtime configuration, script, asset, or other non-documentation file is classified `runtime-or-backend-impact` and requires authenticated backend E2E.
+- Any application source, API route, migration, Supabase configuration, test, package/dependency file, runtime configuration, script, asset, or other non-documentation file is classified `runtime-or-backend-impact` and requires the scoped authenticated backend gate.
 - The classifier prints the changed-file list and classification in the job log. The exemption is therefore explicit release evidence, not a hidden skip.
 - If classification itself fails, Release gate fails.
 
-This exception exists to keep unrelated hosted-staging configuration gaps from blocking safe documentation/policy work. It must not be expanded casually. Changes that can alter user journeys, data, auth, runtime behavior, or release artifacts require the backend gate.
+This exception exists to keep safe documentation/policy work from being blocked by runtime-only checks. It must not be expanded casually. Changes that can alter user journeys, data, auth, runtime behavior, or release artifacts require backend evidence appropriate to their blast radius.
 
 #### Fast regression gate
 
@@ -62,11 +66,48 @@ On failure it uploads the interaction audit artifact when available.
 
 #### Staging submission journeys
 
-The `staging-e2e` job runs only when `Change scope` says authenticated backend E2E is required, and only for pushes or same-repository pull requests. It requires the complete `E2E_*` secret set, installs Chromium, and runs authenticated smoke plus database-backed staging submissions with one worker. Failure evidence is retained for seven days.
+The `staging-e2e` job runs only when `Change scope` says authenticated backend E2E is required, and only for pushes or same-repository pull requests.
 
-The config guard rejects missing values, production origins/projects, and unsafe credentials before the suite mutates data. Test records use dedicated accounts/markers and must be cleaned up.
+The current zero-cost implementation uses an **ephemeral local Supabase stack inside GitHub Actions** rather than a paid hosted staging project/branch. The job:
 
-For `docs-or-ci-policy-only` changes this job is expected to be `skipped` by scope. That is not equivalent to silently skipping a required test: the Release gate verifies that the classifier explicitly said backend E2E was not required. If backend E2E is required, anything other than `success` blocks release.
+1. installs the Supabase CLI;
+2. prepares the isolated migration workdir, including CI-only compatibility shims for hosted objects that pre-date canonical migration history;
+3. starts the local Supabase stack;
+4. exports local-only Supabase credentials into the runner environment;
+5. seeds disposable Member, Project Architect, and Admin identities plus deterministic fixtures;
+6. installs Chromium;
+7. starts Mettelo against local Supabase;
+8. verifies the Production guard;
+9. runs blocking authenticated smoke;
+10. runs the representative blocking persisted-submission journey required by the current infrastructure gate;
+11. runs the broader submission suite informationally and uploads evidence when it fails;
+12. tears the local stack down.
+
+The config guard rejects Production Supabase and unsafe identity reuse before destructive tests run. `CI_LOCAL_SUPABASE=1` is accepted only for loopback Supabase URLs. Production credentials must never be substituted.
+
+For the current release-infrastructure implementation, these are blocking:
+
+- isolated stack preparation/startup;
+- disposable fixture creation;
+- Production guard;
+- authenticated Member/Project Architect/Admin smoke;
+- one representative browser -> API -> database persisted submission path.
+
+The broader project-interest and career submission journeys continue to run as evidence. A failure in one of those broader journeys is informational **unless the changed scope directly affects that journey or shared infrastructure makes it relevant**. When directly affected, that journey becomes release-blocking.
+
+For `docs-or-ci-policy-only` changes this job is expected to be `skipped` by scope. That is not equivalent to silently skipping a required test: the Release gate verifies that the classifier explicitly said backend E2E was not required.
+
+#### Journey-level risk scoping
+
+The workflow-level classifier decides whether backend E2E is needed at all. Within runtime work, reviewers/developers must also identify which domain journeys are release-blocking for the change.
+
+Examples:
+
+- Career application UI/flow changes: career review/final-submit and relevant career Chromium regressions are blocking.
+- Project application API/RLS changes: project-interest/application persistence is blocking.
+- Shared auth, canonical migrations, broad RLS, common API infrastructure, or CI/release-infrastructure changes: broader authenticated E2E may be required because the blast radius is shared.
+
+An unrelated journey failure must still be recorded and fixed separately, but it should not automatically freeze an unrelated focused change.
 
 #### Release gate
 
@@ -74,10 +115,10 @@ The `release-gate` job runs even when dependencies fail so it can produce a dete
 
 - successful `Change scope` classification;
 - successful `Fast regression gate`;
-- successful `Staging submission journeys` whenever scope requires backend E2E;
+- successful scoped authenticated backend gate whenever scope requires backend E2E;
 - otherwise an expected `skipped` (or successful) staging result only for an explicit `docs-or-ci-policy-only` classification.
 
-A failed, cancelled, or unexpectedly skipped required backend job is not accepted as green.
+A failed, cancelled, or unexpectedly skipped required job is not accepted as green. Informational journey failures are not equivalent to required-gate failures, but they must remain visible in CI evidence and should be tracked to the affected domain.
 
 #### Deployment gate
 
@@ -98,27 +139,27 @@ The project ref is currently present in workflow/script configuration. Treat it 
 | Command | Files | Purpose |
 | --- | --- | --- |
 | `npm run test:forms` | `tests/form-route-contracts.spec.ts` | Form UI, payload, validation, and route contracts |
-| `npm run test:regression` | form contracts + `tests/critical-ui.spec.ts` | Critical public UI, mobile menu, routes, and forms |
+| `npm run test:regression` | form contracts + `tests/critical-ui.spec.ts` + `tests/auth-account-ui.spec.ts` | Critical public UI, mobile menu, routes, forms, and account UI |
 | `npm run test:phase1-browser` | `tests/phase1-browser.spec.ts` | Full Phase 1 auth/onboarding responsive browser acceptance |
 | `npm run test:e2e:smoke` | `tests/authenticated-smoke.spec.ts` | Member, Architect, and Admin protected-route checks |
-| `npm run test:e2e:staging` | authenticated smoke + staging journeys | Browser → API → database → Admin queue → notification evidence |
+| `npm run test:e2e:staging` | authenticated smoke + staging journeys | Full browser -> API -> database -> Admin queue -> notification evidence; may include informational journeys depending on scope |
 
-Playwright enables full parallel execution, one retry, and four CI/two local workers for standard tests. The staging command overrides to one worker to keep destructive fixtures deterministic. When `E2E_BASE_URL` is absent, Playwright starts the local Next.js dev server at `127.0.0.1:3000`; a remote E2E URL disables that web server.
+Playwright enables full parallel execution, one retry, and four CI/two local workers for standard tests. Destructive local E2E uses one worker where deterministic fixture ordering matters.
 
-The Phase 1 browser suite is not currently included in `npm run test:regression` or the `main` CI workflow. See [Open issues](OPEN-ISSUES.md#p1-phase-1-browser-gate-is-not-part-of-ci).
+The Phase 1 browser suite remains available as a separate command and is not currently part of `npm run test:regression` or a separate `main` CI step.
 
 ## Vercel flow
 
-Expected operating model (external settings must be confirmed):
+Expected operating model (GitHub ruleset confirmed; remaining Vercel settings must be confirmed):
 
 1. Start from the current verified Rolling Green Baseline.
 2. Push a focused feature branch and open a pull request.
 3. GitHub Actions classifies change scope and runs the required gates.
 4. Vercel may create a Preview deployment with Preview-scoped environment variables; this is not release approval.
-5. Verify the affected journey on Preview/staging, including Admin/data evidence where applicable.
-6. `Release gate` must succeed.
+5. Verify the affected journey on Preview/local isolated E2E, including Admin/data evidence where applicable.
+6. `Release gate` must succeed for the checks required by that scope.
 7. `Deployment gate` runs only after successful Release gate.
-8. Merge only when all required PR checks are green.
+8. Merge only when all required PR checks are green on the exact head SHA.
 9. On `main`, GitHub Actions classifies the actual merge/push diff again and runs all checks required by that exact scope.
 10. Runtime/backend-impacting changes require deployment validation and read-only Production smoke checks; destructive fixtures must never target Production.
 11. Documentation/CI-policy-only changes do not require a new runtime deployment to prove application behavior, though external Vercel Git integration may still attempt one until separately reconfigured.
@@ -131,23 +172,27 @@ Vercel Cron invokes the routes listed in [Architecture](ARCHITECTURE.md#schedule
 
 | Environment | Supabase | Data rule | Credentials |
 | --- | --- | --- | --- |
-| Local | Local or dedicated development project | Never silently point destructive tests at Production | `.env.local`, never committed |
-| Preview/staging | Dedicated Supabase project/branch | Disposable accounts and test-tagged records; migrations match branch | Vercel Preview variables + GitHub `E2E_*` secrets |
+| Local developer | Local or dedicated development project | Never silently point destructive tests at Production | `.env.local`, never committed |
+| GitHub Actions E2E | Ephemeral local Supabase stack | Disposable identities/fixtures only; destroyed after the run | Generated loopback credentials inside the runner |
+| Hosted Preview/staging (optional) | Dedicated non-Production project/branch if explicitly provisioned | Disposable accounts and test-tagged records | Preview/staging-scoped variables only |
 | Production | Production Supabase project | Read-only smoke unless a specifically approved synthetic journey exists | Vercel Production variables |
 
-A single Supabase project/environment uses one service-role key. Forms do not need separate service-role keys. Rotate the key if exposed, update every server/CI consumer, and redeploy.
+No paid hosted staging project/branch should be introduced without explicit owner approval. Forms do not need separate service-role keys per form. Rotate a service-role key if exposed, update every server/CI consumer, and redeploy.
 
 ## Pre-merge checklist
 
 - The work branch started from the intended current baseline.
 - Success criteria identify the existing behavior that must not regress.
-- Documentation and a decision entry are included when architecture/behavior changed.
+- Documentation and a decision/policy update are included when architecture or release behavior changes.
 - Migration and RLS changes are versioned and advisor-reviewed.
-- `npm ci`, lint, typecheck, audits, regression tests, and build pass.
-- Credentialed staging journey passes whenever `Change scope` requires authenticated backend E2E.
+- `npm ci`, lint, typecheck, required audits, regression tests, and build pass.
+- Production destructive-E2E guard passes whenever backend E2E is required.
+- Authenticated smoke and the representative persistence check pass whenever backend E2E is required.
+- Every journey directly affected by the PR is explicitly identified and passes its blocking regression/E2E evidence.
+- Unrelated informational journey failures are visible and tracked rather than hidden.
 - A docs/CI-policy-only exemption is accepted only when the classifier records that exact scope.
-- Preview is checked at mobile, tablet, and desktop widths, keyboard-only, and relevant error states when UI changed.
-- Environment additions appear in `.env.example` without values.
+- Preview/browser checks cover the relevant mobile, tablet, and desktop widths, keyboard-only interaction, and relevant error states when UI changed.
+- Environment additions appear in `.env.example` without secret values.
 - Rollback impact is described in the PR.
 - No failing or unexpectedly skipped required check is treated as green.
 - Deployment gate is the final GitHub Actions release stage.
@@ -158,7 +203,7 @@ After every merge to `main`:
 
 1. fetch the exact resulting `main` SHA;
 2. verify `Change scope` for the exact push/merge diff;
-3. verify every check required by that classification;
+3. verify every check required by that classification and affected journey scope;
 4. verify Production deployment points to the intended SHA/state when runtime deployment is required;
 5. keep the previous green baseline available for rollback/recovery;
 6. only then declare the new `main` SHA the Rolling Green Baseline.
@@ -180,7 +225,7 @@ If post-merge verification fails, stop additional improvement merges. The previo
 2. Do not run a destructive reverse migration against Production from memory.
 3. Prefer a reviewed forward/compensating migration that preserves rows and restores compatibility.
 4. If an application rollback expects an older schema, confirm forward/backward compatibility before promoting it.
-5. Run Supabase security/performance advisors and the staging journey before Production.
+5. Run Supabase security/performance advisors and the scope-required isolated E2E journey before Production.
 
 ### Secret/configuration incident
 

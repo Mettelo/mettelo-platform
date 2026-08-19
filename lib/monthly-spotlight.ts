@@ -95,7 +95,9 @@ export async function createMonthlySpotlightDrafts(db:SupabaseClient,reference=n
   let created=0;
 
   // Repair an interrupted automatic consent request without duplicating notifications.
-  for(const item of retained){if(item.status==='draft'&&item.consent_status==='not_requested'&&!item.publication_held)await requestSpotlightConsent(db,item.id);}
+  // `pending` may already be persisted when delivery failed; requestSpotlightConsent
+  // deliberately reissues that notification with a stable dedupe key.
+  for(const item of retained){if(item.status==='draft'&&['not_requested','pending'].includes(item.consent_status)&&!item.publication_held)await requestSpotlightConsent(db,item.id);}
 
   for(const definition of definitions){
     if(awardedCategories.has(definition.category))continue;

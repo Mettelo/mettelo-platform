@@ -36,7 +36,7 @@ Destinations:
 - open/ineligible browse state → `/member/discover/[id]`
 - submitted/action-required/in-review/Team Forming → `/member/applications`
 - confirmed/active → `/member/projects`
-- completed → `/member/projects?tab=completed`
+- completed → `/member/projects?state=completed`
 
 Recommended never offers **Apply** directly. Application starts from internal Member Project Detail.
 

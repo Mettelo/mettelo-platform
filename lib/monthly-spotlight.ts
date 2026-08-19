@@ -70,10 +70,8 @@ export async function buildMonthlyRankings(db:SupabaseClient,reference=new Date(
     })).filter(item=>item.score>0).sort((a,b)=>b.score-a.score||map.get(a.userId)!.name.localeCompare(map.get(b.userId)!.name));
     rankings.set(definition.category,ranked);
   }
-  return {awardMonth,from:result_from(from),to:end.toISOString(),eligible:eligible.length,rankings};
+  return {awardMonth,from,to,eligible:eligible.length,rankings};
 }
-
-function result_from(value:string){return value;}
 
 export async function buildMonthlyAwards(db:SupabaseClient,reference=new Date()){
   const result=await buildMonthlyRankings(db,reference);const used=new Set<string>();const awards:RankedAward[]=[];

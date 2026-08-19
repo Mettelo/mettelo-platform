@@ -14,21 +14,22 @@ const formingStates=new Set(['approved','accepted','waiting_for_team']);
 const closedStates=new Set(['declined','withdrawn']);
 const withdrawable=new Set(['submitted','in_review','shortlisted','approved','accepted','waiting_for_team']);
 
-function roleOf(item:Application){return item.project_roles?.title||item.requested_role||'Project participant'}
+function roleOf(item:Application){return item.project_roles?.title||item.requested_role||null}
 function date(value:string){return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric'}).format(new Date(value))}
 function dateTime(value:string){return new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}
 function timelineLabel(status:string){return labels[status]||status.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase())}
 function isPaused(item:Application){return item.formation?.status==='paused'}
 function isConfirmed(item:Application){return !isPaused(item)&&(item.status==='team_complete'||item.projects?.status==='active'||item.formation?.status==='active')}
 function isForming(item:Application){return isPaused(item)||formingStates.has(item.status)}
-function isClosed(item:Application){return closedStates.has(item.status)}
+function isClosed(item:Application){return closedStates.has(item.status)||item.projects?.status==='cancelled'}
 function cardState(item:Application):CardState{if(isClosed(item))return'closed';if(isConfirmed(item))return'confirmed';if(isPaused(item))return'paused';if(isForming(item))return'forming';return'review'}
-function statusLabel(item:Application){const state=cardState(item);if(state==='confirmed')return'✓ Project confirmed';if(state==='forming')return'◷ Team forming';if(state==='paused')return'◷ Team paused';if(state==='closed')return timelineLabel(item.status);return'● In review'}
+function statusLabel(item:Application){if(item.projects?.status==='cancelled')return'Project cancelled';const state=cardState(item);if(state==='confirmed')return'✓ Project confirmed';if(state==='forming')return'◷ Team forming';if(state==='paused')return'◷ Team paused';if(state==='closed')return timelineLabel(item.status);return'● In review'}
 function applicationCopy(item:Application){
   const state=cardState(item);
   if(state==='confirmed')return{body:'Your application has successfully become project work. Ongoing status and access now live in Projects.',sideLabel:'NEXT DESTINATION',sideTitle:'Continue in Projects',sideBody:'Projects is now the source of truth for this work.'};
   if(state==='forming')return{body:'You’ve progressed beyond application review. Mettelo is forming the delivery team before the project becomes active.',sideLabel:'WHAT HAPPENS NEXT',sideTitle:'Mettelo is forming the team',sideBody:'When your team and delivery run are confirmed, this work will move into Projects.'};
   if(state==='paused')return{body:'Your project team is temporarily paused. Mettelo will update you when the delivery plan changes.',sideLabel:'WHAT HAPPENS NEXT',sideTitle:'The team is temporarily paused',sideBody:'There is nothing you need to do while Mettelo reviews the delivery plan.'};
+  if(state==='closed'&&item.projects?.status==='cancelled')return{body:'This project did not move forward. The project was cancelled; this is different from a decision not to select your application.',sideLabel:'HISTORY',sideTitle:'Project cancelled',sideBody:'No further project-participation action is required.'};
   if(state==='closed')return{body:'This application is closed.',sideLabel:'HISTORY',sideTitle:timelineLabel(item.status),sideBody:'Application history remains available here.'};
   return{body:'Mettelo is reviewing your project application. We’ll update this page when the application changes or if anything is needed from you.',sideLabel:'CURRENT STAGE',sideTitle:'Application review',sideBody:'There is nothing you need to do while review is in progress.'};
 }
@@ -49,18 +50,19 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
 
   useEffect(()=>{if(selected&&dialogRef.current&&!dialogRef.current.open)dialogRef.current.showModal()},[selected]);
 
-  const roles=useMemo(()=>[...new Set(items.map(roleOf))].sort((a,b)=>a.localeCompare(b)),[items]);
+  const roles=useMemo(()=>[...new Set(items.map(roleOf).filter((value):value is string=>Boolean(value)))].sort((a,b)=>a.localeCompare(b)),[items]);
   const counts=useMemo(()=>({
     needs:0,
     review:items.filter(item=>reviewStates.has(item.status)&&!isClosed(item)&&!isConfirmed(item)&&!isForming(item)).length,
-    forming:items.filter(item=>isForming(item)&&!isConfirmed(item)).length,
+    forming:items.filter(item=>isForming(item)&&!isConfirmed(item)&&!isClosed(item)).length,
     closed:items.filter(item=>isClosed(item)).length
   }),[items]);
 
   const filtered=useMemo(()=>items.filter(item=>{
-    const haystack=`${item.projects?.title||''} ${roleOf(item)} ${timelineLabel(item.status)}`.toLowerCase();
+    const itemRole=roleOf(item);
+    const haystack=`${item.projects?.title||''} ${itemRole||''} ${statusLabel(item)}`.toLowerCase();
     const matchesQuery=!query.trim()||haystack.includes(query.trim().toLowerCase());
-    const matchesRole=role==='all'||roleOf(item)===role;
+    const matchesRole=role==='all'||itemRole===role;
     const matchesView=view==='all'||(view==='needs'?false:view==='closed'?isClosed(item):!isClosed(item));
     return matchesQuery&&matchesRole&&matchesView;
   }),[items,query,role,view]);
@@ -130,15 +132,15 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
         <div className="mmaDialogBody">
           <div className="mmaDetailGrid">
             <div className="mmaDetail"><small>Current state</small><strong>{statusLabel(selected).replace(/^[✓●◷]\s*/,'')}</strong></div>
-            <div className="mmaDetail"><small>Applied project role</small><strong>{roleOf(selected)}</strong></div>
+            {roleOf(selected)&&<div className="mmaDetail"><small>Applied project role</small><strong>{roleOf(selected)}</strong></div>}
             <div className="mmaDetail"><small>Application date</small><strong>{date(selected.submitted_at)}</strong></div>
             <div className="mmaDetail"><small>What happens next</small><strong>{applicationCopy(selected).sideBody}</strong></div>
-            {selected.formation&&selected.formation.threshold>0&&<div className="mmaDetail"><small>Team formation</small><strong>{Math.min(selected.formation.filled,selected.formation.threshold)} of {selected.formation.threshold} places filled</strong></div>}
+            {selected.formation&&selected.formation.threshold>0&&!isClosed(selected)&&<div className="mmaDetail"><small>Team formation</small><strong>{Math.min(selected.formation.filled,selected.formation.threshold)} of {selected.formation.threshold} places filled</strong></div>}
           </div>
           <section className="mmaTimeline" aria-labelledby="mma-timeline-title"><h3 id="mma-timeline-title">Application history</h3><ol>{timelineFor(selected).map((event,index,array)=><li className={index===array.length-1?'mmaCurrentEvent':''} key={event.id}><strong>{timelineLabel(event.to_status)}</strong><small>{dateTime(event.created_at)}</small></li>)}</ol></section>
           {confirming===selected.id&&<div className="mmaConfirmBox" role="group" aria-label="Confirm application withdrawal"><p>{isForming(selected)?'Release this confirmed place? Your team capacity will be released and the application will close.':'Withdraw this application? Mettelo will stop progressing it for this project.'}</p><div className="mmaActions"><button className="mmaBtn" type="button" disabled={working===selected.id} onClick={()=>setConfirming('')}>Keep application</button><button className="mmaBtn mmaDanger" type="button" disabled={working===selected.id} onClick={()=>withdraw(selected.id)}>{working===selected.id?'Working…':'Confirm withdrawal'}</button></div></div>}
         </div>
-        <div className="mmaDialogActions">{withdrawable.has(selected.status)&&!isConfirmed(selected)&&!isPaused(selected)&&confirming!==selected.id&&<button className="mmaTextButton" type="button" onClick={()=>setConfirming(selected.id)}>{isForming(selected)?'Release my place':'Withdraw application'}</button>}<button className="mmaBtn" type="button" onClick={closeDialog}>Close</button></div>
+        <div className="mmaDialogActions">{withdrawable.has(selected.status)&&!isClosed(selected)&&!isConfirmed(selected)&&!isPaused(selected)&&confirming!==selected.id&&<button className="mmaTextButton" type="button" onClick={()=>setConfirming(selected.id)}>{isForming(selected)?'Release my place':'Withdraw application'}</button>}<button className="mmaBtn" type="button" onClick={closeDialog}>Close</button></div>
       </>}
     </dialog>
 
@@ -147,7 +149,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
 }
 
 function CurrentCard({item,onOpen}:{item:Application;onOpen:(item:Application)=>void}){
-  const state=cardState(item);const copy=applicationCopy(item);const confirmed=state==='confirmed';const forming=state==='forming';const paused=state==='paused';
+  const state=cardState(item);const copy=applicationCopy(item);const confirmed=state==='confirmed';const forming=state==='forming';const paused=state==='paused';const itemRole=roleOf(item);
   const cardClass=['mmaApplicationCard',forming?'mmaForming':'',confirmed?'mmaConfirmed':'',paused?'mmaPaused':''].filter(Boolean).join(' ');
   const statusClass=['mmaStatus',state==='review'?'mmaReview':forming?'mmaFormingStatus':confirmed?'mmaConfirmedStatus':'mmaPausedStatus'].join(' ');
   return <article className={cardClass}>
@@ -156,7 +158,7 @@ function CurrentCard({item,onOpen}:{item:Application;onOpen:(item:Application)=>
       <h3>{item.projects?.title||'Mettelo project'}</h3>
       <p>{copy.body}</p>
       <div className="mmaMeta">
-        <span>{confirmed?'Your role':'Applied as'} {roleOf(item)}</span>
+        {itemRole&&<span>{confirmed?'Your role:':'Applied as'} {itemRole}</span>}
         <span>{confirmed?'Confirmed':item.application_kind==='interest'?'Registered':'Applied'} {date(confirmed?item.updated_at:item.submitted_at)}</span>
         {forming&&<span>Team not yet confirmed</span>}
       </div>
@@ -171,7 +173,8 @@ function CurrentCard({item,onOpen}:{item:Application;onOpen:(item:Application)=>
 }
 
 function HistoryCard({item,onOpen}:{item:Application;onOpen:(item:Application)=>void}){
-  return <article className="mmaHistoryCard"><div><span className="mmaStatus">{timelineLabel(item.status)}</span><h3>{item.projects?.title||'Mettelo project'}</h3><p>{roleOf(item)} · {item.status==='withdrawn'?'Withdrawn':'Closed'} {date(item.updated_at)}</p></div><button className="mmaBtn" type="button" onClick={()=>onOpen(item)}>View application</button></article>;
+  const itemRole=roleOf(item);const cancelled=item.projects?.status==='cancelled';
+  return <article className="mmaHistoryCard"><div><span className="mmaStatus">{statusLabel(item)}</span><h3>{item.projects?.title||'Mettelo project'}</h3><p>{itemRole?`${itemRole} · `:''}{item.status==='withdrawn'?'Withdrawn':cancelled?'Project cancelled':'Closed'} {date(item.updated_at)}</p></div><button className="mmaBtn" type="button" onClick={()=>onOpen(item)}>View application</button></article>;
 }
 
 function Explore(){return <section className="mmaExplore" id="explore" aria-labelledby="mma-explore-title"><div><div className="mmaEyebrow">EXPLORE &amp; GROW</div><h2 id="mma-explore-title">Looking for another project?</h2><p>Discover gives you the full project catalogue. Recommended gives you projects matched to your profile. Careers remains a separate recruitment journey.</p></div><div className="mmaActions"><a className="mmaBtn mmaPrimary" href="/projects">Discover projects</a><a className="mmaBtn" href="/member/recommended">Recommended</a></div></section>}

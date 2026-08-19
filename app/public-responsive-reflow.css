@@ -84,4 +84,44 @@
     overflow-wrap:anywhere!important;
     box-sizing:border-box;
   }
+
+  /* Projects discovery/capability/organisation sections: use shrinkable grid tracks under 200% text. */
+  #main-content .projectsDiscovery,
+  #main-content .projectsDiscovery>.shell,
+  #main-content .projectsDiscovery .discoveryIntro,
+  #main-content .projectsDiscovery .discoveryIntro>*,
+  #main-content .projectsCapabilityLayout,
+  #main-content .projectsCapabilityLayout>*,
+  #main-content .projectsOrganisationCta,
+  #main-content .projectsOrganisationCta>.shell,
+  #main-content .projectsOrganisationBand,
+  #main-content .projectsOrganisationBand>*{
+    min-width:0!important;
+    max-width:100%!important;
+    box-sizing:border-box;
+  }
+  #main-content .projectsDiscovery .discoveryIntro,
+  #main-content .projectsCapabilityLayout,
+  #main-content .projectsOrganisationBand{
+    width:100%!important;
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #main-content .projectsDiscovery .discoveryIntro>*,
+  #main-content .projectsCapabilityLayout>*,
+  #main-content .projectsOrganisationBand>*{width:100%!important}
+  #main-content :where(.projectsDiscovery,.projectsCapabilityLayout,.projectsOrganisationCta) :where(.eyebrow,h2,h3,p,strong,span,small,a){
+    min-width:0!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+  }
+  #main-content .projectsOrganisationBand>.button{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    box-sizing:border-box;
+  }
 }

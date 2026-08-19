@@ -14,8 +14,8 @@ const checks=[
   ['components/ProjectApplicationForm.tsx',['Continue this project application inside My Mettelo.','/member/discover/${selected.id}/apply','View member project detail']],
   ['components/MemberProjectApplicationFlow.tsx',['Role & fit','Availability','Your response','Review','type="radio"','Project Participation Terms','terms_attachment_id','terms_accepted:true','Submit application','/api/project-applications']],
   ['app/member/discover/[id]/apply/page.tsx',['PROFILE_APPLICATION_READY','resolveMemberProjectState',"state!=='open_eligible'",'MemberProjectApplicationFlow']],
-  ['app/member/applications/page.tsx',['project_application_events','project_run_id','forming_deadline','MemberApplicationTracker','Know exactly what is happening next.','Find another project']],
-  ['components/MemberApplicationTracker.tsx',['WHAT THIS MEANS','WHAT HAPPENS NEXT','DO I NEED TO DO SOMETHING?','Application timeline','View history','formationTrack']],
+  ['app/member/applications/page.tsx',['project_application_events','project_run_id','forming_deadline','MemberApplicationTracker','Know exactly what is happening next.','Recruitment applications, interviews and offers are kept separately in Careers.','/member/discover','/careers/applications']],
+  ['components/MemberApplicationTracker.tsx',['WHAT THIS MEANS','WHAT HAPPENS NEXT','DO I NEED TO DO SOMETHING?','Application timeline','View history','formationTrack','Open in Projects →','Projects is now the source of truth for this work.']],
   ['app/api/project-applications/route.ts',['application_deadline','applications_open','project_role_ids','project_role_catalogue','project_application_roles','catalogueRoles.map','application_submitted','team_place_released','waiting_for_team','terms_attachment_id','terms_accepted_at','Project Participation Terms','That project role has filled']],
   ['app/api/project-terms/route.ts',['project_application_terms','communication_template_attachments','attachment_id']],
   ['app/api/admin/communications/attachments/route.ts',['communication-template-documents','application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','MAX_FILES=4']],
@@ -56,6 +56,11 @@ const publicApplicationForm=fs.readFileSync('components/ProjectApplicationForm.t
 if(publicApplicationForm.includes("fetch('/api/project-applications'")){console.error('Public project page must not maintain a second full-application submit form.');failed=true;}
 const internalApplicationFlow=fs.readFileSync('components/MemberProjectApplicationFlow.tsx','utf8');
 if(!internalApplicationFlow.includes("fetch('/api/project-applications'")){console.error('Authenticated My Mettelo application flow must own canonical project application submission.');failed=true;}
+
+const memberApplications=fs.readFileSync('app/member/applications/page.tsx','utf8');
+for(const forbidden of ['career_applications','career_application_events','career_onboarding_items','career_offer_documents','CareerApplicationTracker']){if(memberApplications.includes(forbidden)){console.error(`My Mettelo Applications must not query or render recruitment data: ${forbidden}`);failed=true;}}
+const applicationTracker=fs.readFileSync('components/MemberApplicationTracker.tsx','utf8');
+if(/href=\{`\/member\/projects\/\$\{item\.project_id\}/.test(applicationTracker)){console.error('Confirmed applications must hand off to Projects, not directly to a Mettelo Lab project route.');failed=true;}
 
 const layout=fs.readFileSync('app/member/projects/[id]/layout.tsx','utf8');
 const routeTabs=fs.readFileSync('components/WorkspaceRouteTabs.tsx','utf8');

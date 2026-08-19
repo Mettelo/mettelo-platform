@@ -53,12 +53,12 @@ export default async function OpportunitiesPage(){
       </div>
     </section>
 
-    <main id="opportunity-feed" className="opportunityDiscovery">
+    <section id="opportunity-feed" className="opportunityDiscovery" aria-labelledby="opportunity-discovery-title">
       <div className="shell">
         <div className="opportunityDiscoveryIntro">
           <div>
             <div className="eyebrow">DISCOVER</div>
-            <h2>Search first. Filter only when you need to.</h2>
+            <h2 id="opportunity-discovery-title">Search first. Filter only when you need to.</h2>
           </div>
           <p>Start with a role, company, skill or location. Use quick filters for common searches, then open advanced filters for more control.</p>
         </div>
@@ -69,7 +69,7 @@ export default async function OpportunitiesPage(){
           <OpportunityBoard items={opportunities}/>
           :<div className="panel emptyState"><h3>No Data &amp; AI opportunities are live right now.</h3><p>We keep the feed focused rather than showing expired or low-relevance listings.</p><div className="actions"><a className="button dark" href="/newsletter">Get opportunity alerts →</a></div></div>}
       </div>
-    </main>
+    </section>
 
     <section className="opportunityTrustSection" aria-labelledby="opportunity-trust-title">
       <div className="shell opportunityTrustGrid">

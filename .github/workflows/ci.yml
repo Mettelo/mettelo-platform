@@ -108,9 +108,19 @@ jobs:
       - run: npm run audit:journey-phase8
       - run: npm run audit:platform-resilience
       - run: npm run build
-      - name: Install Chromium for regression tests when staging is not required
+      - name: Restore Playwright Chromium cache for fast regression
+        id: playwright-cache-fast
         if: needs.scope.outputs.requires_staging != 'true'
-        run: npx playwright install --with-deps chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install or verify Playwright Chromium
+        if: needs.scope.outputs.requires_staging != 'true'
+        run: npx playwright install chromium
+      - name: Verify Chromium launches on the hosted runner
+        if: needs.scope.outputs.requires_staging != 'true'
+        run: node -e "const { chromium } = require('@playwright/test'); (async () => { const browser = await chromium.launch(); await browser.close(); })().catch(error => { console.error(error); process.exit(1); });"
       - name: Run browser regression suite when staging is not required
         if: needs.scope.outputs.requires_staging != 'true'
         run: npm run test:regression
@@ -147,8 +157,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Install Chromium for staging and regression tests
-        run: npx playwright install --with-deps chromium
+      - name: Restore Playwright Chromium cache for staging
+        id: playwright-cache-staging
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install or verify Playwright Chromium
+        run: npx playwright install chromium
+      - name: Verify Chromium launches on the hosted runner
+        run: node -e "const { chromium } = require('@playwright/test'); (async () => { const browser = await chromium.launch(); await browser.close(); })().catch(error => { console.error(error); process.exit(1); });"
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:

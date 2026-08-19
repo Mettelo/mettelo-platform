@@ -50,6 +50,16 @@ footer :where(a,button,input):focus-visible,
   .chip,.metaPill,.statBand span,.statusText,.trustItem span{font-size:.8125rem}
   .showcasePage .proofRow{grid-template-columns:1fr;gap:10px}
   .showcasePage .proofEvidence{justify-self:start}
+
+  /* Project details previously retained the desktop 1fr + 320px grid below 481px. */
+  body .projectDetailGridV2{grid-template-columns:minmax(0,1fr)!important}
+  body .projectDetailMainV2,
+  body .projectDetailSideV2,
+  body .projectApplyPanelV2,
+  body .projectDetailSectionV2{min-width:0;max-width:100%}
+  body .projectDetailSideV2{width:100%}
+  body .projectApplyPanelV2{position:static!important;width:100%;box-sizing:border-box}
+  body .projectDetailSectionV2 h2{overflow-wrap:anywhere}
 }
 
 @media(prefers-reduced-motion:reduce){

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const read=file=>fs.readFileSync(file,'utf8');
 const page=read('app/member/recommended/page.tsx');
 const rules=read('lib/member-recommendations.ts');
+const lifecycle=read('lib/member-project-journey.ts');
 const shell=read('components/MemberAppShell.tsx');
 const nav=read('lib/member-navigation.ts');
 const css=read('app/member/recommended/recommended.module.css');
@@ -24,18 +25,24 @@ for(const needle of [
   'Projects for you',
   'Browse Discover',
   '/member/discover',
-  '/member/applications',
-  '/member/projects',
   '/events/${event.slug}',
   '/spotlight/${item.id}',
   "from('saved_projects')",
   "from('events')",
   "from('spotlights')",
   ".eq('consent_status','granted')",
+  'memberProjectCatalogueAction',
   'projectRecommendationReason',
   'textRecommendationReason',
   'sortRecommendations'
 ])requireNeedle(page,needle,'Recommended page');
+
+for(const needle of [
+  "href:'/member/applications'",
+  "href:'/member/projects'",
+  "href:'/member/projects?state=completed'",
+  "href:`/member/discover/${projectId}`"
+])requireNeedle(lifecycle,needle,'Member project lifecycle owner');
 
 for(const needle of [
   "RecommendationKind='project'|'event'|'spotlight'",

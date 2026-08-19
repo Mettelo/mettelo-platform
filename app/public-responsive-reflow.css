@@ -46,4 +46,42 @@
   }
   #main-content .opportunityHeroProof>div{min-width:0;max-width:100%;flex-wrap:wrap}
   #main-content .opportunityHeroProof ul{min-width:0;max-width:100%;width:100%}
+
+  /* Projects hero: collapse the desktop signal column and remove intrinsic copy/action widths at 200% text. */
+  #main-content .projectsHero,
+  #main-content .projectsHeroInner,
+  #main-content .projectsHeroCopy,
+  #main-content .projectsHeroSignal,
+  #main-content .projectsHeroCopy>*{
+    min-width:0!important;
+    max-width:100%!important;
+    box-sizing:border-box;
+  }
+  #main-content .projectsHeroInner{
+    width:100%!important;
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #main-content .projectsHeroCopy,
+  #main-content .projectsHeroSignal,
+  #main-content .projectsHeroCopy .actions{width:100%!important}
+  #main-content .projectsHero :where(.eyebrow,h1,p,strong,span){
+    min-width:0!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+  }
+  #main-content .projectsHeroCopy .actions{
+    min-width:0!important;
+    max-width:100%!important;
+    flex-wrap:wrap!important;
+  }
+  #main-content .projectsHeroCopy .actions .button{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    box-sizing:border-box;
+  }
 }

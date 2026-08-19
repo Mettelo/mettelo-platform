@@ -60,7 +60,7 @@ requireNeedle(nav,"{label:'Recommended',href:'/member/recommended',description:'
 
 for(const needle of ['@media(max-width:1024px)','@media(max-width:480px)','@media(prefers-reduced-motion:reduce)','outline:3px solid #173f8f','min-height:44px'])requireNeedle(css,needle,'Recommended responsive CSS');
 
-for(const needle of ['375,390,414,768,1024,1440','200%','No horizontal overflow','Save is independent','/member/discover/','/events/','/spotlight/']){
+for(const needle of ['375,390,414,768,1024,1440','200%','noOverflow','Save is independent','/member/discover/','/events/','/spotlight/']){
   if(!visualTest.includes(needle)&&!domainTest.includes(needle))failures.push(`Recommended tests: missing ${needle}`);
 }
 for(const needle of ['mislabeled','isRecruitmentOpportunity','projectRecommendationEligible','eventRecommendationEligible','spotlightRecommendationEligible'])requireNeedle(domainTest,needle,'Recommended domain tests');

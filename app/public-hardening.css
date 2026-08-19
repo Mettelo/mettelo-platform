@@ -1,5 +1,9 @@
 :root{--public-radius-control:10px;--public-radius-card:16px;--public-radius-feature:24px}
 
+/* Keep the skip link available to keyboard users without occupying page layout by default. */
+.skipLink{position:fixed;left:12px;top:12px;z-index:1000;max-width:calc(100vw - 24px);padding:12px 14px;border-radius:10px;background:#10131d;color:#fff;font-weight:800;transform:translateY(calc(-100% - 24px));opacity:0;pointer-events:none;transition:transform .16s ease,opacity .16s ease}
+.skipLink:focus,.skipLink:focus-visible{transform:translateY(0);opacity:1;pointer-events:auto;outline:3px solid #e0ad59;outline-offset:3px}
+
 /* Public typography and interaction hardening: preserve the existing Mettelo visual language. */
 .siteHeader :where(a,button,summary):focus-visible,
 footer :where(a,button,input):focus-visible,
@@ -63,6 +67,7 @@ footer :where(a,button,input):focus-visible,
 }
 
 @media(prefers-reduced-motion:reduce){
+  .skipLink{transition:none!important}
   .button,.card,.nav nav a:after{transition:none!important}
   .button:hover,.card:hover{transform:none!important}
 }

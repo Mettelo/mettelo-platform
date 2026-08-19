@@ -77,3 +77,5 @@ Acceptance widths: 375, 390, 414, 768, 1024 and desktop.
 ## Release acceptance
 
 The redesign is not complete because screens resemble a prototype. Existing project capabilities and server authorization must remain intact. Exact-head CI, Release gate and Deployment gate must be green before merge. The deterministic `audit:mettelo-lab` check is part of the production build gate and protects the core workspace identity, navigation, terminology and member Team privacy contract.
+
+Final release verification must include authenticated Chromium coverage of every Lab destination at 375, 390, 414, 768, 1024 and desktop widths, including horizontal-overflow checks, mobile bottom-navigation behavior, the mobile More destination, and the Chat composer staying above the mobile navigation. The merge must remain pinned to the exact verified PR head, followed by explicit verification of the resulting `main` SHA and its production deployment.

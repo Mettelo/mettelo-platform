@@ -40,6 +40,11 @@ footer :where(a,button,input):focus-visible,
 .showcasePage .proofContribution{display:block;margin-top:3px;color:var(--slate);font-size:.9375rem;line-height:1.5}
 .showcasePage .proofEvidence{white-space:nowrap}
 
+@media(max-width:1080px){
+  /* A closed off-canvas menu must not contribute to the page scroll width. */
+  body.publicMobileNavV2:not(.mobileNavOpen) .mobilePublicNav{display:none!important}
+}
+
 @media(max-width:1024px){
   .section{padding:80px 0}
   .hero{padding-top:88px}
@@ -55,14 +60,17 @@ footer :where(a,button,input):focus-visible,
   .searchFilters{flex-wrap:wrap!important;overflow-x:visible!important;max-width:100%!important}
   .searchFilters .filter{max-width:100%;white-space:normal}
 
-  /* About: keep the thesis panel and ecosystem connector inside the phone viewport. */
-  .aboutHeroNote{min-width:0;max-width:100%}
-  .aboutHeroNote .listRow{min-width:0;max-width:100%;gap:10px;flex-wrap:wrap}
+  /* About: contain the mobile thesis/ecosystem illustration without widening the document. */
+  .aboutHeroNote{width:100%;min-width:0;max-width:100%;overflow:hidden;box-sizing:border-box}
+  .aboutHeroNote .listRow{width:100%;min-width:0;max-width:100%;gap:10px;flex-wrap:wrap;box-sizing:border-box}
   .aboutHeroNote :where(h3,p,strong,span){min-width:0;max-width:100%;overflow-wrap:anywhere}
+  .dark .principleGrid{width:100%;min-width:0;max-width:100%;overflow:clip;box-sizing:border-box}
   .dark .principleGrid::after{
-    right:0;
-    width:auto;
-    max-width:calc(100% - 20px);
+    left:20px;
+    right:auto;
+    width:calc(100% - 40px);
+    max-width:calc(100% - 40px);
+    box-sizing:border-box;
     white-space:normal;
     overflow-wrap:anywhere;
     line-height:1.25;
@@ -70,16 +78,24 @@ footer :where(a,button,input):focus-visible,
   .dark .principleGrid>.principle,
   .dark .principleGrid>.principle:nth-child(5),
   .dark .principleGrid>.principle:nth-child(6),
-  .dark .principleGrid>.principle:nth-child(7){width:calc(100% - 38px);max-width:calc(100% - 38px)}
+  .dark .principleGrid>.principle:nth-child(7){width:auto!important;max-width:none!important;min-width:0;margin-right:0;box-sizing:border-box}
+  .dark .principleGrid .srOnly{position:absolute!important;width:1px!important;max-width:1px!important;overflow:hidden!important;white-space:normal!important}
 
-  /* Home: content must continue to reflow at 200% text, including long proof labels. */
-  .heroScene,.heroFeatureCard,.heroFeatureFoot,.heroCommunityProof,.homeActionIntro,.homeActionIntro>div{min-width:0;max-width:100%}
+  /* Home: content must continue to reflow at 200% text. */
+  .homeActionSection,.homeLiveSection,
+  .homeActionSection>.shell,.homeLiveSection>.shell,
+  .heroScene,.heroFeatureCard,.heroFeatureFoot,.heroCommunityProof,
+  .homeActionIntro,.homeActionIntro>*,.homeLiveHead,.homeLiveHead>*,
+  .homeExploreGrid,.homeExploreCard{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+  .homeActionIntro,.homeLiveHead{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:14px!important}
   .heroFeatureCard :where(h3,p,strong,span),
   .heroCommunityProof :where(p,strong,span),
-  .homeActionIntro :where(h2,p,strong,span){min-width:0;max-width:100%;white-space:normal!important;overflow-wrap:anywhere}
+  .homeActionIntro :where(h2,p,strong,span),
+  .homeLiveSection :where(h2,h3,p,strong,span,small,a){min-width:0;max-width:100%;white-space:normal!important;overflow-wrap:anywhere}
   .heroCommunityProof p{flex-wrap:wrap!important}
   .heroFeatureFoot{flex-wrap:wrap!important}
   .heroFeatureFoot strong{white-space:normal!important;overflow-wrap:anywhere}
+  .homeExploreCard{overflow:hidden!important}
 
   /* Project details previously retained the desktop 1fr + 320px grid below 481px. */
   body .projectDetailGridV2{grid-template-columns:minmax(0,1fr)!important}

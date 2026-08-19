@@ -19,12 +19,21 @@ const inventory=[];
 const apiCalls=new Map();
 function lineOf(text,index){return text.slice(0,index).split('\n').length;}
 function addIssue(severity,file,line,type,detail){issues.push({severity,file,line,type,detail});}
-function routeExists(url){
-  const clean=url.split('?')[0].replace(/\/$/,'');
+function cleanInternalUrl(url){return url.split('#')[0].split('?')[0].replace(/\/$/,'')||'/';}
+function apiRouteExists(url){
+  const clean=cleanInternalUrl(url);
   const exact=path.join('app',clean,'route.ts');
   const exactJs=path.join('app',clean,'route.js');
   return fs.existsSync(exact)||fs.existsSync(exactJs);
 }
+function pageRouteExists(url){
+  if(!url.startsWith('/')||url.startsWith('//'))return true;
+  const clean=cleanInternalUrl(url);
+  const relative=clean==='/'?'':clean.replace(/^\//,'');
+  const candidates=[path.join('app',relative,'page.tsx'),path.join('app',relative,'page.ts'),path.join('app',relative,'page.jsx'),path.join('app',relative,'page.js'),path.join('app',relative,'route.ts'),path.join('app',relative,'route.js')];
+  return candidates.some(candidate=>fs.existsSync(candidate));
+}
+function shouldValidatePage(url){return Boolean(url&&url.startsWith('/')&&!url.startsWith('//')&&!url.startsWith('/api/'));}
 
 // Return JSX opening tags without mistaking comparison/arrow operators inside
 // attribute expressions (for example disabled={page>=pages}) for the tag end.
@@ -36,17 +45,14 @@ function* openingTags(text,tagName){
       const ch=text[i];
       if(quote){
         if(escaped){escaped=false;continue;}
-        if(ch==='\\\\'){escaped=true;continue;}
+        if(ch==='\\'){escaped=true;continue;}
         if(ch===quote)quote='';
         continue;
       }
       if(ch==='"'||ch==="'"||ch==='`'){quote=ch;continue;}
       if(ch==='{'){braces++;continue;}
       if(ch==='}'&&braces>0){braces--;continue;}
-      if(ch==='>'&&braces===0){
-        yield {index:start,attrs:text.slice(start+match[0].length,i)};
-        break;
-      }
+      if(ch==='>'&&braces===0){yield {index:start,attrs:text.slice(start+match[0].length,i)};break;}
     }
   }
 }
@@ -61,7 +67,7 @@ for(const file of files){
     inventory.push({kind:'form',file,line,wired});
     if(!wired)addIssue('error',file,line,'form-no-action','Form has neither onSubmit nor action.');
     const action=attrs.match(/\baction\s*=\s*["']([^"']+)["']/)?.[1];
-    if(action?.startsWith('/api/')&&!routeExists(action))addIssue('error',file,line,'missing-api-route',`Form action ${action} has no matching app API route.`);
+    if(action?.startsWith('/api/')&&!apiRouteExists(action))addIssue('error',file,line,'missing-api-route',`Form action ${action} has no matching app API route.`);
   }
 
   for(const match of openingTags(text,'button')){
@@ -85,12 +91,14 @@ for(const file of files){
     }
   }
 
-  for(const match of openingTags(text,'a')){
-    const attrs=match.attrs||'';const line=lineOf(text,match.index);
-    const href=attrs.match(/\bhref\s*=\s*["']([^"']*)["']/)?.[1];
-    if(href!==undefined){
+  for(const tag of ['a','Link']){
+    for(const match of openingTags(text,tag)){
+      const attrs=match.attrs||'';const line=lineOf(text,match.index);
+      const href=attrs.match(/\bhref\s*=\s*["']([^"']*)["']/)?.[1];
+      if(href===undefined)continue;
       inventory.push({kind:'link',file,line,wired:Boolean(href&&href!=='#')});
-      if(!href||href==='#'||href.startsWith('javascript:'))addIssue('error',file,line,'dead-link',`Anchor uses non-functional href: ${href||'(empty)'}.`);
+      if(!href||href==='#'||href.startsWith('javascript:')){addIssue('error',file,line,'dead-link',`${tag} uses non-functional href: ${href||'(empty)'}.`);continue;}
+      if(shouldValidatePage(href)&&!pageRouteExists(href))addIssue('error',file,line,'missing-page-route',`${tag} href ${href} has no matching app page/route.`);
     }
   }
 
@@ -99,7 +107,7 @@ for(const file of files){
     if(url.startsWith('/api/')){
       const base=url.split('${')[0].replace(/\/$/,'');
       const calls=apiCalls.get(base)||[];calls.push({file,line});apiCalls.set(base,calls);
-      if(!url.includes('${')&&!routeExists(url))addIssue('error',file,line,'missing-api-route',`fetch(${url}) has no matching app API route.`);
+      if(!url.includes('${')&&!apiRouteExists(url))addIssue('error',file,line,'missing-api-route',`fetch(${url}) has no matching app API route.`);
     }
   }
 }

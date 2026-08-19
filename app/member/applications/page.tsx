@@ -48,22 +48,37 @@ export default async function ApplicationsPage(){
 
   const enriched=applications.map(item=>({...item,formation:item.project_run_id?formation.get(item.project_run_id)||null:null,events:events.filter(event=>event.application_id===item.id)}));
 
-  return <main className="applicationsPage" aria-labelledby="applications-title">
-    <div className="applicationsShell">
-      <nav className="applicationsCrumb" aria-label="Breadcrumb"><a href="/member">My Mettelo</a><span aria-hidden="true">/</span><strong>Applications</strong></nav>
-      <header className="applicationsHero">
-        <div><div className="applicationsEyebrow">MY WORK · APPLICATIONS</div><h1 id="applications-title">Applications</h1><p>Track your project participation applications from submission through team formation, confirmation or closure. If something needs you, it appears first.</p></div>
-        <div className="applicationsHeroActions"><a className="applicationsButton applicationsButtonDark" href="/projects">Discover projects</a><a className="applicationsButton" href="/member/recommended">Recommended</a></div>
-      </header>
-      {error?<section className="applicationsError" role="alert"><h2>We could not load your applications</h2><p>Refresh the page to try again. Your project data has not been changed.</p></section>:<MemberApplicationTracker applications={enriched}/>} 
-    </div>
+  return <div className="applicationsPage">
+    <header className="applicationsHero">
+      <div>
+        <div className="applicationsEyebrow">MY WORK · PROJECT APPLICATIONS</div>
+        <h1 id="applications-title">Applications</h1>
+        <p>Track the projects you’ve applied to, see exactly when you need to act, and follow each application until it either closes or becomes confirmed project work.</p>
+      </div>
+      <div className="applicationsHeroActions">
+        <a className="applicationsButton applicationsButtonDark" href="/projects">Discover projects</a>
+        <a className="applicationsButton" href="/member/recommended">Recommended</a>
+      </div>
+    </header>
+
+    {error
+      ? <section className="applicationsError" role="alert"><h2>We couldn’t load your applications</h2><p>Refresh the page to try again. Your project data has not been changed.</p></section>
+      : <MemberApplicationTracker applications={enriched}/>}
+
     <style>{`
-      .applicationsPage{min-width:0;padding:22px 34px 88px;background:#f5f5f2;color:#111318}
-      .applicationsShell{width:min(100%,1180px);margin:0 auto;min-width:0}
-      .applicationsCrumb{display:flex;align-items:center;gap:7px;margin-bottom:18px;color:#68727d;font-size:.75rem}.applicationsCrumb a{color:inherit}.applicationsCrumb strong{color:#111318}
-      .applicationsHero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end;padding:10px 0 25px;border-bottom:1px solid #d8dde3}.applicationsEyebrow{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;font-weight:800;letter-spacing:.11em;color:#72551e}.applicationsHero h1{margin:8px 0 11px;font-size:clamp(2.5rem,5vw,3.6rem);line-height:1.02;letter-spacing:-.05em}.applicationsHero p{max-width:760px;margin:0;color:#59636f;line-height:1.65}.applicationsHeroActions{display:flex;gap:9px;flex-wrap:wrap}.applicationsButton{min-height:44px;padding:0 15px;border:1px solid #b8c0c9;border-radius:10px;background:#fff;color:#111318;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px;font-weight:800}.applicationsButtonDark{background:#111318;border-color:#111318;color:#fff}.applicationsButton:focus-visible,.applicationsCrumb a:focus-visible{outline:3px solid #173f8f;outline-offset:3px}.applicationsError{margin-top:20px;padding:20px;border:1px solid #d0a0a0;border-radius:14px;background:#fff}.applicationsError h2{margin:0 0 6px;font-size:1.1rem}.applicationsError p{margin:0;color:#59636f}
-      @media(max-width:1024px){.applicationsPage{padding:22px 22px 84px}.applicationsHero{grid-template-columns:1fr}.applicationsHeroActions{justify-content:flex-start}}
-      @media(max-width:480px){.applicationsPage{padding:14px 13px 96px}.applicationsCrumb{display:none}.applicationsHero{display:block;padding:4px 0 20px}.applicationsHero h1{font-size:2.25rem}.applicationsHero p{font-size:.875rem;line-height:1.58}.applicationsHeroActions{display:none}}
+      .applicationsPage{width:min(100%,1180px);margin:0 auto;min-width:0;color:#111318}
+      .applicationsHero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end;padding:10px 0 25px;border-bottom:1px solid #d8dde3}
+      .applicationsEyebrow{font-family:var(--font-plex-mono),ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;text-transform:uppercase;letter-spacing:.11em;font-size:10px;line-height:1.3;font-weight:700;color:#72551e}
+      .applicationsHero h1{margin:8px 0 11px;font-family:var(--font-space-grotesk),Inter,ui-sans-serif,system-ui,sans-serif;font-size:clamp(40px,5vw,58px);line-height:1.02;letter-spacing:-.05em}
+      .applicationsHero p{max-width:760px;margin:0;color:#59636f;line-height:1.66}
+      .applicationsHeroActions{display:flex;gap:9px;flex-wrap:wrap}
+      .applicationsButton{min-height:44px;padding:0 15px;border:1px solid #b8c0c9;border-radius:10px;background:#fff;color:#111318;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px;font-weight:800}
+      .applicationsButtonDark{background:#111318;border-color:#111318;color:#fff}
+      .applicationsButton:focus-visible{outline:3px solid #173f8f;outline-offset:3px}
+      .applicationsError{margin-top:20px;padding:20px;border:1px solid #d0a0a0;border-radius:14px;background:#fff}
+      .applicationsError h2{margin:0 0 6px;font-size:1.1rem}.applicationsError p{margin:0;color:#59636f}
+      @media(max-width:1024px){.applicationsHero{grid-template-columns:1fr}.applicationsHeroActions{justify-content:flex-start}}
+      @media(max-width:480px){.applicationsHero{display:block;padding:4px 0 20px}.applicationsHero h1{font-size:36px}.applicationsHero p{font-size:14px;line-height:1.58}.applicationsHeroActions{display:none}}
     `}</style>
-  </main>;
+  </div>;
 }

@@ -28,7 +28,7 @@ test('existing project lifecycle is a truthful recommendation signal and routes 
     ['team_forming','View application','/member/applications'],
     ['confirmed','Open in Projects','/member/projects'],
     ['active','Open in Projects','/member/projects'],
-    ['completed','View in Projects','/member/projects?tab=completed']
+    ['completed','View in Projects','/member/projects?state=completed']
   ];
   for(const [state,label,href] of expected){const action=memberProjectCatalogueAction(state,'project-1');expect(action).toEqual({label,href});expect(projectRecommendationEligible(state)).toBe(true)}
   expect(projectRecommendationEligible('closed')).toBe(false);expect(projectRecommendationEligible('cancelled')).toBe(false);

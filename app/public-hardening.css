@@ -51,6 +51,10 @@ footer :where(a,button,input):focus-visible,
   .showcasePage .proofRow{grid-template-columns:1fr;gap:10px}
   .showcasePage .proofEvidence{justify-self:start}
 
+  /* Search categories remain fully visible and keyboard reachable without viewport escape. */
+  .searchFilters{flex-wrap:wrap!important;overflow-x:visible!important;max-width:100%!important}
+  .searchFilters .filter{max-width:100%;white-space:normal}
+
   /* About: keep the thesis panel and ecosystem connector inside the phone viewport. */
   .aboutHeroNote{min-width:0;max-width:100%}
   .aboutHeroNote .listRow{min-width:0;max-width:100%;gap:10px;flex-wrap:wrap}

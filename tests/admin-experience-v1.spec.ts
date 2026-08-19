@@ -21,6 +21,8 @@ test.describe('Admin operational experience',()=>{
     const linkedin=page.getByLabel('LinkedIn');await linkedin.fill('https://www.linkedin.com/company/e2e-mettelo');await linkedin.locator('xpath=ancestor::form').getByRole('button',{name:'Save'}).click();await expect(page.getByRole('status')).toContainText('LinkedIn updated.');
     const logo=page.getByLabel('Header / light-background logo');await logo.fill('https://mettelo.com/mettelo-logo-dark.svg');await logo.locator('xpath=ancestor::form').getByRole('button',{name:'Save'}).click();await expect(page.getByRole('status')).toContainText('Header / light-background logo updated.');
     const db=service();const {data}=await db.from('platform_settings').select('setting_key,value').in('setting_key',['social_linkedin','brand_logo_dark_url']);const values=new Map((data||[]).map(row=>[row.setting_key,row.value]));expect(values.get('social_linkedin')).toBe('https://www.linkedin.com/company/e2e-mettelo');expect(values.get('brand_logo_dark_url')).toBe('https://mettelo.com/mettelo-logo-dark.svg');
+    await page.goto('/',{waitUntil:'networkidle'});await expect(page.getByRole('link',{name:'Mettelo on LinkedIn'})).toHaveAttribute('href','https://www.linkedin.com/company/e2e-mettelo');await expect(page.locator('.siteHeader .brandLogo')).toHaveAttribute('src','https://mettelo.com/mettelo-logo-dark.svg');
+    await page.goto('/admin/settings',{waitUntil:'networkidle'});
     for(const width of [390,768,1440]){await page.setViewportSize({width,height:900});await page.reload({waitUntil:'networkidle'});await noOverflow(page);if(width===390)await capture(page,'admin-settings-mobile-390');if(width===1440)await capture(page,'admin-settings-desktop-1440');}
   });
 

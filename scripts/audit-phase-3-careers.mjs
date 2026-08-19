@@ -11,7 +11,7 @@ const checks=[
   ['app/api/careers/applications/route.ts',['WITHDRAWABLE','career_withdrawn','Candidate withdrew application','communication_records','communication_audit_log']],
   ['components/CareerApplicationTracker.tsx',['Recruitment progress','What this means','What happens next','Do I need to do something?','Congratulations — you have an offer','Your interview details','Get ready for your first day','Withdraw application','View application history']],
   ['app/careers/applications/page.tsx',['Your career applications','They are separate from your My Mettelo project applications.','CareerApplicationTracker','career_application_events','career_onboarding_items','career_offer_documents']],
-  ['app/member/applications/page.tsx',['career_application_events','career_onboarding_items','career_offer_documents','CareerApplicationTracker','Your recruitment journey']],
+  ['app/member/applications/page.tsx',['MemberApplicationTracker','PROJECT APPLICATIONS','Recruitment applications, interviews and offers are kept separately in Careers.','/careers/applications','/member/discover']],
   ['components/AdminCareerRoleManager.tsx',['Eligibility','Expected response','Application process','Application questions','expected_response_days','application_questions']],
   ['app/api/admin/careers/roles/route.ts',['Complete the career brief before publishing','expected response time','application process','eligibility']],
   ['app/admin/careers/applications/page.tsx',['communication_records','career_onboarding_items','profiles','application_questions','AdminCareerApplicationQueue','career-cvs']],
@@ -23,8 +23,8 @@ const checks=[
   ['app/api/admin/communications/documents/route.ts',['application/pdf','10*1024*1024','career-offer-documents','MAX_EMAIL_ATTACHMENTS','offer_document_attached','export async function DELETE','offer_document_removed']],
   ['app/api/careers/offer-documents/[id]/route.ts',['application?.user_id!==user.id','createSignedUrl','60']],
   ['lib/email-attachments.ts',['MAX_EMAIL_ATTACHMENTS=4','MAX_EMAIL_ATTACHMENT_RAW_BYTES=28*1024*1024',"item.template_key!=='career_offer'",'career_offer_documents','career-offer-documents','toString(\'base64\')']],
-  ['lib/notifications.ts',['resolveEmailAttachments','attachments:attachments.length?attachments:undefined']],
-  ['lib/career-notifications.ts',['careerMessageForDb','resolveCommunication','sendCareerEmail','notifyUser']],
+  ['lib/notifications.ts',['resolveEmailAttachments','attachments:attachments.length?attachments:undefined','Careers application tracker']],
+  ['lib/career-notifications.ts',['careerMessageForDb','resolveCommunication','sendCareerEmail','enqueueEmail','/careers/applications','Careers application tracker']],
   ['app/submitted/page.tsx',['career_application','APPLICATION RECEIVED','WHAT HAPPENS NEXT','Track your career application',"href:'/careers/applications'",'encodeURIComponent(confirmation.primary.href)']],
   ['tests/admin-experience-v1.spec.ts',['E2E Career Candidate','2026-08-20T10:00','Europe/London','2026-08-20T09:00:00.000Z','Booked interview','Reschedule']],
   ['package.json',['"audit:phase3": "node scripts/audit-phase-3-careers.mjs"']],
@@ -37,5 +37,20 @@ for(const [file,needles] of checks){
   for(const needle of needles)if(!text.includes(needle)){console.error(`FAIL ${file}: missing ${needle}`);failed=true;fileOk=false;}
   if(fileOk){passed+=1;console.log(`PASS ${file}`);}
 }
+
+const memberApplications=fs.readFileSync('app/member/applications/page.tsx','utf8');
+for(const forbidden of ['career_applications','career_application_events','career_onboarding_items','career_offer_documents','CareerApplicationTracker']){
+  if(memberApplications.includes(forbidden)){console.error(`FAIL My Mettelo Applications must not query or render recruitment data: ${forbidden}`);failed=true;}
+}
+
+const careerNotifications=fs.readFileSync('lib/career-notifications.ts','utf8');
+if(careerNotifications.includes('notifyUser')){console.error('FAIL Careers communications must remain email-only and outside generic My Mettelo notifications.');failed=true;}
+if(!careerNotifications.includes("input.actionUrl?.startsWith('/member')?'/careers/applications'")){console.error('FAIL Careers action URLs must normalize legacy My Mettelo destinations to the Careers tracker.');failed=true;}
+
+const emailRenderer=fs.readFileSync('lib/notifications.ts','utf8');
+for(const forbidden of ['next stage will appear in My Mettelo','Check My Mettelo for the latest status.','use My Mettelo as your source of truth']){
+  if(emailRenderer.includes(forbidden)){console.error(`FAIL Recruitment email copy leaked My Mettelo as source of truth: ${forbidden}`);failed=true;}
+}
+
 if(failed)process.exit(1);
-console.log(`Phase 3 careers deterministic audit passed: ${passed}/${checks.length} files.`);
+console.log(`Phase 3 careers deterministic audit passed: ${passed}/${checks.length} files plus domain-separation guards.`);

@@ -2,13 +2,14 @@ import {expect,test,type Page} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
 
 type Credentials={email:string;password:string};
+const artifactDir='artifacts/mettelo-lab-visual/member-home-v3';
 const viewports=[{name:'phone-375',width:375,height:812},{name:'phone-390',width:390,height:844},{name:'phone-414',width:414,height:896},{name:'tablet-768',width:768,height:1024},{name:'tablet-1024',width:1024,height:900},{name:'desktop-1440',width:1440,height:900}] as const;
 function credentials():Credentials{const email=process.env.E2E_MEMBER_EMAIL?.trim();const password=process.env.E2E_MEMBER_PASSWORD;if(!email||!password)throw new Error('Missing E2E member credentials.');return{email,password}}
 async function signIn(page:Page){const account=credentials();await page.goto('/signin?next=%2Fmember',{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(account.email);await main.locator('input[type="password"]').fill(account.password);await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>url.pathname==='/member',{timeout:20_000})}
 async function assertNoHorizontalOverflow(page:Page,label:string){const dimensions=await page.evaluate(()=>({documentScrollWidth:document.documentElement.scrollWidth,documentClientWidth:document.documentElement.clientWidth,bodyScrollWidth:document.body.scrollWidth}));expect(dimensions.documentScrollWidth,`${label}: document overflow`).toBeLessThanOrEqual(dimensions.documentClientWidth);expect(dimensions.bodyScrollWidth,`${label}: body overflow`).toBeLessThanOrEqual(dimensions.documentClientWidth)}
 
 test('My Mettelo Home v3 preserves hierarchy, navigation and responsive containment',async({page})=>{
-  test.setTimeout(240_000);await page.emulateMedia({reducedMotion:'reduce'});await signIn(page);await mkdir('artifacts/member-home-v3',{recursive:true});
+  test.setTimeout(240_000);await page.emulateMedia({reducedMotion:'reduce'});await signIn(page);await mkdir(artifactDir,{recursive:true});
   for(const viewport of viewports){
     await page.setViewportSize({width:viewport.width,height:viewport.height});await page.goto('/member',{waitUntil:'networkidle'});
     await expect(page.getByRole('heading',{name:/Good to see you,/})).toBeVisible();
@@ -33,8 +34,8 @@ test('My Mettelo Home v3 preserves hierarchy, navigation and responsive containm
       await expect(desktopNav.getByRole('link',{name:/Home/})).toHaveAttribute('aria-current','page');
     }
     const labLink=page.getByRole('link',{name:/Open Mettelo Lab/}).first();if(await labLink.count())await expect(labLink).toHaveAttribute('href',/\/member\/projects\//);
-    await page.screenshot({path:`artifacts/member-home-v3/${viewport.name}-home.png`,fullPage:true,animations:'disabled'});
+    await page.screenshot({path:`${artifactDir}/${viewport.name}-home.png`,fullPage:true,animations:'disabled'});
   }
 
-  await page.setViewportSize({width:390,height:844});await page.goto('/member',{waitUntil:'networkidle'});await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});await expect(page.getByRole('heading',{name:/Good to see you,/})).toBeVisible();await expect(page.getByRole('navigation',{name:'My Mettelo mobile navigation'})).toBeVisible();await assertNoHorizontalOverflow(page,'phone-390/text-zoom-200');await page.screenshot({path:'artifacts/member-home-v3/phone-390-text-zoom-200.png',fullPage:true,animations:'disabled'});
+  await page.setViewportSize({width:390,height:844});await page.goto('/member',{waitUntil:'networkidle'});await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});await expect(page.getByRole('heading',{name:/Good to see you,/})).toBeVisible();await expect(page.getByRole('navigation',{name:'My Mettelo mobile navigation'})).toBeVisible();await assertNoHorizontalOverflow(page,'phone-390/text-zoom-200');await page.screenshot({path:`${artifactDir}/phone-390-text-zoom-200.png`,fullPage:true,animations:'disabled'});
 });

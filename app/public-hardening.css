@@ -1,0 +1,58 @@
+:root{--public-radius-control:10px;--public-radius-card:16px;--public-radius-feature:24px}
+
+/* Public typography and interaction hardening: preserve the existing Mettelo visual language. */
+.siteHeader :where(a,button,summary):focus-visible,
+footer :where(a,button,input):focus-visible,
+.hero :where(a,button,input,select,textarea):focus-visible,
+.section :where(a,button,input,select,textarea):focus-visible{
+  outline:3px solid #9b651e;
+  outline-offset:3px;
+}
+
+.button,.iconButton,.filter,.mobileMenu>summary{min-height:44px}
+.formCard input,.formCard select,.formCard textarea{min-height:44px}
+.formCard label{font-size:.8125rem;line-height:1.45}
+
+.eyebrow{font-size:.75rem;line-height:1.45}
+.cardNumber{font-size:.75rem;line-height:1.45}
+.chip{font-size:.75rem;line-height:1.35}
+.metaPill{font-size:.8125rem;line-height:1.35}
+.statBand span,.statusText,.trustItem span{font-size:.8125rem;line-height:1.45}
+.filter{font-size:.875rem}
+
+.card,.projectCard,.mediaCard,.eventCard,.articleItem{border-radius:var(--public-radius-card)}
+.heroPanel,.featuredArticle,.searchPanel,.formCard,.ctaBand{border-radius:var(--public-radius-feature)}
+.formCard input,.formCard select,.formCard textarea,.searchInput{border-radius:var(--public-radius-control)}
+
+.card,.projectCard,.mediaCard,.eventCard,.articleItem{box-shadow:none}
+.card:hover{box-shadow:0 10px 28px rgba(16,19,29,.06)}
+
+.legalPage p,.articleBody p{max-width:68ch}
+.sectionHead>p,.heroLead{max-width:64ch}
+
+.peoplePage .personCard{align-items:flex-start}
+.peoplePage .proofSignal{display:inline-flex;align-items:center;gap:7px;min-height:32px;margin-top:12px;padding:6px 10px;border-radius:999px;background:#e8f5ed;color:#0f633c;font-family:var(--font-mono);font-size:.8125rem;font-weight:650}
+.peoplePage .proofSignal::before{content:"✓";font-family:var(--font-inter);font-weight:800}
+
+.showcasePage .proofRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;padding:16px 0;border-top:1px solid var(--line)}
+.showcasePage .proofRow:first-child{border-top:0;padding-top:0}
+.showcasePage .proofOwner{display:block;font-family:var(--font-space);font-size:1rem;line-height:1.35}
+.showcasePage .proofContribution{display:block;margin-top:3px;color:var(--slate);font-size:.9375rem;line-height:1.5}
+.showcasePage .proofEvidence{white-space:nowrap}
+
+@media(max-width:1024px){
+  .section{padding:80px 0}
+  .hero{padding-top:88px}
+}
+
+@media(max-width:480px){
+  .eyebrow,.cardNumber{font-size:.75rem}
+  .chip,.metaPill,.statBand span,.statusText,.trustItem span{font-size:.8125rem}
+  .showcasePage .proofRow{grid-template-columns:1fr;gap:10px}
+  .showcasePage .proofEvidence{justify-self:start}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .button,.card,.nav nav a:after{transition:none!important}
+  .button:hover,.card:hover{transform:none!important}
+}

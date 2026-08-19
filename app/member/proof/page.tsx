@@ -20,7 +20,7 @@ type ContributionRow={
   visibility:string;
   projects:{title:string}|null;
 };
-type MembershipRow={project_id:string;project_run_id:string|null;project_role_id:string|null;project_roles:{title:string}|null};
+type MembershipRow={project_id:string;project_run_id:string|null};
 type Credential={credential_id:string;status:string;issued_at:string};
 
 const proofFields='id,project_id,project_run_id,title,contribution_type,description,verification_status,created_at,updated_at,verified_at,evidence_url,review_notes,visibility,projects(title)';
@@ -66,10 +66,14 @@ export default async function ProofPage(){
   const allRows=[...verifiedRows,...pendingRows,...rejectedRows];
   const projectIds=[...new Set(allRows.map(item=>item.project_id).filter((id):id is string=>Boolean(id)))];
 
+  // Membership is enough to authorize the project handoff. The clean-schema
+  // authenticated role is not granted SELECT on project_roles, so Proof must not
+  // widen privileges just to decorate a portfolio card with a role title. When a
+  // safely authorized role projection exists, project_role can be populated then.
   const {data:membershipData,error:membershipError}=projectIds.length
-    ? await supabase.from('project_members').select('project_id,project_run_id,project_role_id,project_roles(title)').eq('user_id',user.id).in('project_id',projectIds).in('membership_status',['active','completed'])
+    ? await supabase.from('project_members').select('project_id,project_run_id').eq('user_id',user.id).in('project_id',projectIds).in('membership_status',['active','completed'])
     : {data:[] as MembershipRow[],error:null};
-  if(membershipError)console.error('member Proof role lookup failed',membershipError);
+  if(membershipError)console.error('member Proof membership lookup failed',membershipError);
   const memberships=(membershipData||[]) as unknown as MembershipRow[];
   const byRun=new Map(memberships.filter(item=>item.project_run_id).map(item=>[item.project_run_id as string,item]));
   const byProject=new Map(memberships.map(item=>[item.project_id,item]));
@@ -93,7 +97,7 @@ export default async function ProofPage(){
       review_notes:row.verification_status==='needs_changes'?row.review_notes:null,
       visibility:row.visibility||'private',
       project_title:row.projects?.title||null,
-      project_role:membership?.project_roles?.title||null,
+      project_role:null,
       can_view_project:Boolean(membership&&row.project_id)
     };
   };

@@ -1,0 +1,49 @@
+/* Targeted WCAG reflow fixes discovered by recursive Chromium coverage. */
+@media(max-width:480px){
+  /* Public form pages must collapse their desktop two-column layout and allow headings/copy to shrink at 200% text. */
+  #main-content .formShell,
+  #main-content .formShell>*,
+  #main-content .formShell .formCard{
+    min-width:0!important;
+    max-width:100%!important;
+    box-sizing:border-box;
+  }
+  #main-content .formShell{
+    width:100%!important;
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #main-content .formShell>*{width:100%!important}
+  #main-content .formShell :where(h1,h2,h3,p,strong,span){
+    min-width:0!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+  }
+
+  /* Opportunities hero: remove intrinsic grid-item width floors under phone text zoom. */
+  #main-content .opportunityHero,
+  #main-content .opportunityHeroInner,
+  #main-content .opportunityHeroCopy,
+  #main-content .opportunityHeroProof,
+  #main-content .opportunityHeroProof>*{
+    min-width:0!important;
+    max-width:100%!important;
+    box-sizing:border-box;
+  }
+  #main-content .opportunityHeroInner{
+    width:100%!important;
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #main-content .opportunityHeroCopy,
+  #main-content .opportunityHeroProof{width:100%!important}
+  #main-content .opportunityHero :where(.eyebrow,h1,p,strong,span,li){
+    min-width:0!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+  }
+  #main-content .opportunityHeroProof>div{min-width:0;max-width:100%;flex-wrap:wrap}
+  #main-content .opportunityHeroProof ul{min-width:0;max-width:100%;width:100%}
+}

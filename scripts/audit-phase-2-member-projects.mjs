@@ -15,9 +15,9 @@ const checks=[
   ['app/api/project-applications/route.ts',['application_deadline','applications_open','project_role_ids','project_role_catalogue','project_application_roles','catalogueRoles.map','application_submitted','team_place_released','waiting_for_team','terms_attachment_id','terms_accepted_at','Project Participation Terms']],
   ['app/api/project-terms/route.ts',['project_application_terms','communication_template_attachments','attachment_id']],
   ['app/api/admin/communications/attachments/route.ts',['communication-template-documents','application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','MAX_FILES=4']],
-  ['app/api/admin/applications/route.ts',["project.project_type==='open'","order('run_number',{ascending:true})","cohort_auto_started","project.project_type==='partner'","full&&project.project_type==='open'","required_team_size","if(!run&&project.project_type==='open')","if(!run){"]],
+  ['app/api/admin/applications/route.ts',["project.project_type==='open'","order('run_number',{ascending:true})",'cohort_auto_started',"project.project_type==='partner'","full&&project.project_type==='open'",'required_team_size',"if(!run&&project.project_type==='open')",'if(!run){']],
   ['app/api/project-team-lifecycle/route.ts',["project.project_type!=='partner'",'Partner projects never auto-start','partner_manual_start','Project Architect','project_lead']],
-  ['app/api/admin/projects/route.ts',['export async function POST','Choose Open Project or Partner Project. Project type cannot be inferred.','Team size required is mandatory.','projectType===\'partner\'','run_number:1','project_type_review_required:false']],
+  ['app/api/admin/projects/route.ts',['export async function POST','Choose Open Project or Partner Project. Project type cannot be inferred.','Team size required is mandatory.',"projectType==='partner'",'run_number:1','project_type_review_required:false']],
   ['components/AdminProjectCreateButton.tsx',['Choose project type','Open Project','Partner Project','Team size required','Create private draft']],
   ['components/AdminProjectDetailActions.tsx',['Start Partner project','Team size required','applications_open']],
   ['app/admin/project-operations/projects/[id]/page.tsx',['cohortGrid','Team {run.run_number}','TYPE REVIEW REQUIRED','applications_open','AdminCompletionRequirements']],
@@ -28,10 +28,11 @@ const checks=[
   ['components/ProjectTeamRoster.tsx',['COHORTS','Final Proof delegate','profile photo','cohortSwitcher','is_member','lockedCohort','Not a member','initialOverview']],
   ['app/api/project-team-overview/route.ts',['resolveProjectTeamOverview','Project membership is required.']],
   ['lib/project-team-overview.ts',['ownRunIds','readableRuns','readableRunIds','is_member:isMember','members:isMember?']],
-  ['components/MetteloLabPanel.tsx',['resolveProjectTeamOverview','METTELO LAB','Open project cohorts','Not a member of this cohort','teamOverview','MetteloLabPanel.module.css']],
+  ['components/MetteloLabPanel.tsx',['resolveProjectTeamOverview','METTELO LAB','YOUR TEAM','teamOverview','MetteloLabPanel.module.css']],
   ['components/MetteloLabPanel.module.css',['grid-template-columns:repeat(2,minmax(0,1fr))','min-height:44px','@media(max-width:480px)']],
   ['components/WorkspaceRouteTabs.tsx',["key:'team',label:'Mettelo Lab'","['mettelo-lab','Lab']",'Collaborate with your cohort and see what to do next.']],
-  ['app/member/projects/[id]/layout.tsx',['Mettelo Lab','href="#mettelo-lab"','Move through the project with confidence.','Collaborate with your cohort and see what to do next.']],
+  ['app/member/projects/[id]/layout.tsx',['METTELO LAB','MetteloLabNavigation','MetteloLabViewSurface','mobileNav']],
+  ['components/MetteloLabNavigation.tsx',["label:'Home'","label:'Chat'","label:'Team'","hrefFor('more')"]],
   ['app/member/projects/[id]/page.tsx',['MetteloLabPanel','reviewSlot','href="#mettelo-lab">Mettelo Lab','recentDiscussions']],
   ['components/AdminCompletionRequirements.tsx',['Verified presentation required','Published GitHub repository required','Final Proof / deliverable URL required']],
   ['supabase/migrations/20260818190000_project_completion_permissions.sql',['project_submission_permissions','project_final_proof_submissions','github_repo_required','final_proof_required']],
@@ -48,13 +49,15 @@ let failed=false;
 for(const [file,needles] of checks){if(!fs.existsSync(file)){console.error(`Missing ${file}`);failed=true;continue;}const text=fs.readFileSync(file,'utf8');for(const needle of needles){if(!text.includes(needle)){console.error(`${file}: missing ${needle}`);failed=true;}}}
 
 const layout=fs.readFileSync('app/member/projects/[id]/layout.tsx','utf8');
-const page=fs.readFileSync('app/member/projects/[id]/page.tsx','utf8');
 const routeTabs=fs.readFileSync('components/WorkspaceRouteTabs.tsx','utf8');
-if(layout.includes('href="#team">Team')||page.includes('href="#team">Team')||routeTabs.includes("key:'team',label:'Team'")){console.error('The branded project navigation destination must be Mettelo Lab, not Team.');failed=true;}
+if(layout.includes('Project workspace')||layout.includes('>Conversation<')||layout.includes('>Work<')){console.error('Mettelo Lab must use the approved member-facing identity and terminology.');failed=true;}
 const teamResolver=fs.readFileSync('lib/project-team-overview.ts','utf8');
 if(teamResolver.includes(".in('project_run_id',runIds)")){console.error('Team overview must not load every cohort roster for an ordinary project member.');failed=true;}
 const labPanel=fs.readFileSync('components/MetteloLabPanel.tsx','utf8');
 if(labPanel.includes('MetteloLabClient')){console.error('Mettelo Lab secure cohort roster must remain server-rendered and outside a hydration-owned client boundary.');failed=true;}
+for(const forbidden of ['Open project cohorts','Not a member of this cohort','lockedCohort','cohortSwitcher']){if(labPanel.includes(forbidden)){console.error(`Member Mettelo Lab must not expose cross-cohort UI: ${forbidden}`);failed=true;}}
+if(!labPanel.includes('YOUR TEAM')){console.error('Member Mettelo Lab must identify the member\'s own team explicitly.');failed=true;}
+if(!routeTabs.includes("key:'team',label:'Mettelo Lab'")){console.error('Legacy routed workspace compatibility must preserve the Mettelo Lab label.');failed=true;}
 
 const openRuns=[{run_number:1,status:'active',has_started:true,filled:3,required:3},{run_number:2,status:'forming',has_started:false,filled:1,required:3}];
 const recruiting=openRuns.filter(run=>run.status==='forming'&&!run.has_started&&run.filled<run.required).sort((a,b)=>a.run_number-b.run_number)[0];

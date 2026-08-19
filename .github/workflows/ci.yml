@@ -77,6 +77,7 @@ jobs:
 
   verify:
     name: Fast regression gate
+    needs: scope
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -106,10 +107,13 @@ jobs:
       - run: npm run audit:journey-phase7
       - run: npm run audit:journey-phase8
       - run: npm run audit:platform-resilience
-      - name: Install Chromium for regression tests
-        run: npx playwright install --with-deps chromium
-      - run: npm run test:regression
       - run: npm run build
+      - name: Install Chromium for regression tests when staging is not required
+        if: needs.scope.outputs.requires_staging != 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Run browser regression suite when staging is not required
+        if: needs.scope.outputs.requires_staging != 'true'
+        run: npm run test:regression
       - name: Upload interaction audit on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -143,6 +147,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Install Chromium for staging and regression tests
+        run: npx playwright install --with-deps chromium
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
@@ -169,7 +175,6 @@ jobs:
           } >> "$GITHUB_ENV"
       - name: Seed disposable local identities and fixtures
         run: node scripts/setup-local-e2e.mjs
-      - run: npx playwright install --with-deps chromium
       - name: Start Mettelo against isolated Supabase
         shell: bash
         run: |
@@ -185,8 +190,18 @@ jobs:
           exit 1
       - name: Verify E2E production guard
         run: npm run check:e2e-config
-      - name: Blocking authenticated smoke
+      - name: Blocking public browser regression suite
+        run: npm run test:regression
+      - name: Blocking authenticated smoke and Mettelo Lab Chromium visual QA
         run: npm run test:e2e:smoke -- --workers=1
+      - name: Upload Mettelo Lab Chromium screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mettelo-lab-chromium-visuals
+          path: artifacts/mettelo-lab-visual/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Blocking representative persisted submission
         run: npx playwright test tests/staging-submission-journeys.spec.ts --project=chromium --workers=1 --grep "contact, partnership, feedback and newsletter persist and reach admin operations"
       - name: Informational full submission suite
@@ -204,6 +219,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            artifacts/mettelo-lab-visual/
             /tmp/mettelo-e2e.log
             .supabase-ci/manifest.json
           if-no-files-found: ignore
@@ -243,13 +259,13 @@ jobs:
               echo "Release blocked: classification=$CLASSIFICATION requires the scoped authenticated backend gate, staging=$STAGING_RESULT."
               exit 1
             fi
-            echo "Release gate passed: fast regression plus scoped authenticated smoke/persistence checks are green."
+            echo "Release gate passed: deterministic audits/build plus scoped browser regression/authenticated smoke/persistence checks are green."
           else
             if [ "$STAGING_RESULT" != "skipped" ] && [ "$STAGING_RESULT" != "success" ]; then
               echo "Release blocked: optional staging job ended unexpectedly ($STAGING_RESULT)."
               exit 1
             fi
-            echo "Release gate passed: classification=$CLASSIFICATION; backend E2E is explicitly not required by scope."
+            echo "Release gate passed: classification=$CLASSIFICATION; fast browser regression is green and backend E2E is explicitly not required by scope."
           fi
 
   deployment-gate:

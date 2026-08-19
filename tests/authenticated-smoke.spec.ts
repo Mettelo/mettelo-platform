@@ -4,93 +4,17 @@ type Credentials={email:string;password:string};
 const labProjectId='00000000-0000-4000-8000-00000000e2e1';
 const labTeam1RunId='00000000-0000-4000-8000-00000000e211';
 const labTeam2RunId='00000000-0000-4000-8000-00000000e212';
-
-function credentials(prefix:'MEMBER'|'ARCHITECT'|'ADMIN'):Credentials{
-  const email=process.env[`E2E_${prefix}_EMAIL`]?.trim();
-  const password=process.env[`E2E_${prefix}_PASSWORD`];
-  if(!email||!password)throw new Error(`Missing E2E_${prefix}_EMAIL or E2E_${prefix}_PASSWORD. Run npm run check:e2e-config first.`);
-  return{email,password};
-}
-
-async function signIn(page:Page,account:Credentials,next:string){
-  await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});
-  const main=page.locator('#main-content');
-  await main.locator('input[type="email"]').fill(account.email);
-  await main.locator('input[type="password"]').fill(account.password);
-  await main.getByRole('button',{name:'Sign in →'}).click();
-  await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000});
-}
+const labUrl=(view='home',run=labTeam1RunId)=>`/member/projects/${labProjectId}?run=${run}&view=${view}`;
+function credentials(prefix:'MEMBER'|'ARCHITECT'|'ADMIN'):Credentials{const email=process.env[`E2E_${prefix}_EMAIL`]?.trim();const password=process.env[`E2E_${prefix}_PASSWORD`];if(!email||!password)throw new Error(`Missing E2E_${prefix}_EMAIL or E2E_${prefix}_PASSWORD. Run npm run check:e2e-config first.`);return{email,password}}
+async function signIn(page:Page,account:Credentials,next:string){await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(account.email);await main.locator('input[type="password"]').fill(account.password);await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000})}
 
 test.describe('authenticated staging smoke tests',()=>{
-  test('member can access their application tracker',async({page})=>{
-    const account=credentials('MEMBER');
-    await signIn(page,account,'/member/applications');
-    await page.goto('/member/applications',{waitUntil:'networkidle'});
-    await expect(page.locator('#main-content')).toBeVisible();
-    await expect(page).toHaveURL(/\/member\/applications/);
-  });
-
-  test('non-admin member sees other cohorts without cross-cohort data access and Mettelo Lab never overflows',async({page})=>{
-    const account=credentials('MEMBER');
-    const team1Url=`/member/projects/${labProjectId}?run=${labTeam1RunId}&view=team&area=mettelo-lab`;
-    await signIn(page,account,team1Url);
-
-    const apiResponse=await page.context().request.get(`/api/project-team-overview?project_id=${labProjectId}&project_run_id=${labTeam1RunId}`);
-    expect(apiResponse.status()).toBe(200);
-    const payload=await apiResponse.json();
-    const own=payload.teams.find((team:{run_number:number})=>team.run_number===1);
-    const other=payload.teams.find((team:{run_number:number})=>team.run_number===2);
-    expect(own).toMatchObject({id:labTeam1RunId,is_member:true});
-    expect(Array.isArray(own.members)).toBe(true);
-    expect(own.members.length).toBeGreaterThan(0);
-    expect(other).toMatchObject({id:'cohort-2',run_number:2,status:'forming',is_member:false,required_team_size:null,has_started:null,members:[]});
-    expect(JSON.stringify(other)).not.toContain(labTeam2RunId);
-
-    const team1Response=await page.goto(team1Url,{waitUntil:'networkidle'});
-    expect(team1Response?.status()).toBe(200);
-    await expect(page.getByRole('navigation',{name:'Project workspace sections'}).getByRole('link',{name:'Mettelo Lab'})).toHaveAttribute('aria-current','page');
-    await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
-    const cohortNav=page.getByRole('navigation',{name:'Open project cohorts'});
-    await expect(cohortNav).toBeVisible();
-    const activeCohort=cohortNav.getByRole('link',{name:/Team 1/i});
-    await expect(activeCohort).toBeVisible();
-    await expect(activeCohort).toHaveAttribute('aria-current','page');
-    const lockedCohort=cohortNav.locator('[title="Not a member of this cohort"]');
-    await expect(lockedCohort).toBeVisible();
-    await expect(lockedCohort).toContainText('Team 2');
-    await expect(cohortNav.getByRole('link',{name:/Team 2/i})).toHaveCount(0);
-
-    const forbidden=await page.goto(`/member/projects/${labProjectId}?run=${labTeam2RunId}&view=team&area=mettelo-lab`,{waitUntil:'domcontentloaded'});
-    expect(forbidden?.status()).toBe(404);
-
-    for(const width of [375,390,414,768]){
-      await page.setViewportSize({width,height:900});
-      await page.goto(team1Url,{waitUntil:'networkidle'});
-      await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
-      const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
-      expect(dimensions.scrollWidth,`Mettelo Lab page overflowed at ${width}px`).toBeLessThanOrEqual(dimensions.clientWidth);
-      const cta=page.locator('#mettelo-lab').getByRole('link',{name:/Open my tasks|View next event|View team|View team status/}).first();
-      await expect(cta).toBeVisible();
-      const box=await cta.boundingBox();
-      expect(box?.height||0).toBeGreaterThanOrEqual(44);
-    }
-  });
-
-  test('Project Architect can open their project workspace',async({page})=>{
-    const account=credentials('ARCHITECT');
-    await signIn(page,account,'/member/architect-projects');
-    await page.goto('/member/architect-projects',{waitUntil:'networkidle'});
-    await expect(page.locator('#main-content')).toBeVisible();
-    await expect(page).toHaveURL(/\/member\/architect-projects/);
-  });
-
-  test('admin can open project applications and intake queues',async({page})=>{
-    const account=credentials('ADMIN');
-    await signIn(page,account,'/admin');
-    await page.goto('/admin/project-operations/applications',{waitUntil:'networkidle'});
-    await expect(page.getByRole('heading',{level:1,name:/^Applications\b/i})).toBeVisible();
-    await page.goto('/admin/intake',{waitUntil:'networkidle'});
-    await expect(page.locator('#main-content')).toBeVisible();
-    await expect(page).toHaveURL(/\/admin\/intake/);
-  });
+ test('member can access their application tracker',async({page})=>{const account=credentials('MEMBER');await signIn(page,account,'/member/applications');await page.goto('/member/applications',{waitUntil:'networkidle'});await expect(page.locator('#main-content')).toBeVisible();await expect(page).toHaveURL(/\/member\/applications/)});
+ test('non-admin member sees only their own Lab team and Mettelo Lab never overflows',async({page})=>{const account=credentials('MEMBER');await signIn(page,account,labUrl());const apiResponse=await page.context().request.get(`/api/project-team-overview?project_id=${labProjectId}&project_run_id=${labTeam1RunId}`);expect(apiResponse.status()).toBe(200);const payload=await apiResponse.json();const own=payload.teams.find((team:{run_number:number})=>team.run_number===1);const other=payload.teams.find((team:{run_number:number})=>team.run_number===2);expect(own).toMatchObject({id:labTeam1RunId,is_member:true});expect(Array.isArray(own.members)).toBe(true);expect(own.members.length).toBeGreaterThan(0);expect(other).toMatchObject({id:'cohort-2',run_number:2,status:'forming',is_member:false,required_team_size:null,has_started:null,members:[]});expect(JSON.stringify(other)).not.toContain(labTeam2RunId);
+  const teamResponse=await page.goto(labUrl('team'),{waitUntil:'networkidle'});expect(teamResponse?.status()).toBe(200);const teamSection=page.locator('#team');await expect(teamSection).toBeVisible();await expect(teamSection.getByText('YOUR TEAM',{exact:true})).toBeVisible();await expect(teamSection.getByRole('heading',{name:/Team 1/})).toBeVisible();await expect(page.getByText('Open project cohorts',{exact:true})).toHaveCount(0);await expect(page.getByText('Not a member of this cohort',{exact:true})).toHaveCount(0);await expect(page.getByText(/Team 2/)).toHaveCount(0);await expect(page.locator('[data-lab-home-section]').first()).toBeHidden();
+  const forbidden=await page.goto(labUrl('team',labTeam2RunId),{waitUntil:'domcontentloaded'});expect(forbidden?.status()).toBe(404);
+  for(const width of [375,390,414,768,1024,1440]){await page.setViewportSize({width,height:900});await page.goto(labUrl('home'),{waitUntil:'networkidle'});const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));expect(dimensions.scrollWidth,`Mettelo Lab page overflowed at ${width}px`).toBeLessThanOrEqual(dimensions.clientWidth);const cta=page.locator('#mettelo-lab').getByRole('link',{name:/Continue task|View next event|View team|View team status/}).first();await expect(cta).toBeVisible();const box=await cta.boundingBox();expect(box?.height||0).toBeGreaterThanOrEqual(44);if(width<=480){await expect(page.getByRole('navigation',{name:'Mettelo Lab mobile navigation'})).toBeVisible();await expect(page.getByRole('navigation',{name:'Member mobile navigation'})).toBeHidden()}else if(width<=1024){await expect(page.locator('aside[aria-label="Mettelo Lab workspace"]')).toBeVisible();await expect(page.getByText('METTELO LAB',{exact:true}).first()).toBeVisible()}else{await expect(page.locator('aside[aria-label="Mettelo Lab workspace"]')).toBeVisible()}}
+ });
+ test('Project Architect can open their project workspace',async({page})=>{const account=credentials('ARCHITECT');await signIn(page,account,'/member/architect-projects');await page.goto('/member/architect-projects',{waitUntil:'networkidle'});await expect(page.locator('#main-content')).toBeVisible();await expect(page).toHaveURL(/\/member\/architect-projects/)});
+ test('admin can open project applications and intake queues',async({page})=>{const account=credentials('ADMIN');await signIn(page,account,'/admin');await page.goto('/admin/project-operations/applications',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:/^Applications\b/i})).toBeVisible();await page.goto('/admin/intake',{waitUntil:'networkidle'});await expect(page.locator('#main-content')).toBeVisible();await expect(page).toHaveURL(/\/admin\/intake/)});
 });

@@ -71,7 +71,7 @@ const checks=[
  ['multi-device responsive gate exists',Boolean(responsiveGate)&&Boolean(onboardingPreview)],
  ['responsive gate covers required widths',forWidths(responsiveGate,[320,390,430,768,1024,1280,1440,1920])&&responsiveGate.includes("label:'Phone landscape'")],
  ['real-browser responsive gate exists separately from CI',Boolean(browserGate)&&browserGate.includes('width:320')&&browserGate.includes('width:1920')&&browserGate.includes('200 percent zoom')],
- ['GitHub CI runs deterministic and browser regression gates before build',workflow.includes('npm run audit:phase1')&&workflow.includes('playwright install --with-deps chromium')&&workflow.includes('npm run test:regression')&&workflow.includes('npm run build')&&workflow.indexOf('npm run test:regression')<workflow.indexOf('npm run build')],
+ ['GitHub CI requires deterministic audits, build, and scoped browser regression before release',workflow.includes('npm run audit:phase1')&&workflow.includes('npm run build')&&workflow.includes('Blocking public browser regression suite')&&workflow.includes('npm run test:regression')&&workflow.includes("if: needs.scope.outputs.requires_staging != 'true'")&&workflow.includes('needs: [scope, verify, staging-e2e]')],
  ['Phase 0 audit still exists',Boolean(phase0)]
 ];
 

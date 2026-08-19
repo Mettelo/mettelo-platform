@@ -30,9 +30,9 @@ test.describe('authenticated staging smoke tests',()=>{
     await expect(page).toHaveURL(/\/member\/applications/);
   });
 
-  test('non-admin member sees other cohorts without cross-cohort data access and Mettelo Lab never overflows',async({page})=>{
+  test('non-admin member sees only their own Lab team and Mettelo Lab never overflows',async({page})=>{
     const account=credentials('MEMBER');
-    const team1Url=`/member/projects/${labProjectId}?run=${labTeam1RunId}&view=team&area=mettelo-lab`;
+    const team1Url=`/member/projects/${labProjectId}?run=${labTeam1RunId}`;
     await signIn(page,account,team1Url);
 
     const apiResponse=await page.context().request.get(`/api/project-team-overview?project_id=${labProjectId}&project_run_id=${labTeam1RunId}`);
@@ -48,31 +48,31 @@ test.describe('authenticated staging smoke tests',()=>{
 
     const team1Response=await page.goto(team1Url,{waitUntil:'networkidle'});
     expect(team1Response?.status()).toBe(200);
-    await expect(page.getByRole('navigation',{name:'Project workspace sections'}).getByRole('link',{name:'Mettelo Lab'})).toHaveAttribute('aria-current','page');
-    await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
-    const cohortNav=page.getByRole('navigation',{name:'Open project cohorts'});
-    await expect(cohortNav).toBeVisible();
-    const activeCohort=cohortNav.getByRole('link',{name:/Team 1/i});
-    await expect(activeCohort).toBeVisible();
-    await expect(activeCohort).toHaveAttribute('aria-current','page');
-    const lockedCohort=cohortNav.locator('[title="Not a member of this cohort"]');
-    await expect(lockedCohort).toBeVisible();
-    await expect(lockedCohort).toContainText('Team 2');
-    await expect(cohortNav.getByRole('link',{name:/Team 2/i})).toHaveCount(0);
+    await expect(page.locator('aside[aria-label="Mettelo Lab workspace"]')).toBeVisible();
+    await expect(page.getByText('METTELO LAB',{exact:true}).first()).toBeVisible();
+    await expect(page.getByText('YOUR TEAM',{exact:true})).toBeVisible();
+    await expect(page.getByText(/Team 1/).first()).toBeVisible();
+    await expect(page.getByText('Open project cohorts',{exact:true})).toHaveCount(0);
+    await expect(page.getByText('Not a member of this cohort',{exact:true})).toHaveCount(0);
+    await expect(page.getByText(/Team 2/)).toHaveCount(0);
 
-    const forbidden=await page.goto(`/member/projects/${labProjectId}?run=${labTeam2RunId}&view=team&area=mettelo-lab`,{waitUntil:'domcontentloaded'});
+    const forbidden=await page.goto(`/member/projects/${labProjectId}?run=${labTeam2RunId}`,{waitUntil:'domcontentloaded'});
     expect(forbidden?.status()).toBe(404);
 
-    for(const width of [375,390,414,768]){
+    for(const width of [375,390,414,768,1024,1440]){
       await page.setViewportSize({width,height:900});
       await page.goto(team1Url,{waitUntil:'networkidle'});
-      await expect(page.getByText('METTELO LAB',{exact:true})).toBeVisible();
+      await expect(page.getByText('METTELO LAB',{exact:true}).first()).toBeVisible();
       const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
       expect(dimensions.scrollWidth,`Mettelo Lab page overflowed at ${width}px`).toBeLessThanOrEqual(dimensions.clientWidth);
-      const cta=page.locator('#mettelo-lab').getByRole('link',{name:/Open my tasks|View next event|View team|View team status/}).first();
+      const cta=page.locator('#mettelo-lab').getByRole('link',{name:/Continue task|View next event|View team|View team status/}).first();
       await expect(cta).toBeVisible();
       const box=await cta.boundingBox();
       expect(box?.height||0).toBeGreaterThanOrEqual(44);
+      if(width<=480){
+        await expect(page.getByRole('navigation',{name:'Mettelo Lab mobile navigation'})).toBeVisible();
+        await expect(page.getByRole('navigation',{name:'Member mobile navigation'})).toBeHidden();
+      }
     }
   });
 

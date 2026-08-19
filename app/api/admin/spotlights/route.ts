@@ -22,15 +22,21 @@ export async function PATCH(request:Request){
     if(!id||!actions.has(action))return NextResponse.json({error:'Invalid request'},{status:400});
 
     const {data:selected,error:readError}=await db.from('spotlights')
-      .select('id,user_id,title,award_month,category,status,is_excluded,consent_status,publication_held,suppress_public_project,suppress_public_evidence')
+      .select('id,user_id,title,award_month,category,status,is_excluded,consent_status,publication_held,suppress_public_project,suppress_public_evidence,exclusion_reason')
       .eq('id',id).maybeSingle();
     if(readError)throw readError;
     if(!selected)return NextResponse.json({error:'Spotlight not found'},{status:404});
     const now=new Date().toISOString();
 
     if(action==='exclude'){
+      // If a prior request persisted the exclusion but failed while creating the
+      // replacement, retry the automatic replacement instead of returning 409.
+      if(selected.is_excluded){
+        const replacement=selected.award_month?await replaceExcludedSpotlight(db,selected.award_month):null;
+        return NextResponse.json({ok:true,item:selected,replacement,message:replacement?.created?'The exclusion was already recorded and the replacement selection has now completed.':'The exclusion was already recorded. No eligible replacement is currently available.'});
+      }
       if(!reason)return NextResponse.json({error:'Record a reason for excluding this automatic selection.'},{status:400});
-      if(selected.status!=='draft'||selected.is_excluded)return NextResponse.json({error:'Only an active draft selection can be excluded. Use a publication hold for a recognition that is already public.'},{status:409});
+      if(selected.status!=='draft')return NextResponse.json({error:'Only an active draft selection can be excluded. Use a publication hold for a recognition that is already public.'},{status:409});
       const {data:item,error}=await db.from('spotlights').update({
         is_excluded:true,
         exclusion_reason:reason,

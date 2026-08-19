@@ -5,7 +5,7 @@ const checks=[
   ['components/AdminStatusBadge.tsx',['adminStatusBadge','iconByStatus','success','warning','danger','neutral','info']],
   ['app/admin/page.tsx',['NEEDS ATTENTION','WORKSPACE SHORTCUTS','Nothing needs attention right now','Applications to review','Teams forming','overviewStats','Platform settings','/admin/settings']],
   ['app/admin/settings/page.tsx',['Settings unavailable','AdminPlatformSettings','platform_settings','project_role_catalogue']],
-  ['components/AdminPlatformSettings.tsx',['PLATFORM CONFIGURATION','Logo assets','Social channels','Contact details','Contribution-role catalogue','Header / light-background logo','Add role','aria-live','@media(max-width:480px)']],
+  ['components/AdminPlatformSettings.tsx',['PLATFORM CONFIGURATION','Logo assets','Social channels','Contact details','Contribution-role catalogue',"setting.setting_group==='branding'",'brandPreview','Add role','aria-live','@media(max-width:480px)']],
   ['app/api/admin/settings/route.ts',['Admin access required','platform_settings','updated_by']],
   ['components/PlatformSocialLinks.tsx',['platform_settings','public_read','social_instagram','social_youtube','aria-label']],
   ['components/PlatformLogo.tsx',['brand_logo_dark_url','brand_logo_light_url','mettelo-logo-dark.svg','mettelo-logo-light.svg','getPublicPlatformSettings']],

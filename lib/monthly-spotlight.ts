@@ -70,8 +70,10 @@ export async function buildMonthlyRankings(db:SupabaseClient,reference=new Date(
     })).filter(item=>item.score>0).sort((a,b)=>b.score-a.score||map.get(a.userId)!.name.localeCompare(map.get(b.userId)!.name));
     rankings.set(definition.category,ranked);
   }
-  return {awardMonth,from,to,eligible:eligible.length,rankings};
+  return {awardMonth,from:result_from(from),to:end.toISOString(),eligible:eligible.length,rankings};
 }
+
+function result_from(value:string){return value;}
 
 export async function buildMonthlyAwards(db:SupabaseClient,reference=new Date()){
   const result=await buildMonthlyRankings(db,reference);const used=new Set<string>();const awards:RankedAward[]=[];
@@ -96,8 +98,9 @@ export async function createMonthlySpotlightDrafts(db:SupabaseClient,reference=n
 
   // Repair an interrupted automatic consent request without duplicating notifications.
   // `pending` may already be persisted when delivery failed; requestSpotlightConsent
-  // deliberately reissues that notification with a stable dedupe key.
-  for(const item of retained){if(item.status==='draft'&&['not_requested','pending'].includes(item.consent_status)&&!item.publication_held)await requestSpotlightConsent(db,item.id);}
+  // deliberately reissues that notification with a stable dedupe key. Publication holds
+  // never suppress the member's consent choice; they only suppress public exposure.
+  for(const item of retained){if(item.status==='draft'&&['not_requested','pending'].includes(item.consent_status))await requestSpotlightConsent(db,item.id);}
 
   for(const definition of definitions){
     if(awardedCategories.has(definition.category))continue;

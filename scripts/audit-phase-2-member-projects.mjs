@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 
 const checks=[
-  ['components/MemberAppShell.tsx',['Find a project','Applications','My projects','Profile','Member mobile navigation','Current section','Explore','SWITCH WORKSPACE','aria-current']],
-  ['components/MemberAppShell.module.css',['grid-template-columns:repeat(5,1fr)','min-height:44px','backdrop-filter:blur(18px)','activeLink::before','secondaryDisclosure','pageContext']],
-  ['app/member/page.tsx',['Your Mettelo at a glance','What needs you now','Continue working','Latest application','Profile readiness','ACCOUNT OVERVIEW','NEXT ACTIONS','statusBadge','What this means','applicationFacts','profileStrip','grid-template-columns:minmax(0,1fr) minmax(0,1fr)','role="progressbar"']],
+  ['components/MemberAppShell.tsx',["from '@/lib/member-navigation'",'Find a project','My Mettelo mobile navigation','aria-current','account?.hasLead',"account?.accountType==='project_architect'",'/member/project-lead','/member/architect-projects']],
+  ['lib/member-navigation.ts',["label:'My Work'","label:'Home'","label:'Projects'","label:'Applications'","label:'Proof'","label:'Profile'","label:'Explore'","label:'Discover'","label:'Recommended'","label:'Opportunities'","label:'Saved'","label:'Events'","label:'Reputation'","label:'Spotlight'",'mobilePersistentNav','mobileMoreNav']],
+  ['components/MemberAppShell.module.css',['grid-template-columns:repeat(5,minmax(0,1fr))','min-height:44px','safe-area-inset-bottom','activeLink','morePanel','pageContext','@media (min-width:481px) and (max-width:1024px)','@media (max-width:480px)']],
+  ['app/member/page.tsx',['Good to see you','Up next · Project work','WHAT NEEDS YOU NOW','Continue working','Latest status','PROFILE READINESS','Evidence that travels with you','SPOTLIGHT · REPUTATION','Open Mettelo Lab','role="progressbar"','mobileMoreNav']],
+  ['app/member/member-home-v3.module.css',['grid-template-columns:repeat(5,minmax(0,1fr))','grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr)','@media (min-width:481px) and (max-width:1024px)','@media(max-width:480px)','prefers-reduced-motion:reduce']],
   ['app/member/profile/page.tsx',['ProfileReturnAfterSave','MemberProfileSection','Better project matches','Faster applications']],
   ['components/MemberProfileSection.tsx',['Profile completeness','improve project matching','PROJECT AVAILABILITY','Preview public profile']],
   ['components/ProfileReturnAfterSave.tsx',['mettelo:profile-updated','window.location.assign(next)']],
@@ -58,6 +60,14 @@ if(labPanel.includes('MetteloLabClient')){console.error('Mettelo Lab secure coho
 for(const forbidden of ['Open project cohorts','Not a member of this cohort','lockedCohort','cohortSwitcher']){if(labPanel.includes(forbidden)){console.error(`Member Mettelo Lab must not expose cross-cohort UI: ${forbidden}`);failed=true;}}
 if(!labPanel.includes('YOUR TEAM')){console.error('Member Mettelo Lab must identify the member\'s own team explicitly.');failed=true;}
 if(!routeTabs.includes("key:'team',label:'Mettelo Lab'")){console.error('Legacy routed workspace compatibility must preserve the Mettelo Lab label.');failed=true;}
+
+const memberNav=fs.readFileSync('lib/member-navigation.ts','utf8');
+for(const required of ["label:'Home'","label:'Projects'","label:'Applications'","label:'Proof'","label:'Profile'","label:'Discover'","label:'Recommended'","label:'Opportunities'","label:'Saved'","label:'Events'","label:'Spotlight'"]){if(!memberNav.includes(required)){console.error(`My Mettelo navigation must preserve member capability: ${required}`);failed=true;}}
+const persistentStart=memberNav.indexOf('export const mobilePersistentNav');
+const persistentEnd=memberNav.indexOf('export const mobileMoreNav');
+const persistent=memberNav.slice(persistentStart,persistentEnd);
+const mobileLabels=[...persistent.matchAll(/label:'([^']+)'/g)].map(match=>match[1]);
+if(JSON.stringify(mobileLabels)!==JSON.stringify(['Home','Projects','Discover','Proof','More'])){console.error(`My Mettelo mobile persistent navigation changed unexpectedly: ${mobileLabels.join(', ')}`);failed=true;}
 
 const openRuns=[{run_number:1,status:'active',has_started:true,filled:3,required:3},{run_number:2,status:'forming',has_started:false,filled:1,required:3}];
 const recruiting=openRuns.filter(run=>run.status==='forming'&&!run.has_started&&run.filled<run.required).sort((a,b)=>a.run_number-b.run_number)[0];

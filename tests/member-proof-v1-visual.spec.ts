@@ -6,7 +6,7 @@ type Credentials={email:string;password:string};
 function credentials():Credentials{const email=process.env.E2E_MEMBER_EMAIL?.trim();const password=process.env.E2E_MEMBER_PASSWORD;if(!email||!password)throw new Error('Missing E2E member credentials.');return{email,password}}
 async function signIn(page:Page){const account=credentials();await page.goto('/signin?next=%2Fmember%2Fproof',{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(account.email);await main.locator('input[type="password"]').fill(account.password);await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>url.pathname==='/member/proof',{timeout:20_000})}
 async function noOverflow(page:Page,label:string){const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,body:document.body.scrollWidth}));expect(size.scroll,`${label}: document overflow`).toBeLessThanOrEqual(size.client);expect(size.body,`${label}: body overflow`).toBeLessThanOrEqual(size.client)}
-async function gridColumns(page:Page,selector:string){return page.locator(selector).evaluate(element=>getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length)}
+async function gridColumns(page:Page,selector:string){return page.locator(selector).first().evaluate(element=>getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length)}
 
 test('My Mettelo Proof preserves verification truth and approved responsive hierarchy',async({page})=>{
   test.setTimeout(300_000);

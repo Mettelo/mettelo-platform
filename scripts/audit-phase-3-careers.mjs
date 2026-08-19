@@ -14,10 +14,10 @@ const checks=[
   ['components/AdminCareerRoleManager.tsx',['Eligibility','Expected response','Application process','Application questions','expected_response_days','application_questions']],
   ['app/api/admin/careers/roles/route.ts',['Complete the career brief before publishing','expected response time','application process','eligibility']],
   ['app/admin/careers/applications/page.tsx',['communication_records','career_onboarding_items','profiles','application_questions','AdminCareerApplicationQueue','career-cvs']],
-  ['components/AdminCareerApplicationQueue.tsx',['Profile context','Role-specific answers','Internal note','Communication history','Recruitment action','AdminCareerInterviewComposer','AdminCareerOfferComposer','AdminCareerOnboarding']],
-  ['components/AdminCareerInterviewComposer.tsx',['showModal','INTERVIEW COMPOSER','Date & time','Timezone','Format','Meeting URL / joining link','Interviewer','Candidate instructions','EMAIL PREVIEW','Schedule & send']],
-  ['components/AdminCareerOfferComposer.tsx',['showModal','OFFER COMPOSER','Salary / rate','Start date','Employment type','Manager','Working arrangement','Acceptance deadline','Conditions','Personal message','EMAIL DOCUMENTS','multiple','up to 4 private PDF documents','Included in email','Remove','attachment_ids','real email attachments','EMAIL PREVIEW']],
-  ['app/api/admin/careers/applications/route.ts',['TRANSITIONS','candidateEventNote','Review and confirm','interview_timezone','interview_format','interview_url','offer_salary_rate','offer_start_date','offer_acceptance_deadline','career_onboarding_items','career_stage_transition','communication_records','MAX_EMAIL_ATTACHMENTS','status!==\'offer\'&&attachmentIds.length','offer_document_ids']],
+  ['components/AdminCareerApplicationQueue.tsx',['Profile context','Role-specific answers','Internal note','Communication history','Recruitment action','AdminCareerInterviewComposer','AdminCareerOfferComposer','AdminCareerOnboarding','INTERVIEW BOOKED','isoToZonedLocal','formatZonedDateTime','Reschedule']],
+  ['components/AdminCareerInterviewComposer.tsx',['showModal','INTERVIEW COMPOSER','Date & time','Timezone','Format','Meeting URL / joining link','Interviewer','Candidate instructions','EMAIL PREVIEW','Schedule & send','Europe/London','IANA timezone']],
+  ['lib/zoned-date-time.ts',['zonedLocalToIso','isoToZonedLocal','isValidTimeZone','DST gap','formatToParts']],
+  ['app/api/admin/careers/applications/route.ts',['TRANSITIONS','candidateEventNote','Review and confirm','interview_timezone','interview_format','interview_url','offer_salary_rate','offer_start_date','offer_acceptance_deadline','career_onboarding_items','career_stage_transition','communication_records','MAX_EMAIL_ATTACHMENTS','status!==\'offer\'&&attachmentIds.length','offer_document_ids','zonedLocalToIso','isValidTimeZone']],
   ['app/api/admin/careers/onboarding/route.ts',['career_onboarding_items','career_onboarding_updated','Admin access required']],
   ['app/api/admin/communications/documents/route.ts',['application/pdf','10*1024*1024','career-offer-documents','MAX_EMAIL_ATTACHMENTS','offer_document_attached','export async function DELETE','offer_document_removed']],
   ['app/api/careers/offer-documents/[id]/route.ts',['application?.user_id!==user.id','createSignedUrl','60']],
@@ -25,14 +25,15 @@ const checks=[
   ['lib/notifications.ts',['resolveEmailAttachments','attachments:attachments.length?attachments:undefined']],
   ['lib/career-notifications.ts',['careerMessageForDb','resolveCommunication','sendCareerEmail','notifyUser']],
   ['app/submitted/page.tsx',['career_application','APPLICATION RECEIVED','WHAT HAPPENS NEXT','Sign in to track']],
+  ['tests/admin-experience-v1.spec.ts',['E2E Career Candidate','2026-08-20T10:00','Europe/London','2026-08-20T09:00:00.000Z','Booked interview','Reschedule']],
   ['package.json',['"audit:phase3": "node scripts/audit-phase-3-careers.mjs"']],
-  ['.github/workflows/ci.yml',['npm run audit:phase0','npm run audit:phase1','npm run audit:phase2','npm run audit:phase3']],
+  ['.github/workflows/ci.yml',['npm run audit:phase0','npm run audit:phase1','npm run audit:phase2','npm run audit:phase3','tests/admin-experience-v1.spec.ts']],
 ];
 let failed=false;let passed=0;
 for(const [file,needles] of checks){
   if(!fs.existsSync(file)){console.error(`FAIL missing ${file}`);failed=true;continue;}
   const text=fs.readFileSync(file,'utf8');let fileOk=true;
-  for(const needle of needles){if(!text.includes(needle)){console.error(`FAIL ${file}: missing ${needle}`);failed=true;fileOk=false;}}
+  for(const needle of needles)if(!text.includes(needle)){console.error(`FAIL ${file}: missing ${needle}`);failed=true;fileOk=false;}
   if(fileOk){passed+=1;console.log(`PASS ${file}`);}
 }
 if(failed)process.exit(1);

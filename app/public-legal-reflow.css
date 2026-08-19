@@ -1,0 +1,11 @@
+@media(max-width:480px){
+  /* Legal pages must preserve WCAG reflow at 200% text without intrinsic-width overflow. */
+  #main-content .legalPage,
+  #main-content .legalPage :where(h1,h2,h3,p,a,strong,span){
+    min-width:0!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+  }
+}

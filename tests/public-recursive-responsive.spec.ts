@@ -27,18 +27,32 @@ function normalizePublicPath(href:string,origin:string){
 }
 
 async function expectNoHorizontalOverflow(page:Page,path:string){
-  const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,bodyScrollWidth:document.body.scrollWidth}));
-  expect(Math.max(dimensions.scrollWidth,dimensions.bodyScrollWidth),`${path} must not overflow horizontally`).toBeLessThanOrEqual(dimensions.clientWidth+1);
+  const report=await page.evaluate(()=>{
+    const clientWidth=document.documentElement.clientWidth;
+    const maxScrollWidth=Math.max(document.documentElement.scrollWidth,document.body.scrollWidth);
+    const offenders=Array.from(document.querySelectorAll<HTMLElement>('body *')).flatMap(element=>{
+      const style=getComputedStyle(element);
+      if(style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0)return [];
+      const rect=element.getBoundingClientRect();
+      if(rect.width===0&&rect.height===0)return [];
+      if(element.closest('[data-horizontal-scroll="true"]'))return [];
+      if(rect.left>=-1&&rect.right<=clientWidth+1&&element.scrollWidth<=Math.ceil(rect.width)+1)return [];
+      return [{tag:element.tagName.toLowerCase(),id:element.id,className:element.className?.toString().slice(0,100)||'',left:Math.round(rect.left),right:Math.round(rect.right),width:Math.round(rect.width),scrollWidth:element.scrollWidth,whiteSpace:style.whiteSpace,overflowWrap:style.overflowWrap}];
+    }).slice(0,10);
+    return{clientWidth,maxScrollWidth,offenders};
+  });
+  expect(report.maxScrollWidth,`${path} must not overflow horizontally: ${JSON.stringify(report.offenders)}`).toBeLessThanOrEqual(report.clientWidth+1);
 }
 
 async function expectNoUnexpectedViewportEscape(page:Page,path:string){
   const offenders=await page.evaluate(()=>{
     const width=window.innerWidth;
-    return Array.from(document.querySelectorAll<HTMLElement>('main *')).flatMap(element=>{
+    return Array.from(document.querySelectorAll<HTMLElement>('#main-content *')).flatMap(element=>{
       const style=getComputedStyle(element);
       if(style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0)return [];
       const rect=element.getBoundingClientRect();
       if(rect.width===0&&rect.height===0)return [];
+      if(element.closest('[data-horizontal-scroll="true"]'))return [];
       const allowsHorizontalScroll=['auto','scroll'].includes(style.overflowX);
       if(allowsHorizontalScroll)return [];
       if(rect.left>=-1&&rect.right<=width+1)return [];
@@ -98,7 +112,8 @@ test.describe('recursive public responsive coverage',()=>{
       for(const path of publicPaths){
         const response=await page.goto(path,{waitUntil:'domcontentloaded'});
         expect(response?.status(),`${path} should render`).toBeLessThan(400);
-        await expect(page.locator('main')).toBeVisible();
+        await expect(page.locator('#main-content')).toBeVisible();
+        await expect(page.locator('main'),`${path} should expose exactly one main landmark`).toHaveCount(1);
         await expectNoHorizontalOverflow(page,path);
         if(viewport.width<=430)await expectNoUnexpectedViewportEscape(page,path);
       }
@@ -113,6 +128,7 @@ test.describe('recursive public responsive coverage',()=>{
         const response=await page.goto(path,{waitUntil:'domcontentloaded'});
         expect(response?.status(),`${path} should render`).toBeLessThan(400);
         await page.evaluate(()=>{document.documentElement.style.fontSize='200%';});
+        await expect(page.locator('main'),`${path} should expose exactly one main landmark`).toHaveCount(1);
         await expectNoHorizontalOverflow(page,path);
         await expectNoUnexpectedViewportEscape(page,path);
         await page.evaluate(()=>{document.documentElement.style.fontSize='';});

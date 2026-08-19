@@ -51,6 +51,28 @@ footer :where(a,button,input):focus-visible,
   .showcasePage .proofRow{grid-template-columns:1fr;gap:10px}
   .showcasePage .proofEvidence{justify-self:start}
 
+  /* About's decorative ecosystem label must reflow at 320px/text zoom instead of defining page width. */
+  .dark .principleGrid::after{
+    right:0;
+    width:auto;
+    max-width:calc(100% - 20px);
+    white-space:normal;
+    overflow-wrap:anywhere;
+    line-height:1.25;
+  }
+
+  /* Home community proof is content, not a one-line badge: allow WCAG 1.4.10 reflow at 200% text. */
+  .homePage .heroCommunityProof{min-width:0;max-width:100%}
+  .homePage .heroCommunityProof p{
+    min-width:0;
+    max-width:100%!important;
+    flex-wrap:wrap!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere;
+  }
+  .homePage .heroFeatureFoot{min-width:0;max-width:100%;flex-wrap:wrap}
+  .homePage .heroFeatureFoot strong{white-space:normal;overflow-wrap:anywhere}
+
   /* Project details previously retained the desktop 1fr + 320px grid below 481px. */
   body .projectDetailGridV2{grid-template-columns:minmax(0,1fr)!important}
   body .projectDetailMainV2,

@@ -1,0 +1,54 @@
+.mobileFixes{}
+
+@media(max-width:480px){
+  /* Chat owns the middle viewport between the persistent Lab header and navigation. */
+  .mobileFixes :global([data-lab-view="chat"] #discussion){
+    position:fixed!important;
+    left:.85rem!important;
+    right:.85rem!important;
+    top:72px!important;
+    bottom:calc(70px + env(safe-area-inset-bottom))!important;
+    z-index:30!important;
+    display:flex!important;
+    flex-direction:column!important;
+    width:auto!important;
+    height:auto!important;
+    max-height:none!important;
+    min-height:0!important;
+    margin:0!important;
+    overflow:hidden!important;
+    box-sizing:border-box!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messagePanelHeader){
+    flex:0 0 auto!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .pinnedMessages){
+    flex:0 0 auto!important;
+    max-height:92px!important;
+    overflow-y:auto!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageFeed){
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    padding-bottom:16px!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageComposer){
+    position:static!important;
+    inset:auto!important;
+    flex:0 0 auto!important;
+    width:100%!important;
+    max-width:100%!important;
+    margin-top:10px!important;
+    z-index:auto!important;
+    box-sizing:border-box!important;
+  }
+}
+
+@media(max-width:360px){
+  .mobileFixes :global([data-lab-view="chat"] #discussion){
+    left:.6rem!important;
+    right:.6rem!important;
+  }
+}

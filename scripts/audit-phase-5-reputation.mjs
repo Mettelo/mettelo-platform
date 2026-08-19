@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 const checks=[
   ['Proof visibility migration','supabase/migrations/20260816100000_phase5_proof_credentials_reputation.sql',['public','mettelo_only','private','consent_status']],
+  ['Proof contribution grants','supabase/migrations/20260819232500_member_contribution_grants.sql',['grant select on table public.contributions to anon, authenticated','grant insert, update on table public.contributions to authenticated']],
   ['Proof verified query','app/member/proof/page.tsx',["from('contributions')","eq('user_id',user.id)","eq('verification_status','verified')","in('verification_status',['pending','needs_changes'])",'MemberProofPortfolio','MY WORK · VERIFIED EVIDENCE']],
   ['Proof member portfolio','components/MemberProofPortfolio.tsx',['ProofVisibilityControl','✓ Verified','◷ Pending verification','Evidence you can stand behind','Evidence still in review','Visibility is separate from verification','Spotlight stays separate','Review &amp; resubmit','No Proof matches these filters']],
   ['Public Proof gate','app/proof/[id]/page.tsx',[".eq('visibility','public')",'verified_at','VERIFIED BY METTELO']],
@@ -45,4 +46,4 @@ for(const required of ["verification_status:'pending'",'membership?.project_run_
 }
 
 if(failed)process.exit(1);
-console.log(`Phase 5 reputation audit passed (${checks.length} surfaces plus Proof truth/privacy guards).`);
+console.log(`Phase 5 reputation audit passed (${checks.length} surfaces plus Proof truth/privacy/grant guards).`);

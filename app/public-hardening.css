@@ -51,7 +51,10 @@ footer :where(a,button,input):focus-visible,
   .showcasePage .proofRow{grid-template-columns:1fr;gap:10px}
   .showcasePage .proofEvidence{justify-self:start}
 
-  /* About's decorative ecosystem label must reflow at 320px/text zoom instead of defining page width. */
+  /* About: keep the thesis panel and ecosystem connector inside the phone viewport. */
+  .aboutHeroNote{min-width:0;max-width:100%}
+  .aboutHeroNote .listRow{min-width:0;max-width:100%;gap:10px;flex-wrap:wrap}
+  .aboutHeroNote :where(h3,p,strong,span){min-width:0;max-width:100%;overflow-wrap:anywhere}
   .dark .principleGrid::after{
     right:0;
     width:auto;
@@ -60,18 +63,19 @@ footer :where(a,button,input):focus-visible,
     overflow-wrap:anywhere;
     line-height:1.25;
   }
+  .dark .principleGrid>.principle,
+  .dark .principleGrid>.principle:nth-child(5),
+  .dark .principleGrid>.principle:nth-child(6),
+  .dark .principleGrid>.principle:nth-child(7){width:calc(100% - 38px);max-width:calc(100% - 38px)}
 
-  /* Home community proof is content, not a one-line badge: allow WCAG 1.4.10 reflow at 200% text. */
-  .homePage .heroCommunityProof{min-width:0;max-width:100%}
-  .homePage .heroCommunityProof p{
-    min-width:0;
-    max-width:100%!important;
-    flex-wrap:wrap!important;
-    white-space:normal!important;
-    overflow-wrap:anywhere;
-  }
-  .homePage .heroFeatureFoot{min-width:0;max-width:100%;flex-wrap:wrap}
-  .homePage .heroFeatureFoot strong{white-space:normal;overflow-wrap:anywhere}
+  /* Home: content must continue to reflow at 200% text, including long proof labels. */
+  .heroScene,.heroFeatureCard,.heroFeatureFoot,.heroCommunityProof,.homeActionIntro,.homeActionIntro>div{min-width:0;max-width:100%}
+  .heroFeatureCard :where(h3,p,strong,span),
+  .heroCommunityProof :where(p,strong,span),
+  .homeActionIntro :where(h2,p,strong,span){min-width:0;max-width:100%;white-space:normal!important;overflow-wrap:anywhere}
+  .heroCommunityProof p{flex-wrap:wrap!important}
+  .heroFeatureFoot{flex-wrap:wrap!important}
+  .heroFeatureFoot strong{white-space:normal!important;overflow-wrap:anywhere}
 
   /* Project details previously retained the desktop 1fr + 320px grid below 481px. */
   body .projectDetailGridV2{grid-template-columns:minmax(0,1fr)!important}

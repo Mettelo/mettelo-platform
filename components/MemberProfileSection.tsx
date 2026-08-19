@@ -5,19 +5,25 @@ import ProfileEditor,{MemberProfile} from '@/components/ProfileEditor';
 import {calculateProfileReadiness,PROFILE_APPLICATION_READY,PROFILE_INTEREST_READY} from '@/lib/profile-readiness';
 
 type TaxonomyItem={slug:string;name:string};
+type ProfileWithReadiness=MemberProfile&{profile_readiness?:number|null};
 
-export default function MemberProfileSection({userId,profile,domains,tools,domainPreferences,toolPreferences}:{userId:string;profile:MemberProfile;domains:TaxonomyItem[];tools:TaxonomyItem[];domainPreferences:string[];toolPreferences:string[]}){
-  const [savedProfile,setSavedProfile]=useState<MemberProfile>(profile);const [savedDomains,setSavedDomains]=useState(domainPreferences);const [savedTools,setSavedTools]=useState(toolPreferences);
+export default function MemberProfileSection({userId,profile,domains,tools,domainPreferences,toolPreferences}:{userId:string;profile:ProfileWithReadiness;domains:TaxonomyItem[];tools:TaxonomyItem[];domainPreferences:string[];toolPreferences:string[]}){
+  const [savedProfile,setSavedProfile]=useState<ProfileWithReadiness>(profile);const [savedDomains,setSavedDomains]=useState(domainPreferences);const [savedTools,setSavedTools]=useState(toolPreferences);
   const isComplete=Boolean(savedProfile.full_name?.trim()&&(savedProfile.headline?.trim()||savedProfile.professional_area?.trim()||savedProfile.current_job_title?.trim()));
   const [editing,setEditing]=useState(!isComplete);
   const domainNames=savedDomains.map(slug=>domains.find(item=>item.slug===slug)?.name||slug);const toolNames=savedTools.map(slug=>tools.find(item=>item.slug===slug)?.name||slug);
   const availabilityLabels:{[key:string]:string}={available_now:'Available now',available_soon:'Available soon',limited:'Limited availability',not_available:'Not currently available'};
   const experienceLabels:{[key:string]:string}={entry:'Entry / early career',mid:'Mid-level',senior:'Senior',lead:'Lead / manager',executive:'Executive / head of function'};
-  const readiness=useMemo(()=>calculateProfileReadiness({profile:savedProfile,domainCount:savedDomains.length,toolCount:savedTools.length}),[savedProfile,savedDomains,savedTools]);
+  const readiness=useMemo(()=>{
+    const explained=calculateProfileReadiness({profile:savedProfile,domainCount:savedDomains.length,toolCount:savedTools.length});
+    const stored=Number(savedProfile.profile_readiness);
+    const score=Number.isFinite(stored)?Math.max(0,Math.min(100,stored)):explained.score;
+    return{...explained,score,interestReady:score>=PROFILE_INTEREST_READY,applicationReady:score>=PROFILE_APPLICATION_READY};
+  },[savedProfile,savedDomains,savedTools]);
   const recommendations=readiness.missing.slice(0,3);
   const statusLabel=readiness.applicationReady?'APPLICATION READY':readiness.interestReady?'INTEREST READY':'BUILD PROFILE';
 
-  if(editing)return <div><div className="panelHead" style={{marginBottom:14}}><div><span className="cardNumber">EDIT PROFILE</span><h3 style={{margin:'7px 0 0'}}>Keep your Mettelo identity useful for matching and collaboration.</h3></div>{isComplete&&<button className="button ghost" type="button" onClick={()=>setEditing(false)}>Cancel edit</button>}</div><ProfileEditor profile={savedProfile} domains={domains} tools={tools} domainPreferences={savedDomains} toolPreferences={savedTools} onSaved={(next,nextDomains,nextTools)=>{setSavedProfile(next);setSavedDomains(nextDomains);setSavedTools(nextTools);setEditing(false);}}/></div>;
+  if(editing)return <div><div className="panelHead" style={{marginBottom:14}}><div><span className="cardNumber">EDIT PROFILE</span><h3 style={{margin:'7px 0 0'}}>Keep your Mettelo identity useful for matching and collaboration.</h3></div>{isComplete&&<button className="button ghost" type="button" onClick={()=>setEditing(false)}>Cancel edit</button>}</div><ProfileEditor profile={savedProfile} domains={domains} tools={tools} domainPreferences={savedDomains} toolPreferences={savedTools} onSaved={(next,nextDomains,nextTools)=>{setSavedProfile(next as ProfileWithReadiness);setSavedDomains(nextDomains);setSavedTools(nextTools);setEditing(false);}}/></div>;
 
   return <>
     <section className="panel profileHealth" aria-labelledby="profile-health-heading">

@@ -19,7 +19,14 @@ async function seedPublishedSpotlight(){
   const {error:evidenceError}=await db.from('spotlight_evidence').insert({spotlight_id:spotlightId,contribution_id:contributionId,project_id:projectId,source_label:'E2E verified Spotlight evidence',is_primary:true});if(evidenceError)throw evidenceError;
 }
 async function signIn(page:Page,next='/member/spotlight'){await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(required('E2E_MEMBER_EMAIL'));await main.locator('input[type="password"]').fill(required('E2E_MEMBER_PASSWORD'));await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000});}
-async function noOverflow(page:Page){const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth+1);}
+async function noOverflow(page:Page){
+  const report=await page.evaluate(()=>{
+    const root=document.documentElement;const clientWidth=root.clientWidth;
+    const offenders=[...document.querySelectorAll<HTMLElement>('body *')].map(element=>{const rect=element.getBoundingClientRect();const style=getComputedStyle(element);return {tag:element.tagName.toLowerCase(),id:element.id,className:typeof element.className==='string'?element.className:'',text:(element.textContent||'').replace(/\s+/g,' ').trim().slice(0,90),left:Math.round(rect.left*10)/10,right:Math.round(rect.right*10)/10,width:Math.round(rect.width*10)/10,minWidth:style.minWidth,maxWidth:style.maxWidth,cssWidth:style.width,whiteSpace:style.whiteSpace,overflowWrap:style.overflowWrap,display:style.display,position:style.position};}).filter(item=>item.width>0&&(item.right>clientWidth+1||item.left<-1)).sort((a,b)=>Math.max(b.right-clientWidth,-b.left)-Math.max(a.right-clientWidth,-a.left)).slice(0,12);
+    return {scrollWidth:root.scrollWidth,clientWidth,offenders};
+  });
+  expect(report.scrollWidth,`Horizontal overflow offenders:\n${JSON.stringify(report.offenders,null,2)}`).toBeLessThanOrEqual(report.clientWidth+1);
+}
 async function capture(page:Page,name:string){fs.mkdirSync('artifacts/design-director',{recursive:true});await page.screenshot({path:`artifacts/design-director/${name}.png`,fullPage:true});}
 
 test.describe('Spotlight v2 recognition, sharing and withdrawal',()=>{

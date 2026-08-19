@@ -13,7 +13,7 @@ test('My Mettelo Home v3 preserves hierarchy, navigation and responsive containm
   for(const viewport of viewports){
     await page.setViewportSize({width:viewport.width,height:viewport.height});await page.goto('/member',{waitUntil:'networkidle'});
     await expect(page.getByRole('heading',{name:/Good to see you,/})).toBeVisible();
-    await expect(page.getByText(/UP NEXT ·/).first()).toBeVisible();
+    await expect(page.getByText(/Up next ·/i).first()).toBeVisible();
     await expect(page.getByRole('heading',{name:'Continue working'})).toBeVisible();
     await expect(page.getByRole('heading',{name:'Latest status'})).toBeVisible();
     await expect(page.getByRole('heading',{name:'Evidence that travels with you'})).toBeVisible();
@@ -21,10 +21,10 @@ test('My Mettelo Home v3 preserves hierarchy, navigation and responsive containm
     const desktopNav=page.getByRole('complementary',{name:'My Mettelo navigation'});const mobileNav=page.getByRole('navigation',{name:'My Mettelo mobile navigation'});
     if(viewport.width<=480){
       await expect(desktopNav).toBeHidden();await expect(mobileNav).toBeVisible();
-      const texts=(await mobileNav.locator(':scope > a, :scope > details').allTextContents()).map(value=>value.replace(/\s+/g,' ').trim());
-      expect(texts).toEqual(['Home','Projects','Discover','Proof','More']);
+      const persistentLabels=await mobileNav.locator(':scope > a > small, :scope > details > summary > small').allTextContents();
+      expect(persistentLabels.map(value=>value.trim())).toEqual(['Home','Projects','Discover','Proof','More']);
       for(const item of await mobileNav.locator(':scope > a, :scope > details > summary').all()){const box=await item.boundingBox();expect(box?.height||0,`${viewport.name}: persistent nav target`).toBeGreaterThanOrEqual(44)}
-      await mobileNav.getByText('More',{exact:true}).click();
+      await mobileNav.locator(':scope > details > summary').click();
       const more=page.locator('#member-more');await expect(more).toBeVisible();
       for(const name of ['Applications','Recommended','Opportunities','Saved','Events','Spotlight','Profile'])await expect(more.getByText(name,{exact:true})).toBeVisible();
       await assertNoHorizontalOverflow(page,`${viewport.name}/more`);

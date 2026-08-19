@@ -59,12 +59,15 @@ The `verify` job uses Node 22 and runs:
 3. interaction and regression-coverage audits
 4. project-interest and phase/domain contract audits
 5. the production build (including deployment-configuration and interaction prechecks)
-6. Playwright Chromium cache restore plus browser/system dependency provisioning when staging is not required
-7. `npm run test:regression` when staging is not required
+6. Playwright Chromium cache restore plus direct Chromium install/verification when staging is not required
+7. a fail-closed Chromium launch preflight on the hosted runner
+8. `npm run test:regression` when staging is not required
 
 On failure it uploads the interaction audit artifact when available.
 
-Chromium browser binaries are cached with `actions/cache@v4` under Playwright's standard Linux cache directory and keyed by runner OS plus `package-lock.json`. On a cache miss, CI runs `npx playwright install --with-deps chromium`; on a cache hit, CI still runs `npx playwright install-deps chromium` so every fresh runner receives the required operating-system libraries. The cache only removes repeat browser-binary downloads. It does **not** skip, downgrade, or make browser regression tests non-blocking.
+Chromium browser binaries are cached with `actions/cache@v4` under Playwright's standard Linux cache directory and keyed by runner OS plus `package-lock.json`. CI runs `npx playwright install chromium` after cache restore; on an exact cache hit this verifies the browser artifact, and on a miss it downloads the required Playwright Chromium revision. GitHub's Ubuntu hosted image already supplies the core Chromium runtime libraries used by this suite, so CI does not invoke Playwright's apt-based `install-deps` path. A dedicated Chromium launch preflight fails closed if the hosted image ever stops supplying a viable runtime. The cache and provisioning optimization do **not** skip, downgrade, or make browser regression tests non-blocking.
+
+This avoids coupling release completion to transient Ubuntu package-mirror throughput for optional font/X11 packages. The blocking browser suites remain the authoritative rendering, responsive, authenticated, and persistence evidence; if Chromium cannot launch or render the application on the hosted image, the release fails.
 
 #### Staging submission journeys
 
@@ -73,7 +76,7 @@ The `staging-e2e` job runs only when `Change scope` says authenticated backend E
 The current zero-cost implementation uses an **ephemeral local Supabase stack inside GitHub Actions** rather than a paid hosted staging project/branch. The job:
 
 1. installs project dependencies;
-2. restores the Playwright Chromium browser cache and provisions browser/system dependencies;
+2. restores the Playwright Chromium browser cache, installs/verifies the required Chromium revision, and verifies Chromium can launch;
 3. installs the Supabase CLI;
 4. prepares the isolated migration workdir, including CI-only compatibility shims for hosted objects that pre-date canonical migration history;
 5. starts the local Supabase stack;
@@ -151,7 +154,7 @@ The project ref is currently present in workflow/script configuration. Treat it 
 
 Playwright enables full parallel execution, one retry, and four CI/two local workers for standard tests. Destructive local E2E uses one worker where deterministic fixture ordering matters.
 
-The Chromium cache is a provisioning optimization only. Its key is tied to the dependency lockfile so a Playwright/browser revision change invalidates the cache automatically. Required Chromium tests still execute on every release path where scope requires them, and a missing, corrupt, or incompatible browser cache must fail or fall back to a fresh install rather than being treated as green evidence.
+The Chromium cache is a provisioning optimization only. Its key is tied to the dependency lockfile so a Playwright/browser revision change invalidates the cache automatically. Required Chromium tests still execute on every release path where scope requires them, and a missing, corrupt, incompatible, or non-launchable browser must fail rather than being treated as green evidence.
 
 The Phase 1 browser suite remains available as a separate command and is not currently part of `npm run test:regression` or a separate `main` CI step.
 

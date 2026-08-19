@@ -115,12 +115,12 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - name: Install Chromium and system dependencies on cache miss
-        if: needs.scope.outputs.requires_staging != 'true' && steps.playwright-cache-fast.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-      - name: Install Chromium system dependencies on cache hit
-        if: needs.scope.outputs.requires_staging != 'true' && steps.playwright-cache-fast.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+      - name: Install or verify Playwright Chromium
+        if: needs.scope.outputs.requires_staging != 'true'
+        run: npx playwright install chromium
+      - name: Verify Chromium launches on the hosted runner
+        if: needs.scope.outputs.requires_staging != 'true'
+        run: node -e "const { chromium } = require('@playwright/test'); (async () => { const browser = await chromium.launch(); await browser.close(); })().catch(error => { console.error(error); process.exit(1); });"
       - name: Run browser regression suite when staging is not required
         if: needs.scope.outputs.requires_staging != 'true'
         run: npm run test:regression
@@ -163,12 +163,10 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - name: Install Chromium and system dependencies on cache miss
-        if: steps.playwright-cache-staging.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-      - name: Install Chromium system dependencies on cache hit
-        if: steps.playwright-cache-staging.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+      - name: Install or verify Playwright Chromium
+        run: npx playwright install chromium
+      - name: Verify Chromium launches on the hosted runner
+        run: node -e "const { chromium } = require('@playwright/test'); (async () => { const browser = await chromium.launch(); await browser.close(); })().catch(error => { console.error(error); process.exit(1); });"
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:

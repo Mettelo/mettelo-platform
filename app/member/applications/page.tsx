@@ -4,7 +4,7 @@ import {serviceDb} from '@/lib/project-flow';
 import MemberApplicationTracker from '@/components/MemberApplicationTracker';
 
 type AppEvent={id:string;application_id:string;from_status:string|null;to_status:string;created_at:string};
-type Application={id:string;status:string;submitted_at:string;updated_at:string;project_id:string;project_run_id:string|null;application_kind?:string;requested_role?:string|null;projects:{title:string;status:string;project_type?:string;team_size_threshold?:number|null;forming_deadline?:string|null;kickoff_at?:string|null}|null;project_roles:{title:string}|null;formation?:{filled:number;threshold:number;status:string;is_full:boolean;kickoff_at:string|null;forming_deadline:string|null;run_number:number|null}|null;events?:AppEvent[]};
+type Application={id:string;status:string;submitted_at:string;updated_at:string;project_id:string;project_run_id:string|null;requested_role?:string|null;projects:{title:string;status:string;project_type?:string;team_size_threshold?:number|null;forming_deadline?:string|null;kickoff_at?:string|null}|null;project_roles:{title:string}|null;formation?:{filled:number;threshold:number;status:string;is_full:boolean;kickoff_at:string|null;forming_deadline:string|null;run_number:number|null}|null;events?:AppEvent[]};
 
 export const dynamic='force-dynamic';
 
@@ -17,7 +17,7 @@ export default async function ApplicationsPage(){
   // domain at source. Recruitment applications are owned by /careers/applications.
   const {data:projectData,error}=await auth
     .from('project_applications')
-    .select('id,status,submitted_at,updated_at,project_id,project_run_id,application_kind,requested_role,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at),project_roles(title)')
+    .select('id,status,submitted_at,updated_at,project_id,project_run_id,requested_role,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at),project_roles(title)')
     .eq('user_id',user.id)
     .order('submitted_at',{ascending:false});
 

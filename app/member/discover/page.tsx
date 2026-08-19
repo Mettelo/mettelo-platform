@@ -46,7 +46,7 @@ export default async function MemberDiscoverPage(){
     const state=resolveMemberProjectState({project,application,membership,run,applicationReady,hasAvailableRole:availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
     const relationship=Boolean(application&&!['declined','withdrawn'].includes(application.status)||membership);
     if(!relationship&&!projectAcceptsApplications(project))return [];
-    const displayRoles=state==='open_eligible'?availableRoles:roles;
+    const displayRoles=projectAcceptsApplications(project)&&availabilityKnown?availableRoles:roles;
     const skills=[...new Set(displayRoles.flatMap(role=>role.skills||[]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
     return [{id:project.id,title:project.title,summary:project.summary,state,stateLabel:memberProjectStateLabel(state),action:memberProjectCatalogueAction(state,project.id),saved:saved.has(project.id),workingModel:workingModel(project),durationWeeks:project.duration_weeks,commitment:project.weekly_commitment,deadline:project.application_deadline,createdAt:project.created_at,roles:displayRoles.map(role=>role.title),skills}];
   });

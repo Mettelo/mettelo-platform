@@ -125,3 +125,30 @@
     box-sizing:border-box;
   }
 }
+
+/* Keep the closed phone navigation drawer inside the viewport. Off-canvas
+   translateX(100%) still expands Chromium's horizontal overflow at 200% text.
+   A right-edge clip reveal preserves the same spatial opening direction without
+   adding hidden layout width; focus/escape behavior remains owned by the menu JS. */
+@media(max-width:767px){
+  body.publicMobileNavV2 .mobileMenuPanel{
+    transform:none!important;
+    clip-path:inset(0 0 0 100%)!important;
+    opacity:0!important;
+    visibility:hidden!important;
+    pointer-events:none!important;
+    transition:clip-path 220ms ease,opacity 180ms ease,visibility 0s linear 220ms!important;
+  }
+  body.mobileNavOpen.publicMobileNavV2 .mobileMenuPanel{
+    transform:none!important;
+    clip-path:inset(0 0 0 0)!important;
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+    transition:clip-path 220ms ease,opacity 180ms ease!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  body.publicMobileNavV2 .mobileMenuPanel{transition:none!important}
+}

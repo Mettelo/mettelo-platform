@@ -4,6 +4,7 @@ import {redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {mobileMoreNav} from '@/lib/member-navigation';
 import styles from './member-home-v3.module.css';
+import exploreStyles from './member-home-explore.module.css';
 
 export const metadata:Metadata={title:'My Mettelo Home',description:'Your personal Mettelo command centre for work, applications, Proof and what comes next.'};
 export const dynamic='force-dynamic';
@@ -142,7 +143,7 @@ export default async function MemberHome(){
 
       <section className={styles.mobileJourney} aria-labelledby="mobile-more-heading"><div className={styles.eyebrow}>MORE OF MY METTELO</div><h2 id="mobile-more-heading">Everything remains reachable</h2><div>{mobileMoreNav.map(item=><Link href={item.href} key={item.href}><strong>{item.label}</strong><small>{item.description}</small></Link>)}</div></section>
 
-      <section className={styles.explore} aria-labelledby="explore-grow-heading"><div><div className={styles.eyebrow}>EXPLORE & GROW</div><h2 id="explore-grow-heading">Your next opportunity should fit where you’re going.</h2><p>Browse projects, use profile-matched recommendations, explore jobs and internships, or return to something you saved.</p></div><div className={styles.actions}><Link className={`${styles.button} ${styles.buttonDark}`} href="/projects">Discover projects</Link><Link className={styles.button} href="/member/recommended">Recommended</Link><Link className={styles.button} href="/opportunities">Opportunities</Link><Link className={styles.button} href="/member/saved-opportunities">Saved</Link></div></section>
+      <section className={styles.explore} aria-labelledby="explore-grow-heading"><div><div className={styles.eyebrow}>EXPLORE & GROW</div><h2 id="explore-grow-heading">Your next opportunity should fit where you’re going.</h2><p>Browse projects, use profile-matched recommendations, explore jobs and internships, or return to something you saved.</p></div><div className={exploreStyles.actions}><Link className={exploreStyles.primary} href="/projects">Explore projects <span aria-hidden="true">→</span></Link><Link className={exploreStyles.secondary} href="/member/recommended">Recommended</Link><Link className={exploreStyles.secondary} href="/opportunities">Opportunities</Link><Link className={`${exploreStyles.secondary} ${exploreStyles.secondaryLast}`} href="/member/saved-opportunities">Saved</Link></div></section>
     </div>
   </div></section>;
 }

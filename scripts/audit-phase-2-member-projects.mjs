@@ -31,7 +31,8 @@ const checks=[
   ['components/MetteloLabPanel.tsx',['resolveProjectTeamOverview','METTELO LAB','YOUR TEAM','teamOverview','MetteloLabPanel.module.css']],
   ['components/MetteloLabPanel.module.css',['grid-template-columns:repeat(2,minmax(0,1fr))','min-height:44px','@media(max-width:480px)']],
   ['components/WorkspaceRouteTabs.tsx',["key:'team',label:'Mettelo Lab'","['mettelo-lab','Lab']",'Collaborate with your cohort and see what to do next.']],
-  ['app/member/projects/[id]/layout.tsx',['METTELO LAB','primaryNavigation','projectTools','mobileNav','Home','Chat','Team']],
+  ['app/member/projects/[id]/layout.tsx',['METTELO LAB','MetteloLabNavigation','MetteloLabViewSurface','mobileNav']],
+  ['components/MetteloLabNavigation.tsx',["label:'Home'","label:'Chat'","label:'Team'","hrefFor('more')"]],
   ['app/member/projects/[id]/page.tsx',['MetteloLabPanel','reviewSlot','href="#mettelo-lab">Mettelo Lab','recentDiscussions']],
   ['components/AdminCompletionRequirements.tsx',['Verified presentation required','Published GitHub repository required','Final Proof / deliverable URL required']],
   ['supabase/migrations/20260818190000_project_completion_permissions.sql',['project_submission_permissions','project_final_proof_submissions','github_repo_required','final_proof_required']],
@@ -48,7 +49,6 @@ let failed=false;
 for(const [file,needles] of checks){if(!fs.existsSync(file)){console.error(`Missing ${file}`);failed=true;continue;}const text=fs.readFileSync(file,'utf8');for(const needle of needles){if(!text.includes(needle)){console.error(`${file}: missing ${needle}`);failed=true;}}}
 
 const layout=fs.readFileSync('app/member/projects/[id]/layout.tsx','utf8');
-const page=fs.readFileSync('app/member/projects/[id]/page.tsx','utf8');
 const routeTabs=fs.readFileSync('components/WorkspaceRouteTabs.tsx','utf8');
 if(layout.includes('Project workspace')||layout.includes('>Conversation<')||layout.includes('>Work<')){console.error('Mettelo Lab must use the approved member-facing identity and terminology.');failed=true;}
 const teamResolver=fs.readFileSync('lib/project-team-overview.ts','utf8');

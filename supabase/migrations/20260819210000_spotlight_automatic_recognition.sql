@@ -83,6 +83,7 @@ using (
   )
 );
 
+grant select on public.spotlights to anon, authenticated;
 grant select on public.spotlight_evidence,public.spotlight_events to authenticated;
 -- These tables are written only by trusted server-side workflows. New tables do not
 -- inherit the older hosted service_role grants, so grant them explicitly for local CI

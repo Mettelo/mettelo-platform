@@ -10,6 +10,8 @@ const journeys=[
   {name:'Admin intake queue',source:'app/admin/intake/page.tsx',endpoint:'/api/admin/intake',route:'app/api/admin/intake/route.ts',contract:'tests/form-route-contracts.spec.ts',e2e:'tests/staging-submission-journeys.spec.ts'},
   {name:'Admin project queue',source:'app/admin/project-operations/applications/page.tsx',endpoint:'/api/admin/applications',route:'app/api/admin/applications/route.ts',contract:'tests/form-route-contracts.spec.ts',e2e:'tests/staging-submission-journeys.spec.ts'},
   {name:'Admin career queue',source:'app/admin/careers/page.tsx',endpoint:'/api/admin/careers/applications',route:'app/api/admin/careers/applications/route.ts',contract:'tests/form-route-contracts.spec.ts',e2e:'tests/staging-submission-journeys.spec.ts'},
+  {name:'Admin career interview booking',source:'components/AdminCareerInterviewComposer.tsx',endpoint:'/api/admin/careers/applications',route:'app/api/admin/careers/applications/route.ts',contract:'scripts/audit-phase-3-careers.mjs',e2e:'tests/admin-experience-v1.spec.ts'},
+  {name:'Admin platform settings',source:'components/AdminPlatformSettings.tsx',endpoint:'/api/admin/settings',route:'app/api/admin/settings/route.ts',contract:'scripts/audit-admin-console.mjs',e2e:'tests/admin-experience-v1.spec.ts'},
   {name:'Spotlight publication consent',source:'components/SpotlightConsentPanel.tsx',endpoint:'/api/spotlight-consent',route:'app/api/spotlight-consent/route.ts',contract:'scripts/audit-spotlight-v2.mjs',e2e:'tests/spotlight-v2-visual.spec.ts'},
   {name:'Mobile navigation',source:'components/MobileMenuEnhancer.tsx',contract:'tests/critical-ui.spec.ts'}
 ];

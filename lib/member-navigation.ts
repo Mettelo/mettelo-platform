@@ -13,7 +13,7 @@ export const memberNavGroups:MemberNavGroup[]=[
     {label:'Discover',href:'/member/discover',description:'Browse projects'},
     {label:'Recommended',href:'/member/recommended',description:'Matched to your profile'},
     {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},
-    {label:'Saved',href:'/member/saved-opportunities',description:'Revisit later'},
+    {label:'Saved',href:'/member/saved',description:'Projects and opportunities'},
     {label:'Events',href:'/member/events',description:'Mettelo-wide events'}
   ]},
   {label:'Reputation',items:[
@@ -33,7 +33,7 @@ export const mobileMoreNav:MemberNavItem[]=[
   {label:'Applications',href:'/member/applications',description:'Status and formation'},
   {label:'Recommended',href:'/member/recommended',description:'Profile-matched projects'},
   {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},
-  {label:'Saved',href:'/member/saved-opportunities',description:'Revisit later'},
+  {label:'Saved',href:'/member/saved',description:'Projects and opportunities'},
   {label:'Events',href:'/member/events',description:'Mettelo-wide events'},
   {label:'Spotlight',href:'/member/spotlight',description:'Recognition and consent'},
   {label:'Profile',href:'/member/profile',description:'Your professional identity'}

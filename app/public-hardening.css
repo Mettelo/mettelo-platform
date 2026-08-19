@@ -62,37 +62,50 @@ footer :where(a,button,input):focus-visible,
   .searchFilters{flex-wrap:wrap!important;overflow-x:visible!important;max-width:100%!important}
   .searchFilters .filter{max-width:100%;white-space:normal}
 
-  /* About: contain decorative geometry and intrinsic text widths at 200% text. */
-  .aboutHeroNote,
-  .aboutHeroNote>*,
-  .softSection .sectionHead,
-  .softSection .sectionHead>*,
-  .aboutSplit,
-  .aboutSplit>*{width:100%;min-width:0!important;max-width:100%!important;box-sizing:border-box}
-  .aboutHeroNote{overflow-x:clip}
-  .aboutHeroNote *{min-width:0;max-width:100%;box-sizing:border-box}
-  .aboutHeroNote .listRow{width:100%;gap:10px;flex-wrap:wrap}
-  .aboutHeroNote :where(h2,h3,p,strong,span),
-  .softSection .sectionHead :where(h2,h3,p,strong,span),
-  .aboutSplit :where(h2,h3,p,strong,span),
-  #gap-title{width:100%!important;min-width:0!important;max-width:100%!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
-  .section.dark{overflow-x:clip}
-  .dark .principleGrid{width:100%;min-width:0;max-width:100%;overflow-x:clip;box-sizing:border-box}
-  .dark .principleGrid::after{
-    left:20px;
-    right:auto;
-    width:calc(100% - 40px);
-    max-width:calc(100% - 40px);
-    box-sizing:border-box;
-    white-space:normal;
-    overflow-wrap:anywhere;
-    line-height:1.25;
-  }
+  /* About: readable content wins over desktop decorative geometry at phone widths / 200% text. */
+  #main-content .aboutHeroNote,
+  #main-content .aboutHeroNote>*,
+  #main-content .aboutSplit,
+  #main-content .aboutSplit>*,
+  #main-content .statementGrid,
+  #main-content .statementGrid>*,
+  #main-content .statementCard,
+  #main-content .ctaBand,
+  #main-content .ctaBand>*,
+  #main-content .sectionHead,
+  #main-content .sectionHead>*{min-width:0!important;max-width:100%!important;box-sizing:border-box}
+  #main-content .aboutHeroNote{width:100%;overflow-x:hidden!important}
+  #main-content .aboutHeroNote *{min-width:0;max-width:100%;box-sizing:border-box}
+  #main-content .aboutHeroNote .listRow{width:100%;gap:10px;flex-wrap:wrap}
+  #main-content .aboutHeroNote :where(h2,h3,p,strong,span),
+  #main-content .aboutSplit :where(h2,h3,p,strong,span),
+  #main-content .statementCard :where(h2,h3,p,strong,span),
+  #main-content .ctaBand :where(h2,h3,p,strong,span,a),
+  #main-content .sectionHead :where(h2,h3,p,strong,span),
+  #gap-title,#ecosystem-title,#mission-title,#about-cta-title{min-width:0!important;max-width:100%!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
+  #main-content .statementGrid{grid-template-columns:minmax(0,1fr)!important;width:100%!important}
+  #main-content .statementCard{width:100%!important;overflow:hidden!important}
+  #main-content .section.compact,
+  #main-content .section.compact .shell,
+  #main-content .section.compact .ctaBand{width:100%;max-width:100%;overflow-x:hidden!important}
+  #main-content .ctaBand{grid-template-columns:minmax(0,1fr)!important}
+  #main-content .ctaBand .actions{min-width:0!important;max-width:100%!important;flex-wrap:wrap!important}
+  #main-content .ctaBand .button{max-width:100%;white-space:normal!important;text-align:center}
+
+  .section.dark{overflow-x:hidden}
+  .dark .principleGrid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%;min-width:0;max-width:100%;overflow-x:hidden!important;box-sizing:border-box;padding-top:0!important}
+  /* The connector is decorative; remove it rather than letting it force horizontal reflow. */
+  .dark .principleGrid::before,.dark .principleGrid::after,
+  .dark .principleGrid>.principle::before,.dark .principleGrid>.principle::after{display:none!important;content:none!important}
   .dark .principleGrid>.principle,
   .dark .principleGrid>.principle:nth-child(5),
   .dark .principleGrid>.principle:nth-child(6),
-  .dark .principleGrid>.principle:nth-child(7){width:auto!important;max-width:100%!important;min-width:0;margin-right:0;box-sizing:border-box}
-  .dark .principleGrid .srOnly{position:absolute!important;width:1px!important;max-width:1px!important;overflow:hidden!important;white-space:normal!important}
+  .dark .principleGrid>.principle:nth-child(7){grid-column:1!important;width:100%!important;max-width:100%!important;min-width:0!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box;overflow:hidden!important}
+  .dark .principleGrid>.principle :where(strong,span){min-width:0;max-width:100%;white-space:normal!important;overflow-wrap:anywhere!important}
+
+  /* Non-dark principle grids use the same safe single-column contract. */
+  #main-content .principleGrid:not(.dark .principleGrid){grid-template-columns:minmax(0,1fr)!important;min-width:0!important;max-width:100%!important}
+  #main-content .principleGrid:not(.dark .principleGrid)>.principle{min-width:0!important;max-width:100%!important;overflow:hidden!important}
 
   /* Home: preserve WCAG reflow at 200% text without allowing fixed desktop minima to leak through. */
   .homeActionSection,.homeLiveSection{max-width:100%;overflow-x:clip}

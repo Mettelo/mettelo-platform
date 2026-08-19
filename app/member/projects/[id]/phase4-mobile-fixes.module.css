@@ -1,0 +1,31 @@
+.mobileFixes{}
+
+@media(max-width:480px){
+  /* Chat is one mobile workspace: header + internally scrolling feed + composer. */
+  .mobileFixes :global([data-lab-view="chat"] #discussion){
+    display:flex!important;
+    flex-direction:column!important;
+    height:calc(100dvh - 170px - env(safe-area-inset-bottom))!important;
+    max-height:calc(100dvh - 170px - env(safe-area-inset-bottom))!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    box-sizing:border-box!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageFeed){
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    padding-bottom:16px!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageComposer){
+    position:static!important;
+    inset:auto!important;
+    flex:0 0 auto!important;
+    width:100%!important;
+    max-width:100%!important;
+    margin-top:10px!important;
+    z-index:auto!important;
+    box-sizing:border-box!important;
+  }
+}

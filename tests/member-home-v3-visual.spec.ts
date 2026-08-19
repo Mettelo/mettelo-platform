@@ -30,8 +30,16 @@ test('My Mettelo Home v3 preserves hierarchy, navigation and responsive containm
       await assertNoHorizontalOverflow(page,`${viewport.name}/more`);
     }else{
       await expect(desktopNav).toBeVisible();await expect(mobileNav).toBeHidden();
-      for(const group of ['My Work','Explore','Reputation'])await expect(desktopNav.getByRole('heading',{name:group})).toBeVisible();
-      await expect(desktopNav.getByRole('link',{name:/Home/})).toHaveAttribute('aria-current','page');
+      const homeLink=desktopNav.locator('a[href="/member"]');await expect(homeLink).toHaveAttribute('aria-current','page');
+      if(viewport.width>=1025){
+        for(const group of ['My Work','Explore','Reputation'])await expect(desktopNav.getByRole('heading',{name:group})).toBeVisible();
+      }else{
+        for(const group of ['My Work','Explore','Reputation'])await expect(desktopNav.getByRole('heading',{name:group})).toBeHidden();
+        const railBox=await desktopNav.boundingBox();expect(railBox?.width||0,`${viewport.name}: compact rail width`).toBeLessThanOrEqual(100);
+        for(const href of ['/member','/member/projects','/member/applications','/member/proof','/projects','/member/recommended','/opportunities','/member/saved-opportunities','/member/events','/member/spotlight']){
+          const link=desktopNav.locator(`a[href="${href}"]`);await expect(link).toBeVisible();const box=await link.boundingBox();expect(box?.height||0,`${viewport.name}: ${href} rail target`).toBeGreaterThanOrEqual(44);
+        }
+      }
     }
     const labLink=page.getByRole('link',{name:/Open Mettelo Lab/}).first();if(await labLink.count())await expect(labLink).toHaveAttribute('href',/\/member\/projects\//);
     await page.screenshot({path:`${artifactDir}/${viewport.name}-home.png`,fullPage:true,animations:'disabled'});

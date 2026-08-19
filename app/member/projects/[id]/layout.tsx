@@ -8,6 +8,7 @@ import ProjectCompletionRequestPanel from '@/components/ProjectCompletionRequest
 import ProjectContributionStatusPanel from '@/components/ProjectContributionStatusPanel';
 import MetteloLabNavigation from '@/components/MetteloLabNavigation';
 import MetteloLabSystemPanels from '@/components/MetteloLabSystemPanels';
+import MetteloLabViewSurface from '@/components/MetteloLabViewSurface';
 import styles from './phase4-workspace.module.css';
 
 type Membership={membership_status:string;project_run_id:string|null;team_role:string;project_runs:{status:string}|null};type TeamRow={user_id:string;team_role:string;membership_status:string};type ProfileRow={id:string;full_name:string|null};type DataSourceRow={id:string;name:string;owner_user_id:string|null;version_label:string|null;external_url:string;provenance:string|null;download_policy:string;publish_policy:string};type DataVersionRow={id:string;data_source_id:string;version_label:string;external_url:string;change_summary:string|null;created_at:string};type ConversationRow={id:string;author_user_id:string;created_at:string};
@@ -46,7 +47,7 @@ export default async function ProjectWorkspaceGate({children,params}:{children:R
    <div className={styles.stage}>
     <header className={styles.mobileHeader}><div><p className={styles.kicker}>METTELO LAB</p><strong>{project.title}</strong></div><div className={styles.mobileMeta}><span>{humanise(workspaceStatus)}</span><span>{humanise(membership?.team_role||(isAdmin?'admin':'member'))}</span></div></header>
     <main id="mettelo-lab-content" className={styles.main} tabIndex={-1}>
-     <div className={styles.content}>{children}</div>
+     <Suspense fallback={<div className={styles.content}>{children}</div>}><MetteloLabViewSurface className={styles.content}>{children}</MetteloLabViewSurface></Suspense>
      <Suspense fallback={null}><MetteloLabSystemPanels dataPanel={dataPanel} proofPanel={proofPanel} completionPanel={completionPanel}/></Suspense>
      <ProjectConversationReadMarker projectRunId={runId} lastMessageId={lastMessageId}/>
     </main>

@@ -6,7 +6,9 @@ alter table public.spotlights
   add column if not exists publication_held boolean not null default false,
   add column if not exists hold_reason text,
   add column if not exists suppress_public_project boolean not null default false,
-  add column if not exists suppress_public_evidence boolean not null default false;
+  add column if not exists suppress_public_evidence boolean not null default false,
+  add column if not exists public_display_name text,
+  add column if not exists public_headline text;
 
 create unique index if not exists spotlights_month_category_unique
   on public.spotlights(award_month,category)

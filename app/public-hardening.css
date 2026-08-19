@@ -107,20 +107,39 @@ footer :where(a,button,input):focus-visible,
   #main-content .principleGrid:not(.dark .principleGrid){grid-template-columns:minmax(0,1fr)!important;min-width:0!important;max-width:100%!important}
   #main-content .principleGrid:not(.dark .principleGrid)>.principle{min-width:0!important;max-width:100%!important;overflow:hidden!important}
 
-  /* Careers: 1fr keeps an auto min-content floor; use a zero-min track so 200% text can reflow. */
+  /* Careers: flatten every phone subgrid so text zoom never restores an intrinsic width floor. */
   #main-content .careersHero,
   #main-content .careersHeroInner,
   #main-content .careersHeroCopy,
   #main-content .careersHeroPanel,
-  #main-content .careersHeroActions{min-width:0!important;max-width:100%!important;box-sizing:border-box}
-  #main-content .careersHeroInner{grid-template-columns:minmax(0,1fr)!important;width:100%!important}
+  #main-content .careersHeroActions,
+  #main-content .careersSection,
+  #main-content .careersSectionHead,
+  #main-content .careersEmpty,
+  #main-content .careersPromise,
+  #main-content .careersPromiseInner,
+  #main-content .careersSteps{min-width:0!important;max-width:100%!important;box-sizing:border-box}
+  #main-content .careersHeroInner,
+  #main-content .careersSectionHead,
+  #main-content .careersPromiseInner,
+  #main-content .careersSteps{grid-template-columns:minmax(0,1fr)!important;width:100%!important}
   #main-content .careersHeroCopy,
-  #main-content .careersHeroPanel{width:100%!important}
+  #main-content .careersHeroPanel,
+  #main-content .careersSectionHead>*,
+  #main-content .careersPromiseInner>*{width:100%!important;min-width:0!important;max-width:100%!important}
+  #main-content .careersHeroPanel{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+  #main-content .careersHeroPanel>*{grid-column:1!important;min-width:0!important;max-width:100%!important}
+  #main-content .careersHeroPanel>strong{display:block!important;width:auto!important;justify-self:start}
   #main-content .careersHeroCopy :where(h1,p,a,span),
-  #main-content .careersHeroPanel :where(strong,span,b){min-width:0;max-width:100%;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
+  #main-content .careersHeroPanel :where(strong,span,b),
+  #main-content .careersSection :where(h2,h3,p,a,span),
+  #main-content .careersPromise :where(h2,h3,p,a,span,b){min-width:0;max-width:100%;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
   #main-content .careersHeroActions{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
   #main-content .careersHeroActions .button{width:100%;max-width:100%;white-space:normal!important;text-align:center}
-  #main-content .careersHeroFacts span{min-width:0;gap:10px;flex-wrap:wrap}
+  #main-content .careersHeroFacts{grid-template-columns:minmax(0,1fr)!important;width:100%}
+  #main-content .careersHeroFacts span{display:grid!important;grid-template-columns:minmax(0,1fr)!important;min-width:0;gap:3px!important}
+  #main-content .careersSteps span{grid-template-columns:minmax(0,1fr)!important;min-width:0!important;max-width:100%!important;gap:4px!important}
+  #main-content .careersEmpty{width:100%!important;overflow:hidden!important}
 
   /* Home: preserve WCAG reflow at 200% text without allowing fixed desktop minima to leak through. */
   .homeActionSection,.homeLiveSection{max-width:100%;overflow-x:clip}

@@ -82,20 +82,26 @@ export async function buildMonthlyAwards(db:SupabaseClient,reference=new Date())
 export async function createMonthlySpotlightDrafts(db:SupabaseClient,reference=new Date()){
   const result=await buildMonthlyRankings(db,reference);
   const {data:existing,error:existingError}=await db.from('spotlights')
-    .select('id,user_id,category,status,is_excluded,consent_status')
+    .select('id,user_id,category,status,is_excluded,consent_status,publication_held')
     .eq('award_month',result.awardMonth);
   if(existingError)throw existingError;
 
-  const active=(existing||[]).filter(item=>item.status!=='archived'&&!item.is_excluded);
+  // Declined or withdrawn recognition remains the award for that member/category and
+  // must never trigger reassignment. Only an explicit Admin exclusion opens a slot.
+  const retained=(existing||[]).filter(item=>!item.is_excluded);
   const blockedUsers=new Set((existing||[]).filter(item=>item.is_excluded).map(item=>item.user_id).filter(Boolean) as string[]);
-  const used=new Set(active.map(item=>item.user_id).filter(Boolean) as string[]);
-  const activeCategories=new Set(active.map(item=>item.category as Category));
+  const used=new Set(retained.map(item=>item.user_id).filter(Boolean) as string[]);
+  const awardedCategories=new Set(retained.map(item=>item.category as Category));
   let created=0;
 
+  // Repair an interrupted automatic consent request without duplicating notifications.
+  for(const item of retained){if(item.status==='draft'&&item.consent_status==='not_requested'&&!item.publication_held)await requestSpotlightConsent(db,item.id);}
+
   for(const definition of definitions){
-    if(activeCategories.has(definition.category))continue;
+    if(awardedCategories.has(definition.category))continue;
     const winner=(result.rankings.get(definition.category)||[]).find(item=>!used.has(item.userId)&&!blockedUsers.has(item.userId));
     if(!winner)continue;
+    const isReplacement=(existing||[]).some(item=>item.category===definition.category&&item.is_excluded);
     const {data:item,error}=await db.from('spotlights').insert({
       user_id:winner.userId,
       title:winner.title,
@@ -106,7 +112,7 @@ export async function createMonthlySpotlightDrafts(db:SupabaseClient,reference=n
       score:winner.score,
       score_breakdown:winner.breakdown,
       rank_position:1,
-      selection_method:existing?.length?'override':'automatic',
+      selection_method:isReplacement?'override':'automatic',
       primary_project_id:winner.primaryProjectId,
       selected_at:new Date().toISOString(),
       consent_status:'not_requested'
@@ -121,9 +127,9 @@ export async function createMonthlySpotlightDrafts(db:SupabaseClient,reference=n
       is_primary:index===0
     }));
     if(evidenceRows.length){const {error:evidenceError}=await db.from('spotlight_evidence').insert(evidenceRows);if(evidenceError)throw evidenceError;}
-    await recordSpotlightEvent(db,item.id,existing?.length?'replacement_selected':'selected',null,{award_month:result.awardMonth,category:winner.category});
+    await recordSpotlightEvent(db,item.id,isReplacement?'replacement_selected':'selected',null,{award_month:result.awardMonth,category:winner.category});
     await requestSpotlightConsent(db,item.id);
-    used.add(winner.userId);activeCategories.add(winner.category);created++;
+    used.add(winner.userId);awardedCategories.add(winner.category);created++;
   }
 
   return {
@@ -132,8 +138,8 @@ export async function createMonthlySpotlightDrafts(db:SupabaseClient,reference=n
     to:result.to,
     eligible:result.eligible,
     created,
-    activeAwards:activeCategories.size,
-    reason:created?'Automatic evidence-backed Spotlight recognition created.':activeCategories.size?'Monthly Spotlight already reconciled.':'No eligible evidence-backed Spotlight winner is available.'
+    activeAwards:awardedCategories.size,
+    reason:created?'Automatic evidence-backed Spotlight recognition created.':awardedCategories.size?'Monthly Spotlight already reconciled.':'No eligible evidence-backed Spotlight winner is available.'
   };
 }
 

@@ -6,10 +6,13 @@ const checks=[
   ['Public Proof gate','app/proof/[id]/page.tsx',[".eq('visibility','public')",'verified_at','VERIFIED BY METTELO']],
   ['Credential actions','components/CredentialActions.tsx',['Download / print credential','Copy LinkedIn details','Share credential']],
   ['Credential inactive state','app/credentials/[credentialId]/page.tsx',['CURRENT STATUS','not currently active','CredentialActions']],
-  ['Spotlight member consent','app/member/spotlight/page.tsx',['SpotlightConsentPanel','explicit permission']],
-  ['Spotlight consent API','app/api/spotlight-consent/route.ts',['grant','decline','withdraw','consent_status']],
-  ['Admin consent gate','app/api/admin/spotlights/route.ts',['request_consent',"consent_status!=='granted'",'Publication is blocked']],
-  ['Public Spotlight gate','app/spotlight/[id]/page.tsx',[".eq('consent_status','granted')",'Published with member permission']],
+  ['Spotlight member consent','app/member/spotlight/page.tsx',['SpotlightConsentPanel','you decide whether your personal recognition becomes public']],
+  ['Spotlight consent API','app/api/spotlight-consent/route.ts',['grant','decline','withdraw','publishSpotlightIfReady']],
+  ['Spotlight automatic workflow','lib/spotlight-workflow.ts',['requestSpotlightConsent','publishSpotlightIfReady','consent-request']],
+  ['Admin exception governance','app/api/admin/spotlights/route.ts',['exclude','hold','suppress_project','replaceExcludedSpotlight']],
+  ['Public Spotlight projection','lib/public-spotlight.ts',[".eq('consent_status','granted')",".eq('publication_held',false)",".eq('visibility','public')"]],
+  ['Public Spotlight permission copy','app/spotlight/[id]/page.tsx',['Published with member permission.','Share this public Spotlight.']],
+  ['Member Spotlight social sharing','components/SpotlightConsentPanel.tsx',['Share your public Spotlight.','Share my Spotlight recognition','View public recognition']],
   ['Public profile reputation','app/people/[id]/page.tsx',[".eq('visibility','public')",".eq('consent_status','granted')",'VERIFIED BY METTELO']]
 ];
 let failed=false;

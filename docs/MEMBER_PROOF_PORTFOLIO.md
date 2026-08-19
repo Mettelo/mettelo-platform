@@ -17,6 +17,19 @@ The source of truth is the member's own `contributions` rows under the authentic
 - Evidence URLs are shown only to the owning member and only when they are valid HTTPS references. Access remains subject to the destination's permissions.
 - No service-role client is introduced for the member Proof page.
 
+## Contribution grant and RLS contract
+
+The historical `contributions` schema already defines RLS for public verified Proof, owner reads, member submission/resubmission, and Admin management. A clean reconstructed Supabase stack exposed a version-history gap: those row policies existed, but the underlying table privileges for `anon` / `authenticated` were not represented, so PostgreSQL returned `42501 permission denied for table contributions` before RLS could evaluate the intended row predicate.
+
+`20260819232500_member_contribution_grants.sql` repairs only that grant layer:
+
+- `SELECT` is granted to `anon` and `authenticated`; the existing RLS policy still limits anonymous reads to verified + public evidence and authenticated owner/Admin reads to their allowed rows.
+- `INSERT` and `UPDATE` are granted to `authenticated`; existing RLS still restricts submission and resubmission to the authenticated owner/member lifecycle and Admin rules.
+- `DELETE` is not granted.
+- No service-role access is added by this migration.
+
+This is an additive permission repair for operations already described by RLS and the canonical `/api/contributions` route; it does not broaden row visibility or lifecycle authority.
+
 ## Project context and role labels
 
 Proof may show the real source project and a member-only handoff back to the matching project/run when current membership can be resolved under authenticated RLS.
@@ -44,6 +57,8 @@ Requirements include WCAG 2.2 AA text and component contrast, visible keyboard f
 
 `tests/member-proof-v1-visual.spec.ts` is part of both `test:e2e:smoke` and `test:e2e:staging`. The isolated E2E fixture seeds verified, pending, changes-requested, and rejected contribution records so the blocking authenticated Chromium lane proves the truth/privacy hierarchy on a reconstructable local schema.
 
-The Phase 5 reputation audit additionally checks the contribution-only verified source, pending lifecycle separation, review-note privacy, absence of fabricated verified-skill UI, and visibility remaining subordinate to verification.
+The Phase 5 reputation audit additionally checks the contribution-only verified source, pending lifecycle separation, review-note privacy, absence of fabricated verified-skill UI, visibility remaining subordinate to verification, and the canonical contribution grant migration.
 
-No schema migration is introduced by this portfolio redesign. Rollback is an application/test/docs revert of the focused Proof changes.
+## Rollback
+
+The UI/test/docs work can be reverted normally. The grant migration is additive and has no data backfill. If it must be compensated, use a reviewed forward migration that revokes only the specific `contributions` privileges after confirming no member/public Proof route depends on them; do not alter or drop the existing RLS policies from memory.

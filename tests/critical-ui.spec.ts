@@ -29,12 +29,12 @@ test.describe('critical public journeys',()=>{
     await form.locator('[name="name"]').fill('Regression Contact');
     await form.locator('[name="email"]').fill('contact@example.test');
     await form.locator('[name="topic"]').selectOption({label:'Technical issue'});
-    await form.locator('[name="subject"]').fill('Regression form contract');
-    await form.locator('[name="message"]').fill('This verifies that the contact form still sends every required value.');
+    await form.locator('[name="message"]').fill('This verifies that the contact form still sends every required routing value without the removed duplicate subject field.');
     await form.locator('[name="consent"]').check();
     await form.getByRole('button',{name:'Send message →'}).click();
     await page.waitForURL(/\/submitted\?type=contact/);
-    expect(requestBody).toMatchObject({formType:'contact',data:{name:'Regression Contact',email:'contact@example.test',consent:'yes'}});
+    expect(requestBody).toMatchObject({formType:'contact',data:{name:'Regression Contact',email:'contact@example.test',topic:'technical_issue',consent:'yes'}});
+    expect((requestBody as {data?:Record<string,unknown>}|null)?.data).not.toHaveProperty('subject');
   });
 
   test('partnership form sends the expected API contract and reaches confirmation',async({page})=>{

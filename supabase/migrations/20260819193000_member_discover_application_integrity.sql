@@ -1,6 +1,19 @@
 -- My Mettelo Discover + Member Project Detail application integrity.
 -- A member may have only one active full application for a project, regardless of role.
 -- Saved projects are member-specific bookmarks and never create an application.
+--
+-- The hosted project_applications table already carries application_kind/requested_role,
+-- but the historical repository baseline did not version those columns. Add them safely
+-- before relying on application_kind in the active-application uniqueness invariant.
+
+alter table public.project_applications
+  add column if not exists application_kind text not null default 'application',
+  add column if not exists requested_role text;
+
+alter table public.project_applications drop constraint if exists project_applications_application_kind_check;
+alter table public.project_applications add constraint project_applications_application_kind_check
+  check (application_kind in ('interest','application')) not valid;
+alter table public.project_applications validate constraint project_applications_application_kind_check;
 
 create unique index if not exists project_applications_one_active_application_per_project_user
   on public.project_applications(project_id,user_id)

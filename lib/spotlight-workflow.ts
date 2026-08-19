@@ -28,7 +28,8 @@ async function notifyPublished(db:SupabaseClient,item:SpotlightLifecycleRow){
 export async function requestSpotlightConsent(db:SupabaseClient,spotlightId:string){
   const {data:item,error:readError}=await db.from('spotlights').select('id,user_id,title,award_month,status,consent_status,is_excluded,publication_held,selected_at').eq('id',spotlightId).maybeSingle();
   if(readError)throw readError;
-  if(!item||!item.user_id||item.status!=='draft'||item.is_excluded||item.publication_held)return {requested:false,item:null};
+  // A publication hold pauses public exposure, not the member's right to decide.
+  if(!item||!item.user_id||item.status!=='draft'||item.is_excluded)return {requested:false,item:null};
   if(item.consent_status==='granted')return {requested:false,item};
 
   if(item.consent_status==='pending'){

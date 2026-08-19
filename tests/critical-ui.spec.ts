@@ -49,14 +49,17 @@ test.describe('critical public journeys',()=>{
     await form.locator('[name="name"]').fill('Regression Partner');
     await form.locator('[name="email"]').fill('partner@example.test');
     await form.locator('[name="role"]').fill('Engineering lead');
+    await form.locator('[name="country"]').fill('United Kingdom');
     await form.locator('[name="organisationType"]').selectOption({index:1});
     await form.locator('[name="partnershipType"]').selectOption({index:1});
     await form.locator('[name="objective"]').fill('Validate the complete partnership intake journey before every release.');
     await form.locator('[name="contribution"]').fill('Provide a safe staging scenario and a clear expected business outcome.');
+    await form.locator('[name="timeframe"]').selectOption('within_1_month');
+    await form.locator('[name="scale"]').selectOption('small_pilot');
     await form.locator('[name="consent"]').check();
     await form.getByRole('button',{name:'Submit partnership enquiry →'}).click();
     await page.waitForURL(/\/submitted\?type=partnership/);
-    expect(requestBody).toMatchObject({formType:'partnership',data:{organisation:'Regression Organisation',name:'Regression Partner',consent:'yes'}});
+    expect(requestBody).toMatchObject({formType:'partnership',data:{organisation:'Regression Organisation',name:'Regression Partner',country:'United Kingdom',timeframe:'within_1_month',scale:'small_pilot',consent:'yes'}});
   });
 
   test('feedback form sends the expected API contract and reaches confirmation',async({page})=>{
@@ -68,11 +71,13 @@ test.describe('critical public journeys',()=>{
     await page.goto('/feedback');
     const form=page.getByRole('button',{name:'Send feedback →'}).locator('xpath=ancestor::form');
     await form.locator('[name="email"]').fill('feedback@example.test');
+    await form.locator('[name="kind"]').selectOption('bug');
     await form.locator('[name="area"]').selectOption({label:'Navigation / mobile'});
+    await form.locator('[name="impact"]').selectOption('blocked');
     await form.locator('[name="message"]').fill('The regression suite confirms this form remains wired after visual changes.');
     await form.getByRole('button',{name:'Send feedback →'}).click();
     await page.waitForURL(/\/submitted\?type=feedback/);
-    expect(requestBody).toMatchObject({formType:'feedback',data:{email:'feedback@example.test',area:'Navigation / mobile'}});
+    expect(requestBody).toMatchObject({formType:'feedback',data:{email:'feedback@example.test',kind:'bug',area:'navigation_mobile',impact:'blocked'}});
   });
 
   test('footer newsletter control sends its JSON contract and reports success',async({page})=>{

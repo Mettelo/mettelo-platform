@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "prebuild": "npm run check:deployment-config",
-    "build": "npm run audit:interactions && npm run audit:mettelo-lab && npm run audit:member-home && npm run audit:member-projects && next build",
+    "build": "npm run audit:interactions && npm run audit:mettelo-lab && npm run audit:member-home && npm run audit:member-projects && npm run audit:member-recommended && next build",
     "check:deployment-config": "node scripts/check-deployment-config.mjs",
     "start": "next start",
     "lint": "eslint .",
@@ -14,6 +14,7 @@
     "audit:mettelo-lab": "node scripts/audit-mettelo-lab-workspace.mjs",
     "audit:member-home": "node scripts/audit-member-home-v3.mjs",
     "audit:member-projects": "node scripts/audit-member-projects-v1.mjs",
+    "audit:member-recommended": "node scripts/audit-member-recommended-v1.mjs",
     "test:project-interest-flow": "node scripts/audit-project-interest-flow.mjs",
     "audit:phase0": "node scripts/audit-phase-0-communications.mjs",
     "audit:phase1": "node scripts/audit-phase-1-identity.mjs",
@@ -32,8 +33,8 @@
     "audit:regression-coverage": "node scripts/audit-regression-coverage.mjs",
     "test:forms": "playwright test tests/form-route-contracts.spec.ts tests/form-data-architecture.spec.ts --project=chromium",
     "test:regression": "playwright test tests/form-route-contracts.spec.ts tests/form-data-architecture.spec.ts tests/critical-ui.spec.ts tests/auth-account-ui.spec.ts tests/footer-opportunity-link.spec.ts tests/public-design-hardening.spec.ts tests/public-recursive-responsive.spec.ts --project=chromium",
-    "test:e2e:smoke": "playwright test tests/authenticated-smoke.spec.ts tests/member-home-v3-visual.spec.ts tests/member-projects-v1-visual.spec.ts tests/mettelo-lab-visual.spec.ts tests/member-discover-v1-visual.spec.ts --project=chromium",
-    "test:e2e:staging": "npm run check:e2e-config && playwright test tests/authenticated-smoke.spec.ts tests/member-home-v3-visual.spec.ts tests/member-projects-v1-visual.spec.ts tests/mettelo-lab-visual.spec.ts tests/member-discover-v1-visual.spec.ts tests/staging-submission-journeys.spec.ts --project=chromium --workers=1",
+    "test:e2e:smoke": "playwright test tests/authenticated-smoke.spec.ts tests/member-home-v3-visual.spec.ts tests/member-projects-v1-visual.spec.ts tests/mettelo-lab-visual.spec.ts tests/member-discover-v1-visual.spec.ts tests/member-recommended-domain.spec.ts tests/member-recommended-v1-visual.spec.ts --project=chromium",
+    "test:e2e:staging": "npm run check:e2e-config && playwright test tests/authenticated-smoke.spec.ts tests/member-home-v3-visual.spec.ts tests/member-projects-v1-visual.spec.ts tests/mettelo-lab-visual.spec.ts tests/member-discover-v1-visual.spec.ts tests/member-recommended-domain.spec.ts tests/member-recommended-v1-visual.spec.ts tests/staging-submission-journeys.spec.ts --project=chromium --workers=1",
     "check:e2e-config": "node scripts/check-e2e-config.mjs",
     "admin:promote": "node scripts/promote-admin.mjs"
   },

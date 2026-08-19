@@ -107,6 +107,21 @@ footer :where(a,button,input):focus-visible,
   #main-content .principleGrid:not(.dark .principleGrid){grid-template-columns:minmax(0,1fr)!important;min-width:0!important;max-width:100%!important}
   #main-content .principleGrid:not(.dark .principleGrid)>.principle{min-width:0!important;max-width:100%!important;overflow:hidden!important}
 
+  /* Careers: 1fr keeps an auto min-content floor; use a zero-min track so 200% text can reflow. */
+  #main-content .careersHero,
+  #main-content .careersHeroInner,
+  #main-content .careersHeroCopy,
+  #main-content .careersHeroPanel,
+  #main-content .careersHeroActions{min-width:0!important;max-width:100%!important;box-sizing:border-box}
+  #main-content .careersHeroInner{grid-template-columns:minmax(0,1fr)!important;width:100%!important}
+  #main-content .careersHeroCopy,
+  #main-content .careersHeroPanel{width:100%!important}
+  #main-content .careersHeroCopy :where(h1,p,a,span),
+  #main-content .careersHeroPanel :where(strong,span,b){min-width:0;max-width:100%;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
+  #main-content .careersHeroActions{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+  #main-content .careersHeroActions .button{width:100%;max-width:100%;white-space:normal!important;text-align:center}
+  #main-content .careersHeroFacts span{min-width:0;gap:10px;flex-wrap:wrap}
+
   /* Home: preserve WCAG reflow at 200% text without allowing fixed desktop minima to leak through. */
   .homeActionSection,.homeLiveSection{max-width:100%;overflow-x:clip}
   .homeActionSection *,.homeLiveSection *{min-width:0!important;max-width:100%!important;box-sizing:border-box}

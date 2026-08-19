@@ -67,6 +67,7 @@ test('Mettelo Lab matches the approved responsive composition screen by screen',
     await assertNoHorizontalOverflow(page,viewport.name);
 
     const labRail=page.locator('aside[aria-label="Mettelo Lab workspace"]');
+    const rightRail=page.locator('aside[aria-label="Mettelo Lab project context"]');
     const mobileNav=page.getByRole('navigation',{name:'Mettelo Lab mobile navigation'});
     const outerMemberNav=page.getByRole('navigation',{name:'Member mobile navigation'});
     await expect(outerMemberNav).toBeHidden();
@@ -83,11 +84,8 @@ test('Mettelo Lab matches the approved responsive composition screen by screen',
       await expect(labRail).toBeVisible();
     }
 
-    if(viewport.width>=1025){
-      await expect(page.locator('[data-lab-right-rail]')).toBeVisible();
-    }else{
-      await expect(page.locator('[data-lab-right-rail]')).toBeHidden();
-    }
+    if(viewport.width>=1181)await expect(rightRail).toBeVisible();
+    else await expect(rightRail).toBeHidden();
 
     for(const [screen,selector] of screens){
       const target=page.locator(selector).first();

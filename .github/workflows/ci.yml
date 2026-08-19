@@ -108,9 +108,19 @@ jobs:
       - run: npm run audit:journey-phase8
       - run: npm run audit:platform-resilience
       - run: npm run build
-      - name: Install Chromium for regression tests when staging is not required
+      - name: Restore Playwright Chromium cache for fast regression
+        id: playwright-cache-fast
         if: needs.scope.outputs.requires_staging != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Chromium and system dependencies on cache miss
+        if: needs.scope.outputs.requires_staging != 'true' && steps.playwright-cache-fast.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+      - name: Install Chromium system dependencies on cache hit
+        if: needs.scope.outputs.requires_staging != 'true' && steps.playwright-cache-fast.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - name: Run browser regression suite when staging is not required
         if: needs.scope.outputs.requires_staging != 'true'
         run: npm run test:regression
@@ -147,8 +157,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Install Chromium for staging and regression tests
+      - name: Restore Playwright Chromium cache for staging
+        id: playwright-cache-staging
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Chromium and system dependencies on cache miss
+        if: steps.playwright-cache-staging.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+      - name: Install Chromium system dependencies on cache hit
+        if: steps.playwright-cache-staging.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:

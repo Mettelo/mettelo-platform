@@ -25,11 +25,11 @@ type Props={initialItems:SpotlightMemberItem[];publicationName:string;publicatio
 function monthLabel(value:string|null){if(!value)return'Monthly Spotlight';return new Intl.DateTimeFormat('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${value}T00:00:00Z`));}
 function categoryLabel(value:string){return value==='leader'?'Project leadership':value.charAt(0).toUpperCase()+value.slice(1);}
 function state(item:SpotlightMemberItem){
+  if(item.consentStatus==='withdrawn')return{label:'Permission withdrawn',detail:'Your recognition remains in your private history and the public URL is no longer available.'};
+  if(item.consentStatus==='declined')return{label:'Publication declined',detail:'Your recognition remains private. Declining does not remove the award from your Mettelo history.'};
   if(item.publicationHeld)return{label:'Publication on hold',detail:'Your recognition remains recorded. Public access and sharing are paused while Mettelo resolves an exception.'};
   if(item.status==='published'&&item.consentStatus==='granted')return{label:'Published',detail:'Your recognition is public because you granted permission. You can view or share it.'};
   if(item.consentStatus==='granted')return{label:'Permission granted',detail:'You granted publication permission. Publication will happen automatically when no hold or exception blocks it.'};
-  if(item.consentStatus==='declined')return{label:'Publication declined',detail:'Your recognition remains private. Declining does not remove the award from your Mettelo history.'};
-  if(item.consentStatus==='withdrawn')return{label:'Permission withdrawn',detail:'Your recognition remains in your private history and the public URL is no longer available.'};
   return{label:'Your choice needed',detail:'Review what would be published, then allow or decline public Spotlight.'};
 }
 
@@ -58,8 +58,8 @@ export default function SpotlightConsentPanel({initialItems,publicationName,publ
   return <div className={`spotlightMemberPortfolio${detail?' spotlightMemberPortfolioDetail':''}`}>
     {!detail&&<div className="spotlightMemberSummary" aria-label="Spotlight summary"><div><strong>{items.length}</strong><span>Recognition{items.length===1?'':'s'}</span></div><div><strong>{publicCount}</strong><span>Public</span></div><div><strong>{actionCount}</strong><span>Needs your choice</span></div></div>}
     {message&&<div className="formStatus" role="status" aria-live="polite"><strong>{message}</strong></div>}
-    <div className="spotlightMemberCollection">{items.map(item=>{const current=state(item);const isPublic=item.status==='published'&&item.consentStatus==='granted'&&!item.publicationHeld&&Boolean(item.publicUrl);const canChoose=item.status==='draft'&&!item.publicationHeld&&!item.consentStatus.includes('granted');return <article className={`spotlightMemberCard${isPublic?' isPublic':''}`} key={item.id}>
-      <div className="spotlightMemberCardHead"><div><span className="chip">{categoryLabel(item.category)} · {monthLabel(item.awardMonth)}</span><h2>{item.title}</h2></div><span className="spotlightMemberStatus"><span aria-hidden="true">{isPublic?'✓':item.publicationHeld?'!':'●'}</span>{current.label}</span></div>
+    <div className="spotlightMemberCollection">{items.map(item=>{const current=state(item);const isPublic=item.status==='published'&&item.consentStatus==='granted'&&!item.publicationHeld&&Boolean(item.publicUrl);const canChoose=item.status==='draft'&&!item.publicationHeld&&item.consentStatus!=='granted';const heldState=item.publicationHeld&&!['declined','withdrawn'].includes(item.consentStatus);return <article className={`spotlightMemberCard${isPublic?' isPublic':''}`} key={item.id}>
+      <div className="spotlightMemberCardHead"><div><span className="chip">{categoryLabel(item.category)} · {monthLabel(item.awardMonth)}</span><h2>{item.title}</h2></div><span className="spotlightMemberStatus"><span aria-hidden="true">{isPublic?'✓':heldState?'!':'●'}</span>{current.label}</span></div>
       <p className="spotlightMemberSummaryText">{item.summary||'Recognition based on verified Mettelo contribution.'}</p>
       <div className="spotlightMemberEvidence"><p className="cardNumber">WHY THIS RECOGNITION</p>{item.evidenceTitles.length?<ul>{item.evidenceTitles.slice(0,3).map(title=><li key={title}>{title}</li>)}</ul>:<p>Verified Mettelo contribution evidence is attached to this recognition.</p>}{item.projectTitle&&<p><strong>Primary project:</strong> {item.projectTitle}</p>}</div>
       <div className="spotlightMemberState"><strong>{current.label}</strong><p>{current.detail}</p></div>

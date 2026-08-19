@@ -1,15 +1,31 @@
 .mobileFixes{}
 
 @media(max-width:480px){
-  /* Chat is one mobile workspace: header + internally scrolling feed + composer. */
+  /* Chat owns the middle viewport between the persistent Lab header and navigation. */
   .mobileFixes :global([data-lab-view="chat"] #discussion){
+    position:fixed!important;
+    left:.85rem!important;
+    right:.85rem!important;
+    top:72px!important;
+    bottom:calc(70px + env(safe-area-inset-bottom))!important;
+    z-index:30!important;
     display:flex!important;
     flex-direction:column!important;
-    height:calc(100dvh - 170px - env(safe-area-inset-bottom))!important;
-    max-height:calc(100dvh - 170px - env(safe-area-inset-bottom))!important;
+    width:auto!important;
+    height:auto!important;
+    max-height:none!important;
     min-height:0!important;
+    margin:0!important;
     overflow:hidden!important;
     box-sizing:border-box!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messagePanelHeader){
+    flex:0 0 auto!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .pinnedMessages){
+    flex:0 0 auto!important;
+    max-height:92px!important;
+    overflow-y:auto!important;
   }
   .mobileFixes :global([data-lab-view="chat"] .messageFeed){
     flex:1 1 auto!important;
@@ -27,5 +43,12 @@
     margin-top:10px!important;
     z-index:auto!important;
     box-sizing:border-box!important;
+  }
+}
+
+@media(max-width:360px){
+  .mobileFixes :global([data-lab-view="chat"] #discussion){
+    left:.6rem!important;
+    right:.6rem!important;
   }
 }

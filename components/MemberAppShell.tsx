@@ -105,9 +105,9 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
         {account?.isAdmin&&<Link className={styles.adminCard} href="/admin/project-operations"><strong>Admin console</strong><small>Manage projects and applications</small><span>Open →</span></Link>}
         <div className={styles.sidebarHelp}><Link href="/contact">Help & support</Link><Link href="/feedback">Give feedback</Link></div>
       </aside>}
-      <main className={styles.content} style={isProjectLab?{padding:0,maxWidth:'none'}:undefined}>
+      <section className={styles.content} aria-label="My Mettelo workspace" style={isProjectLab?{padding:0,maxWidth:'none'}:undefined}>
         {!isProjectLab&&!hasProjectBreadcrumb&&<div className={styles.pageContext} aria-label="Current section"><span>My Mettelo</span><span aria-hidden="true">/</span><strong>{currentSection}</strong></div>}{children}
-      </main>
+      </section>
     </div>
 
     {!isProjectLab&&<nav className={styles.bottomNav} aria-label="My Mettelo mobile navigation">

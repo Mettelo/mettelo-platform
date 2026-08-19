@@ -84,6 +84,10 @@ using (
 );
 
 grant select on public.spotlight_evidence,public.spotlight_events to authenticated;
+-- These tables are written only by trusted server-side workflows. New tables do not
+-- inherit the older hosted service_role grants, so grant them explicitly for local CI
+-- and hosted deployments while keeping anon/authenticated mutation privileges absent.
+grant select,insert,update,delete on public.spotlight_evidence,public.spotlight_events to service_role;
 
 -- Anonymous/public reads must never bypass consent, hold or exclusion state.
 drop policy if exists "published spotlights readable" on public.spotlights;

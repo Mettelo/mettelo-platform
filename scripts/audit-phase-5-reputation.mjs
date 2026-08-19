@@ -13,7 +13,7 @@ const checks=[
   ['Public Spotlight projection','lib/public-spotlight.ts',[".eq('consent_status','granted')",".eq('publication_held',false)",".eq('visibility','public')"]],
   ['Public Spotlight permission copy','app/spotlight/[id]/page.tsx',['Published with member permission.','Share this public Spotlight.']],
   ['Member Spotlight social sharing','components/SpotlightConsentPanel.tsx',['Share your public Spotlight.','Share my Spotlight recognition','View public recognition']],
-  ['Public profile reputation','app/people/[id]/page.tsx',[".eq('visibility','public')",".eq('consent_status','granted')",'VERIFIED BY METTELO']]
+  ['Public profile reputation','app/people/[id]/page.tsx',[".eq('visibility','public')",".eq('consent_status','granted')",".eq('publication_held',false)",'VERIFIED BY METTELO']]
 ];
 let failed=false;
 for(const [label,file,needles] of checks){

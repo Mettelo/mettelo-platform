@@ -75,7 +75,7 @@ function firstExact(left:string[],right:string[]){
 }
 
 export function projectRecommendationEligible(state:MemberProjectState){
-  return !['closed','ineligible','cancelled'].includes(state);
+  return !['closed','cancelled'].includes(state);
 }
 
 export function projectRecommendationReason(profile:RecommendationProfile,input:ProjectReasonInput):RecommendationReason|null{

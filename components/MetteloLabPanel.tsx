@@ -27,7 +27,7 @@ export default async function MetteloLabPanel(props:Props){
  const architect=props.projectArchitectName||props.team.find(member=>member.role==='project_architect')?.name||null;
  const names=new Map(props.team.map(member=>[member.id,member.name]));
  const noTeam=!props.projectRunId;
- const viewHref=(view:string)=>`/member/projects/${props.projectId}?${new URLSearchParams({...props.projectRunId?{run:props.projectRunId}:{},view}).toString()}`;
+ const viewHref=(view:string)=>{const query=new URLSearchParams({...(props.projectRunId?{run:props.projectRunId}:{}),view});return `/member/projects/${props.projectId}?${query.toString()}`};
  const actionTitle=noTeam?'Your team is still being formed':props.nextTask?.title||'No task needs your attention yet';
  const actionCopy=noTeam?'We’ll notify you when you are placed into a team.':props.nextTask?(props.nextTask.due_at?`Due ${new Intl.DateTimeFormat('en-GB',{dateStyle:'medium'}).format(new Date(props.nextTask.due_at))}.`:'Open the task to review what is required.'):(props.nextMeeting?`Next team event: ${props.nextMeeting.title} · ${formatDate(props.nextMeeting.starts_at)}`:'Your Project Lead will notify you when the next action is ready.');
  const actionHref=noTeam?viewHref('team'):props.nextTask?viewHref('tasks'):props.nextMeeting?viewHref('events'):viewHref('team');

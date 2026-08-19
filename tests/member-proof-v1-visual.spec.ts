@@ -41,7 +41,8 @@ test('My Mettelo Proof preserves verification truth and approved responsive hier
     await expect(verifiedCard).toBeVisible();
     await expect(verifiedCard.getByText('✓ Verified',{exact:true})).toBeVisible();
     await expect(verifiedCard.getByText('E2E Local Release Project',{exact:true})).toBeVisible();
-    await expect(verifiedCard.getByText('Data Analyst',{exact:true})).toBeVisible();
+    await expect(verifiedCard.getByText('Data Analyst',{exact:true})).toHaveCount(0);
+    await expect(verifiedCard.getByText('Project role',{exact:true})).toHaveCount(0);
     await expect(verifiedCard.getByText(/Built and documented the comparison analysis/)).toBeVisible();
     await expect(page.locator('.mpProofCard').filter({hasText:'E2E pending evidence review'})).toHaveCount(0);
     await expect(page.getByText('Internal text must never appear in verified member Proof.')).toHaveCount(0);
@@ -91,7 +92,8 @@ test('My Mettelo Proof preserves verification truth and approved responsive hier
   await page.getByRole('button',{name:'View Proof: E2E verified forecasting analysis'}).click();
   const dialog=page.getByRole('dialog');
   await expect(dialog.getByText('✓ Verified by Mettelo',{exact:true})).toBeVisible();
-  await expect(dialog.getByText('Data Analyst',{exact:true})).toBeVisible();
+  await expect(dialog.getByText('Data Analyst',{exact:true})).toHaveCount(0);
+  await expect(dialog.getByText('Project role',{exact:true})).toHaveCount(0);
   await expect(dialog.getByRole('heading',{name:'Visibility is separate from verification'})).toBeVisible();
   await expect(dialog.getByText('Internal text must never appear in verified member Proof.')).toHaveCount(0);
   await expect(dialog.getByRole('link',{name:'Open submitted evidence'})).toHaveAttribute('href','https://example.com/e2e-proof');

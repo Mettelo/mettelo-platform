@@ -25,7 +25,7 @@ const checks=[
   ['lib/email-attachments.ts',['MAX_EMAIL_ATTACHMENTS=4','MAX_EMAIL_ATTACHMENT_RAW_BYTES=28*1024*1024',"item.template_key!=='career_offer'",'career_offer_documents','career-offer-documents','toString(\'base64\')']],
   ['lib/notifications.ts',['resolveEmailAttachments','attachments:attachments.length?attachments:undefined']],
   ['lib/career-notifications.ts',['careerMessageForDb','resolveCommunication','sendCareerEmail','notifyUser']],
-  ['app/submitted/page.tsx',['career_application','APPLICATION RECEIVED','WHAT HAPPENS NEXT','Sign in to track']],
+  ['app/submitted/page.tsx',['career_application','APPLICATION RECEIVED','WHAT HAPPENS NEXT','Track your career application',"href:'/careers/applications'",'encodeURIComponent(confirmation.primary.href)']],
   ['tests/admin-experience-v1.spec.ts',['E2E Career Candidate','2026-08-20T10:00','Europe/London','2026-08-20T09:00:00.000Z','Booked interview','Reschedule']],
   ['package.json',['"audit:phase3": "node scripts/audit-phase-3-careers.mjs"']],
   ['.github/workflows/ci.yml',['npm run audit:phase0','npm run audit:phase1','npm run audit:phase2','npm run audit:phase3','tests/admin-experience-v1.spec.ts']],

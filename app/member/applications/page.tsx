@@ -25,9 +25,11 @@ export default async function ApplicationsPage(){
   // Hosted environments already carry project_run_id/application_kind/requested_role.
   // Historical migration reconstruction does not yet version all three, so blank CI
   // environments use a narrow fallback while hosted environments keep richer data.
+  // Do not join the legacy project_roles table through the member client: authenticated
+  // intentionally has no SELECT grant there. requested_role is the hosted role label.
   const primary=await auth
     .from('project_applications')
-    .select('id,status,submitted_at,updated_at,project_id,project_run_id,application_kind,requested_role,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at),project_roles(title)')
+    .select('id,status,submitted_at,updated_at,project_id,project_run_id,application_kind,requested_role,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at)')
     .eq('user_id',user.id)
     .order('submitted_at',{ascending:false});
 
@@ -36,7 +38,7 @@ export default async function ApplicationsPage(){
   if(isHistoricalProjectApplicationColumnError(error)){
     const fallback=await auth
       .from('project_applications')
-      .select('id,status,submitted_at,updated_at,project_id,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at),project_roles(title)')
+      .select('id,status,submitted_at,updated_at,project_id,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at)')
       .eq('user_id',user.id)
       .order('submitted_at',{ascending:false});
     projectData=fallback.data;

@@ -1,19 +1,18 @@
 import type {SupabaseClient} from '@supabase/supabase-js';
-import {deliverOutboxItem,enqueueEmail,notifyUser} from '@/lib/notifications';
+import {deliverOutboxItem,enqueueEmail} from '@/lib/notifications';
 import {resolveCommunication} from '@/lib/communication-templates';
 
 type CareerEmailInput={email:string;subject:string;body:string;templateKey:string;userId?:string|null;actionUrl?:string|null;name?:string|null;roleTitle?:string|null;payload?:Record<string,unknown>};
 
 export async function sendCareerEmail(db:SupabaseClient,input:CareerEmailInput){
+  // Recruitment communications intentionally use the email outbox directly.
+  // Do not create generic in-app notifications: My Mettelo is reserved for
+  // member/project activity and must not expose the recruitment pipeline.
   const dedupeKey=`${input.templateKey}:${input.email}:${input.subject}`;
   const payload={recipient_name:input.name||null,role_title:input.roleTitle||null,...(input.payload||{})};
-  if(input.userId){
-    await notifyUser(db,{userId:input.userId,email:input.email,type:input.templateKey,eventKey:input.templateKey,title:input.subject,subject:input.subject,body:input.body,actionUrl:input.actionUrl||'/careers/applications',dedupeKey,payload});
-    const {data}=await db.from('email_outbox').select('status,id').eq('dedupe_key',`${input.userId}:${dedupeKey}`).maybeSingle();
-    return {queued:true,sent:data?.status==='sent',outboxId:data?.id||null};
-  }
-  const outbox=await enqueueEmail(db,{to:input.email,templateKey:input.templateKey,eventKey:input.templateKey,subject:input.subject,body:input.body,actionUrl:input.actionUrl||'/careers/applications',dedupeKey,payload});
-  if(!outbox){const {data}=await db.from('email_outbox').select('status,id').eq('dedupe_key',dedupeKey).maybeSingle();return {queued:true,sent:data?.status==='sent',outboxId:data?.id||null}}
+  const actionUrl=input.actionUrl?.startsWith('/member')?'/careers/applications':(input.actionUrl||'/careers/applications');
+  const outbox=await enqueueEmail(db,{userId:input.userId||null,to:input.email,templateKey:input.templateKey,eventKey:input.templateKey,subject:input.subject,body:input.body,actionUrl,dedupeKey:input.userId?`${input.userId}:${dedupeKey}`:dedupeKey,payload});
+  if(!outbox){const {data}=await db.from('email_outbox').select('status,id').eq('dedupe_key',input.userId?`${input.userId}:${dedupeKey}`:dedupeKey).maybeSingle();return {queued:true,sent:data?.status==='sent',outboxId:data?.id||null}}
   const result=await deliverOutboxItem(db,outbox);return {queued:true,sent:result.status==='sent',outboxId:outbox.id};
 }
 

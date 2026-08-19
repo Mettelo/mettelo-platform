@@ -1,7 +1,41 @@
 import fs from 'node:fs';
-const expect=(path,needles)=>{const source=fs.readFileSync(path,'utf8');const missing=needles.filter(needle=>!source.includes(needle));if(missing.length)throw new Error(path+' missing '+missing.join(', '));};
+const read=path=>fs.readFileSync(path,'utf8');
+const expect=(path,needles)=>{const source=read(path);const missing=needles.filter(needle=>!source.includes(needle));if(missing.length)throw new Error(path+' missing '+missing.join(', '));};
+const forbid=(path,needles)=>{const source=read(path);const found=needles.filter(needle=>source.includes(needle));if(found.length)throw new Error(path+' contains forbidden '+found.join(', '));};
+
+// Canonical interest + application domain remains one endpoint.
 expect('components/SubmissionForm.tsx',["'/api/project-applications'","application_kind:'interest'",'requested_role:data.role','contribution_statement:data.contribution']);
-expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application'",'status:\'submitted\'','notifyAdmins','notifyUser','project.visibility!==\'public\'']);
+expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application'",".not('status','in','(declined,withdrawn)')",".eq('project_role_id',role.id)",".in('membership_status',['waiting','active'])",'That project role has filled','terms_accepted_at','notifyAdmins','notifyUser']);
+expect('supabase/migrations/20260819193000_member_discover_application_integrity.sql',['project_applications_one_active_application_per_project_user',"application_kind='application'",'saved_projects','enable row level security','auth.uid()']);
+
+// Authenticated Discover must stay in My Mettelo and use real project-domain data only.
+expect('lib/member-navigation.ts',["{label:'Discover',href:'/member/discover'","{label:'Saved',href:'/member/saved'"]);
+expect('components/MemberAppShell.tsx',["href=\"/member/discover\"","isActive('/member/discover')",'hasProjectBreadcrumb']);
+expect('app/member/discover/page.tsx',[".from('projects')","project_roles(id,title,skills,openings)",".from('project_applications')",".from('project_members')",".from('saved_projects')",'resolveMemberProjectState','memberProjectCatalogueAction']);
+forbid('app/member/discover/page.tsx',['career_roles','career_applications','/careers/']);
+expect('components/MemberDiscoverCatalogue.tsx',['Search projects, skills or topics','All roles','All skills','Any commitment','Any location','Discover is broad. Recommended is personalized.','View Recommended','mdFilterSheet']);
+
+// Member Project Detail is the authenticated decision surface; public page is secondary.
+expect('app/member/discover/[id]/page.tsx',[".in('visibility',['public','members'])",'PROFILE_APPLICATION_READY','project_members','role capacity lookup','resolveMemberProjectState']);
+expect('components/MemberProjectDetailClient.tsx',['MEMBER PROJECT DETAIL','Your status','OPEN PROJECT ROLES','Choose how you could contribute','What happens after applying','Track review in Applications','Move into Projects when confirmed','Enter Mettelo Lab when delivery opens','View public project page']);
+forbid('components/MemberProjectDetailClient.tsx',['career','Careers role','Open Mettelo Lab']);
+
+// The member form owns role/review/submit and public full-application UI converges into it.
+expect('app/member/discover/[id]/apply/page.tsx',['PROJECT_APPLICATION_READY'.replace('PROJECT_','PROFILE_'),'resolveMemberProjectState',"state!=='open_eligible'",'MemberProjectApplicationFlow']);
+expect('components/MemberProjectApplicationFlow.tsx',['Role & fit','Availability','Your response','Review','terms_accepted:true','/api/project-applications','Application submitted','View application','Back to project','localStorage']);
+expect('components/ProjectApplicationForm.tsx',['Continue this project application inside My Mettelo.',"/member/discover/${selected.id}/apply"]);
+forbid('components/ProjectApplicationForm.tsx',["fetch('/api/project-applications'",'project_role_catalogue']);
+
+// Signup/onboarding keeps project intent instead of dumping a new member at Home.
+expect('middleware.ts',['normalizeProjectIntent','mettelo_return_to','request.nextUrl.search','/signin']);
+expect('app/auth/continue-after-onboarding/route.ts',['mettelo_return_to','maxAge:0','NextResponse.redirect']);
+expect('app/onboarding/complete/page.tsx',['/auth/continue-after-onboarding?fallback=%2Fmember']);
+
+// Saving a project is member-owned and does not create an application.
+expect('app/api/projects/saved/route.ts',[".from('saved_projects')",".from('projects')",'user_id:user.id']);
+forbid('app/api/projects/saved/route.ts',['project_applications','career_applications']);
+expect('app/member/saved/page.tsx',['Saving a project never creates an application.','/member/discover/','/member/saved-opportunities']);
+
 expect('app/admin/project-operations/applications/page.tsx',['const db=privilegedDb||auth',".from('project_applications')",'if(privilegedDb){const users']);
 expect('app/api/admin/applications/route.ts',['serviceDb()','notifyUser']);
-console.log('Project interest end-to-end flow contract passed.');
+console.log('Project interest, member Discover and application convergence contract passed.');

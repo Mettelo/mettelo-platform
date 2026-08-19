@@ -24,7 +24,7 @@ export async function PATCH(request:Request){
         const publication=await publishSpotlightIfReady(db,id,user.id);
         return NextResponse.json({ok:true,item:publication.item||item,publicUrl:publication.item?.status==='published'?`/spotlight/${id}`:null,message:publication.item?.status==='published'?'Your Spotlight recognition is public and ready to share.':'Your publication permission is already recorded.'});
       }
-      if(item.status!=='draft'||!['pending','declined','not_requested'].includes(item.consent_status))return NextResponse.json({error:'This recognition is not awaiting publication consent.'},{status:409});
+      if(item.status!=='draft'||!['pending','declined','withdrawn','not_requested'].includes(item.consent_status))return NextResponse.json({error:'This recognition is not awaiting publication consent.'},{status:409});
       const {data:profile,error:profileError}=await db.from('profiles').select('full_name,headline').eq('id',user.id).maybeSingle();if(profileError)throw profileError;
       const publicDisplayName=profile?.full_name?.trim()||'Mettelo member';const publicHeadline=profile?.headline?.trim()||null;
       const {data:updated,error}=await db.from('spotlights').update({consent_status:'granted',consented_at:now,consent_withdrawn_at:null,public_display_name:publicDisplayName,public_headline:publicHeadline}).eq('id',id).eq('user_id',user.id).select('id,consent_status,status,publication_held,public_display_name,public_headline').single();if(error)throw error;

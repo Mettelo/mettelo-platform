@@ -13,7 +13,7 @@ expect('lib/member-navigation.ts',["{label:'Discover',href:'/member/discover'","
 expect('components/MemberAppShell.tsx',["href=\"/member/discover\"","isActive('/member/discover')",'hasProjectBreadcrumb']);
 expect('app/member/discover/page.tsx',[".from('projects')","project_roles(id,title,skills,openings)",".from('project_applications')",".from('project_members')",".from('saved_projects')",'resolveMemberProjectState','memberProjectCatalogueAction']);
 forbid('app/member/discover/page.tsx',['career_roles','career_applications','/careers/']);
-expect('components/MemberDiscoverCatalogue.tsx',['Search projects, skills or topics','All roles','All skills','Any commitment','Any location','Discover is broad. Recommended is personalized.','View Recommended','mdFilterSheet']);
+expect('components/MemberDiscoverCatalogue.tsx',['Search projects, skills or topics','All roles','All skills','Any commitment','Any location','Discover is broad. Recommended is personalized.','View Recommended','mdFilterDialog','showModal()','aria-haspopup="dialog"']);
 
 // Member Project Detail is the authenticated decision surface; public page is secondary.
 expect('app/member/discover/[id]/page.tsx',[".in('visibility',['public','members'])",'PROFILE_APPLICATION_READY','project_members','role capacity lookup','resolveMemberProjectState']);
@@ -21,7 +21,7 @@ expect('components/MemberProjectDetailClient.tsx',['MEMBER PROJECT DETAIL','Your
 forbid('components/MemberProjectDetailClient.tsx',['career','Careers role','Open Mettelo Lab']);
 
 // The member form owns role/review/submit and public full-application UI converges into it.
-expect('app/member/discover/[id]/apply/page.tsx',['PROJECT_APPLICATION_READY'.replace('PROJECT_','PROFILE_'),'resolveMemberProjectState',"state!=='open_eligible'",'MemberProjectApplicationFlow']);
+expect('app/member/discover/[id]/apply/page.tsx',['PROFILE_APPLICATION_READY','resolveMemberProjectState',"state!=='open_eligible'",'MemberProjectApplicationFlow']);
 expect('components/MemberProjectApplicationFlow.tsx',['Role & fit','Availability','Your response','Review','terms_accepted:true','/api/project-applications','Application submitted','View application','Back to project','localStorage']);
 expect('components/ProjectApplicationForm.tsx',['Continue this project application inside My Mettelo.',"/member/discover/${selected.id}/apply"]);
 forbid('components/ProjectApplicationForm.tsx',["fetch('/api/project-applications'",'project_role_catalogue']);

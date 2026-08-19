@@ -4,16 +4,15 @@ import {serviceDb} from '@/lib/project-flow';
 import MemberApplicationTracker from '@/components/MemberApplicationTracker';
 
 type AppEvent={id:string;application_id:string;from_status:string|null;to_status:string;created_at:string};
-type Application={id:string;status:string;submitted_at:string;updated_at:string;project_id:string;project_run_id:string|null;application_kind?:string;requested_role?:string|null;projects:{title:string;status:string;project_type?:string;team_size_threshold?:number|null;forming_deadline?:string|null;kickoff_at?:string|null}|null;project_roles:{title:string}|null;formation?:{filled:number;threshold:number;status:string;is_full:boolean;kickoff_at:string|null;forming_deadline:string|null;run_number:number|null}|null;events?:AppEvent[]};
+type Application={id:string;status:string;submitted_at:string;updated_at:string;project_id:string;project_run_id?:string|null;application_kind?:string;requested_role?:string|null;projects:{title:string;status:string;project_type?:string;team_size_threshold?:number|null;forming_deadline?:string|null;kickoff_at?:string|null}|null;project_roles:{title:string}|null;formation?:{filled:number;threshold:number;status:string;is_full:boolean;kickoff_at:string|null;forming_deadline:string|null;run_number:number|null}|null;events?:AppEvent[]};
 
 type ProjectQueryError={code?:string;message?:string}|null;
 
 export const dynamic='force-dynamic';
 
-function isUnversionedApplicationKindError(error:ProjectQueryError){
-  if(!error)return false;
-  const message=error.message||'';
-  return error.code==='42703'||/application_kind|requested_role/i.test(message);
+function isHistoricalProjectApplicationColumnError(error:ProjectQueryError){
+  if(!error||error.code!=='42703')return false;
+  return /project_applications\.(application_kind|requested_role|project_run_id)|column ["']?(application_kind|requested_role|project_run_id)["']?/i.test(error.message||'');
 }
 
 export default async function ApplicationsPage(){
@@ -23,9 +22,9 @@ export default async function ApplicationsPage(){
 
   // My Mettelo Applications is intentionally scoped to the project-participation
   // domain at source. Recruitment applications are owned by /careers/applications.
-  // Hosted environments already carry application_kind/requested_role. The historical
-  // migration baseline does not version them until the Discover/application-integrity
-  // migration lands, so blank CI environments use a narrow compatibility fallback.
+  // Hosted environments already carry project_run_id/application_kind/requested_role.
+  // Historical migration reconstruction does not yet version all three, so blank CI
+  // environments use a narrow fallback while hosted environments keep richer data.
   const primary=await auth
     .from('project_applications')
     .select('id,status,submitted_at,updated_at,project_id,project_run_id,application_kind,requested_role,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at),project_roles(title)')
@@ -34,10 +33,10 @@ export default async function ApplicationsPage(){
 
   let projectData:unknown=primary.data;
   let error:ProjectQueryError=primary.error;
-  if(isUnversionedApplicationKindError(error)){
+  if(isHistoricalProjectApplicationColumnError(error)){
     const fallback=await auth
       .from('project_applications')
-      .select('id,status,submitted_at,updated_at,project_id,project_run_id,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at),project_roles(title)')
+      .select('id,status,submitted_at,updated_at,project_id,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at),project_roles(title)')
       .eq('user_id',user.id)
       .order('submitted_at',{ascending:false});
     projectData=fallback.data;

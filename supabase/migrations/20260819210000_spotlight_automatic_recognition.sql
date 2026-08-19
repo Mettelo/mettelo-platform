@@ -46,10 +46,15 @@ create table if not exists public.spotlight_events (
     'public_project_suppressed','public_project_restored',
     'public_evidence_suppressed','public_evidence_restored'
   )),
+  dedupe_key text,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 
+alter table public.spotlight_events add column if not exists dedupe_key text;
+create unique index if not exists spotlight_events_dedupe_unique
+  on public.spotlight_events(dedupe_key)
+  where dedupe_key is not null;
 create index if not exists spotlight_events_spotlight_created_idx
   on public.spotlight_events(spotlight_id,created_at desc);
 

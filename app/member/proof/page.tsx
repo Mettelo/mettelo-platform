@@ -1,28 +1,129 @@
 import {redirect} from 'next/navigation';
-import Link from 'next/link';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
-import ContributionForm from '@/components/ContributionForm';
-import SocialShare from '@/components/SocialShare';
-import ProofVisibilityControl from '@/components/ProofVisibilityControl';
+import MemberProofPortfolio,{type MemberProofItem} from '@/components/MemberProofPortfolio';
 
 export const dynamic='force-dynamic';
-type Contribution={id:string;title:string;contribution_type:string;verification_status:string;created_at:string;verified_at:string|null;evidence_url:string|null;review_notes:string|null;visibility:string;visibility_reviewed_at:string|null;projects:{title:string}|null};
-type Membership={project_id:string;membership_status:string;projects:{title:string;status:string}|null};
+
+type ContributionRow={
+  id:string;
+  project_id:string|null;
+  project_run_id:string|null;
+  title:string;
+  contribution_type:string;
+  description:string|null;
+  verification_status:string;
+  created_at:string;
+  updated_at:string|null;
+  verified_at:string|null;
+  evidence_url:string|null;
+  review_notes:string|null;
+  visibility:string;
+  projects:{title:string}|null;
+};
+type MembershipRow={project_id:string;project_run_id:string|null;project_role_id:string|null;project_roles:{title:string}|null};
 type Credential={credential_id:string;status:string;issued_at:string};
-const statusCopy:Record<string,string>={pending:'Under review',needs_changes:'Changes requested',verified:'Verified',rejected:'Not verified'};
-const visibilityCopy:Record<string,string>={public:'Public',mettelo_only:'Mettelo only',private:'Private'};
+
+const verifiedFields='id,project_id,project_run_id,title,contribution_type,description,verification_status,created_at,updated_at,verified_at,evidence_url,review_notes,visibility,projects(title)';
 
 export default async function ProofPage(){
-  const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/signin');
-  const [contributionResult,membershipResult,credentialResult]=await Promise.all([
-    supabase.from('contributions').select('id,title,contribution_type,verification_status,created_at,verified_at,evidence_url,review_notes,visibility,visibility_reviewed_at,projects(title)').eq('user_id',user.id).order('created_at',{ascending:false}),
-    supabase.from('project_members').select('project_id,membership_status,projects(title,status)').eq('user_id',user.id).in('membership_status',['active','completed']),
+  const supabase=await createServerSupabaseClient();
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)redirect('/signin?next=/member/proof');
+
+  // Proof is sourced only from contribution evidence. Project, task and milestone
+  // completion are intentionally not queried as substitutes for verification.
+  const [verifiedResult,pendingResult,rejectedResult,verifiedCountResult,pendingCountResult,credentialResult]=await Promise.all([
+    supabase.from('contributions').select(verifiedFields).eq('user_id',user.id).eq('verification_status','verified').order('verified_at',{ascending:false,nullsFirst:false}).order('created_at',{ascending:false}).limit(100),
+    supabase.from('contributions').select(verifiedFields).eq('user_id',user.id).in('verification_status',['pending','needs_changes']).order('updated_at',{ascending:false,nullsFirst:false}).order('created_at',{ascending:false}).limit(50),
+    supabase.from('contributions').select(verifiedFields).eq('user_id',user.id).eq('verification_status','rejected').order('updated_at',{ascending:false,nullsFirst:false}).limit(20),
+    supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified'),
+    supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).in('verification_status',['pending','needs_changes']),
     supabase.from('project_architect_credentials').select('credential_id,status,issued_at').eq('user_id',user.id).order('issued_at',{ascending:false}).limit(1).maybeSingle()
   ]);
-  const contributions=(contributionResult.data||[]) as unknown as Contribution[];const memberships=(membershipResult.data||[]) as unknown as Membership[];const credential=(credentialResult.data||null) as Credential|null;const projects=memberships.map(x=>({id:x.project_id,title:x.projects?.title||'Mettelo project'}));const verified=contributions.filter(x=>x.verification_status==='verified').length;const pending=contributions.filter(x=>['pending','needs_changes'].includes(x.verification_status)).length;
-  return <section className="section softSection memberWorkspace"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">My work · Proof & credentials</div><h1>Evidence you control.</h1></div><p>Verification confirms what Mettelo reviewed. Visibility is a separate choice: keep Proof private, show it inside Mettelo, or make it public and shareable.</p></div>
-  <div className="metricGrid"><div className="metric"><strong>{verified}</strong><span>Verified</span></div><div className="metric"><strong>{pending}</strong><span>In review</span></div><div className="metric"><strong>{contributions.length}</strong><span>Total contributions</span></div></div>
-  {credential&&<section className="panel" style={{marginTop:18}} aria-labelledby="credential-title"><div className="panelHead"><div><span className="cardNumber">CREDENTIAL</span><h2 id="credential-title" style={{marginTop:8}}>Mettelo Data &amp; AI Project Architect</h2></div><span className={`chip ${credential.status==='active'?'green':''}`}>{credential.status.toUpperCase()}</span></div><p>Your credential has its own verification page and status. It does not depend on making every individual Proof item public.</p><div className="metaRow"><span className="metaPill">Issued {new Date(credential.issued_at).toLocaleDateString('en-GB',{dateStyle:'long'})}</span><span className="metaPill">ID {credential.credential_id}</span></div><div className="actions" style={{marginTop:14}}><Link className="button dark" href={`/credentials/${credential.credential_id}`}>Open credential verification →</Link></div></section>}
-  <section className="panel" style={{marginTop:18}}><div className="panelHead"><div><span className="cardNumber">PROOF RECORD</span><h2 style={{marginTop:8}}>Your contributions</h2></div><a className="linkArrow" href="/showcase">Explore public Proof →</a></div>{contributions.length?<div className="grid3">{contributions.map(item=>{const publicProof=item.verification_status==='verified'&&item.visibility==='public';const shareText=`I have verified contribution proof on Mettelo: ${item.title}${item.projects?.title?` · ${item.projects.title}`:''}.`;const shareUrl=`https://mettelo.com/proof/${item.id}`;return <article className="card proofCard" key={item.id}><div className="proofCardTop"><span className={`chip ${item.verification_status==='verified'?'green':''}`}>{statusCopy[item.verification_status]||item.verification_status.replaceAll('_',' ')}</span>{publicProof&&<SocialShare url={shareUrl} text={shareText} label="Share this Proof"/>}</div><h3>{item.title}</h3><p>{item.projects?.title||'Mettelo contribution'} · {item.contribution_type.replaceAll('_',' ')}</p>{item.verified_at&&<p><strong>Verified:</strong> {new Date(item.verified_at).toLocaleDateString('en-GB',{dateStyle:'long'})}</p>}{item.review_notes&&<p><strong>Reviewer comments:</strong> {item.review_notes}</p>}{item.verification_status==='verified'?<><p><strong>Visibility:</strong> {visibilityCopy[item.visibility]||'Private'}</p><ProofVisibilityControl id={item.id} initialVisibility={item.visibility}/>{publicProof?<a className="linkArrow" href={`/proof/${item.id}`}>Open public Proof →</a>:<p className="panelNote">{item.visibility==='mettelo_only'?'This record is not available to anonymous visitors.':'No public Proof link is available while this record is private.'}</p>}</>:item.verification_status==='needs_changes'?<p className="panelNote"><strong>Action required.</strong> Update the requested evidence from the project workspace and resubmit.</p>:item.verification_status==='pending'?<p className="panelNote"><strong>No action required.</strong> This contribution is waiting for review.</p>:null}{item.evidence_url&&<a className="linkArrow" href={item.evidence_url} target="_blank" rel="noopener noreferrer">Evidence →</a>}</article>})}</div>:<div className="emptyState"><h3>No Proof yet.</h3><p>Complete project delivery or submit evidence from work you actually owned.</p></div>}</section>
-  <section style={{marginTop:18}} id="submit"><ContributionForm projects={projects}/></section></div></section>;
+
+  if(verifiedResult.error||verifiedCountResult.error){
+    console.error('member verified Proof query failed',verifiedResult.error||verifiedCountResult.error);
+    return <ProofError/>;
+  }
+
+  const verifiedRows=(verifiedResult.data||[]) as unknown as ContributionRow[];
+  const pendingRows=pendingResult.error?[]:(pendingResult.data||[]) as unknown as ContributionRow[];
+  const rejectedRows=rejectedResult.error?[]:(rejectedResult.data||[]) as unknown as ContributionRow[];
+  const allRows=[...verifiedRows,...pendingRows,...rejectedRows];
+  const projectIds=[...new Set(allRows.map(item=>item.project_id).filter((id):id is string=>Boolean(id)))];
+
+  const {data:membershipData,error:membershipError}=projectIds.length
+    ? await supabase.from('project_members').select('project_id,project_run_id,project_role_id,project_roles(title)').eq('user_id',user.id).in('project_id',projectIds).in('membership_status',['active','completed'])
+    : {data:[] as MembershipRow[],error:null};
+  if(membershipError)console.error('member Proof role lookup failed',membershipError);
+  const memberships=(membershipData||[]) as unknown as MembershipRow[];
+  const byRun=new Map(memberships.filter(item=>item.project_run_id).map(item=>[item.project_run_id as string,item]));
+  const byProject=new Map(memberships.map(item=>[item.project_id,item]));
+
+  const toItem=(row:ContributionRow):MemberProofItem=>{
+    const membership=(row.project_run_id?byRun.get(row.project_run_id):null)||((row.project_id&&byProject.get(row.project_id))||null);
+    return {
+      id:row.id,
+      project_id:row.project_id,
+      project_run_id:row.project_run_id,
+      title:row.title,
+      contribution_type:row.contribution_type,
+      description:row.description,
+      verification_status:row.verification_status,
+      created_at:row.created_at,
+      updated_at:row.updated_at,
+      verified_at:row.verified_at,
+      evidence_url:row.evidence_url,
+      review_notes:row.verification_status==='needs_changes'?row.review_notes:null,
+      visibility:row.visibility||'private',
+      project_title:row.projects?.title||null,
+      project_role:membership?.project_roles?.title||null,
+      can_view_project:Boolean(membership&&row.project_id)
+    };
+  };
+
+  const verifiedTotal=verifiedCountResult.count||0;
+  const pendingTotal=pendingCountResult.error?pendingRows.length:(pendingCountResult.count||0);
+  const projectsEvidenced=verifiedTotal<=verifiedRows.length
+    ? new Set(verifiedRows.map(item=>item.project_id).filter(Boolean)).size
+    : null;
+  const credential=(credentialResult.data||null) as Credential|null;
+
+  return <div className="proofPage">
+    <header className="proofHero">
+      <div>
+        <div className="proofEyebrow">MY WORK · VERIFIED EVIDENCE</div>
+        <h1>Proof</h1>
+        <p>Your verified record of what you contributed through real Mettelo project work — the evidence behind your skills, roles and professional story.</p>
+      </div>
+      <div className="proofHeroActions"><a className="proofButton proofButtonDark" href="/member/profile">View profile</a><a className="proofButton" href="/projects">Find another project</a></div>
+    </header>
+
+    <MemberProofPortfolio
+      verifiedItems={verifiedRows.map(toItem)}
+      pendingItems={pendingRows.map(toItem)}
+      rejectedItems={rejectedRows.map(toItem)}
+      verifiedTotal={verifiedTotal}
+      pendingTotal={pendingTotal}
+      projectsEvidenced={projectsEvidenced}
+      pendingLoadFailed={Boolean(pendingResult.error||pendingCountResult.error)}
+      credential={credential}
+    />
+
+    <style>{`
+      .proofPage{width:min(100%,1180px);margin:0 auto;min-width:0;color:#111318}
+      .proofHero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end;padding:10px 0 25px;border-bottom:1px solid #d8dde3}
+      .proofEyebrow{font-family:var(--font-plex-mono),ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;text-transform:uppercase;letter-spacing:.11em;font-size:10px;line-height:1.3;font-weight:700;color:#72551e}
+      .proofHero h1{margin:8px 0 11px;font-family:var(--font-space-grotesk),Inter,ui-sans-serif,system-ui,sans-serif;font-size:clamp(40px,5vw,58px);line-height:1.02;letter-spacing:-.05em}
+      .proofHero p{max-width:760px;margin:0;color:#59636f;line-height:1.66}
+      .proofHeroActions{display:flex;gap:9px;flex-wrap:wrap}
+      .proofButton{min-height:44px;padding:0 15px;border:1px solid #b8c0c9;border-radius:10px;background:#fff;color:#111318;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px;font-weight:800}
+      .proofButtonDark{background:#111318;border-color:#111318;color:#fff}
+      .proofButton:focus-visible{outline:3px solid #173f8f;outline-offset:3px}
+      @media(max-width:1024px){.proofHero{grid-template-columns:1fr}.proofHeroActions{justify-content:flex-start}}
+      @media(max-width:480px){.proofHero{display:block;padding:4px 0 20px}.proofHero h1{font-size:36px}.proofHero p{font-size:14px;line-height:1.58}.proofHeroActions{display:none}}
+    `}</style>
+  </div>;
 }
+
+function ProofError(){return <div className="proofPage"><header className="proofHero"><div><div className="proofEyebrow">MY WORK · VERIFIED EVIDENCE</div><h1>Proof</h1><p>Your verified record of what you contributed through real Mettelo project work.</p></div></header><section style={{marginTop:20,padding:20,border:'1px solid #d8dde3',borderRadius:14,background:'#fff'}} role="alert"><h2 style={{margin:'0 0 6px'}}>We couldn&apos;t load your Proof</h2><p style={{margin:'0 0 14px',color:'#59636f'}}>Your evidence has not been changed. Refresh this page to retry the verified portfolio.</p><a href="/member/proof" className="button dark">Try again</a></section></div>}

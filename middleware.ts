@@ -6,13 +6,14 @@ type CookieToSet={name:string;value:string;options?:CookieOptions};
 
 function safePath(value:string|null){return value&&value.startsWith('/')&&!value.startsWith('//')?value:null}
 function normalizeProjectIntent(value:string|null){const safe=safePath(value);if(!safe)return null;const match=safe.match(/^\/projects\/([^/?#]+)(?:\?[^#]*)?#apply$/);return match?`/member/discover/${encodeURIComponent(match[1])}/apply`:safe}
+function rememberIntent(response:NextResponse,request:NextRequest,intent:string|null){if(intent&&intent!=='/member')response.cookies.set('mettelo_return_to',intent,{httpOnly:true,sameSite:'lax',secure:request.nextUrl.protocol==='https:',path:'/',maxAge:60*60*4});return response}
 
 export async function middleware(request:NextRequest){
   const pathname=request.nextUrl.pathname;
   if(pathname==='/signin'){
-    const response=NextResponse.next();const intent=normalizeProjectIntent(request.nextUrl.searchParams.get('next'));
-    if(intent&&intent!=='/member')response.cookies.set('mettelo_return_to',intent,{httpOnly:true,sameSite:'lax',secure:request.nextUrl.protocol==='https:',path:'/',maxAge:60*60*4});
-    return response;
+    const rawNext=request.nextUrl.searchParams.get('next');const intent=normalizeProjectIntent(rawNext);
+    if(rawNext&&intent&&rawNext!==intent){const target=request.nextUrl.clone();target.searchParams.set('next',intent);return rememberIntent(NextResponse.redirect(target),request,intent)}
+    return rememberIntent(NextResponse.next(),request,intent);
   }
   const architectEntry=pathname==='/project-architect';
   const protectedPath=pathname.startsWith('/member')||pathname.startsWith('/admin')||architectEntry;

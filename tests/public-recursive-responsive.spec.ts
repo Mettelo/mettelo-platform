@@ -18,8 +18,7 @@ function normalizePublicPath(href:string,origin:string){
     if(url.origin!==origin)return null;
     if(blockedPrefixes.some(prefix=>url.pathname===prefix||url.pathname.startsWith(`${prefix}/`)))return null;
     if(/\.(?:png|jpe?g|gif|svg|webp|ico|pdf|zip|xml|txt)$/i.test(url.pathname))return null;
-    const pathname=url.pathname.replace(/\/+$/,'')||'/';
-    return pathname;
+    return url.pathname.replace(/\/+$/,'')||'/';
   }catch{return null;}
 }
 
@@ -39,11 +38,13 @@ async function collectLinks(page:Page,origin:string){
 
 async function discoverPublicPaths(browser:Browser){
   const page=await browser.newPage({viewport:{width:390,height:844}});
-  const origin=new URL(page.context()._options.baseURL||'http://127.0.0.1:3000').origin;
+  const rootResponse=await page.goto('/',{waitUntil:'domcontentloaded'});
+  expect(rootResponse?.status()).toBeLessThan(400);
+  const origin=new URL(page.url()).origin;
   const discovered=new Set<string>(seedRoutes);
   const queue=[...seedRoutes];
 
-  const sitemap=await page.request.get('/sitemap.xml');
+  const sitemap=await page.request.get(`${origin}/sitemap.xml`);
   if(sitemap.ok()){
     const xml=await sitemap.text();
     for(const match of xml.matchAll(/<loc>([^<]+)<\/loc>/g)){
@@ -54,7 +55,7 @@ async function discoverPublicPaths(browser:Browser){
 
   while(queue.length){
     const path=queue.shift()!;
-    const response=await page.goto(path,{waitUntil:'domcontentloaded'});
+    const response=await page.goto(`${origin}${path}`,{waitUntil:'domcontentloaded'});
     if(!response||response.status()>=400)continue;
     for(const linkedPath of await collectLinks(page,origin)){
       if(!discovered.has(linkedPath)){
@@ -73,7 +74,7 @@ let publicPaths:string[]=[];
 test.beforeAll(async({browser},testInfo)=>{
   testInfo.setTimeout(180_000);
   publicPaths=await discoverPublicPaths(browser);
-  expect(publicPaths.length,'recursive public route discovery should find more than the seed pages').toBeGreaterThanOrEqual(seedRoutes.length);
+  expect(publicPaths.length,'recursive public route discovery should find at least the seed public pages').toBeGreaterThanOrEqual(seedRoutes.length);
 });
 
 test.describe('recursive public responsive coverage',()=>{

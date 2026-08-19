@@ -6,7 +6,6 @@ type AppEvent={id:string;application_id:string;from_status:string|null;to_status
 type Formation={filled:number;threshold:number;status:string;is_full:boolean;kickoff_at:string|null;forming_deadline:string|null;run_number:number|null};
 type Application={id:string;status:string;submitted_at:string;updated_at:string;project_id:string;project_run_id?:string|null;application_kind?:string;requested_role?:string|null;projects:{title:string;status?:string;project_type?:string}|null;project_roles:{title:string}|null;formation?:Formation|null;events?:AppEvent[]};
 type ViewState='current'|'needs'|'closed'|'all';
-
 type CardState='review'|'forming'|'confirmed'|'paused'|'closed';
 
 const labels:Record<string,string>={submitted:'Submitted',in_review:'In review',shortlisted:'Shortlisted',approved:'Team forming',accepted:'Team forming',waiting_for_team:'Team forming',team_complete:'Project confirmed',declined:'Not selected',withdrawn:'Withdrawn'};
@@ -34,7 +33,7 @@ function applicationCopy(item:Application){
   return{body:'Mettelo is reviewing your project application. We’ll update this page when the application changes or if anything is needed from you.',sideLabel:'CURRENT STAGE',sideTitle:'Application review',sideBody:'There is nothing you need to do while review is in progress.'};
 }
 function timelineFor(item:Application):AppEvent[]{return item.events?.length?item.events:[{id:`submitted-${item.id}`,application_id:item.id,from_status:null,to_status:'submitted',created_at:item.submitted_at}]}
-function countCopy(count:number,singular:string,plural:string){return count===1?singular:plural.replace('{count}',String(count))}
+function needsCopy(count:number){if(count===0)return'No applications are waiting for your response';if(count===1)return'One application is waiting for your response';return`${count} applications are waiting for your response`}
 
 export default function MemberApplicationTracker({applications}:{applications:Application[]}){
   const [items,setItems]=useState(applications);
@@ -68,7 +67,6 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
 
   const current=filtered.filter(item=>!isClosed(item));
   const closed=filtered.filter(item=>isClosed(item));
-  const hasFilters=Boolean(query.trim()||role!=='all'||view!=='current');
 
   async function withdraw(id:string){
     setWorking(id);setMessage('');
@@ -97,7 +95,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
 
   return <>
     <section className="mmaSummary" aria-label="Project application summary">
-      <article className="mmaSummaryCard mmaAttention"><strong>{counts.needs}</strong><span>Needs you</span><small>{countCopy(counts.needs,'One application is waiting for your response','{count} applications are waiting for your response')}</small></article>
+      <article className="mmaSummaryCard mmaAttention"><strong>{counts.needs}</strong><span>Needs you</span><small>{needsCopy(counts.needs)}</small></article>
       <article className="mmaSummaryCard"><strong>{counts.review}</strong><span>In review</span><small>{counts.review===1?'Mettelo is reviewing your application':'Mettelo is reviewing your applications'}</small></article>
       <article className="mmaSummaryCard"><strong>{counts.forming}</strong><span>Team forming</span><small>Moving toward confirmed project work</small></article>
       <article className="mmaSummaryCard"><strong>{counts.closed}</strong><span>Closed</span><small>Your retained application history</small></article>
@@ -123,7 +121,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
       {closed.length>historyLimit&&<button className="mmaBtn mmaShowMore" type="button" onClick={()=>setHistoryLimit(value=>value+6)}>Show more history</button>}
     </section>}
 
-    {!hasFilters&&<Explore/>}
+    <Explore/>
     <div className="mmaFormStatus" role="status" aria-live="polite">{message}</div>
 
     <dialog className="mmaDialog" ref={dialogRef} onClose={()=>setSelected(null)} aria-labelledby="mma-dialog-title">

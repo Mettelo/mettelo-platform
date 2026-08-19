@@ -1,4 +1,16 @@
+-- Establish the profile fields consumed by the profile API/readiness model before
+-- calculating readiness. These are additive/idempotent so canonical environments
+-- that already have one or more hosted-era columns remain compatible.
 alter table public.profiles
+  add column if not exists portfolio_url text,
+  add column if not exists current_job_title text,
+  add column if not exists organisation text,
+  add column if not exists experience_level text,
+  add column if not exists employment_status text,
+  add column if not exists project_availability text,
+  add column if not exists weekly_capacity text,
+  add column if not exists preferred_roles text[] not null default '{}',
+  add column if not exists languages text[] not null default '{}',
   add column if not exists profile_readiness smallint not null default 0;
 
 alter table public.profiles

@@ -21,7 +21,7 @@ export type ReadinessProfile={
 };
 
 export type ReadinessInput={
-  profile:ReadinessProfile;
+  profile:ReadinessProfile|Record<string,unknown>;
   domainCount?:number;
   toolCount?:number;
   verifiedProofCount?:number;
@@ -29,7 +29,8 @@ export type ReadinessInput={
 
 type Check={key:string;label:string;weight:number;complete:boolean;action:string};
 
-export function calculateProfileReadiness({profile,domainCount=0,toolCount=0,verifiedProofCount=0}:ReadinessInput){
+export function calculateProfileReadiness({profile:profileRow,domainCount=0,toolCount=0,verifiedProofCount=0}:ReadinessInput){
+  const profile=profileRow as ReadinessProfile;
   const professionalLink=Boolean(profile.linkedin_url?.trim()||profile.github_url?.trim()||profile.portfolio_url?.trim());
   const identityComplete=Boolean(profile.full_name?.trim()&&(profile.headline?.trim()||profile.current_job_title?.trim())&&profile.professional_area&&profile.location?.trim());
   const capabilityComplete=Boolean(profile.experience_level&&(profile.skills?.length||0)>=3&&(profile.preferred_roles?.length||0)>0&&(domainCount>0||toolCount>0));
@@ -48,11 +49,5 @@ export function calculateProfileReadiness({profile,domainCount=0,toolCount=0,ver
 
   const score=checks.reduce((total,check)=>total+(check.complete?check.weight:0),0);
   const missing=checks.filter(check=>!check.complete);
-  return{
-    score,
-    checks,
-    missing,
-    interestReady:score>=PROFILE_INTEREST_READY,
-    applicationReady:score>=PROFILE_APPLICATION_READY
-  };
+  return{score,checks,missing,interestReady:score>=PROFILE_INTEREST_READY,applicationReady:score>=PROFILE_APPLICATION_READY};
 }

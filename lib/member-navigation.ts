@@ -17,7 +17,7 @@ export const memberNavGroups:MemberNavGroup[]=[
     {label:'Events',href:'/member/events',description:'Mettelo-wide events'}
   ]},
   {label:'Reputation',items:[
-    {label:'Spotlight',href:'/member/spotlight',description:'Recognition and consent'}
+    {label:'Spotlight',href:'/member/spotlight',description:'Recognition and sharing'}
   ]}
 ];
 
@@ -35,6 +35,6 @@ export const mobileMoreNav:MemberNavItem[]=[
   {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},
   {label:'Saved',href:'/member/saved',description:'Projects and opportunities'},
   {label:'Events',href:'/member/events',description:'Mettelo-wide events'},
-  {label:'Spotlight',href:'/member/spotlight',description:'Recognition and consent'},
+  {label:'Spotlight',href:'/member/spotlight',description:'Recognition and sharing'},
   {label:'Profile',href:'/member/profile',description:'Your professional identity'}
 ];

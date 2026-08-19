@@ -50,6 +50,7 @@ function sectionLabel(pathname:string){
 
 export default function MemberAppShell({children}:{children:React.ReactNode}){
   const pathname=usePathname();
+  const isProjectLab=/^\/member\/projects\/[^/]+$/.test(pathname);
   const [account,setAccount]=useState<Account>(null);
   const [accountOpen,setAccountOpen]=useState(false);
   const [moreOpen,setMoreOpen]=useState(false);
@@ -58,6 +59,7 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
 
   useEffect(()=>{
     document.body.classList.add('memberAppActive');
+    document.body.classList.toggle('metteloLabActive',isProjectLab);
     const publicTopbar=document.querySelector<HTMLElement>('body > .topbar');
     const publicHeader=document.querySelector<HTMLElement>('body > .siteHeader');
     const publicFooter=document.querySelector<HTMLElement>('body > footer');
@@ -79,8 +81,8 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
     void load();
     const profileListener=(event:Event)=>{const detail=(event as CustomEvent<{name?:string;avatarUrl?:string|null}>).detail;setAccount(current=>current?{...current,name:detail?.name||current.name,avatarUrl:detail?.avatarUrl===undefined?current.avatarUrl:detail.avatarUrl}:current)};
     window.addEventListener('mettelo:profile-updated',profileListener);
-    return()=>{active=false;window.removeEventListener('mettelo:profile-updated',profileListener);document.body.classList.remove('memberAppActive');if(publicTopbar)publicTopbar.style.display=previous[0]||'';if(publicHeader)publicHeader.style.display=previous[1]||'';if(publicFooter)publicFooter.style.display=previous[2]||''};
-  },[]);
+    return()=>{active=false;window.removeEventListener('mettelo:profile-updated',profileListener);document.body.classList.remove('memberAppActive','metteloLabActive');if(publicTopbar)publicTopbar.style.display=previous[0]||'';if(publicHeader)publicHeader.style.display=previous[1]||'';if(publicFooter)publicFooter.style.display=previous[2]||''};
+  },[isProjectLab]);
 
   const closeMenus=()=>{setAccountOpen(false);setMoreOpen(false)};
   async function signOut(){closeMenus();const supabase=createClient();await supabase.auth.signOut();window.location.assign('/')}
@@ -96,9 +98,9 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
   return <div className={styles.appShell}>
     <header className={styles.appHeader}><div className={styles.headerInner}>
       <Link className={styles.brand} href="/member" aria-label="My Mettelo home" onClick={closeMenus}><Image src="/mettelo-logo-dark.svg" alt="Mettelo" width={1630} height={370} priority unoptimized style={{width:122,height:'auto'}}/></Link>
-      <span className={styles.workspaceName}>My Mettelo</span>
+      <span className={styles.workspaceName}>{isProjectLab?'Mettelo Lab':'My Mettelo'}</span>
       <div className={styles.headerActions}>
-        <Link className={styles.findButton} href="/projects" onClick={closeMenus}>Find a project</Link>
+        {!isProjectLab&&<Link className={styles.findButton} href="/projects" onClick={closeMenus}>Find a project</Link>}
         <Link className={styles.searchButton} href="/search" aria-label="Search Mettelo" title="Search Mettelo"><SearchIcon/></Link>
         {account?.isAdmin&&<Link className={styles.modeSwitch} href="/admin/project-operations" onClick={closeMenus}>Admin</Link>}
         <NotificationMenu/>
@@ -109,8 +111,8 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
       </div>
     </div></header>
 
-    <div className={styles.appBody}>
-      <aside className={styles.sidebar} aria-label="My Mettelo navigation">
+    <div className={styles.appBody} style={isProjectLab?{display:'block'}:undefined}>
+      {!isProjectLab&&<aside className={styles.sidebar} aria-label="My Mettelo navigation">
         <div className={styles.sidebarIntro}><span>MY METTELO</span><strong>Member workspace</strong></div>
         <nav className={styles.primaryNav} aria-label="Primary member navigation">{primary.map(renderItem)}</nav>
         <details className={styles.secondaryDisclosure}>
@@ -119,21 +121,20 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
         </details>
         {account?.isAdmin&&<div className={styles.workspaceSwitch}><span>SWITCH WORKSPACE</span><Link className={styles.modeCard} href="/admin/project-operations"><strong>Admin console</strong><small>Manage projects and applications</small><span>Open →</span></Link></div>}
         <div className={styles.sidebarHelp}><Link href="/contact">Help & support</Link><Link href="/feedback">Give feedback</Link></div>
-      </aside>
-      <main className={styles.content}>
-        <div className={styles.pageContext} aria-label="Current section"><span>My Mettelo</span><span aria-hidden="true">/</span><strong>{currentSection}</strong></div>
-        <Suspense fallback={null}><WorkspaceRouteTabs/></Suspense>{children}
+      </aside>}
+      <main className={styles.content} style={isProjectLab?{padding:0,maxWidth:'none'}:undefined}>
+        {!isProjectLab&&<><div className={styles.pageContext} aria-label="Current section"><span>My Mettelo</span><span aria-hidden="true">/</span><strong>{currentSection}</strong></div><Suspense fallback={null}><WorkspaceRouteTabs/></Suspense></>}{children}
       </main>
     </div>
 
-    <nav className={styles.bottomNav} aria-label="Member mobile navigation">
+    {!isProjectLab&&<nav className={styles.bottomNav} aria-label="Member mobile navigation">
       <Link aria-current={isActive('/member')?'page':undefined} className={isActive('/member')?styles.bottomActive:''} href="/member"><span><HomeIcon/></span><small>Home</small></Link>
       <Link className={isActive('/projects')?styles.bottomActive:''} href="/projects"><span><SearchIcon/></span><small>Discover</small></Link>
       <Link aria-current={isActive('/member/applications')?'page':undefined} className={isActive('/member/applications')?styles.bottomActive:''} href="/member/applications"><span><ApplicationsIcon/></span><small>Applications</small></Link>
       <Link aria-current={isActive('/member/projects')?'page':undefined} className={isActive('/member/projects')?styles.bottomActive:''} href="/member/projects"><span><ProjectsIcon/></span><small>Projects</small></Link>
       <details ref={moreRef} open={moreOpen} className={styles.moreMenu} onToggle={event=>{const open=event.currentTarget.open;setMoreOpen(open);if(open)setAccountOpen(false)}}><summary aria-label="Open more navigation"><span><MoreIcon/></span><small>More</small></summary><div className={styles.morePanel} onClickCapture={event=>{if((event.target as Element).closest('a,button'))closeMenus()}}><div className={styles.moreIdentity}>{account&&<><strong>{account.name}</strong><small>{account.email}</small></>}</div><Link href="/member/profile">Profile <span>→</span></Link><Link href="/member/recommended">Recommended <span>→</span></Link><Link href="/opportunities">Opportunities <span>→</span></Link><Link href="/member/saved-opportunities">Saved <span>→</span></Link><Link href="/member/events">Events <span>→</span></Link><Link href="/member/proof">Proof <span>→</span></Link><Link href={architectHref}>{architectLabel} <span>→</span></Link>{account?.isAdmin&&<Link href="/admin/project-operations">Admin console <span>→</span></Link>}<Link href="/contact">Help & support <span>→</span></Link><button type="button" onClick={signOut}>Sign out <span>→</span></button></div></details>
-    </nav>
+    </nav>}
 
-    <style jsx global>{`.memberAppActive .memberSidebar{display:none!important}.memberAppActive .memberDashboard{display:block!important;width:100%!important}.memberAppActive .memberWorkspace{padding-top:0!important;background:#f7f7f5!important}.memberAppActive .memberDashboardMain{max-width:none!important}.memberAppActive #main-content{min-height:100vh;background:#f7f7f5;overflow-x:clip}.memberAppActive .shell,.memberAppActive .panel,.memberAppActive .card{min-width:0;max-width:100%}.memberAppActive a:focus-visible,.memberAppActive button:focus-visible,.memberAppActive summary:focus-visible,.memberAppActive input:focus-visible,.memberAppActive select:focus-visible,.memberAppActive textarea:focus-visible{outline:3px solid #1e40af;outline-offset:3px}@media(max-width:900px){.memberAppActive .memberWorkspace>.shell{width:min(calc(100% - 24px),1240px)}.memberAppActive .sectionHead{display:grid;gap:10px}.memberAppActive .sectionHead h1,.memberAppActive .sectionHead h2{overflow-wrap:anywhere}.memberAppActive .dashboardGrid,.memberAppActive .metricGrid,.memberAppActive .grid3,.memberAppActive .grid4{grid-template-columns:1fr!important}.memberAppActive table{min-width:680px}.memberAppActive .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}}@media(prefers-reduced-motion:reduce){.memberAppActive *,.memberAppActive *::before,.memberAppActive *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}`}</style>
+    <style jsx global>{`.memberAppActive .memberSidebar{display:none!important}.memberAppActive .memberDashboard{display:block!important;width:100%!important}.memberAppActive .memberWorkspace{padding-top:0!important;background:#f7f7f5!important}.memberAppActive .memberDashboardMain{max-width:none!important}.memberAppActive #main-content{min-height:100vh;background:#f7f7f5;overflow-x:clip}.memberAppActive .shell,.memberAppActive .panel,.memberAppActive .card{min-width:0;max-width:100%}.memberAppActive a:focus-visible,.memberAppActive button:focus-visible,.memberAppActive summary:focus-visible,.memberAppActive input:focus-visible,.memberAppActive select:focus-visible,.memberAppActive textarea:focus-visible{outline:3px solid #174ea6;outline-offset:3px}.metteloLabActive #main-content{background:#f5f6f3}.metteloLabActive .panel,.metteloLabActive .workspaceBlock{border-radius:16px!important;border-color:#d7dce3!important}.metteloLabActive input,.metteloLabActive select,.metteloLabActive textarea{max-width:100%}.metteloLabActive table{max-width:100%}@media(max-width:900px){.memberAppActive .memberWorkspace>.shell{width:min(calc(100% - 24px),1240px)}.memberAppActive .sectionHead{display:grid;gap:10px}.memberAppActive .sectionHead h1,.memberAppActive .sectionHead h2{overflow-wrap:anywhere}.memberAppActive .dashboardGrid,.memberAppActive .metricGrid,.memberAppActive .grid3,.memberAppActive .grid4{grid-template-columns:1fr!important}.memberAppActive table{min-width:680px}.memberAppActive .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}.metteloLabActive table{min-width:0!important;width:100%}}@media(max-width:480px){.metteloLabActive input,.metteloLabActive select,.metteloLabActive textarea,.metteloLabActive button{font-size:16px}.metteloLabActive .fieldRow{grid-template-columns:1fr!important}.metteloLabActive .panel,.metteloLabActive .workspaceBlock{border-radius:14px!important}.metteloLabActive .workspaceCollection,.metteloLabActive .dashboardGrid,.metteloLabActive .problemBriefGrid,.metteloLabActive .recordFacts{grid-template-columns:1fr!important}.metteloLabActive .tableWrap{overflow:visible!important}.metteloLabActive table,.metteloLabActive thead,.metteloLabActive tbody,.metteloLabActive tr,.metteloLabActive th,.metteloLabActive td{display:block!important;width:100%!important}.metteloLabActive thead{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important}.metteloLabActive td{white-space:normal!important;overflow-wrap:anywhere!important}}@media(prefers-reduced-motion:reduce){.memberAppActive *,.memberAppActive *::before,.memberAppActive *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}`}</style>
   </div>;
 }

@@ -26,9 +26,19 @@ export async function PATCH(request:Request){
     const now=new Date().toISOString();
     if(action==='grant'){
       if(item.status!=='draft'||item.is_excluded||!['pending','declined','withdrawn','not_requested'].includes(item.consent_status))return NextResponse.json({error:'This recognition is not awaiting publication consent.'},{status:409});
-      const {data:updated,error}=await db.from('spotlights').update({consent_status:'granted',consented_at:now,consent_withdrawn_at:null}).eq('id',id).eq('user_id',user.id).select('id,consent_status,status,publication_held').single();
+      const {data:profile,error:profileError}=await db.from('profiles').select('full_name,headline').eq('id',user.id).maybeSingle();
+      if(profileError)throw profileError;
+      const publicDisplayName=profile?.full_name?.trim()||'Mettelo member';
+      const publicHeadline=profile?.headline?.trim()||null;
+      const {data:updated,error}=await db.from('spotlights').update({
+        consent_status:'granted',
+        consented_at:now,
+        consent_withdrawn_at:null,
+        public_display_name:publicDisplayName,
+        public_headline:publicHeadline
+      }).eq('id',id).eq('user_id',user.id).select('id,consent_status,status,publication_held,public_display_name,public_headline').single();
       if(error)throw error;
-      await recordSpotlightEvent(db,id,'consent_granted',user.id,{award_month:item.award_month});
+      await recordSpotlightEvent(db,id,'consent_granted',user.id,{award_month:item.award_month,public_display_name:publicDisplayName,headline_included:Boolean(publicHeadline)});
       await notifyAdmins(db,{type:'spotlight_consent',eventKey:'spotlight_published',title:'Spotlight consent granted',body:`A member granted publication consent for ${item.title}. Publication is automatic unless the award is held or excluded.`,actionUrl:'/admin/spotlights',subject:'Spotlight consent granted',dedupeKey:`spotlight:${id}:consent-granted`});
       const publication=await publishSpotlightIfReady(db,id,user.id);
       return NextResponse.json({
@@ -41,7 +51,7 @@ export async function PATCH(request:Request){
 
     if(action==='decline'){
       if(item.status!=='draft'||item.is_excluded)return NextResponse.json({error:'This recognition is no longer awaiting a publication response.'},{status:409});
-      const {data:updated,error}=await db.from('spotlights').update({consent_status:'declined',consented_at:null,consent_withdrawn_at:now}).eq('id',id).eq('user_id',user.id).select('id,consent_status,status,publication_held').single();
+      const {data:updated,error}=await db.from('spotlights').update({consent_status:'declined',consented_at:null,consent_withdrawn_at:now,public_display_name:null,public_headline:null}).eq('id',id).eq('user_id',user.id).select('id,consent_status,status,publication_held').single();
       if(error)throw error;
       await recordSpotlightEvent(db,id,'consent_declined',user.id,{award_month:item.award_month});
       await notifyAdmins(db,{type:'spotlight_consent',eventKey:'spotlight_published',title:'Spotlight publication declined',body:`A member declined public publication for ${item.title}. The recognition remains in their private Mettelo history.`,actionUrl:'/admin/spotlights',subject:'Spotlight publication declined',dedupeKey:`spotlight:${id}:consent-declined`});
@@ -50,8 +60,8 @@ export async function PATCH(request:Request){
 
     if(!['granted','pending'].includes(item.consent_status)&&item.status!=='published')return NextResponse.json({error:'There is no active Spotlight publication consent to withdraw.'},{status:409});
     const changes=item.status==='published'
-      ?{consent_status:'withdrawn',consented_at:null,consent_withdrawn_at:now,status:'archived',published_at:null}
-      :{consent_status:'withdrawn',consented_at:null,consent_withdrawn_at:now};
+      ?{consent_status:'withdrawn',consented_at:null,consent_withdrawn_at:now,status:'archived',published_at:null,public_display_name:null,public_headline:null}
+      :{consent_status:'withdrawn',consented_at:null,consent_withdrawn_at:now,public_display_name:null,public_headline:null};
     const {data:updated,error}=await db.from('spotlights').update(changes).eq('id',id).eq('user_id',user.id).select('id,consent_status,status,publication_held').single();
     if(error)throw error;
     await recordSpotlightEvent(db,id,'consent_withdrawn',user.id,{award_month:item.award_month,was_public:item.status==='published'});

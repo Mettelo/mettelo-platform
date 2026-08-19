@@ -2,7 +2,10 @@ import type {SupabaseClient} from '@supabase/supabase-js';
 import {notifyUser} from '@/lib/notifications';
 
 type SpotlightLifecycleRow={id:string;user_id:string|null;title:string;award_month:string|null;status:string;consent_status:string;is_excluded:boolean;publication_held:boolean;selected_at?:string|null};
-const singletonEvents=new Set(['selected','replacement_selected','consent_requested','consent_granted','consent_declined','consent_withdrawn','published','excluded']);
+// These lifecycle milestones can happen at most once for a given recognition.
+// Member consent decisions are intentionally NOT singleton events because a draft
+// can move private -> granted -> withdrawn -> granted again before publication.
+const singletonEvents=new Set(['selected','replacement_selected','consent_requested','published','excluded']);
 
 export async function recordSpotlightEvent(db:SupabaseClient,spotlightId:string,eventType:string,actorUserId:string|null=null,metadata:Record<string,unknown>={}){
   const dedupeKey=singletonEvents.has(eventType)?`spotlight:${spotlightId}:event:${eventType}`:null;

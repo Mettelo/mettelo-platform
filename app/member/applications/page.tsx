@@ -1,39 +1,84 @@
 import {redirect} from 'next/navigation';
-import {createClient} from '@supabase/supabase-js';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
+import {serviceDb} from '@/lib/project-flow';
 import MemberApplicationTracker from '@/components/MemberApplicationTracker';
-import CareerApplicationTracker,{type CareerApplicationItem} from '@/components/CareerApplicationTracker';
 
 type AppEvent={id:string;application_id:string;from_status:string|null;to_status:string;created_at:string};
 type Application={id:string;status:string;submitted_at:string;updated_at:string;project_id:string;project_run_id:string|null;application_kind?:string;requested_role?:string|null;projects:{title:string;status:string;project_type?:string;team_size_threshold?:number|null;forming_deadline?:string|null;kickoff_at?:string|null}|null;project_roles:{title:string}|null;formation?:{filled:number;threshold:number;status:string;is_full:boolean;kickoff_at:string|null;forming_deadline:string|null;run_number:number|null}|null;events?:AppEvent[]};
-type CareerRow=Omit<CareerApplicationItem,'events'|'offer_documents'|'onboarding_items'>;
-type CareerEvent={id:string;application_id:string;from_status:string|null;to_status:string;note:string|null;created_at:string};
-type OfferDoc={id:string;application_id:string;file_name:string;size_bytes:number;created_at:string};
-type Onboarding={id:string;application_id:string;item_key:string;title:string;description:string|null;status:string;due_at:string|null;completed_at:string|null};
 
 export const dynamic='force-dynamic';
+
 export default async function ApplicationsPage(){
-  const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();if(!user)redirect('/signin');
-  const [{data:projectData},{data:careerData}]=await Promise.all([
-    auth.from('project_applications').select('id,status,submitted_at,updated_at,project_id,project_run_id,application_kind,requested_role,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at),project_roles(title)').eq('user_id',user.id).order('submitted_at',{ascending:false}),
-    auth.from('career_applications').select('id,status,submitted_at,updated_at,withdrawn_at,interview_at,interview_timezone,interview_format,interview_url,interviewer,interview_instructions,offer_salary_rate,offer_start_date,offer_employment_type,offer_manager,offer_working_arrangement,offer_conditions,offer_acceptance_deadline,offer_personal_message,career_roles(title)').eq('user_id',user.id).order('submitted_at',{ascending:false})
-  ]);
-  const applications=(projectData||[]) as unknown as Application[];const careerRows=(careerData||[]) as unknown as CareerRow[];const applicationIds=applications.map(x=>x.id);const careerIds=careerRows.map(x=>x.id);const runIds=[...new Set(applications.map(x=>x.project_run_id).filter((id):id is string=>Boolean(id)))];
-  const [{data:eventRows},{data:careerEventRows},{data:onboardingRows}]=await Promise.all([
-    applicationIds.length?auth.from('project_application_events').select('id,application_id,from_status,to_status,created_at').in('application_id',applicationIds).order('created_at',{ascending:true}):Promise.resolve({data:[] as AppEvent[]}),
-    careerIds.length?auth.from('career_application_events').select('id,application_id,from_status,to_status,note,created_at').in('application_id',careerIds).order('created_at',{ascending:true}):Promise.resolve({data:[] as CareerEvent[]}),
-    careerIds.length?auth.from('career_onboarding_items').select('id,application_id,item_key,title,description,status,due_at,completed_at').in('application_id',careerIds).order('created_at',{ascending:true}):Promise.resolve({data:[] as Onboarding[]})
-  ]);
-  const events=(eventRows||[]) as AppEvent[];const careerEvents=(careerEventRows||[]) as CareerEvent[];const onboarding=(onboardingRows||[]) as Onboarding[];
-  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.SUPABASE_SERVICE_ROLE_KEY;const service=url&&key?createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}}):null;const formation=new Map<string,{filled:number;threshold:number;status:string;is_full:boolean;kickoff_at:string|null;forming_deadline:string|null;run_number:number|null}>();
-  if(service&&runIds.length){const [{data:runs},{data:members}]=await Promise.all([service.from('project_runs').select('id,project_id,run_number,status,team_size_threshold,kickoff_at').in('id',runIds),service.from('project_members').select('project_run_id,membership_status').in('project_run_id',runIds).in('membership_status',['waiting','active'])]);for(const run of runs||[]){const app=applications.find(item=>item.project_run_id===run.id);const filled=(members||[]).filter(member=>member.project_run_id===run.id).length;const threshold=Number(run.team_size_threshold||app?.projects?.team_size_threshold||1);formation.set(run.id,{filled,threshold,status:run.status,is_full:filled>=threshold,kickoff_at:run.kickoff_at||app?.projects?.kickoff_at||null,forming_deadline:app?.projects?.forming_deadline||null,run_number:run.run_number||null})}}
-  let docs:OfferDoc[]=[];if(service&&careerIds.length){const result=await service.from('career_offer_documents').select('id,application_id,file_name,size_bytes,created_at').in('application_id',careerIds).eq('active',true).order('created_at',{ascending:false});docs=(result.data||[]) as OfferDoc[];}
-  const careers:CareerApplicationItem[]=careerRows.map(item=>({...item,events:careerEvents.filter(event=>event.application_id===item.id),offer_documents:docs.filter(doc=>doc.application_id===item.id).map(doc=>({id:doc.id,file_name:doc.file_name,size_bytes:doc.size_bytes,created_at:doc.created_at})),onboarding_items:onboarding.filter(row=>row.application_id===item.id).map(row=>({id:row.id,item_key:row.item_key,title:row.title,description:row.description,status:row.status,due_at:row.due_at,completed_at:row.completed_at}))}));
-  const enriched=applications.map(a=>({...a,formation:a.project_run_id?formation.get(a.project_run_id)||null:null,events:events.filter(event=>event.application_id===a.id)}));
-  const activeProjectCount=enriched.filter(item=>!['declined','withdrawn'].includes(item.status)).length;const activeCareerCount=careers.filter(item=>!['hired','rejected','withdrawn'].includes(item.status)).length;
-  return <section className="section softSection memberWorkspace"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">Applications</div><h1>Know exactly what is happening next.</h1></div><p>Project and Mettelo career applications use the same rule: show the current state, what it means, what happens next and whether you need to act.</p></div>
-    <div className="applicationSummary" aria-label="Application summary"><div><strong>{activeProjectCount}</strong><span>active project application{activeProjectCount===1?'':'s'}</span></div><div><strong>{activeCareerCount}</strong><span>active Mettelo career application{activeCareerCount===1?'':'s'}</span></div><div className="applicationSummaryActions"><a className="button dark" href="/projects">Find another project →</a><a className="button ghost" href="/careers">View Mettelo roles</a></div></div>
-    <section className="panel applicationPanel"><div className="panelHead"><div><span className="cardNumber">PROJECT APPLICATIONS</span><h2 style={{marginTop:8,fontSize:'1.35rem'}}>Your project journey</h2></div><span className="chip">{enriched.length}</span></div><p className="sectionHelper">The newest application appears first. Open each card to understand the current state, team progress and recorded timeline.</p><MemberApplicationTracker applications={enriched}/></section>
-    <section className="panel applicationPanel" id="careers"><div className="panelHead"><div><span className="cardNumber">METTELO CAREERS</span><h2 style={{marginTop:8,fontSize:'1.35rem'}}>Your recruitment journey</h2></div><span className="chip">{careers.length}</span></div><p className="sectionHelper">Every recruitment update uses the same canonical status shown to Admin and in your Mettelo communications. Interview, offer and onboarding information appears here when relevant.</p>{careers.length?<CareerApplicationTracker applications={careers}/>:<div className="emptyState"><h3>No Mettelo role applications yet.</h3><p>Apply for an open Mettelo role while signed in to track the full recruitment journey here.</p><a className="linkArrow" href="/careers">View open roles →</a></div>}</section>
-  </div><style>{`.applicationSummary{display:grid;grid-template-columns:auto auto minmax(280px,1fr);gap:10px;align-items:stretch;margin:0 0 20px}.applicationSummary>div:not(.applicationSummaryActions){min-width:150px;display:grid;align-content:center;gap:4px;padding:16px 18px;border:1px solid rgba(16,19,29,.08);border-radius:14px;background:#fff}.applicationSummary strong{font-size:1.45rem}.applicationSummary span{color:#5b6470;font-size:.71rem}.applicationSummaryActions{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:12px 0 12px 12px}.applicationPanel{margin-top:18px;border-radius:18px!important}.sectionHelper{margin:-4px 0 18px;color:#5b6470;font-size:.79rem;line-height:1.55}@media(max-width:760px){.applicationSummary{grid-template-columns:1fr 1fr}.applicationSummaryActions{grid-column:1/-1;display:grid;padding:0}.applicationSummaryActions .button{width:100%}.applicationPanel{padding:16px!important}}`}</style></section>;
+  const auth=await createServerSupabaseClient();
+  const {data:{user}}=await auth.auth.getUser();
+  if(!user)redirect('/signin?next=/member/applications');
+
+  // My Mettelo Applications is intentionally scoped to the project-participation
+  // domain at source. Recruitment applications are owned by /careers/applications.
+  const {data:projectData,error}=await auth
+    .from('project_applications')
+    .select('id,status,submitted_at,updated_at,project_id,project_run_id,application_kind,requested_role,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at),project_roles(title)')
+    .eq('user_id',user.id)
+    .order('submitted_at',{ascending:false});
+
+  if(error)console.error('member project applications query failed',error);
+  const applications=(projectData||[]) as unknown as Application[];
+  const applicationIds=applications.map(item=>item.id);
+  const runIds=[...new Set(applications.map(item=>item.project_run_id).filter((id):id is string=>Boolean(id)))];
+
+  const {data:eventRows}=applicationIds.length
+    ? await auth.from('project_application_events').select('id,application_id,from_status,to_status,created_at').in('application_id',applicationIds).order('created_at',{ascending:true})
+    : {data:[] as AppEvent[]};
+  const events=(eventRows||[]) as AppEvent[];
+
+  const formation=new Map<string,{filled:number;threshold:number;status:string;is_full:boolean;kickoff_at:string|null;forming_deadline:string|null;run_number:number|null}>();
+  const service=serviceDb();
+  if(service&&runIds.length){
+    const [{data:runs},{data:members}]=await Promise.all([
+      service.from('project_runs').select('id,project_id,run_number,status,team_size_threshold,kickoff_at').in('id',runIds),
+      service.from('project_members').select('project_run_id,membership_status').in('project_run_id',runIds).in('membership_status',['waiting','active'])
+    ]);
+    for(const run of runs||[]){
+      const app=applications.find(item=>item.project_run_id===run.id);
+      const filled=(members||[]).filter(member=>member.project_run_id===run.id).length;
+      const threshold=Number(run.team_size_threshold||app?.projects?.team_size_threshold||1);
+      formation.set(run.id,{filled,threshold,status:run.status,is_full:filled>=threshold,kickoff_at:run.kickoff_at||app?.projects?.kickoff_at||null,forming_deadline:app?.projects?.forming_deadline||null,run_number:run.run_number||null});
+    }
+  }
+
+  const enriched=applications.map(item=>({...item,formation:item.project_run_id?formation.get(item.project_run_id)||null:null,events:events.filter(event=>event.application_id===item.id)}));
+
+  return <div className="applicationsPage">
+    <header className="applicationsHero">
+      <div>
+        <div className="applicationsEyebrow">MY WORK · PROJECT APPLICATIONS</div>
+        <h1 id="applications-title">Applications</h1>
+        <p>Track the projects you’ve applied to, see exactly when you need to act, and follow each application until it either closes or becomes confirmed project work.</p>
+      </div>
+      <div className="applicationsHeroActions">
+        <a className="applicationsButton applicationsButtonDark" href="/projects">Discover projects</a>
+        <a className="applicationsButton" href="/member/recommended">Recommended</a>
+      </div>
+    </header>
+
+    {error
+      ? <section className="applicationsError" role="alert"><h2>We couldn’t load your applications</h2><p>Refresh the page to try again. Your project data has not been changed.</p></section>
+      : <MemberApplicationTracker applications={enriched}/>}
+
+    <style>{`
+      .applicationsPage{width:min(100%,1180px);margin:0 auto;min-width:0;color:#111318}
+      .applicationsHero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end;padding:10px 0 25px;border-bottom:1px solid #d8dde3}
+      .applicationsEyebrow{font-family:var(--font-plex-mono),ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;text-transform:uppercase;letter-spacing:.11em;font-size:10px;line-height:1.3;font-weight:700;color:#72551e}
+      .applicationsHero h1{margin:8px 0 11px;font-family:var(--font-space-grotesk),Inter,ui-sans-serif,system-ui,sans-serif;font-size:clamp(40px,5vw,58px);line-height:1.02;letter-spacing:-.05em}
+      .applicationsHero p{max-width:760px;margin:0;color:#59636f;line-height:1.66}
+      .applicationsHeroActions{display:flex;gap:9px;flex-wrap:wrap}
+      .applicationsButton{min-height:44px;padding:0 15px;border:1px solid #b8c0c9;border-radius:10px;background:#fff;color:#111318;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px;font-weight:800}
+      .applicationsButtonDark{background:#111318;border-color:#111318;color:#fff}
+      .applicationsButton:focus-visible{outline:3px solid #173f8f;outline-offset:3px}
+      .applicationsError{margin-top:20px;padding:20px;border:1px solid #d0a0a0;border-radius:14px;background:#fff}
+      .applicationsError h2{margin:0 0 6px;font-size:1.1rem}.applicationsError p{margin:0;color:#59636f}
+      @media(max-width:1024px){.applicationsHero{grid-template-columns:1fr}.applicationsHeroActions{justify-content:flex-start}}
+      @media(max-width:480px){.applicationsHero{display:block;padding:4px 0 20px}.applicationsHero h1{font-size:36px}.applicationsHero p{font-size:14px;line-height:1.58}.applicationsHeroActions{display:none}}
+    `}</style>
+  </div>;
 }

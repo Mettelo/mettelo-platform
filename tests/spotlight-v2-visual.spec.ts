@@ -37,7 +37,16 @@ test.describe('Spotlight v2 recognition, sharing and withdrawal',()=>{
     await page.setViewportSize({width:390,height:844});await page.goto('/member/spotlight',{waitUntil:'networkidle'});await page.evaluate(()=>{document.documentElement.style.fontSize='200%';});await noOverflow(page);
   });
 
-  test('public award exposes only safe evidence context and social sharing',async({page})=>{
+  test('public list and award detail expose only safe context and social sharing',async({page})=>{
+    for(const width of [375,390,414,768,1024,1440]){
+      await page.setViewportSize({width,height:900});const listResponse=await page.goto('/spotlight',{waitUntil:'networkidle'});expect(listResponse?.status()).toBe(200);
+      await expect(page.getByRole('heading',{level:1,name:'Recognition earned through real contribution.'})).toBeVisible();
+      await expect(page.getByRole('heading',{name:'Builder of the Month'}).first()).toBeVisible();
+      await expect(page.getByRole('link',{name:'Share this Spotlight recognition on LinkedIn'}).first()).toBeVisible();
+      await expect(page.getByText(/Score 88|rank_position|score_breakdown/i)).toHaveCount(0);await noOverflow(page);
+    }
+    await page.setViewportSize({width:390,height:844});await page.goto('/spotlight',{waitUntil:'networkidle'});await page.evaluate(()=>{document.documentElement.style.fontSize='200%';});await noOverflow(page);await page.evaluate(()=>{document.documentElement.style.fontSize='';});
+
     const response=await page.goto(`/spotlight/${spotlightId}`,{waitUntil:'networkidle'});expect(response?.status()).toBe(200);
     await expect(page.getByRole('heading',{level:1,name:'Builder of the Month'})).toBeVisible();
     await expect(page.getByText('E2E Spotlight Member',{exact:true})).toBeVisible();

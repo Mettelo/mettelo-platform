@@ -7,6 +7,7 @@ const projectId='00000000-0000-4000-8000-00000000d151';
 const roleId='00000000-0000-4000-8000-00000000d152';
 const title='E2E Member Discover Project';
 const artifactDir='artifacts/member-discover-v1';
+let memberId='';
 
 type Credentials={email:string;password:string};
 function credentials():Credentials{const email=process.env.E2E_MEMBER_EMAIL?.trim();const password=process.env.E2E_MEMBER_PASSWORD;if(!email||!password)throw new Error('Missing E2E member credentials.');return{email,password}}
@@ -14,16 +15,23 @@ function localDb(){const url=process.env.E2E_SUPABASE_URL?.trim();const key=proc
 async function signIn(page:Page){const account=credentials();await page.goto('/signin?next=%2Fmember%2Fdiscover',{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(account.email);await main.locator('input[type="password"]').fill(account.password);await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>url.pathname==='/member/discover',{timeout:20_000})}
 async function noOverflow(page:Page,label:string){const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,body:document.body.scrollWidth}));expect(size.scroll,`${label}: document overflow`).toBeLessThanOrEqual(size.client);expect(size.body,`${label}: body overflow`).toBeLessThanOrEqual(size.client)}
 async function columns(page:Page,selector:string){return page.locator(selector).first().evaluate(element=>getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length)}
+async function resetMemberState(){
+  const db=localDb();
+  for(const query of [
+    db.from('project_applications').delete().eq('project_id',projectId).eq('user_id',memberId),
+    db.from('project_members').delete().eq('project_id',projectId).eq('user_id',memberId),
+    db.from('saved_projects').delete().eq('project_id',projectId).eq('user_id',memberId)
+  ]){const {error}=await query;if(error)throw error;}
+}
 
 test.beforeAll(async()=>{
-  const db=localDb();const account=credentials();const {data:list,error:listError}=await db.auth.admin.listUsers({page:1,perPage:1000});if(listError)throw listError;const user=list.users.find(item=>item.email?.toLowerCase()===account.email.toLowerCase());if(!user)throw new Error('E2E member identity not found.');
-  const {error:profileError}=await db.from('profiles').update({profile_readiness:100}).eq('id',user.id);if(profileError)throw profileError;
+  const db=localDb();const account=credentials();const {data:list,error:listError}=await db.auth.admin.listUsers({page:1,perPage:1000});if(listError)throw listError;const user=list.users.find(item=>item.email?.toLowerCase()===account.email.toLowerCase());if(!user)throw new Error('E2E member identity not found.');memberId=user.id;
+  const {error:profileError}=await db.from('profiles').update({profile_readiness:100}).eq('id',memberId);if(profileError)throw profileError;
   const {error:projectError}=await db.from('projects').upsert({id:projectId,slug:'e2e-member-discover-project',title,summary:'Use a deterministic member-only project to verify Discover, project detail and the internal application journey.',problem_statement:'Validate that signed-in members never need to leave My Mettelo to decide whether and how to apply.',status:'recruiting',visibility:'public',project_type:'open',applications_open:true,location:'Remote',location_type:'remote',duration_weeks:6,weekly_commitment:'5–8 hrs/week',application_deadline:'2099-08-24T23:59:59.000Z'},{onConflict:'id'});if(projectError)throw projectError;
   const {error:roleError}=await db.from('project_roles').upsert({id:roleId,project_id:projectId,title:'Data Analyst',description:'Analyse the project dataset and translate validated patterns into decision-ready findings.',skills:['Data Analysis','Visualisation'],openings:2},{onConflict:'id'});if(roleError)throw roleError;
-  await db.from('project_applications').delete().eq('project_id',projectId).eq('user_id',user.id);
-  await db.from('project_members').delete().eq('project_id',projectId).eq('user_id',user.id);
-  await db.from('saved_projects').delete().eq('project_id',projectId).eq('user_id',user.id);
 });
+
+test.beforeEach(async()=>{await resetMemberState()});
 
 test('Discover and member project detail preserve the approved responsive internal journey',async({page})=>{
   test.setTimeout(300_000);await page.emulateMedia({reducedMotion:'reduce'});await mkdir(artifactDir,{recursive:true});await signIn(page);

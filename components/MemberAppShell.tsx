@@ -28,6 +28,7 @@ function sectionLabel(pathname:string){
 export default function MemberAppShell({children}:{children:React.ReactNode}){
   const pathname=usePathname();
   const isProjectLab=/^\/member\/projects\/[^/]+$/.test(pathname);
+  const hasProjectBreadcrumb=/^\/member\/discover\/[^/]+/.test(pathname);
   const [account,setAccount]=useState<Account>(null);
   const [accountOpen,setAccountOpen]=useState(false);
   const [moreOpen,setMoreOpen]=useState(false);
@@ -84,7 +85,7 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
       <Link className={styles.brand} href="/member" aria-label="My Mettelo home" onClick={closeMenus}><Image src="/mettelo-logo-dark.svg" alt="Mettelo" width={1630} height={370} priority unoptimized style={{width:122,height:'auto'}}/></Link>
       <span className={styles.workspaceName}>{isProjectLab?'Mettelo Lab':'My Mettelo'}</span>
       <div className={styles.headerActions}>
-        {!isProjectLab&&<Link className={styles.findButton} href="/projects" onClick={closeMenus}>Find a project</Link>}
+        {!isProjectLab&&<Link className={styles.findButton} href="/member/discover" onClick={closeMenus}>Find a project</Link>}
         <Link className={styles.searchButton} href="/search" aria-label="Search Mettelo" title="Search Mettelo"><SearchIcon/></Link>
         {account?.isAdmin&&<Link className={styles.modeSwitch} href="/admin/project-operations" onClick={closeMenus}>Admin</Link>}
         <NotificationMenu/>
@@ -105,14 +106,14 @@ export default function MemberAppShell({children}:{children:React.ReactNode}){
         <div className={styles.sidebarHelp}><Link href="/contact">Help & support</Link><Link href="/feedback">Give feedback</Link></div>
       </aside>}
       <main className={styles.content} style={isProjectLab?{padding:0,maxWidth:'none'}:undefined}>
-        {!isProjectLab&&<div className={styles.pageContext} aria-label="Current section"><span>My Mettelo</span><span aria-hidden="true">/</span><strong>{currentSection}</strong></div>}{children}
+        {!isProjectLab&&!hasProjectBreadcrumb&&<div className={styles.pageContext} aria-label="Current section"><span>My Mettelo</span><span aria-hidden="true">/</span><strong>{currentSection}</strong></div>}{children}
       </main>
     </div>
 
     {!isProjectLab&&<nav className={styles.bottomNav} aria-label="My Mettelo mobile navigation">
       <Link aria-current={pathname==='/member'?'page':undefined} className={pathname==='/member'?styles.bottomActive:''} href="/member"><span><HomeIcon/></span><small>Home</small></Link>
       <Link aria-current={isActive('/member/projects')?'page':undefined} className={isActive('/member/projects')?styles.bottomActive:''} href="/member/projects"><span><ProjectsIcon/></span><small>Projects</small></Link>
-      <Link aria-current={isActive('/projects')?'page':undefined} className={isActive('/projects')?styles.bottomActive:''} href="/projects"><span><SearchIcon/></span><small>Discover</small></Link>
+      <Link aria-current={isActive('/member/discover')?'page':undefined} className={isActive('/member/discover')?styles.bottomActive:''} href="/member/discover"><span><SearchIcon/></span><small>Discover</small></Link>
       <Link aria-current={isActive('/member/proof')?'page':undefined} className={isActive('/member/proof')?styles.bottomActive:''} href="/member/proof"><span><ProofIcon/></span><small>Proof</small></Link>
       <details ref={moreRef} open={moreOpen} className={styles.moreMenu} onToggle={event=>{const open=event.currentTarget.open;setMoreOpen(open);if(open)setAccountOpen(false)}}><summary className={moreActive?styles.bottomActive:''} aria-current={moreActive?'page':undefined} aria-label={moreOpen?'Close more navigation':'Open more navigation'} aria-expanded={moreOpen}><span><MoreIcon/></span><small>More</small></summary><div id="member-more" className={styles.morePanel}><div className={styles.morePanelHead}><div><span>MY METTELO</span><strong>More</strong></div><button type="button" onClick={()=>setMoreOpen(false)} aria-label="Close more navigation">×</button></div>{mobileMoreNav.map(item=><Link href={item.href} key={item.href} onClick={closeMenus}><span><strong>{item.label}</strong><small>{item.description}</small></span><b aria-hidden="true">→</b></Link>)}{roleTools.map(item=><Link href={item.href} key={item.href} onClick={closeMenus}><span><strong>{item.label}</strong><small>{item.description}</small></span><b aria-hidden="true">→</b></Link>)}{account?.accountType!=='project_architect'&&<Link href="/member/project-architect" onClick={closeMenus}><span><strong>Project Architect pathway</strong><small>Progress toward governed project responsibilities</small></span><b aria-hidden="true">→</b></Link>}<Link href="/contact" onClick={closeMenus}><span><strong>Help & support</strong><small>Get help with Mettelo</small></span><b aria-hidden="true">→</b></Link></div></details>
     </nav>}

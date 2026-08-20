@@ -4,8 +4,17 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 type CookieToSet={name:string;value:string;options?:CookieOptions};
 
+function safePath(value:string|null){return value&&value.startsWith('/')&&!value.startsWith('//')?value:null}
+function normalizeProjectIntent(value:string|null){const safe=safePath(value);if(!safe)return null;const match=safe.match(/^\/projects\/([^/?#]+)(?:\?[^#]*)?#apply$/);return match?`/member/discover/${encodeURIComponent(match[1])}/apply`:safe}
+function rememberIntent(response:NextResponse,request:NextRequest,intent:string|null){if(intent&&intent!=='/member')response.cookies.set('mettelo_return_to',intent,{httpOnly:true,sameSite:'lax',secure:request.nextUrl.protocol==='https:',path:'/',maxAge:60*60*4});return response}
+
 export async function middleware(request:NextRequest){
   const pathname=request.nextUrl.pathname;
+  if(pathname==='/signin'){
+    const rawNext=request.nextUrl.searchParams.get('next');const intent=normalizeProjectIntent(rawNext);
+    if(rawNext&&intent&&rawNext!==intent){const target=request.nextUrl.clone();target.searchParams.set('next',intent);return rememberIntent(NextResponse.redirect(target),request,intent)}
+    return rememberIntent(NextResponse.next(),request,intent);
+  }
   const architectEntry=pathname==='/project-architect';
   const protectedPath=pathname.startsWith('/member')||pathname.startsWith('/admin')||architectEntry;
   if(!protectedPath)return NextResponse.next();
@@ -35,7 +44,8 @@ export async function middleware(request:NextRequest){
   if(!user){
     const target=request.nextUrl.clone();
     target.pathname='/signin';
-    target.searchParams.set('next',architectEntry?'/member/project-architect':pathname);
+    const requested=`${pathname}${request.nextUrl.search}`;
+    target.searchParams.set('next',architectEntry?'/member/project-architect':requested);
     return NextResponse.redirect(target);
   }
   if(architectEntry){
@@ -52,4 +62,4 @@ export async function middleware(request:NextRequest){
   return response;
 }
 
-export const config={matcher:['/member/:path*','/admin/:path*','/project-architect']};
+export const config={matcher:['/signin','/member/:path*','/admin/:path*','/project-architect']};

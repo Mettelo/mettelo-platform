@@ -1,0 +1,54 @@
+import {redirect} from 'next/navigation';
+import {createServerSupabaseClient} from '@/lib/supabase/server';
+import {serviceDb} from '@/lib/project-flow';
+import {calculateProfileReadiness,PROFILE_APPLICATION_READY} from '@/lib/profile-readiness';
+import MemberDiscoverCatalogue from '@/components/MemberDiscoverCatalogue';
+import {memberProjectCatalogueAction,memberProjectStateLabel,projectAcceptsApplications,resolveMemberProjectState} from '@/lib/member-project-journey';
+
+export const dynamic='force-dynamic';
+
+type Role={id:string;title:string;skills:string[]|null;openings:number};
+type Project={id:string;slug:string;title:string;summary:string;status:string;project_type:string|null;location:string|null;location_type:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;applications_open:boolean|null;created_at:string;project_roles:Role[]|null};
+type Application={id:string;project_id:string;status:string;project_run_id:string|null};
+type Membership={project_id:string;project_run_id:string|null;membership_status:string;project_runs:{status:string}|null};
+type Saved={project_id:string};
+type CapacityRow={project_id:string;project_role_id:string|null};
+
+function titleCase(value:string){return value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase())}
+function workingModel(project:Project){return project.location_type?titleCase(project.location_type):project.location||null}
+
+export default async function MemberDiscoverPage(){
+  const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/signin?next=%2Fmember%2Fdiscover');
+  const [profileResult,domainPrefs,toolPrefs,proofResult,projectsResult,applicationsResult,membershipsResult,savedResult]=await Promise.all([
+    supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles,profile_readiness').eq('id',user.id).maybeSingle(),
+    supabase.from('profile_domain_preferences').select('domain_id').eq('user_id',user.id),
+    supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id),
+    supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified'),
+    supabase.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,duration_weeks,weekly_commitment,application_deadline,applications_open,created_at,project_roles(id,title,skills,openings)').in('visibility',['public','members']).in('status',['recruiting','open','forming','active','review','completed']).order('created_at',{ascending:false}).limit(60),
+    supabase.from('project_applications').select('id,project_id,status,project_run_id').eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}),
+    supabase.from('project_members').select('project_id,project_run_id,membership_status,project_runs(status)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']),
+    supabase.from('saved_projects').select('project_id').eq('user_id',user.id)
+  ]);
+  if(projectsResult.error)console.error('member Discover project query failed',projectsResult.error);
+  const profile=profileResult.data as Record<string,unknown>|null;
+  const calculated=profile?calculateProfileReadiness({profile,domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0,verifiedProofCount:proofResult.count||0}):{score:0};
+  const persisted=profile?.profile_readiness;const readiness=typeof persisted==='number'&&Number.isFinite(persisted)?persisted:calculated.score;
+  const applicationReady=readiness>=PROFILE_APPLICATION_READY;
+  const projects=(projectsResult.data||[]) as unknown as Project[];const applications=(applicationsResult.data||[]) as unknown as Application[];const memberships=(membershipsResult.data||[]) as unknown as Membership[];const saved=new Set(((savedResult.data||[]) as Saved[]).map(row=>row.project_id));
+  const latestApplication=new Map<string,Application>();for(const item of applications){if(!latestApplication.has(item.project_id))latestApplication.set(item.project_id,item)}
+  const membershipByProject=new Map(memberships.map(item=>[item.project_id,item]));
+  const db=serviceDb();let capacityRows:CapacityRow[]=[];let availabilityKnown=false;
+  if(db&&projects.length){const result=await db.from('project_members').select('project_id,project_role_id').in('project_id',projects.map(item=>item.id)).in('membership_status',['waiting','active']);if(!result.error){capacityRows=(result.data||[]) as CapacityRow[];availabilityKnown=true}else console.error('member Discover capacity lookup failed',result.error)}
+  const filledByRole=new Map<string,number>();for(const row of capacityRows){if(row.project_role_id)filledByRole.set(row.project_role_id,(filledByRole.get(row.project_role_id)||0)+1)}
+  const items=projects.flatMap(project=>{
+    const roles=project.project_roles||[];const availableRoles=roles.filter(role=>availabilityKnown?((filledByRole.get(role.id)||0)<role.openings):true);
+    const application=latestApplication.get(project.id)||null;const membership=membershipByProject.get(project.id)||null;const run=membership?.project_runs||null;
+    const state=resolveMemberProjectState({project,application,membership,run,applicationReady,hasAvailableRole:availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
+    const relationship=Boolean(application&&!['declined','withdrawn'].includes(application.status)||membership);
+    if(!relationship&&!projectAcceptsApplications(project))return [];
+    const displayRoles=projectAcceptsApplications(project)&&availabilityKnown?availableRoles:roles;
+    const skills=[...new Set(displayRoles.flatMap(role=>role.skills||[]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    return [{id:project.id,title:project.title,summary:project.summary,state,stateLabel:memberProjectStateLabel(state),action:memberProjectCatalogueAction(state,project.id),saved:saved.has(project.id),workingModel:workingModel(project),durationWeeks:project.duration_weeks,commitment:project.weekly_commitment,deadline:project.application_deadline,createdAt:project.created_at,roles:displayRoles.map(role=>role.title),skills}];
+  });
+  return <div className="mdDiscoverPage"><header className="mdDiscoverHero"><div><div className="mdEyebrow">EXPLORE · PROJECTS</div><h1>Discover projects</h1><p>Browse open Mettelo projects and find practical work that fits the skills you want to use, build or explore.</p></div><a className="mdButton mdHeroRecommended" href="#recommended">View Recommended</a></header>{projectsResult.error?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Nothing has been changed. Refresh this page to try the member catalogue again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<MemberDiscoverCatalogue projects={items}/>}<style>{`.mdDiscoverPage{width:min(100%,1180px);margin:0 auto;min-width:0;color:#111318}.mdDiscoverHero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end;padding:10px 0 25px;border-bottom:1px solid #d8dde3}.mdDiscoverHero h1{margin:8px 0 11px;font-family:var(--font-space-grotesk),Inter,sans-serif;font-size:clamp(40px,5vw,58px);line-height:1.02;letter-spacing:-.05em}.mdDiscoverHero p{max-width:760px;margin:0;color:#59636f;line-height:1.66}.mdDiscoverError{margin-top:20px;padding:22px;border:1px solid #d8dde3;border-radius:14px;background:#fff}.mdDiscoverError h2{margin:0 0 6px}.mdDiscoverError p{margin:0 0 14px;color:#59636f}@media(max-width:1024px){.mdDiscoverHero{grid-template-columns:1fr}}@media(max-width:480px){.mdDiscoverHero{display:block;padding:4px 0 20px}.mdDiscoverHero h1{font-size:36px}.mdDiscoverHero p{font-size:14px;line-height:1.58}.mdHeroRecommended{display:none}}`}</style></div>;
+}

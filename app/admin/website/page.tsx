@@ -14,16 +14,17 @@ export default async function AdminWebsiteOverviewPage(){
  return <AdminWorkspaceOverview
   eyebrow="Admin / Website"
   title="Website management"
-  description="One home for Mettelo's public-facing content and configuration. This foundation exposes the controls that already work today without pretending later website controls are available before their persistence and release paths exist."
+  description="Manage Mettelo's public-facing navigation, footer, social/contact details and brand presentation from one governed Admin workspace. Draftable controls stay separate from published public configuration until an authorized Admin publishes them."
   available={[
-   {title:'Social channels & contact',description:'Manage the public social links and contact email already stored in platform settings.',href:'/admin/settings',label:'Live settings'},
+   {title:'Navigation',description:'Manage public header and mobile-menu labels, destinations, visibility and ordering with draft → publish control.',href:'/admin/website/navigation',label:'Draft & publish'},
+   {title:'Footer & social',description:'Manage footer copy, columns and links alongside the existing public social channels and contact email.',href:'/admin/website/footer',label:'Connected'},
+   {title:'Branding',description:'Manage the public site name and header/footer logo sources with safe current-brand fallbacks.',href:'/admin/website/branding',label:'Draft & publish'},
    {title:'News & Insights',description:'Create, edit, publish and archive editorial content, including article-level SEO fields.',href:'/admin/content/news'},
-   {title:'Structured publishing',description:'Create and manage structured project, opportunity and event content.',href:'/admin/content/structured'}
+   {title:'Structured publishing',description:'Create and manage structured project, opportunity and event content.',href:'/admin/content/structured'},
+   {title:'Platform settings',description:'Manage contribution-role configuration and the canonical platform settings workspace.',href:'/admin/settings'}
   ]}
   planned={[
    {title:'Pages',description:'Homepage, About, Contact and other public-page content with draft, preview and publish.',phase:'PR 3'},
-   {title:'Navigation',description:'Govern public header labels, destinations, ordering and visibility.',phase:'PR 2'},
-   {title:'Footer & branding',description:'Manage footer structure, logos, brand assets and public social presentation.',phase:'PR 2'},
    {title:'SEO',description:'Global and per-page metadata, canonical controls, social previews and indexing settings.',phase:'PR 5'},
    {title:'Media',description:'A governed shared media library with metadata, alt text and safe asset use.',phase:'PR 6'}
   ]}

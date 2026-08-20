@@ -54,10 +54,10 @@ test.describe('Admin Website public pages CMS',()=>{
   }
 
   await page.goto('/contact',{waitUntil:'networkidle'});
-  await expect(page.locator('input[name="name"]')).toBeVisible();
-  await expect(page.locator('input[name="email"]')).toBeVisible();
-  await expect(page.locator('select[name="topic"]')).toBeVisible();
-  await expect(page.locator('textarea[name="message"]')).toBeVisible();
-  await expect(page.locator('input[name="consent"]')).toBeVisible();
+  await expect(page.locator('#contact-name')).toBeVisible();
+  await expect(page.locator('#contact-email')).toBeVisible();
+  await expect(page.locator('#contact-topic')).toBeVisible();
+  await expect(page.locator('#contact-message')).toBeVisible();
+  await expect(page.locator('#contact-consent')).toBeVisible();
  });
 });

@@ -40,7 +40,7 @@ test('My Mettelo Home v3 preserves hierarchy, navigation and responsive containm
       }else{
         for(const group of ['My Work','Explore','Reputation'])await expect(desktopNav.getByRole('heading',{name:group})).toBeHidden();
         const railBox=await desktopNav.boundingBox();expect(railBox?.width||0,`${viewport.name}: compact rail width`).toBeLessThanOrEqual(100);
-        for(const href of ['/member','/member/projects','/member/applications','/member/proof','/projects','/member/recommended','/opportunities','/member/saved-opportunities','/member/events','/member/spotlight']){
+        for(const href of ['/member','/member/projects','/member/applications','/member/proof','/member/discover','/member/recommended','/opportunities','/member/saved','/member/events','/member/spotlight']){
           const link=desktopNav.locator(`a[href="${href}"]`);await expect(link).toBeVisible();const box=await link.boundingBox();expect(box?.height||0,`${viewport.name}: ${href} rail target`).toBeGreaterThanOrEqual(44);
         }
       }
@@ -50,4 +50,17 @@ test('My Mettelo Home v3 preserves hierarchy, navigation and responsive containm
   }
 
   await page.setViewportSize({width:390,height:844});await page.goto('/member',{waitUntil:'networkidle'});await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});await expect(page.getByRole('heading',{name:/Good to see you,/})).toBeVisible();const mobileNav=page.getByRole('navigation',{name:'My Mettelo mobile navigation'});await expect(mobileNav).toBeVisible();await assertNoHorizontalOverflow(page,'phone-390/text-zoom-200');await assertLabelsDoNotOverlap(mobileNav.locator(':scope > a > small, :scope > details > summary > small'),'phone-390/text-zoom-200');await page.screenshot({path:`${artifactDir}/phone-390-text-zoom-200.png`,fullPage:true,animations:'disabled'});
+});
+
+test('Explore and Grow actions land on the intended launch-ready destinations',async({page})=>{
+  test.setTimeout(120_000);await signIn(page);await page.setViewportSize({width:390,height:844});
+  const journeys=[
+    {name:'Explore projects',path:'/member/discover',heading:'Discover projects'},
+    {name:'Recommended',path:'/member/recommended',heading:'Work matched to your profile.'},
+    {name:'Opportunities',path:'/opportunities',heading:'Find opportunities worth your attention.'},
+    {name:'Saved',path:'/member/saved',heading:'Saved'}
+  ];
+  for(const journey of journeys){
+    await page.goto('/member',{waitUntil:'networkidle'});const link=page.getByRole('link',{name:new RegExp(`^${journey.name}`)}).last();await expect(link).toBeVisible();const box=await link.boundingBox();expect(box?.height||0,`${journey.name}: touch target`).toBeGreaterThanOrEqual(44);await link.click();await page.waitForURL(url=>url.pathname===journey.path,{timeout:20_000});await expect(page.getByRole('heading',{name:journey.heading,exact:true})).toBeVisible();await assertNoHorizontalOverflow(page,journey.path);
+  }
 });

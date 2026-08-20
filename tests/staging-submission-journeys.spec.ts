@@ -71,26 +71,28 @@ test.describe.serial('staging submission journeys',()=>{
     const publicContext=await browser.newContext({baseURL:baseURL()});
     const page=await newAppContext(publicContext);
 
-    const contactSubject=`${marker} contact`;
+    const contactMessage=`${marker} verifies browser to API to database to admin intake.`;
     await page.goto('/contact');
     await page.locator('[name="name"]').fill(`${marker} Contact`);
     await page.locator('main').locator('[name="email"]').fill(`${runId}-contact@example.test`);
-    await page.locator('[name="topic"]').selectOption({label:'Technical issue'});
-    await page.locator('[name="subject"]').fill(contactSubject);
-    await page.locator('[name="message"]').fill(`${marker} verifies browser to API to database to admin intake.`);
+    await page.locator('[name="topic"]').selectOption('technical_issue');
+    await page.locator('[name="message"]').fill(contactMessage);
     await page.locator('[name="consent"]').check();
     await page.getByRole('button',{name:'Send message →'}).click();
     await page.waitForURL(/\/submitted\?type=contact/);
-    const contact=await findForm(db,'contact','subject',contactSubject);created.formIds.push(contact.id);
+    const contact=await findForm(db,'contact','message',contactMessage);created.formIds.push(contact.id);
 
     const partnershipOrganisation=`${marker} Organisation`;
     await page.goto('/partnership');
     await page.locator('[name="organisation"]').fill(partnershipOrganisation);
+    await page.locator('[name="country"]').fill('United Kingdom');
     await page.locator('[name="name"]').fill(`${marker} Partner`);
     await page.locator('main').locator('[name="email"]').fill(`${runId}-partner@example.test`);
     await page.locator('[name="role"]').fill('E2E lead');
-    await page.locator('[name="organisationType"]').selectOption({index:1});
-    await page.locator('[name="partnershipType"]').selectOption({index:1});
+    await page.locator('[name="organisationType"]').selectOption('employer');
+    await page.locator('[name="partnershipType"]').selectOption('labs_project');
+    await page.locator('[name="timeframe"]').selectOption('1_3_months');
+    await page.locator('[name="scale"]').selectOption('small_pilot');
     await page.locator('[name="objective"]').fill(`${marker} validate the complete intake workflow.`);
     await page.locator('[name="contribution"]').fill(`${marker} provide a deterministic staging test.`);
     await page.locator('[name="consent"]').check();
@@ -101,7 +103,9 @@ test.describe.serial('staging submission journeys',()=>{
     const feedbackMessage=`${marker} confirms feedback reaches the admin queue.`;
     await page.goto('/feedback');
     await page.locator('main').locator('[name="email"]').fill(`${runId}-feedback@example.test`);
-    await page.locator('[name="area"]').selectOption({label:'Navigation / mobile'});
+    await page.locator('[name="kind"]').selectOption('bug');
+    await page.locator('[name="area"]').selectOption('navigation_mobile');
+    await page.locator('[name="impact"]').selectOption('partial');
     await page.locator('[name="message"]').fill(feedbackMessage);
     await page.getByRole('button',{name:'Send feedback →'}).click();
     await page.waitForURL(/\/submitted\?type=feedback/);
@@ -110,6 +114,7 @@ test.describe.serial('staging submission journeys',()=>{
     const newsletterEmail=`${runId}-newsletter@example.test`;created.newsletterEmails.push(newsletterEmail);
     await page.goto('/newsletter');
     await page.locator('main').locator('[name="email"]').fill(newsletterEmail);
+    await page.locator('[name="projects"]').check();
     await page.getByRole('button',{name:'Subscribe →'}).click();
     await page.waitForURL(/\/newsletter\?subscribed=1/);
     await poll('newsletter database record',async()=>{const {data,error}=await db.from('newsletter_subscribers').select('email,status').eq('email',newsletterEmail).maybeSingle();if(error)throw error;return data;});

@@ -34,6 +34,21 @@ export default async function CareersPage(){
       .careersPromise{padding:58px 0;background:#111521;color:#fff}.careersPromiseInner{display:grid;grid-template-columns:.65fr 1.35fr;gap:50px;align-items:center}.careersPromise .eyebrow{color:#d5962d}.careersPromise h2{margin:8px 0 0;color:#fff;font-size:2.1rem}.careersSteps{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid rgba(255,255,255,.16);border-radius:15px;overflow:hidden}.careersSteps span{display:grid;gap:18px;padding:20px;border-right:1px solid rgba(255,255,255,.12);font-size:.76rem;font-weight:700}.careersSteps span:last-child{border-right:0}.careersSteps b{color:#d5962d;font-size:.67rem;letter-spacing:.1em}
       @media(max-width:1050px){.careersGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.careersHeroInner{gap:36px}.careersHero h1{font-size:clamp(3rem,7vw,4.7rem)}}
       @media(max-width:760px){.careersHero{padding:48px 0}.careersHeroInner,.careersSectionHead,.careersPromiseInner{grid-template-columns:1fr}.careersHeroPanel{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:center}.careersHeroPanel>strong{margin:10px 0 0}.careersHeroRule,.careersHeroFacts{grid-column:1/-1}.careersGrid{grid-template-columns:1fr}.careerCard{min-height:0}.careersSection{padding:54px 0 68px}.careersSectionHead{gap:18px}.careersSteps{grid-template-columns:1fr}.careersSteps span{grid-template-columns:40px 1fr;gap:8px;border-right:0;border-bottom:1px solid rgba(255,255,255,.12)}.careersSteps span:last-child{border-bottom:0}}
+      @media(max-width:480px){
+        .careersHero,.careersHeroInner,.careersHeroCopy,.careersHeroPanel,.careersHeroActions,.careersSection,.careersSectionHead,.careersEmpty,.careersPromise,.careersPromiseInner,.careersSteps{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+        .careersHeroInner,.careersSectionHead,.careersPromiseInner,.careersSteps{display:grid!important;grid-template-columns:minmax(0,100%)!important;width:100%!important}
+        .careersHeroCopy,.careersHeroPanel,.careersSectionHead>*,.careersPromiseInner>*{width:auto!important;inline-size:auto!important;justify-self:stretch!important;min-width:0!important;max-width:100%!important;contain:inline-size}
+        .careersHeroPanel{display:grid!important;grid-template-columns:minmax(0,100%)!important;gap:10px!important}
+        .careersHeroPanel>*{grid-column:1!important;min-width:0!important;max-width:100%!important}
+        .careersHeroCopy h1,.careersHeroCopy p,.careersHeroCopy .eyebrow,.careersHeroCopy .careersBackLink,.careersHeroPanel span,.careersHeroPanel strong,.careersSection h2,.careersSection h3,.careersSection p,.careersSection a,.careersPromise h2,.careersPromise span{min-width:0!important;max-width:100%!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
+        .careersHero h1{font-size:clamp(2.35rem,12vw,3rem)!important;line-height:1!important}
+        .careersHeroActions{display:grid!important;grid-template-columns:minmax(0,100%)!important;gap:10px!important;width:100%!important}
+        .careersHeroActions .button{width:100%!important;max-width:100%!important;white-space:normal!important;text-align:center!important}
+        .careersHeroFacts{display:grid!important;grid-template-columns:minmax(0,100%)!important;width:100%!important}
+        .careersHeroFacts span{display:grid!important;grid-template-columns:minmax(0,100%)!important;min-width:0!important;gap:3px!important}
+        .careersSteps span{grid-template-columns:minmax(0,100%)!important;min-width:0!important;max-width:100%!important;gap:4px!important}
+        .careersEmpty{width:100%!important;overflow:hidden!important}
+      }
       @media(prefers-reduced-motion:reduce){.careerCard,.careerView span{transition:none}}
     `}</style>
   </>;

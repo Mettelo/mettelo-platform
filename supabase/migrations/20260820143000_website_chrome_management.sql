@@ -22,8 +22,17 @@ drop policy if exists "public website chrome readable" on public.website_chrome_
 create policy "public website chrome readable" on public.website_chrome_public
 for select to anon, authenticated using (true);
 
+-- Public clients can read published configuration only. Drafts and all public-table
+-- mutations stay outside anon/authenticated reach even if default grants change later.
 revoke all on public.website_chrome_drafts from anon, authenticated;
+revoke insert, update, delete, truncate, references, trigger on public.website_chrome_public from anon, authenticated;
 grant select on public.website_chrome_public to anon, authenticated;
+
+-- Admin APIs use the server-side service role and only require read/write, never delete.
+grant select, insert, update on public.website_chrome_public to service_role;
+grant select, insert, update on public.website_chrome_drafts to service_role;
+revoke delete, truncate, references, trigger on public.website_chrome_public from service_role;
+revoke delete, truncate, references, trigger on public.website_chrome_drafts from service_role;
 
 insert into public.website_chrome_public(scope,payload) values
 ('navigation', $json${"items":[{"id":"projects","label":"Projects","href":"/projects","placement":"primary","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":10},{"id":"opportunities","label":"Opportunities","href":"/opportunities","placement":"primary","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":20},{"id":"proof","label":"Proof","href":"/showcase","placement":"primary","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":30},{"id":"events","label":"Events","href":"/events","placement":"primary","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":40},{"id":"organisations","label":"For organisations","href":"/organisations","placement":"secondary","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":50},{"id":"about","label":"About Mettelo","href":"/about","placement":"secondary","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":60},{"id":"community","label":"Community","href":"/community","placement":"explore","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":70},{"id":"insights","label":"Insights","href":"/blog","placement":"explore","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":80},{"id":"spotlight","label":"Spotlight","href":"/spotlight","placement":"explore","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":90},{"id":"careers","label":"Careers","href":"/careers","placement":"explore","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":100},{"id":"faq","label":"FAQ","href":"/faq","placement":"explore","desktop_visible":true,"mobile_visible":true,"enabled":true,"sort_order":110},{"id":"contact","label":"Contact","href":"/contact","placement":"explore","desktop_visible":false,"mobile_visible":true,"enabled":true,"sort_order":120},{"id":"feedback","label":"Feedback","href":"/feedback","placement":"explore","desktop_visible":false,"mobile_visible":true,"enabled":true,"sort_order":130}]}$json$::jsonb),

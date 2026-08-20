@@ -61,6 +61,6 @@ test('Explore and Grow actions land on the intended launch-ready destinations',a
     {name:'Saved',path:'/member/saved',heading:'Saved'}
   ];
   for(const journey of journeys){
-    await page.goto('/member',{waitUntil:'networkidle'});const link=page.getByRole('link',{name:new RegExp(`^${journey.name}`)}).last();await expect(link).toBeVisible();const box=await link.boundingBox();expect(box?.height||0,`${journey.name}: touch target`).toBeGreaterThanOrEqual(44);await link.click();await page.waitForURL(url=>url.pathname===journey.path,{timeout:20_000});await expect(page.getByRole('heading',{name:journey.heading})).toBeVisible();await assertNoHorizontalOverflow(page,journey.path);
+    await page.goto('/member',{waitUntil:'networkidle'});const link=page.getByRole('link',{name:new RegExp(`^${journey.name}`)}).last();await expect(link).toBeVisible();const box=await link.boundingBox();expect(box?.height||0,`${journey.name}: touch target`).toBeGreaterThanOrEqual(44);await link.click();await page.waitForURL(url=>url.pathname===journey.path,{timeout:20_000});await expect(page.getByRole('heading',{name:journey.heading,exact:true})).toBeVisible();await assertNoHorizontalOverflow(page,journey.path);
   }
 });

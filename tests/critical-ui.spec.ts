@@ -1,112 +1,156 @@
-import {expect,test} from '@playwright/test';
+import {expect,test,type Page} from '@playwright/test';
 
-const criticalRoutes=['/','/projects','/opportunities','/showcase','/events','/faq','/contact','/partnership','/feedback','/newsletter','/careers','/signin','/signin?mode=signup'];
-
-async function expectNoPageOverflow(page:import('@playwright/test').Page,label:string){
-  const widths=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
-  expect(widths.scrollWidth,label).toBeLessThanOrEqual(widths.clientWidth);
+async function expectNoHorizontalOverflow(page:Page){
+  const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
+  expect(dimensions.scrollWidth,'page must not overflow horizontally').toBeLessThanOrEqual(dimensions.clientWidth+1);
 }
 
-async function assertNoBrowserException(page:import('@playwright/test').Page,path:string){
-  const exceptions:string[]=[];
-  page.on('pageerror',error=>exceptions.push(error.message));
-  const response=await page.goto(path,{waitUntil:'domcontentloaded'});
-  expect(response?.status(),`${path} returned an unexpected HTTP status`).toBeLessThan(500);
-  expect(exceptions,`${path} raised browser exceptions`).toEqual([]);
+async function assertHealthyPage(page:Page,path:string){
+  const pageErrors:string[]=[];
+  page.on('pageerror',error=>pageErrors.push(error.message));
+  const response=await page.goto(path,{waitUntil:'networkidle'});
+  expect(response?.status(),`${path} should load successfully`).toBeLessThan(400);
+  await expect(page.locator('body')).toBeVisible();
+  expect(pageErrors,`${path} should not throw in the browser`).toEqual([]);
 }
 
 test.describe('critical public journeys',()=>{
-  for(const route of criticalRoutes)test(`${route} loads without a browser exception`,async({page})=>assertNoBrowserException(page,route));
+  const routes=['/','/projects','/opportunities','/showcase','/events','/faq','/contact','/partnership','/feedback','/newsletter','/careers','/signin','/signin?mode=signup'];
+  for(const path of routes)test(`${path} loads without a browser exception`,async({page})=>assertHealthyPage(page,path));
 
   test('contact form sends the expected API contract and reaches confirmation',async({page})=>{
-    let payload:Record<string,unknown>|null=null;
-    await page.route('**/api/forms',async route=>{payload=route.request().postDataJSON();await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,reference:'E2E-CONTACT'})})});
+    let requestBody:Record<string,unknown>|null=null;
+    await page.route('**/api/forms',async route=>{
+      requestBody=route.request().postDataJSON();
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});
+    });
     await page.goto('/contact');
-    await page.locator('input[name="name"]').fill('Release Test');
-    await page.locator('input[name="email"]').fill('release@example.test');
-    await page.locator('select[name="topic"]').selectOption('general');
-    await page.locator('textarea[name="message"]').fill('Release test message with enough context.');
-    await page.locator('input[name="consent"]').check();
-    await page.getByRole('button',{name:'Send message →'}).click();
-    await expect(page.getByText('Message received')).toBeVisible();
-    expect(payload).toMatchObject({formType:'contact',name:'Release Test',email:'release@example.test',topic:'general'});
+    const form=page.getByRole('button',{name:'Send message →'}).locator('xpath=ancestor::form');
+    await form.locator('[name="name"]').fill('Regression Contact');
+    await form.locator('[name="email"]').fill('contact@example.test');
+    await form.locator('[name="topic"]').selectOption('technical_issue');
+    await form.locator('[name="message"]').fill('This verifies that the contact form still sends every required value.');
+    await form.locator('[name="consent"]').check();
+    await form.getByRole('button',{name:'Send message →'}).click();
+    await page.waitForURL(/\/submitted\?type=contact/);
+    expect(requestBody).toMatchObject({formType:'contact',data:{name:'Regression Contact',email:'contact@example.test',topic:'technical_issue',consent:'yes'}});
   });
 
   test('partnership form sends the expected API contract and reaches confirmation',async({page})=>{
-    let payload:Record<string,unknown>|null=null;
-    await page.route('**/api/forms',async route=>{payload=route.request().postDataJSON();await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,reference:'E2E-PARTNER'})})});
+    let requestBody:Record<string,unknown>|null=null;
+    await page.route('**/api/forms',async route=>{
+      requestBody=route.request().postDataJSON();
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});
+    });
     await page.goto('/partnership');
-    const form=page.locator('form').filter({has:page.getByRole('button',{name:/Submit partnership enquiry/})});
-    await form.locator('input[name="name"]').fill('Partner Test');
-    await form.locator('input[name="email"]').fill('partner@example.test');
-    await form.locator('input[name="organisation"]').fill('Example Organisation');
-    await form.locator('select[name="partnership_type"]').selectOption({index:1});
-    await form.locator('textarea[name="context"]').fill('A realistic partnership context for the release regression suite.');
-    await form.locator('input[name="consent"]').check();
-    await form.getByRole('button',{name:/Submit partnership enquiry/}).click();
-    await expect(page.getByText(/Partnership enquiry received|Thank you/i)).toBeVisible();
-    expect(payload).toMatchObject({formType:'partnership',name:'Partner Test',email:'partner@example.test',organisation:'Example Organisation'});
+    const form=page.getByRole('button',{name:'Submit partnership enquiry →'}).locator('xpath=ancestor::form');
+    await form.locator('[name="organisation"]').fill('Regression Organisation');
+    await form.locator('[name="country"]').fill('United Kingdom');
+    await form.locator('[name="name"]').fill('Regression Partner');
+    await form.locator('[name="email"]').fill('partner@example.test');
+    await form.locator('[name="role"]').fill('Engineering lead');
+    await form.locator('[name="organisationType"]').selectOption('employer');
+    await form.locator('[name="partnershipType"]').selectOption('labs_project');
+    await form.locator('[name="timeframe"]').selectOption('1_3_months');
+    await form.locator('[name="scale"]').selectOption('small_pilot');
+    await form.locator('[name="objective"]').fill('Validate the complete partnership intake journey before every release.');
+    await form.locator('[name="contribution"]').fill('Provide a safe staging scenario and a clear expected business outcome.');
+    await form.locator('[name="consent"]').check();
+    await form.getByRole('button',{name:'Submit partnership enquiry →'}).click();
+    await page.waitForURL(/\/submitted\?type=partnership/);
+    expect(requestBody).toMatchObject({formType:'partnership',data:{organisation:'Regression Organisation',country:'United Kingdom',name:'Regression Partner',organisationType:'employer',partnershipType:'labs_project',timeframe:'1_3_months',scale:'small_pilot',consent:'yes'}});
   });
 
   test('feedback form sends the expected API contract and reaches confirmation',async({page})=>{
-    let payload:Record<string,unknown>|null=null;
-    await page.route('**/api/forms',async route=>{payload=route.request().postDataJSON();await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,reference:'E2E-FEEDBACK'})})});
+    let requestBody:Record<string,unknown>|null=null;
+    await page.route('**/api/forms',async route=>{
+      requestBody=route.request().postDataJSON();
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});
+    });
     await page.goto('/feedback');
-    await page.locator('input[name="name"]').fill('Feedback Test');
-    await page.locator('input[name="email"]').fill('feedback@example.test');
-    await page.locator('select[name="feedback_type"]').selectOption({index:1});
-    await page.locator('select[name="area"]').selectOption({index:1});
-    await page.locator('textarea[name="message"]').fill('A useful release feedback message.');
-    await page.locator('input[name="consent"]').check();
-    await page.getByRole('button',{name:/Send feedback/}).click();
-    await expect(page.getByText(/Feedback received|Thank you/i)).toBeVisible();
-    expect(payload).toMatchObject({formType:'feedback',name:'Feedback Test',email:'feedback@example.test'});
+    const form=page.getByRole('button',{name:'Send feedback →'}).locator('xpath=ancestor::form');
+    await form.locator('[name="email"]').fill('feedback@example.test');
+    await form.locator('[name="kind"]').selectOption('bug');
+    await form.locator('[name="area"]').selectOption('navigation_mobile');
+    await form.locator('[name="impact"]').selectOption('partial');
+    await form.locator('[name="message"]').fill('The regression suite confirms this form remains wired after visual changes.');
+    await form.getByRole('button',{name:'Send feedback →'}).click();
+    await page.waitForURL(/\/submitted\?type=feedback/);
+    expect(requestBody).toMatchObject({formType:'feedback',data:{email:'feedback@example.test',kind:'bug',area:'navigation_mobile',impact:'partial'}});
   });
 
   test('footer newsletter control sends its JSON contract and reports success',async({page})=>{
-    let payload:Record<string,unknown>|null=null;
-    await page.route('**/api/newsletter',async route=>{payload=route.request().postDataJSON();await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})})});
+    let requestBody:Record<string,unknown>|null=null;
+    await page.route('**/api/newsletter',async route=>{
+      requestBody=route.request().postDataJSON();
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});
+    });
     await page.goto('/');
-    const form=page.locator('.footerNewsletterForm');
-    await form.locator('input[type="email"]').fill('newsletter@example.test');
-    await form.getByRole('button',{name:/Subscribe/}).click();
-    await expect(form.locator('.footerNewsletterStatus')).toContainText(/subscribed|check your inbox|thank/i);
-    expect(payload).toMatchObject({email:'newsletter@example.test'});
+    const form=page.getByRole('form',{name:'Subscribe to Mettelo updates'});
+    await form.getByRole('textbox').fill('  newsletter@example.test  ');
+    await form.getByRole('button').click();
+    await expect(form.getByRole('status')).toContainText('subscribed');
+    expect(requestBody).toMatchObject({email:'newsletter@example.test',preferences:{projects:true,events:true,opportunities:true,insights:true}});
   });
 
   test('footer newsletter rejects malformed email before calling the API',async({page})=>{
-    let calls=0;
-    await page.route('**/api/newsletter',async route=>{calls++;await route.fulfill({status:200,body:'{}'})});
+    let requests=0;
+    await page.route('**/api/newsletter',async route=>{requests+=1;await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});});
     await page.goto('/');
-    const form=page.locator('.footerNewsletterForm');
-    await form.locator('input[type="email"]').fill('not-an-email');
-    await form.getByRole('button',{name:/Subscribe/}).click();
-    await expect(form.locator('.footerNewsletterStatus')).toBeVisible();
-    expect(calls).toBe(0);
+    const form=page.getByRole('form',{name:'Subscribe to Mettelo updates'});
+    const input=form.getByRole('textbox');
+    await input.fill('not-an-email');
+    await form.getByRole('button').click();
+    await expect(form.getByRole('alert')).toContainText('valid email address');
+    await expect(input).toHaveAttribute('aria-invalid','true');
+    expect(requests).toBe(0);
   });
 
   test('footer newsletter shows a full-width server error below the controls',async({page})=>{
-    await page.route('**/api/newsletter',async route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Subscription service unavailable.'})}));
+    await page.route('**/api/newsletter',async route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Newsletter signup is temporarily unavailable while we update the service.'})}));
     await page.goto('/');
-    const form=page.locator('.footerNewsletterForm');
-    await form.locator('input[type="email"]').fill('newsletter@example.test');
-    await form.getByRole('button',{name:/Subscribe/}).click();
-    const status=form.locator('.footerNewsletterStatus');
-    await expect(status).toBeVisible();
-    const [formBox,statusBox]=await Promise.all([form.boundingBox(),status.boundingBox()]);
-    expect(formBox).not.toBeNull();expect(statusBox).not.toBeNull();
-    if(formBox&&statusBox){expect(statusBox.width).toBeGreaterThan(formBox.width*.8);expect(statusBox.y).toBeGreaterThan(formBox.y)}
+    const form=page.getByRole('form',{name:'Subscribe to Mettelo updates'});
+    await form.getByRole('textbox').fill('newsletter@example.test');
+    await form.getByRole('button').click();
+    const inline=form.locator('.footerNewsletterInline');
+    const message=form.getByRole('alert');
+    await expect(message).toBeVisible();
+    const layout=await Promise.all([inline.boundingBox(),message.boundingBox()]);
+    expect(layout[0]).not.toBeNull();
+    expect(layout[1]).not.toBeNull();
+    expect(layout[1]!.y).toBeGreaterThanOrEqual(layout[0]!.y+layout[0]!.height);
+    expect(layout[1]!.width).toBeGreaterThanOrEqual(layout[0]!.width-1);
   });
 });
 
 test.describe('FAQ typography and accordion regression',()=>{
-  for(const width of [390,768,1280])test(`uses the compact type scale at ${width}px`,async({page})=>{
-    await page.setViewportSize({width,height:900});await page.goto('/faq');
-    await expect(page.getByRole('heading',{level:1,name:'Frequently asked questions'})).toBeVisible();
-    await expectNoPageOverflow(page,`FAQ overflowed at ${width}px`);
+  const cases=[
+    {viewport:{width:390,height:844},titleMax:40,questionMax:17},
+    {viewport:{width:768,height:1024},titleMax:54,questionMax:19},
+    {viewport:{width:1280,height:900},titleMax:65,questionMax:20}
+  ];
+
+  for(const item of cases)test(`uses the compact type scale at ${item.viewport.width}px`,async({page})=>{
+    await page.setViewportSize(item.viewport);
+    await page.goto('/faq');
+    await expectNoHorizontalOverflow(page);
+    const title=page.locator('#faq-page-title');
+    const firstQuestion=page.locator('.faqItem button').first();
+    const titleSize=await title.evaluate(element=>parseFloat(getComputedStyle(element).fontSize));
+    const questionSize=await firstQuestion.evaluate(element=>parseFloat(getComputedStyle(element).fontSize));
+    expect(titleSize).toBeLessThanOrEqual(item.titleMax);
+    expect(questionSize).toBeLessThanOrEqual(item.questionMax);
+
+    const alignment=await firstQuestion.evaluate(element=>{
+      const button=element.getBoundingClientRect();
+      const icon=element.querySelector('.faqIcon')?.getBoundingClientRect();
+      return icon?Math.abs((button.top+button.height/2)-(icon.top+icon.height/2)):999;
+    });
+    expect(alignment,'the expand icon should remain vertically centered').toBeLessThanOrEqual(1);
   });
 
   test('expands and collapses without changing the compact question hierarchy',async({page})=>{
+    await page.setViewportSize({width:1280,height:900});
     await page.goto('/faq');
     const question=page.getByRole('button',{name:'What is Mettelo, and who is it for?'});
     await expect(question).toHaveAttribute('aria-expanded','false');
@@ -146,11 +190,23 @@ test.describe('mobile navigation regression',()=>{
   });
 });
 
-const responsiveFormRoutes=['/contact','/partnership','/feedback','/newsletter','/careers','/signin?mode=signup'];
-for(const width of [375,768,1280]){
-  for(const route of responsiveFormRoutes){
-    test(`responsive form release matrix › ${route} fits ${width}px`,async({page})=>{
-      await page.setViewportSize({width,height:900});await page.goto(route,{waitUntil:'domcontentloaded'});await expectNoPageOverflow(page,`${route} overflowed at ${width}px`);
-    });
+test.describe('responsive form release matrix',()=>{
+  const viewports=[{width:375,height:812},{width:768,height:1024},{width:1280,height:900}];
+  const routes=['/contact','/partnership','/feedback','/newsletter','/careers','/signin?mode=signup'];
+  for(const viewport of viewports){
+    for(const path of routes){
+      test(`${path} fits ${viewport.width}px`,async({page})=>{
+        await page.setViewportSize(viewport);
+        await page.goto(path,{waitUntil:'networkidle'});
+        await expectNoHorizontalOverflow(page);
+        const controls=page.locator('main input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),main select,main textarea,main button');
+        for(let index=0;index<await controls.count();index++){
+          const control=controls.nth(index);
+          if(!await control.isVisible())continue;
+          const box=await control.boundingBox();
+          if(box)expect(box.height,`control ${index} on ${path} needs a usable touch target`).toBeGreaterThanOrEqual(40);
+        }
+      });
+    }
   }
-}
+});

@@ -15,8 +15,12 @@ async function expectContained(child:Locator,parent:Locator,label:string){
   const [childBox,parentBox]=await Promise.all([child.boundingBox(),parent.boundingBox()]);
   expect(childBox,`${label} should render`).not.toBeNull();
   expect(parentBox,`${label} parent should render`).not.toBeNull();
-  expect(childBox!.left,`${label} must stay inside the left edge`).toBeGreaterThanOrEqual(parentBox!.left-1);
-  expect(childBox!.right,`${label} must stay inside the right edge`).toBeLessThanOrEqual(parentBox!.right+1);
+  const childLeft=childBox!.x;
+  const childRight=childBox!.x+childBox!.width;
+  const parentLeft=parentBox!.x;
+  const parentRight=parentBox!.x+parentBox!.width;
+  expect(childLeft,`${label} must stay inside the left edge`).toBeGreaterThanOrEqual(parentLeft-1);
+  expect(childRight,`${label} must stay inside the right edge`).toBeLessThanOrEqual(parentRight+1);
 }
 
 test.describe('mobile stability contract',()=>{

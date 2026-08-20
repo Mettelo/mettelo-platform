@@ -2,14 +2,14 @@
 -- Public readers see published SEO only. Draft metadata remains service-role only.
 
 create table if not exists public.website_seo_public (
-  scope text primary key,
+  scope text primary key check (scope in ('global','home','about','contact')),
   payload jsonb not null check (jsonb_typeof(payload)='object'),
   published_at timestamptz not null default now(),
   published_by uuid references auth.users(id) on delete set null
 );
 
 create table if not exists public.website_seo_drafts (
-  scope text primary key,
+  scope text primary key check (scope in ('global','home','about','contact')),
   payload jsonb not null check (jsonb_typeof(payload)='object'),
   updated_at timestamptz not null default now(),
   updated_by uuid references auth.users(id) on delete set null

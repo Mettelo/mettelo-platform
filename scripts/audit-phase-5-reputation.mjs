@@ -8,17 +8,24 @@ const checks=[
   ['Public Proof gate','app/proof/[id]/page.tsx',[".eq('visibility','public')",'verified_at','VERIFIED BY METTELO']],
   ['Credential actions','components/CredentialActions.tsx',['Download / print credential','Copy LinkedIn details','Share credential']],
   ['Credential inactive state','app/credentials/[credentialId]/page.tsx',['CURRENT STATUS','not currently active','CredentialActions']],
-  ['Spotlight member consent','app/member/spotlight/page.tsx',['SpotlightConsentPanel','explicit permission']],
-  ['Spotlight consent API','app/api/spotlight-consent/route.ts',['grant','decline','withdraw','consent_status']],
-  ['Admin consent gate','app/api/admin/spotlights/route.ts',['request_consent',"consent_status!=='granted'",'Publication is blocked']],
-  ['Public Spotlight gate','app/spotlight/[id]/page.tsx',[".eq('consent_status','granted')",'Published with member permission']],
-  ['Public profile reputation','app/people/[id]/page.tsx',[".eq('visibility','public')",".eq('consent_status','granted')",'VERIFIED BY METTELO']]
+  ['Spotlight member consent','app/member/spotlight/page.tsx',['SpotlightConsentPanel','you decide whether your personal recognition becomes public']],
+  ['Spotlight consent API','app/api/spotlight-consent/route.ts',['grant','decline','withdraw','publishSpotlightIfReady']],
+  ['Spotlight automatic workflow','lib/spotlight-workflow.ts',['requestSpotlightConsent','publishSpotlightIfReady','consent-request']],
+  ['Admin exception governance','app/api/admin/spotlights/route.ts',['replaceExcludedSpotlight',"action==='exclude'","action==='hold'","action==='suppress_project'"]],
+  ['Public Spotlight projection','lib/public-spotlight.ts',[".eq('consent_status','granted')",".eq('publication_held',false)",".eq('visibility','public')"]],
+  ['Public Spotlight permission copy','app/spotlight/[id]/page.tsx',['Published with member permission.','Share this public Spotlight.']],
+  ['Public profile reputation','app/people/[id]/page.tsx',[".eq('visibility','public')",".eq('consent_status','granted')",".eq('publication_held',false)",'VERIFIED BY METTELO']]
 ];
 let failed=false;
 for(const [label,file,needles] of checks){
   if(!fs.existsSync(file)){console.error(`FAIL ${label}: missing ${file}`);failed=true;continue;}
   const text=fs.readFileSync(file,'utf8');
   for(const needle of needles)if(!text.includes(needle)){console.error(`FAIL ${label}: missing ${needle}`);failed=true;}
+}
+
+const adminSpotlight=fs.readFileSync('app/api/admin/spotlights/route.ts','utf8');
+for(const forbidden of ["'request_consent'","action==='publish'"]){
+  if(adminSpotlight.includes(forbidden)){console.error(`FAIL Spotlight governance: Admin must not own routine consent/publication (${forbidden}).`);failed=true;}
 }
 
 const proofPage=fs.readFileSync('app/member/proof/page.tsx','utf8');
@@ -46,4 +53,4 @@ for(const required of ["verification_status:'pending'",'membership?.project_run_
 }
 
 if(failed)process.exit(1);
-console.log(`Phase 5 reputation audit passed (${checks.length} surfaces plus Proof truth/privacy/grant guards).`);
+console.log(`Phase 5 reputation audit passed (${checks.length} surfaces plus Spotlight governance and Proof truth/privacy/grant guards).`);

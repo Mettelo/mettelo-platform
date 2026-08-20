@@ -176,7 +176,9 @@ test.describe('mobile navigation regression',()=>{
     const explore=page.getByRole('button',{name:'Explore'});
     await explore.click();
     await expect(explore).toHaveAttribute('aria-expanded','true');
-    await expect(page.locator('#mobile-public-explore').getByRole('link',{name:'Careers'})).toBeVisible();
+    const explorePanelId=await explore.getAttribute('aria-controls');
+    if(!explorePanelId)throw new Error('Visible Explore control must reference its governed panel.');
+    await expect(page.locator(`#${explorePanelId}`).getByRole('link',{name:'Careers'})).toBeVisible();
 
     await page.keyboard.press('Escape');
     await expect(toggle).toHaveAttribute('aria-expanded','false');

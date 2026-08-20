@@ -14,13 +14,8 @@ const checks=[
  ['app/about/AboutPageContent.tsx',["getPublicWebsitePage('about')",'pillars','founderMedia','/api/founder-image']],
  ['app/contact/page.tsx',["buildPageMetadata('contact')",'./ContactPageContent']],
  ['app/contact/ContactPageContent.tsx',["getPublicWebsitePage('contact')",'SubmissionForm','formType="contact"','name="name"','name="email"','name="topic"','name="message"','name="consent"']],
- ['tests/admin-website-pages.spec.ts',['dangerous.values.hero_primary_href','website.page.published','originalDraft','originalPublished','Publish page','input[name="consent"]','390,768,1440']]
+ ['tests/admin-website-pages.spec.ts',['dangerous.values.hero_primary_href','website.page.published','originalDraft','originalPublished','Publish page','#contact-name','#contact-email','#contact-topic','#contact-message','#contact-consent','390,768,1440']]
 ];
 let failed=false;let passed=0;
-for(const [file,needles] of checks){
- if(!fs.existsSync(file)){console.error(`FAIL missing ${file}`);failed=true;continue}
- const source=fs.readFileSync(file,'utf8');const missing=needles.filter(needle=>!source.includes(needle));
- if(missing.length){console.error(`FAIL ${file}: missing ${missing.join(', ')}`);failed=true}else{console.log(`PASS ${file}`);passed++}
-}
-if(failed)process.exit(1);
-console.log(`Admin Website Pages audit passed: ${passed}/${checks.length} files.`);
+for(const [file,needles] of checks){if(!fs.existsSync(file)){console.error(`FAIL missing ${file}`);failed=true;continue}const source=fs.readFileSync(file,'utf8');const missing=needles.filter(needle=>!source.includes(needle));if(missing.length){console.error(`FAIL ${file}: missing ${missing.join(', ')}`);failed=true}else{console.log(`PASS ${file}`);passed++}}
+if(failed)process.exit(1);console.log(`Admin Website Pages audit passed: ${passed}/${checks.length} files.`);

@@ -81,7 +81,7 @@ test.describe('Spotlight v2 recognition, sharing and withdrawal',()=>{
     await signIn(page);await page.goto('/member/spotlight',{waitUntil:'networkidle'});
     const card=memberAward(page);
     await card.getByRole('button',{name:'Withdraw publication permission'}).click();
-    await expect(page.getByRole('status')).toContainText('no longer publicly available');
+    await expect(page.locator('.formStatus[role="status"]')).toContainText('no longer publicly available');
     await expect(card.getByRole('heading',{name:'Share your public Spotlight.'})).toHaveCount(0);
     const publicResponse=await page.goto(`/spotlight/${spotlightId}`,{waitUntil:'domcontentloaded'});expect(publicResponse?.status()).toBe(404);
   });

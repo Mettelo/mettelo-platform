@@ -1,3 +1,4 @@
+import {unstable_noStore as noStore} from 'next/cache';
 import {createPublicSupabaseClient} from '@/lib/supabase/public';
 
 export type WebsiteChromeScope='navigation'|'footer'|'branding';
@@ -51,8 +52,12 @@ function cleanText(value:unknown,max:number){return String(value??'').trim().sli
 function cleanBoolean(value:unknown,fallback=true){return typeof value==='boolean'?value:fallback}
 function cleanOrder(value:unknown,fallback:number){const parsed=Number(value);return Number.isFinite(parsed)?Math.max(0,Math.min(10000,Math.round(parsed))):fallback}
 function cleanId(value:unknown,fallback:string){const cleaned=cleanText(value,80).toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'');return cleaned||fallback}
-export function isSafePublicHref(value:string){if(!value||value.length>500)return false;if(value.startsWith('/')&&!value.startsWith('//'))return true;try{const url=new URL(value);return url.protocol==='https:'}catch{return false}}
-export function isExternalPublicHref(value:string){return value.startsWith('https://')}
+export function isSafePublicHref(value:string){
+ const href=String(value||'').trim();if(!href||href.length>500||/[\u0000-\u001f\u007f\\]/.test(href))return false;
+ if(href.startsWith('/')){if(href.startsWith('//'))return false;try{return new URL(href,'https://mettelo.com').origin==='https://mettelo.com'}catch{return false}}
+ try{const url=new URL(href);return url.protocol==='https:'&&Boolean(url.hostname)}catch{return false}
+}
+export function isExternalPublicHref(value:string){try{return new URL(value).protocol==='https:'}catch{return false}}
 
 function sanitizeNavigation(value:unknown):WebsiteNavigationConfig|null{
  const source=record(value);if(!source||!Array.isArray(source.items)||source.items.length>30)return null;
@@ -98,6 +103,7 @@ export function validateWebsiteChromePayload(scope:WebsiteChromeScope,value:unkn
 function cloneDefaults():WebsiteChromeConfig{return JSON.parse(JSON.stringify(DEFAULT_WEBSITE_CHROME)) as WebsiteChromeConfig}
 
 export async function getPublicWebsiteChrome():Promise<WebsiteChromeConfig>{
+ noStore();
  const fallback=cloneDefaults();const db=createPublicSupabaseClient();if(!db)return fallback;
  try{
   const {data,error}=await db.from('website_chrome_public').select('scope,payload');if(error)throw error;

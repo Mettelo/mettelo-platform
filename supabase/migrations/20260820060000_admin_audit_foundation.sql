@@ -27,7 +27,7 @@ create table if not exists public.admin_audit_log (
 
 create index if not exists admin_audit_log_created_at_idx on public.admin_audit_log (created_at desc);
 create index if not exists admin_audit_log_actor_created_idx on public.admin_audit_log (actor_user_id, created_at desc);
-create index if not exists admin_audit_log_actor_email_created_idx on public.admin_audit_log (lower(actor_email), created_at desc) where actor_email is not null;
+create index if not exists admin_audit_log_actor_email_created_idx on public.admin_audit_log (actor_email, created_at desc) where actor_email is not null;
 create index if not exists admin_audit_log_resource_created_idx on public.admin_audit_log (resource_type, resource_id, created_at desc);
 create index if not exists admin_audit_log_action_created_idx on public.admin_audit_log (action, created_at desc);
 create index if not exists admin_audit_log_result_created_idx on public.admin_audit_log (result, created_at desc);

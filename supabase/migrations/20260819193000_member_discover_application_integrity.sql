@@ -38,4 +38,8 @@ to authenticated
 using ((select auth.uid())=user_id)
 with check ((select auth.uid())=user_id);
 
+-- Discover and both public/internal project detail embed project_roles. Table privileges
+-- permit those reads while the existing project_roles RLS policy remains authoritative
+-- for which role rows each caller can see.
+grant select on table public.project_roles to anon, authenticated;
 grant select,insert,delete on public.saved_projects to authenticated;

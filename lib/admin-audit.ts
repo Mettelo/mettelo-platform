@@ -3,7 +3,8 @@ import type {AdminCapability} from '@/lib/admin-capabilities';
 
 type JsonValue=null|boolean|number|string|JsonValue[]|{[key:string]:JsonValue};
 
-const SENSITIVE_KEY=/pass(word)?|secret|token|authorization|cookie|api[_-]?key|service[_-]?role|private[_-]?key/i;
+const SENSITIVE_KEY=/pass(word)?|secret|token|authorization|cookie|credential|session|refresh|signature|api[_-]?key|service[_-]?role|private[_-]?key/i;
+const SENSITIVE_VALUE=/(?:bearer\s+[a-z0-9._~+\/-]+=*|sb_(?:secret|service_role|publishable)_[a-z0-9._-]{8,})/i;
 const MAX_DEPTH=5;
 const MAX_ARRAY=50;
 const MAX_STRING=4000;
@@ -27,8 +28,12 @@ function cleanString(value:string,max=MAX_STRING){return value.trim().slice(0,ma
 export function sanitizeAuditValue(value:unknown,depth=0):JsonValue{
   if(depth>MAX_DEPTH)return '[truncated]';
   if(value===null||value===undefined)return null;
-  if(typeof value==='boolean'||typeof value==='number')return value;
-  if(typeof value==='string')return value.slice(0,MAX_STRING);
+  if(typeof value==='boolean')return value;
+  if(typeof value==='number')return Number.isFinite(value)?value:String(value);
+  if(typeof value==='string'){
+    const trimmed=value.slice(0,MAX_STRING);
+    return SENSITIVE_VALUE.test(trimmed)?'[redacted]':trimmed;
+  }
   if(Array.isArray(value))return value.slice(0,MAX_ARRAY).map(item=>sanitizeAuditValue(item,depth+1));
   if(typeof value==='object'){
     const result:{[key:string]:JsonValue}={};
@@ -45,11 +50,11 @@ export function sanitizeAuditValue(value:unknown,depth=0):JsonValue{
 export async function recordAdminAudit(input:AdminAuditInput){
   const db=serviceDb();
   if(!db)return {ok:false as const,error:'Admin data service is not configured.'};
-  const action=cleanString(input.action,120);const resourceType=cleanString(input.resourceType,120);
-  if(!input.actorUserId||!action||!resourceType)return {ok:false as const,error:'Audit actor, action and resource type are required.'};
+  const actorUserId=cleanString(input.actorUserId,180);const action=cleanString(input.action,120);const resourceType=cleanString(input.resourceType,120);
+  if(!actorUserId||!action||!resourceType)return {ok:false as const,error:'Audit actor, action and resource type are required.'};
   const {error}=await db.from('admin_audit_log').insert({
-    actor_user_id:input.actorUserId,
-    actor_email:input.actorEmail?cleanString(input.actorEmail,320):null,
+    actor_user_id:actorUserId,
+    actor_email:input.actorEmail?cleanString(input.actorEmail,320).toLowerCase():null,
     capability:input.capability||null,
     action,
     resource_type:resourceType,

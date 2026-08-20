@@ -30,6 +30,9 @@ async function noOverflow(page:Page){
   expect(report.scrollWidth,`Horizontal overflow diagnostics:\n${JSON.stringify(report,null,2)}`).toBeLessThanOrEqual(report.clientWidth+1);
 }
 async function capture(page:Page,name:string){fs.mkdirSync('artifacts/design-director',{recursive:true});await page.screenshot({path:`artifacts/design-director/${name}.png`,fullPage:true});}
+function memberAward(page:Page){return page.locator('article.spotlightMemberCard').filter({has:page.locator(`a[href="/member/spotlight/${spotlightId}"]`)}).first();}
+function publicAward(page:Page){return page.locator('article.spotlightPublicCard').filter({has:page.locator(`a[href="/spotlight/${spotlightId}"]`)}).first();}
+function adminAward(page:Page){return page.locator('article.adminSpotlightCard').filter({hasText:'Builder of the Month — E2E Spotlight Member'}).first();}
 
 test.describe('Spotlight v2 recognition, sharing and withdrawal',()=>{
   test.beforeEach(async()=>{await seedPublishedSpotlight();});
@@ -38,11 +41,12 @@ test.describe('Spotlight v2 recognition, sharing and withdrawal',()=>{
     await signIn(page);
     for(const width of [375,390,414,768,1024,1440]){
       await page.setViewportSize({width,height:900});await page.goto('/member/spotlight',{waitUntil:'networkidle'});
+      const card=memberAward(page);
       await expect(page.getByRole('heading',{level:1,name:'Spotlight'})).toBeVisible();
-      await expect(page.getByRole('heading',{name:'Builder of the Month'}).first()).toBeVisible();
-      await expect(page.getByRole('heading',{name:'Share your public Spotlight.'})).toBeVisible();
-      await expect(page.getByRole('link',{name:'Share my Spotlight recognition on LinkedIn'})).toBeVisible();
-      await expect(page.getByRole('link',{name:'View public recognition →'})).toBeVisible();
+      await expect(card.getByRole('heading',{name:'Builder of the Month'})).toBeVisible();
+      await expect(card.getByRole('heading',{name:'Share your public Spotlight.'})).toBeVisible();
+      await expect(card.getByRole('link',{name:'Share my Spotlight recognition on LinkedIn'})).toBeVisible();
+      await expect(card.getByRole('link',{name:'View public recognition →'})).toBeVisible();
       await expect(page.getByRole('link',{name:'Public Spotlight →'})).toBeVisible();
       await noOverflow(page);
       if(width===390)await capture(page,'spotlight-member-mobile-390');
@@ -54,9 +58,10 @@ test.describe('Spotlight v2 recognition, sharing and withdrawal',()=>{
   test('public list and award detail expose only safe context and social sharing',async({page})=>{
     for(const width of [375,390,414,768,1024,1440]){
       await page.setViewportSize({width,height:900});const listResponse=await page.goto('/spotlight',{waitUntil:'networkidle'});expect(listResponse?.status()).toBe(200);
+      const card=publicAward(page);
       await expect(page.getByRole('heading',{level:1,name:'Recognition earned through real contribution.'})).toBeVisible();
-      await expect(page.getByRole('heading',{name:'Builder of the Month'}).first()).toBeVisible();
-      await expect(page.getByRole('link',{name:'Share this Spotlight recognition on LinkedIn'}).first()).toBeVisible();
+      await expect(card.getByRole('heading',{name:'Builder of the Month'})).toBeVisible();
+      await expect(card.getByRole('link',{name:'Share this Spotlight recognition on LinkedIn'})).toBeVisible();
       await expect(page.getByText(/Score 88|rank_position|score_breakdown/i)).toHaveCount(0);await noOverflow(page);
       if(width===390)await capture(page,'spotlight-public-list-mobile-390');
       if(width===1440)await capture(page,'spotlight-public-list-desktop-1440');
@@ -74,17 +79,19 @@ test.describe('Spotlight v2 recognition, sharing and withdrawal',()=>{
 
   test('withdrawing permission removes social sharing and invalidates the public URL',async({page})=>{
     await signIn(page);await page.goto('/member/spotlight',{waitUntil:'networkidle'});
-    await page.getByRole('button',{name:'Withdraw publication permission'}).click();
+    const card=memberAward(page);
+    await card.getByRole('button',{name:'Withdraw publication permission'}).click();
     await expect(page.getByRole('status')).toContainText('no longer publicly available');
-    await expect(page.getByRole('heading',{name:'Share your public Spotlight.'})).toHaveCount(0);
+    await expect(card.getByRole('heading',{name:'Share your public Spotlight.'})).toHaveCount(0);
     const publicResponse=await page.goto(`/spotlight/${spotlightId}`,{waitUntil:'domcontentloaded'});expect(publicResponse?.status()).toBe(404);
   });
 
   test('Admin sees exception governance instead of routine publish controls',async({page})=>{
     await page.goto('/signin?next=%2Fadmin%2Fspotlights',{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(required('E2E_ADMIN_EMAIL'));await main.locator('input[type="password"]').fill(required('E2E_ADMIN_PASSWORD'));await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000});await page.goto('/admin/spotlights',{waitUntil:'networkidle'});
+    const card=adminAward(page);
     await expect(page.getByRole('heading',{level:1,name:'Safeguard exceptions, not routine winners.'})).toBeVisible();
     await expect(page.getByRole('button',{name:'Request publication consent'})).toHaveCount(0);await expect(page.getByRole('button',{name:/Publish consented month/})).toHaveCount(0);
-    await expect(page.getByRole('button',{name:'Hold publication'})).toBeVisible();await expect(page.getByRole('button',{name:'Suppress public project'})).toBeVisible();await expect(page.getByRole('button',{name:'Suppress public Proof'})).toBeVisible();
+    await expect(card.getByRole('button',{name:'Hold publication'})).toBeVisible();await expect(card.getByRole('button',{name:'Suppress public project'})).toBeVisible();await expect(card.getByRole('button',{name:'Suppress public Proof'})).toBeVisible();
     await page.setViewportSize({width:1440,height:900});await capture(page,'admin-spotlight-governance-desktop-1440');
   });
 });

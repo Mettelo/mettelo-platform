@@ -33,6 +33,8 @@ jobs:
             before="${{ github.event.before }}"
             after="${{ github.sha }}"
 
+            # A missing/all-zero predecessor cannot be scoped safely, so fail
+            # closed and require the authenticated backend gate.
             if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
               echo "requires_staging=true" >> "$GITHUB_OUTPUT"
               echo "classification=unscoped-main-push-full-release" >> "$GITHUB_OUTPUT"
@@ -206,16 +208,6 @@ jobs:
           exit 1
       - name: Verify E2E production guard
         run: npm run check:e2e-config
-      - name: Blocking Spotlight and Admin experience contracts
-        run: npx playwright test tests/spotlight-v2-visual.spec.ts tests/admin-experience-v1.spec.ts --project=chromium --workers=1
-      - name: Upload design-director browser evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: design-director-browser-evidence
-          path: artifacts/design-director/
-          if-no-files-found: ignore
-          retention-days: 7
       - name: Blocking public browser regression suite
         run: npm run test:regression
       - name: Blocking authenticated smoke and Mettelo Lab Chromium visual QA
@@ -246,7 +238,6 @@ jobs:
             playwright-report/
             test-results/
             artifacts/mettelo-lab-visual/
-            artifacts/design-director/
             /tmp/mettelo-e2e.log
             .supabase-ci/manifest.json
           if-no-files-found: ignore

@@ -1,14 +1,10 @@
-import {cache} from 'react';
-import {unstable_cache} from 'next/cache';
 import {createPublicSupabaseClient} from '@/lib/supabase/public';
 
 const fallback=[
  ['social_whatsapp','WhatsApp','https://chat.whatsapp.com/LrxCOfDBCDUJhRqXFRD2cY'],['social_discord','Discord','https://discord.gg/Nx6qCbEY'],['social_community_hub','Community Hub','https://gamms.app/community/mettelo'],['social_x','X','https://www.twitter.com/officialmettelo'],['social_linkedin','LinkedIn','https://www.linkedin.com/mettelo'],['social_facebook','Facebook','https://www.facebook.com/officialmettelo']
 ] as const;
 
-function fallbackRecord(){return Object.fromEntries(fallback.map(([key,,value])=>[key,value])) as Record<string,string>}
-const loadPublicPlatformSettingsRecord=unstable_cache(async()=>{const db=createPublicSupabaseClient();if(!db)return fallbackRecord();try{const {data,error}=await db.from('platform_settings').select('setting_key,value').eq('public_read',true);if(error)throw error;const record:Record<string,string>=Object.fromEntries((data||[]).map(item=>[String(item.setting_key),String(item.value||'')]));for(const[key,,value]of fallback)if(!(key in record))record[key]=value;return record}catch{return fallbackRecord()}},['public-platform-settings'],{tags:['platform-settings'],revalidate:3600});
-export const getPublicPlatformSettings=cache(async()=>new Map(Object.entries(await loadPublicPlatformSettingsRecord())));
+export async function getPublicPlatformSettings(){const db=createPublicSupabaseClient();if(!db)return new Map(fallback.map(([key,,value])=>[key,value]));try{const {data,error}=await db.from('platform_settings').select('setting_key,value').eq('public_read',true);if(error)throw error;const map=new Map((data||[]).map(item=>[String(item.setting_key),String(item.value||'')]));for(const[key,,value]of fallback)if(!map.has(key))map.set(key,value);return map}catch{return new Map(fallback.map(([key,,value])=>[key,value]))}}
 
 export default async function PlatformSocialLinks(){const settings=await getPublicPlatformSettings();const configured=[...fallback.map(([key,label,fallbackUrl])=>[label,settings.get(key)||fallbackUrl] as const),['Instagram',settings.get('social_instagram')||''] as const,['YouTube',settings.get('social_youtube')||''] as const].filter(([,href])=>Boolean(href));return <div className="footerSocial" aria-label="Mettelo social channels">{configured.map(([label,href])=><a className="socialIconButton" key={`${label}-${href}`} href={href} target="_blank" rel="noopener noreferrer" aria-label={`Mettelo on ${label}`} title={label}><span aria-hidden="true" style={{fontWeight:900,fontSize:label==='LinkedIn'?10:12}}>{label==='LinkedIn'?'in':label==='WhatsApp'?'W':label==='Discord'?'D':label==='Community Hub'?'M':label==='Facebook'?'f':label==='Instagram'?'◎':label==='YouTube'?'▶':'X'}</span></a>)}</div>}
 

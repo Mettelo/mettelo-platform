@@ -11,9 +11,8 @@ export async function sendCareerEmail(db:SupabaseClient,input:CareerEmailInput){
   const dedupeKey=`${input.templateKey}:${input.email}:${input.subject}`;
   const payload={recipient_name:input.name||null,role_title:input.roleTitle||null,...(input.payload||{})};
   const actionUrl=input.actionUrl?.startsWith('/member')?'/careers/applications':(input.actionUrl||'/careers/applications');
-  const scopedDedupeKey=input.userId?`${input.userId}:${dedupeKey}`:dedupeKey;
-  const outbox=await enqueueEmail(db,{userId:input.userId||null,to:input.email,templateKey:input.templateKey,eventKey:input.templateKey,subject:input.subject,body:input.body,actionUrl,dedupeKey:scopedDedupeKey,payload});
-  if(!outbox){const {data}=await db.from('email_outbox').select('status,id').eq('dedupe_key',scopedDedupeKey).maybeSingle();return {queued:true,sent:data?.status==='sent',outboxId:data?.id||null}}
+  const outbox=await enqueueEmail(db,{userId:input.userId||null,to:input.email,templateKey:input.templateKey,eventKey:input.templateKey,subject:input.subject,body:input.body,actionUrl,dedupeKey:input.userId?`${input.userId}:${dedupeKey}`:dedupeKey,payload});
+  if(!outbox){const {data}=await db.from('email_outbox').select('status,id').eq('dedupe_key',input.userId?`${input.userId}:${dedupeKey}`:dedupeKey).maybeSingle();return {queued:true,sent:data?.status==='sent',outboxId:data?.id||null}}
   const result=await deliverOutboxItem(db,outbox);return {queued:true,sent:result.status==='sent',outboxId:outbox.id};
 }
 

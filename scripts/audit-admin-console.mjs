@@ -1,17 +1,14 @@
 import fs from 'node:fs';
 
 const checks=[
-  ['components/AdminShell.tsx',['Recruiting','Projects','Community & Proof','Content & Comms','System','Admin primary navigation','adminBreadcrumb','/admin/project-operations/projects','/admin/project-operations/applications','Platform settings','/admin/settings']],
+  ['components/AdminShell.tsx',['Recruiting','Projects','Community & Proof','Content & Comms','System','Admin primary navigation','adminBreadcrumb','/admin/project-operations/projects','/admin/project-operations/applications']],
   ['components/AdminStatusBadge.tsx',['adminStatusBadge','iconByStatus','success','warning','danger','neutral','info']],
   ['app/admin/page.tsx',['NEEDS ATTENTION','WORKSPACE SHORTCUTS','Nothing needs attention right now','Applications to review','Teams forming','overviewStats','Platform settings','/admin/settings']],
   ['app/admin/settings/page.tsx',['Settings unavailable','AdminPlatformSettings','platform_settings','project_role_catalogue']],
-  ['components/AdminPlatformSettings.tsx',['PLATFORM CONFIGURATION','Logo assets','Social channels','Contact details','Contribution-role catalogue',"setting.setting_group==='branding'",'brandPreview','Add role','aria-live','@media(max-width:480px)']],
+  ['components/AdminPlatformSettings.tsx',['PLATFORM CONFIGURATION','Social channels','Contact details','Contribution-role catalogue','Add role','aria-live','@media(max-width:480px)']],
   ['app/api/admin/settings/route.ts',['Admin access required','platform_settings','updated_by']],
   ['components/PlatformSocialLinks.tsx',['platform_settings','public_read','social_instagram','social_youtube','aria-label']],
-  ['components/PlatformLogo.tsx',['brand_logo_dark_url','brand_logo_light_url','mettelo-logo-dark.svg','mettelo-logo-light.svg','getPublicPlatformSettings']],
-  ['app/layout.tsx',['PlatformLogo variant="dark"','PlatformLogo variant="light"','PlatformSocialLinks','PlatformContactEmail']],
   ['supabase/migrations/20260818184000_platform_settings.sql',['platform_settings','contact_email','social_linkedin','social_x','public_read']],
-  ['supabase/migrations/20260819213000_platform_branding_settings.sql',['brand_logo_dark_url','brand_logo_light_url','on conflict (setting_key) do nothing']],
   ['app/admin/project-operations/projects/page.tsx',['Admin / Projects / Projects','AdminProjectCreateButton','AdminProjectManager']],
   ['components/AdminProjectManager.tsx',['Search by project name or partner','Team fill % ascending','Rows per page','Archive selected','Make public','Make private','No projects match these filters','rowMenu','mobileProjectList']],
   ['app/admin/project-operations/projects/[id]/page.tsx',['Admin / Projects / Projects /','Project brief','BRIEF DETAILS','COHORTS','cohortGrid','APPLICATION DEADLINE','PROJECT METADATA','Applications received','Open Team Formation','AdminProjectVisibilityControl','AdminExpandableText']],

@@ -53,12 +53,12 @@ export default async function OpportunitiesPage(){
       </div>
     </section>
 
-    <section id="opportunity-feed" className="opportunityDiscovery" aria-labelledby="opportunity-discovery-title">
+    <section id="opportunity-feed" className="opportunityDiscovery" aria-labelledby="opportunity-feed-heading">
       <div className="shell">
         <div className="opportunityDiscoveryIntro">
           <div>
             <div className="eyebrow">DISCOVER</div>
-            <h2 id="opportunity-discovery-title">Search first. Filter only when you need to.</h2>
+            <h2 id="opportunity-feed-heading">Search first. Filter only when you need to.</h2>
           </div>
           <p>Start with a role, company, skill or location. Use quick filters for common searches, then open advanced filters for more control.</p>
         </div>

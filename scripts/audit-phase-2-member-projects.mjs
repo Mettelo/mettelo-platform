@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 
 const checks=[
-  ['components/MemberAppShell.tsx',["from '@/lib/member-navigation'",'Find a project','My Mettelo mobile navigation','aria-current','account?.hasLead',"account?.accountType==='project_architect'",'/member/project-lead','/member/architect-projects']],
-  ['lib/member-navigation.ts',["label:'My Work'","label:'Home'","label:'Projects'","label:'Applications'","label:'Proof'","label:'Profile'","label:'Explore'","label:'Discover'","label:'Recommended'","label:'Opportunities'","label:'Saved'","label:'Events'","label:'Reputation'","label:'Spotlight'",'mobilePersistentNav','mobileMoreNav']],
+  ['components/MemberAppShell.tsx',["from '@/lib/member-navigation'",'Find a project','/member/discover','My Mettelo mobile navigation','aria-current','moreActive','account?.hasLead',"account?.accountType==='project_architect'",'/member/project-lead','/member/architect-projects']],
+  ['lib/member-navigation.ts',["label:'My Work'","label:'Home'","label:'Projects'","label:'Applications'","label:'Proof'","label:'Profile'","label:'Explore'","label:'Discover'","label:'Recommended'","label:'Opportunities'","label:'Saved'","label:'Events'","label:'Reputation'","label:'Spotlight'",'mobilePersistentNav','mobileMoreNav',"href:'/member/discover'"]],
   ['components/MemberAppShell.module.css',['grid-template-columns:repeat(5,minmax(0,1fr))','min-height:44px','safe-area-inset-bottom','activeLink','morePanel','pageContext','@media (min-width:481px) and (max-width:1024px)','@media (max-width:480px)']],
   ['app/member/page.tsx',['Good to see you','Up next · Project work','WHAT NEEDS YOU NOW','Continue working','Latest status','PROFILE READINESS','Evidence that travels with you','SPOTLIGHT · REPUTATION','Open Mettelo Lab','role="progressbar"','mobileMoreNav']],
   ['app/member/member-home-v3.module.css',['grid-template-columns:repeat(5,minmax(0,1fr))','grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr)','@media (min-width:481px) and (max-width:1024px)','@media(max-width:480px)','prefers-reduced-motion:reduce']],
@@ -14,8 +14,8 @@ const checks=[
   ['components/ProjectApplicationForm.tsx',['Continue this project application inside My Mettelo.','/member/discover/${selected.id}/apply','View member project detail']],
   ['components/MemberProjectApplicationFlow.tsx',['Role & fit','Availability','Your response','Review','type="radio"','Project Participation Terms','terms_attachment_id','terms_accepted:true','Submit application','/api/project-applications']],
   ['app/member/discover/[id]/apply/page.tsx',['PROFILE_APPLICATION_READY','resolveMemberProjectState',"state!=='open_eligible'",'MemberProjectApplicationFlow']],
-  ['app/member/applications/page.tsx',['project_application_events','project_run_id','forming_deadline','MemberApplicationTracker','Know exactly what is happening next.','Recruitment applications, interviews and offers are kept separately in Careers.','/member/discover','/careers/applications']],
-  ['components/MemberApplicationTracker.tsx',['WHAT THIS MEANS','WHAT HAPPENS NEXT','DO I NEED TO DO SOMETHING?','Application timeline','View history','formationTrack','Open in Projects →','Projects is now the source of truth for this work.']],
+  ['app/member/applications/page.tsx',['project_application_events','project_run_id','forming_deadline','MemberApplicationTracker','MY WORK · PROJECT APPLICATIONS','Track the projects you’ve applied to','Discover projects',"from('project_applications')"]],
+  ['components/MemberApplicationTracker.tsx',['Search project applications','Needs action','Applications moving forward','No action needed','Team forming','Project confirmed','Open in Projects','Looking for another project?','mmaApplicationCard','mmaHistoryCard','mmaDialog']],
   ['app/api/project-applications/route.ts',['application_deadline','applications_open','project_role_ids','project_role_catalogue','project_application_roles','catalogueRoles.map','application_submitted','team_place_released','waiting_for_team','terms_attachment_id','terms_accepted_at','Project Participation Terms','That project role has filled']],
   ['app/api/project-terms/route.ts',['project_application_terms','communication_template_attachments','attachment_id']],
   ['app/api/admin/communications/attachments/route.ts',['communication-template-documents','application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','MAX_FILES=4']],
@@ -57,11 +57,6 @@ if(publicApplicationForm.includes("fetch('/api/project-applications'")){console.
 const internalApplicationFlow=fs.readFileSync('components/MemberProjectApplicationFlow.tsx','utf8');
 if(!internalApplicationFlow.includes("fetch('/api/project-applications'")){console.error('Authenticated My Mettelo application flow must own canonical project application submission.');failed=true;}
 
-const memberApplications=fs.readFileSync('app/member/applications/page.tsx','utf8');
-for(const forbidden of ['career_applications','career_application_events','career_onboarding_items','career_offer_documents','CareerApplicationTracker']){if(memberApplications.includes(forbidden)){console.error(`My Mettelo Applications must not query or render recruitment data: ${forbidden}`);failed=true;}}
-const applicationTracker=fs.readFileSync('components/MemberApplicationTracker.tsx','utf8');
-if(/href=\{`\/member\/projects\/\$\{item\.project_id\}/.test(applicationTracker)){console.error('Confirmed applications must hand off to Projects, not directly to a Mettelo Lab project route.');failed=true;}
-
 const layout=fs.readFileSync('app/member/projects/[id]/layout.tsx','utf8');
 const routeTabs=fs.readFileSync('components/WorkspaceRouteTabs.tsx','utf8');
 if(layout.includes('Project workspace')||layout.includes('>Conversation<')||layout.includes('>Work<')){console.error('Mettelo Lab must use the approved member-facing identity and terminology.');failed=true;}
@@ -80,6 +75,12 @@ const persistentEnd=memberNav.indexOf('export const mobileMoreNav');
 const persistent=memberNav.slice(persistentStart,persistentEnd);
 const mobileLabels=[...persistent.matchAll(/label:'([^']+)'/g)].map(match=>match[1]);
 if(JSON.stringify(mobileLabels)!==JSON.stringify(['Home','Projects','Discover','Proof','More'])){console.error(`My Mettelo mobile persistent navigation changed unexpectedly: ${mobileLabels.join(', ')}`);failed=true;}
+
+const applicationsPage=fs.readFileSync('app/member/applications/page.tsx','utf8');
+for(const forbidden of ["from('career_applications')",'CareerApplicationTracker','career_offer_documents','career_onboarding_items','career_application_events']){if(applicationsPage.includes(forbidden)){console.error(`My Mettelo Applications must stay project-only: ${forbidden}`);failed=true;}}
+const applicationsTracker=fs.readFileSync('components/MemberApplicationTracker.tsx','utf8');
+if(applicationsTracker.includes('Open Mettelo Lab')){console.error('Applications must hand confirmed work to Projects before Mettelo Lab.');failed=true;}
+if(!applicationsTracker.includes('href="/member/projects"')){console.error('Confirmed Applications must hand off to Projects.');failed=true;}
 
 const openRuns=[{run_number:1,status:'active',has_started:true,filled:3,required:3},{run_number:2,status:'forming',has_started:false,filled:1,required:3}];
 const recruiting=openRuns.filter(run=>run.status==='forming'&&!run.has_started&&run.filled<run.required).sort((a,b)=>a.run_number-b.run_number)[0];

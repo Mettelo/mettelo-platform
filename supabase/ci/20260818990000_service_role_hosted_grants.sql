@@ -7,6 +7,7 @@ grant usage on schema public to anon, authenticated, service_role;
 
 grant select on table public.projects to anon, authenticated;
 grant select, insert, update on table public.project_applications to authenticated;
+grant select, update on table public.notifications to authenticated;
 
 grant all privileges on all tables in schema public to service_role;
 grant all privileges on all sequences in schema public to service_role;

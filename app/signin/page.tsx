@@ -1,3 +1,4 @@
+import {redirect} from 'next/navigation';
 import AuthAccountClient from './AuthAccountClient';
 import {createPublicSupabaseClient} from '@/lib/supabase/public';
 import './signin.css';
@@ -11,7 +12,16 @@ async function getMemberCount(){
   return result.count??null;
 }
 
-export default async function SignInPage(){
+function memberApplicationReturn(next:string|undefined){
+  const match=next?.match(/^\/projects\/([0-9a-f-]{36})#apply$/i);
+  return match?`/member/discover/${match[1]}/apply`:null;
+}
+
+export default async function SignInPage({searchParams}:{searchParams:Promise<{next?:string|string[]}>}){
+  const query=await searchParams;
+  const requestedNext=Array.isArray(query.next)?query.next[0]:query.next;
+  const canonicalNext=memberApplicationReturn(requestedNext);
+  if(canonicalNext)redirect(`/signin?next=${encodeURIComponent(canonicalNext)}`);
   const memberCount=await getMemberCount();
   return <AuthAccountClient memberCount={memberCount}/>;
 }

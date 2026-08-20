@@ -22,6 +22,12 @@ test.describe('Admin Website Media Library',()=>{
   const search=await api.get(`/api/admin/website/media?q=${encodeURIComponent(marker)}&status=active&page=1&page_size=25`);expect(search.status()).toBe(200);const searchBody=await search.json();expect(searchBody.items.some((item:MediaAsset)=>item.id===asset.id)).toBe(true);
   expect(await auditCount(api,'website.media.uploaded')).toBeGreaterThan(0);
 
+  await page.goto('/admin/website/media',{waitUntil:'networkidle'});
+  await page.getByLabel('Search title').fill(marker);
+  await expect(page.getByText(marker,{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Manage'}).click();
+  await expect(page.getByRole('button',{name:'Copy public URL'})).toBeVisible();
+
   const updatedTitle=`${marker} updated`;const update=await api.patch('/api/admin/website/media',{data:{id:asset.id,title:updatedTitle,alt_text:'Updated accessible description',decorative:false,status:'active'}});expect(update.status()).toBe(200);const updateBody=await update.json();expect(updateBody.item.title).toBe(updatedTitle);expect(updateBody.item.alt_text).toBe('Updated accessible description');
 
   const archive=await api.patch('/api/admin/website/media',{data:{id:asset.id,title:updatedTitle,alt_text:'Updated accessible description',decorative:false,status:'archived'}});expect(archive.status()).toBe(200);const archiveBody=await archive.json();expect(archiveBody.item.status).toBe('archived');expect(await auditCount(api,'website.media.archived')).toBeGreaterThan(0);

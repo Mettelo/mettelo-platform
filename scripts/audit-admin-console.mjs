@@ -1,7 +1,11 @@
 import fs from 'node:fs';
 
 const checks=[
-  ['components/AdminShell.tsx',['Recruiting','Projects','Community & Proof','Content & Comms','System','Admin primary navigation','adminBreadcrumb','/admin/project-operations/projects','/admin/project-operations/applications']],
+  ['components/AdminShell.tsx',['Website','Recruiting','Projects','Community & Proof','Content & Comms','Platform','System','Website overview','Platform overview','System overview','Settings','Admin primary navigation','adminBreadcrumb','Open Admin navigation','Close Admin navigation','aria-expanded','adminNavBackdrop','adminNavMobileHeader','/admin/website','/admin/platform','/admin/system','/admin/settings','/admin/project-operations/projects','/admin/project-operations/applications']],
+  ['components/AdminWorkspaceOverview.tsx',['AVAILABLE NOW','Working controls','PLANNED CONTROLS','intentionally not rendered as links or controls','adminFoundationGrid','@media(max-width:760px)']],
+  ['app/admin/website/page.tsx',['Website management','Social channels & contact','News & Insights','Structured publishing','Pages','Navigation','SEO','Media']],
+  ['app/admin/platform/page.tsx',['Platform controls','Platform settings','Admin access','Authentication & SSO','Feature flags']],
+  ['app/admin/system/page.tsx',['System operations','Audit log','QA team','General intake','System health','Jobs & errors']],
   ['components/AdminStatusBadge.tsx',['adminStatusBadge','iconByStatus','success','warning','danger','neutral','info']],
   ['app/admin/page.tsx',['NEEDS ATTENTION','WORKSPACE SHORTCUTS','Nothing needs attention right now','Applications to review','Teams forming','overviewStats','Platform settings','/admin/settings']],
   ['app/admin/settings/page.tsx',['Settings unavailable','AdminPlatformSettings','platform_settings','project_role_catalogue']],

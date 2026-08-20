@@ -40,6 +40,7 @@ if(memberIdentityError)throw memberIdentityError;
 const projectId='00000000-0000-4000-8000-00000000e2e1';
 const team1RunId='00000000-0000-4000-8000-00000000e211';
 const team2RunId='00000000-0000-4000-8000-00000000e212';
+const projectRoleId='00000000-0000-4000-8000-00000000e2a1';
 const {error:projectError}=await db.from('projects').upsert({
   id:projectId,
   slug:'e2e-local-release-project',
@@ -56,6 +57,9 @@ const {error:projectError}=await db.from('projects').upsert({
 },{onConflict:'id'});
 if(projectError)throw projectError;
 
+const {error:roleError}=await db.from('project_roles').upsert({id:projectRoleId,project_id:projectId,title:'Data Analyst',discipline:'Data & AI',description:'Deterministic E2E project role.',skills:[],openings:1},{onConflict:'id'});
+if(roleError)throw roleError;
+
 const {error:runError}=await db.from('project_runs').upsert([
   {id:team1RunId,project_id:projectId,run_number:1,status:'active',team_size_threshold:5,required_team_size:5,has_started:true,started_at:new Date().toISOString()},
   {id:team2RunId,project_id:projectId,run_number:2,status:'forming',team_size_threshold:5,required_team_size:5,has_started:false}
@@ -63,7 +67,7 @@ const {error:runError}=await db.from('project_runs').upsert([
 if(runError)throw runError;
 
 await db.from('project_members').delete().eq('project_id',projectId).eq('user_id',users.member.id);
-const {error:membershipError}=await db.from('project_members').insert({project_id:projectId,project_run_id:team1RunId,user_id:users.member.id,team_role:'contributor',membership_status:'active'});
+const {error:membershipError}=await db.from('project_members').insert({project_id:projectId,project_run_id:team1RunId,project_role_id:projectRoleId,user_id:users.member.id,team_role:'contributor',membership_status:'active'});
 if(membershipError)throw membershipError;
 
 const [{data:verifiedProject,error:verifiedProjectError},{data:verifiedMembership,error:verifiedMembershipError},{data:verifiedRun,error:verifiedRunError}]=await Promise.all([
@@ -75,6 +79,16 @@ if(verifiedProjectError)throw verifiedProjectError;
 if(verifiedMembershipError)throw verifiedMembershipError;
 if(verifiedRunError)throw verifiedRunError;
 if(!verifiedProject||!verifiedMembership||!verifiedRun)throw new Error('Scoped E2E project fixture failed exact workspace-gate verification.');
+
+const proofNow=new Date();
+const proofFixtures=[
+  {id:'00000000-0000-4000-8000-00000000e2b1',user_id:users.member.id,project_id:projectId,project_run_id:team1RunId,contribution_type:'analysis',title:'E2E verified forecasting analysis',description:'Built and documented the comparison analysis used by the E2E project team to evaluate the agreed project scenario.',evidence_url:'https://example.com/e2e-proof',verification_status:'verified',verified_by:users.admin.id,verified_at:new Date(proofNow.getTime()-86400000).toISOString(),visibility:'private',is_public:false,review_notes:'Internal text must never appear in verified member Proof.'},
+  {id:'00000000-0000-4000-8000-00000000e2b2',user_id:users.member.id,project_id:projectId,project_run_id:team1RunId,contribution_type:'research',title:'E2E pending evidence review',description:'Prepared a source-backed research summary for the E2E project and submitted it for verification by the project reviewer.',evidence_url:null,verification_status:'pending',verified_by:null,verified_at:null,visibility:'private',is_public:false,review_notes:null},
+  {id:'00000000-0000-4000-8000-00000000e2b3',user_id:users.member.id,project_id:projectId,project_run_id:team1RunId,contribution_type:'documentation',title:'E2E evidence needing changes',description:'Documented the E2E delivery approach and linked the contribution to the project record for reviewer verification.',evidence_url:'https://example.com/e2e-update',verification_status:'needs_changes',verified_by:null,verified_at:null,visibility:'private',is_public:false,review_notes:'Clarify which part of the delivery document you owned before resubmitting.'},
+  {id:'00000000-0000-4000-8000-00000000e2b4',user_id:users.member.id,project_id:projectId,project_run_id:team1RunId,contribution_type:'other',title:'E2E evidence not verified',description:'Submitted an E2E contribution that remains available only as review history because verification was not approved.',evidence_url:null,verification_status:'rejected',verified_by:users.admin.id,verified_at:null,visibility:'private',is_public:false,review_notes:'Internal rejection rationale for deterministic privacy coverage.'}
+];
+const {error:proofError}=await db.from('contributions').upsert(proofFixtures,{onConflict:'id'});
+if(proofError)throw proofError;
 
 const {error:careerError}=await db.from('career_roles').upsert({
   slug:'e2e-local-quality-role',
@@ -94,4 +108,15 @@ const {error:careerError}=await db.from('career_roles').upsert({
 },{onConflict:'slug'});
 if(careerError)throw careerError;
 
-console.log('Created and verified isolated local E2E identities and deterministic fixture records.');
+const {data:termsTemplate,error:termsTemplateError}=await db.from('communication_templates').select('id,version').eq('template_key','project_application_terms').eq('active',true).maybeSingle();
+if(termsTemplateError)throw termsTemplateError;
+if(!termsTemplate)throw new Error('Active project application terms template is required for isolated E2E.');
+const termsAttachmentId='00000000-0000-4000-8000-00000000e2c1';
+const termsPath='e2e/project-participation-terms.pdf';
+const termsDocument=Buffer.from('%PDF-1.4\n% Deterministic local E2E Project Participation Terms\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n','utf8');
+const {error:termsUploadError}=await db.storage.from('communication-template-documents').upload(termsPath,termsDocument,{contentType:'application/pdf',upsert:true});
+if(termsUploadError)throw termsUploadError;
+const {error:termsAttachmentError}=await db.from('communication_template_attachments').upsert({id:termsAttachmentId,template_id:termsTemplate.id,file_name:'E2E Project Participation Terms.pdf',storage_path:termsPath,content_type:'application/pdf',size_bytes:termsDocument.length,sort_order:0,active:true,created_by:users.admin.id},{onConflict:'id'});
+if(termsAttachmentError)throw termsAttachmentError;
+
+console.log('Created and verified isolated local E2E identities, Proof lifecycle records, governed project terms and deterministic fixture records.');

@@ -10,12 +10,13 @@ type HistoryResponse={items:Revision[];page:number;page_size:number;total:number
 
 function sourceLabel(source:Revision['source']){return source==='baseline'?'Baseline':source==='restored_publish'?'Published from restored draft':'Published'}
 function publicPath(page:WebsitePageKey){return page==='home'?'/':`/${page}`}
+const FALLBACK_PAGE:PageInfo={key:'home',label:'Homepage',fields:[]};
 
 export default function AdminWebsitePageHistory({pages}:{pages:PageInfo[]}){
  const[currentPage,setCurrentPage]=useState<WebsitePageKey>(pages[0]?.key||'home');
  const[pageNumber,setPageNumber]=useState(1);const[pageSize,setPageSize]=useState(25);const[history,setHistory]=useState<HistoryResponse>({items:[],page:1,page_size:25,total:0,pages:1});
  const[selectedId,setSelectedId]=useState<number|null>(null);const[loading,setLoading]=useState(true);const[status,setStatus]=useState('');const[confirming,setConfirming]=useState(false);const[restoring,setRestoring]=useState(false);
- const pageInfo=useMemo(()=>pages.find(page=>page.key===currentPage)||pages[0],[pages,currentPage]);const selected=history.items.find(item=>item.id===selectedId)||null;
+ const pageInfo=useMemo(()=>pages.find(page=>page.key===currentPage)||pages[0]||FALLBACK_PAGE,[pages,currentPage]);const selected=history.items.find(item=>item.id===selectedId)||null;
 
  const load=useCallback(async()=>{
   setLoading(true);setStatus('');

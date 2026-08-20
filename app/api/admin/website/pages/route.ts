@@ -6,6 +6,7 @@ import {recordAdminAudit} from '@/lib/admin-audit';
 import {defaultWebsitePagePayload,isWebsitePageKey,validateWebsitePagePayload} from '@/lib/website-pages';
 
 export const dynamic='force-dynamic';
+type PublishRevision={revision_id:number;revision_number:number;published_at:string};
 
 async function context(page:unknown,mode:'read'|'edit'|'publish'){
  if(!isWebsitePageKey(page))return{error:NextResponse.json({error:'Valid Website page is required.'},{status:400})};
@@ -53,9 +54,10 @@ export async function POST(request:Request){
   ]);
   if(draftError)throw draftError;if(!draft)return NextResponse.json({error:'Save a valid draft before publishing.'},{status:409});
   const validated=validateWebsitePagePayload(ctx.page,draft.payload);if(!validated.ok)return NextResponse.json({error:validated.error},{status:400});
-  const {data:revision,error}=await ctx.db.rpc('publish_website_page_with_revision',{
+  const {data,error}=await ctx.db.rpc('publish_website_page_with_revision',{
    p_page_key:ctx.page,p_payload:validated.payload,p_actor:ctx.user.id,p_restored_from_revision_id:draft.restored_from_revision_id||null
   }).single();
+  const revision=data as PublishRevision|null;
   if(error||!revision)throw error||new Error('Atomic Website page publish returned no revision.');
   const item={page_key:ctx.page,payload:validated.payload,published_at:revision.published_at,published_by:ctx.user.id};
   const audit=await recordAdminAudit({actorUserId:ctx.user.id,actorEmail:ctx.user.email,capability:'website.content.publish',action:'website.page.published',resourceType:'website.page',resourceId:ctx.page,beforeState:before?.payload||null,afterState:validated.payload,metadata:{page:ctx.page,revision_id:revision.revision_id,revision_number:revision.revision_number,restored_from_revision_id:draft.restored_from_revision_id||null}});

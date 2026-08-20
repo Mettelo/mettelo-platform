@@ -56,7 +56,7 @@ export async function POST(request:Request){
   const {data:revision,error}=await ctx.db.rpc('publish_website_page_with_revision',{
    p_page_key:ctx.page,p_payload:validated.payload,p_actor:ctx.user.id,p_restored_from_revision_id:draft.restored_from_revision_id||null
   }).single();
-  if(error)throw error;
+  if(error||!revision)throw error||new Error('Atomic Website page publish returned no revision.');
   const item={page_key:ctx.page,payload:validated.payload,published_at:revision.published_at,published_by:ctx.user.id};
   const audit=await recordAdminAudit({actorUserId:ctx.user.id,actorEmail:ctx.user.email,capability:'website.content.publish',action:'website.page.published',resourceType:'website.page',resourceId:ctx.page,beforeState:before?.payload||null,afterState:validated.payload,metadata:{page:ctx.page,revision_id:revision.revision_id,revision_number:revision.revision_number,restored_from_revision_id:draft.restored_from_revision_id||null}});
   return NextResponse.json({ok:true,item,revision:{id:revision.revision_id,number:revision.revision_number},audit_recorded:audit.ok});

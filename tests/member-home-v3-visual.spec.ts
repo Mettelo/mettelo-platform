@@ -56,7 +56,7 @@ test('Explore and Grow actions land on the intended launch-ready destinations',a
   test.setTimeout(120_000);await signIn(page);await page.setViewportSize({width:390,height:844});
   const journeys=[
     {name:'Explore projects',path:'/member/discover',heading:'Discover projects'},
-    {name:'Recommended',path:'/member/recommended',heading:'Work matched to your profile.'},
+    {name:'Recommended',path:'/member/recommended',heading:'Recommended for you'},
     {name:'Opportunities',path:'/opportunities',heading:'Find opportunities worth your attention.'},
     {name:'Saved',path:'/member/saved',heading:'Saved'}
   ];

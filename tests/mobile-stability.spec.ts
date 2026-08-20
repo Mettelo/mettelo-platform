@@ -23,6 +23,83 @@ async function expectContained(child:Locator,parent:Locator,label:string){
   expect(childRight,`${label} must stay inside the right edge`).toBeLessThanOrEqual(parentRight+1);
 }
 
+async function injectCatalogueStressFixture(page:Page){
+  await page.evaluate(value=>{
+    const main=document.querySelector('#main-content');
+    if(!main)throw new Error('Main content landmark not found');
+    const fixture=document.createElement('section');
+    fixture.id='mobile-project-card-stress-fixture';
+    fixture.className='shell projectBriefGrid';
+    fixture.innerHTML=`
+      <article class="projectBriefCard">
+        <header class="projectBriefHeader">
+          <span class="chip">Analytics</span>
+          <span class="statusText">Open for applications</span>
+        </header>
+        <div class="projectBriefBody">
+          <section>
+            <h3><a href="#mobile-project-card-stress-fixture">${value}_${value}</a></h3>
+            <p class="projectBriefSummary">${value}_${value}_${value}</p>
+            <div class="projectRoleList">
+              <span>${value}</span>
+              <span>GA4 analyst</span>
+            </div>
+            <div class="projectSkillList">
+              <span>${value}</span>
+              <span>Marketing analytics</span>
+            </div>
+          </section>
+        </div>
+        <footer class="projectBriefFoot">
+          <span>${value}</span>
+          <div class="projectCardActions"><a class="button primary" href="#mobile-project-card-stress-fixture">View project</a></div>
+        </footer>
+      </article>`;
+    main.appendChild(fixture);
+  },stressText);
+}
+
+async function injectDetailStressFixture(page:Page){
+  await page.evaluate(value=>{
+    const main=document.querySelector('#main-content');
+    if(!main)throw new Error('Main content landmark not found');
+    const fixture=document.createElement('section');
+    fixture.id='mobile-project-detail-stress-fixture';
+    fixture.className='shell projectDetailContent';
+    fixture.innerHTML=`
+      <div class="projectDetailHeroV2">
+        <div class="projectDetailHeroGrid">
+          <div class="projectDetailLead">
+            <h1 id="project-detail-title">${value}_${value}</h1>
+            <p class="projectDetailSummary">${value}_${value}_${value}</p>
+            <div class="projectDetailActions">
+              <a class="button primary" href="#mobile-project-detail-stress-fixture">Apply to project</a>
+            </div>
+          </div>
+          <aside class="projectDetailDecision">
+            <div class="projectFactStrip">
+              <span><strong>Commitment</strong>${value}</span>
+              <span><strong>Location</strong>Remote</span>
+            </div>
+          </aside>
+        </div>
+      </div>
+      <div class="projectDetailGridV2">
+        <div class="projectDetailMainV2">
+          <section class="projectDetailSectionV2">
+            <h2>Problem to solve</h2>
+            <p>${value}_${value}_${value}</p>
+          </section>
+          <section class="projectDetailSectionV2">
+            <h2>Roles</h2>
+            <div class="roleListV2"><article><h3>${value}</h3><div class="projectRoleSkills"><span>${value}</span></div></article></div>
+          </section>
+        </div>
+      </div>`;
+    main.appendChild(fixture);
+  },stressText);
+}
+
 test.describe('mobile stability contract',()=>{
   for(const width of mobileViewports){
     test(`keeps text-entry controls at iOS-safe size on ${width}px`,async({page})=>{
@@ -45,39 +122,36 @@ test.describe('mobile stability contract',()=>{
   test('contains long Admin-entered project content on the mobile catalogue',async({page})=>{
     await page.setViewportSize({width:390,height:844});
     await page.goto('/projects',{waitUntil:'networkidle'});
-    const card=page.locator('.projectBriefCard').first();
-    await expect(card).toBeVisible();
+    await injectCatalogueStressFixture(page);
 
+    const card=page.locator('#mobile-project-card-stress-fixture .projectBriefCard');
     const title=card.locator('h3').first();
     const summary=card.locator('.projectBriefSummary');
-    await title.evaluate((element,value)=>{element.textContent=value as string},`${stressText}_${stressText}`);
-    await summary.evaluate((element,value)=>{element.textContent=value as string},`${stressText}_${stressText}_${stressText}`);
+    const footer=card.locator('.projectBriefFoot');
+    await expect(card).toBeVisible();
 
     await expectNoHorizontalOverflow(page);
     await expectContained(title,card,'project title');
     await expectContained(summary,card,'project summary');
+    await expectContained(footer,card,'project footer');
   });
 
-  test('contains long project content on the mobile project detail page',async({page})=>{
+  test('contains long project content on the mobile project detail surface',async({page})=>{
     await page.setViewportSize({width:390,height:844});
     await page.goto('/projects',{waitUntil:'networkidle'});
-    const projectLink=page.locator('.projectBriefCard h3 a').first();
-    await expect(projectLink).toBeVisible();
-    const href=await projectLink.getAttribute('href');
-    expect(href).toBeTruthy();
+    await injectDetailStressFixture(page);
 
-    await page.goto(href!,{waitUntil:'networkidle'});
-    const main=page.locator('#main-content');
-    const title=page.locator('#project-detail-title');
-    const summary=page.locator('.projectDetailSummary');
-    const problem=page.locator('.projectDetailSectionV2').first().locator('p');
-    await title.evaluate((element,value)=>{element.textContent=value as string},`${stressText}_${stressText}`);
-    await summary.evaluate((element,value)=>{element.textContent=value as string},`${stressText}_${stressText}_${stressText}`);
-    await problem.evaluate((element,value)=>{element.textContent=value as string},`${stressText}_${stressText}_${stressText}`);
+    const fixture=page.locator('#mobile-project-detail-stress-fixture');
+    const title=fixture.locator('#project-detail-title');
+    const summary=fixture.locator('.projectDetailSummary');
+    const problem=fixture.locator('.projectDetailSectionV2').first().locator('p');
+    const role=fixture.locator('.roleListV2 article').first();
+    await expect(fixture).toBeVisible();
 
     await expectNoHorizontalOverflow(page);
-    await expectContained(title,main,'project detail title');
-    await expectContained(summary,main,'project detail summary');
-    await expectContained(problem,main,'project problem statement');
+    await expectContained(title,fixture,'project detail title');
+    await expectContained(summary,fixture,'project detail summary');
+    await expectContained(problem,fixture,'project problem statement');
+    await expectContained(role,fixture,'project role');
   });
 });

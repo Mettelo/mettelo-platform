@@ -1,6 +1,7 @@
 import HomeLiveContent from '@/components/HomeLiveContent';
 import HomeHeroShowcase from '@/components/HomeHeroShowcase';
 import {createPublicSupabaseClient} from '@/lib/supabase/public';
+import {getPublicWebsitePage} from '@/lib/website-pages';
 import './home.css';
 import './home-refinement.css';
 import './home-overhaul.css';
@@ -59,7 +60,8 @@ async function getHeroMetrics(){
 }
 
 export default async function HomePage(){
-  const metrics=await getHeroMetrics();
+  const [metrics,pageContent]=await Promise.all([getHeroMetrics(),getPublicWebsitePage('home')]);
+  const copy=pageContent.values;
   const useLiveCommunity=metrics.members!==null&&metrics.members>=LIVE_THRESHOLD;
   const communityValue:number=useLiveCommunity?(metrics.members??ESTABLISHED_COMMUNITY_REACH):ESTABLISHED_COMMUNITY_REACH;
   const communityLabel='professionals in the Mettelo ecosystem';
@@ -68,13 +70,13 @@ export default async function HomePage(){
       <div className="shell homeHeroShell">
         <div className="homeHeroGrid">
           <div className="homeHeroCopy">
-            <div className="eyebrow">BUILD · PROVE · GET DISCOVERED</div>
-            <h1 id="home-hero-title">Build Data &amp; AI skills through <span>real work.</span></h1>
-            <p className="heroLead">Join practical projects, contribute to real outcomes, and build verified Proof of what you can do.</p>
-            <p className="heroSupport">Use that evidence to strengthen your profile, demonstrate your capability, and become easier to discover for opportunities.</p>
+            <div className="eyebrow">{copy.hero_eyebrow}</div>
+            <h1 id="home-hero-title">{copy.hero_title} <span>{copy.hero_accent}</span></h1>
+            <p className="heroLead">{copy.hero_lead}</p>
+            <p className="heroSupport">{copy.hero_support}</p>
             <div className="homeHeroActions">
-              <a className="button primary" href="/projects">Explore projects →</a>
-              <a className="button heroGhost" href="/signin?mode=signup">Join Mettelo</a>
+              <a className="button primary" href={copy.hero_primary_href}>{copy.hero_primary_label}</a>
+              <a className="button heroGhost" href={copy.hero_secondary_href}>{copy.hero_secondary_label}</a>
             </div>
             <div className="heroCommunityProof" aria-label={`${communityValue.toLocaleString('en-GB')} plus ${communityLabel}`}>
               <div className="heroCommunityAvatars" aria-hidden="true">
@@ -113,7 +115,7 @@ export default async function HomePage(){
 
     <section className="section homeHowSection" aria-labelledby="home-how-title">
       <div className="shell">
-        <div className="homeHowHead"><div><div className="eyebrow">HOW METTELO WORKS</div><h2 id="home-how-title">From interest to evidence.</h2></div><p>You do not need another place to simply list skills. Mettelo helps you develop them through work that produces visible evidence.</p></div>
+        <div className="homeHowHead"><div><div className="eyebrow">{copy.how_eyebrow}</div><h2 id="home-how-title">{copy.how_title}</h2></div><p>{copy.how_body}</p></div>
         <ol className="homeHowGrid">
           {steps.map(step=><li key={step.number}><span className="howNumber" aria-hidden="true">{step.number}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></li>)}
         </ol>
@@ -122,7 +124,7 @@ export default async function HomePage(){
 
     <section className="section dark homeProofSection" aria-labelledby="home-proof-title">
       <div className="shell homeSplit">
-        <div className="proofStory"><div className="eyebrow">METTELO PROOF</div><h2 id="home-proof-title">Show the work behind the skill.</h2><p className="lead">A CV can tell people what you know. Mettelo Proof helps show what you worked on, what you contributed, and what evidence supports it.</p><div className="proofPrinciples" aria-label="What a Mettelo Proof record can show"><span>Project context</span><span>Your contribution</span><span>Supporting evidence</span><span>Review status</span></div><p className="proofNote">Verification confirms the recorded contribution has been reviewed. It is not a claim of employment, certification or endorsement beyond the evidence shown.</p><div className="actions"><a className="button primary" href="/showcase">Explore verified Proof →</a></div></div>
+        <div className="proofStory"><div className="eyebrow">{copy.proof_eyebrow}</div><h2 id="home-proof-title">{copy.proof_title}</h2><p className="lead">{copy.proof_lead}</p><div className="proofPrinciples" aria-label="What a Mettelo Proof record can show"><span>Project context</span><span>Your contribution</span><span>Supporting evidence</span><span>Review status</span></div><p className="proofNote">{copy.proof_note}</p><div className="actions"><a className="button primary" href={copy.proof_cta_href}>{copy.proof_cta_label}</a></div></div>
         <aside className="proofPreview" aria-label="Illustrative verified Proof record"><div className="proofPreviewHeader"><div><h3>Verified contribution</h3><p>Illustrative Proof record</p></div><span className="chip green">VERIFIED</span></div><dl className="proofGrid"><div className="proofField"><dt>Project</dt><dd>Data &amp; AI delivery</dd></div><div className="proofField"><dt>Role</dt><dd>Data Analyst</dd></div><div className="proofField"><dt>Contribution</dt><dd>Analysis · dashboard · recommendations</dd></div><div className="proofField"><dt>Evidence</dt><dd>Repository · report · dashboard</dd></div><div className="proofField"><dt>Review</dt><dd>Contribution verified</dd></div></dl></aside>
       </div>
     </section>
@@ -136,20 +138,20 @@ export default async function HomePage(){
 
     <section className="section softSection homeOrganisationSection" aria-labelledby="home-organisations-title">
       <div className="shell homeOrganisationGrid">
-        <div className="homeOrganisationStory"><div className="eyebrow">FOR ORGANISATIONS</div><h2 id="home-organisations-title">Bring a Data &amp; AI problem worth solving.</h2><p className="lead">Mettelo gives organisations a structured way to engage professionals around practical challenges, talent and collaboration.</p><a className="button dark" href="/organisations">Work with Mettelo →</a></div>
+        <div className="homeOrganisationStory"><div className="eyebrow">{copy.organisations_eyebrow}</div><h2 id="home-organisations-title">{copy.organisations_title}</h2><p className="lead">{copy.organisations_lead}</p><a className="button dark" href={copy.organisations_cta_href}>{copy.organisations_cta_label}</a></div>
         <div className="organisationRoutes">{organisationRoutes.map((route,index)=><article key={route.title}><span aria-hidden="true">0{index+1}</span><div><h3>{route.title}</h3><p>{route.body}</p></div></article>)}</div>
       </div>
     </section>
 
     <section className="section homeWhySection" aria-labelledby="home-why-title">
       <div className="shell homeWhyGrid">
-        <div><div className="eyebrow">WHY METTELO</div><h2 id="home-why-title">Real work creates stronger signals.</h2><p className="lead">Capability becomes more useful when there is evidence behind it.</p><p>Mettelo is a technology-led platform focused on helping Data &amp; AI professionals build practical capability through real work, prove contribution with evidence and connect that evidence to opportunity.</p><p>We are building this professional infrastructure with a focus on Africa and beyond — creating signals that can travel across teams, organisations and borders.</p></div>
+        <div><div className="eyebrow">{copy.why_eyebrow}</div><h2 id="home-why-title">{copy.why_title}</h2><p className="lead">{copy.why_lead}</p><p>{copy.why_body}</p><p>{copy.why_scope}</p></div>
         <ol className="signalPath" aria-label="How Mettelo connects capability to opportunity">{signalSteps.map((step,index)=><li key={step}><span aria-hidden="true">0{index+1}</span><strong>{step}</strong></li>)}</ol>
       </div>
     </section>
 
     <section className="section homeFinalSection" aria-labelledby="home-final-title">
-      <div className="shell"><div className="ctaBand"><div><div className="cardNumber">YOUR NEXT STEP</div><h2 id="home-final-title">Build the evidence behind your skills.</h2><p>Join Mettelo, find a Data &amp; AI project and start turning real contribution into stronger professional Proof.</p></div><div className="actions"><a className="button dark" href="/projects">Explore projects →</a><a className="button ghost" href="/signin?mode=signup">Join Mettelo</a><a className="linkArrow" href="/signin">Already a member? Sign in →</a></div></div></div>
+      <div className="shell"><div className="ctaBand"><div><div className="cardNumber">{copy.final_eyebrow}</div><h2 id="home-final-title">{copy.final_title}</h2><p>{copy.final_body}</p></div><div className="actions"><a className="button dark" href={copy.final_primary_href}>{copy.final_primary_label}</a><a className="button ghost" href={copy.final_secondary_href}>{copy.final_secondary_label}</a><a className="linkArrow" href="/signin">Already a member? Sign in →</a></div></div></div>
     </section>
   </>;
 }

@@ -46,9 +46,9 @@ test.describe('Admin Website public chrome management',()=>{
 
  test('Website editors are discoverable, responsive and bounded',async({page})=>{
   await signIn(page,'/admin/website');
-  await expect(page.getByRole('link',{name:/Navigation/})).toBeVisible();
-  await expect(page.getByRole('link',{name:/Footer & social/})).toBeVisible();
-  await expect(page.getByRole('link',{name:/Branding/})).toBeVisible();
+  await expect(page.locator('a[href="/admin/website/navigation"].adminFoundationCard')).toBeVisible();
+  await expect(page.locator('a[href="/admin/website/footer"].adminFoundationCard')).toBeVisible();
+  await expect(page.locator('a[href="/admin/website/branding"].adminFoundationCard')).toBeVisible();
 
   const routes=[
    {path:'/admin/website/navigation',heading:'Public navigation'},

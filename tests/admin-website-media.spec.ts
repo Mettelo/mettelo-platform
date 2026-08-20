@@ -43,7 +43,7 @@ test.describe('Admin Website Media Library',()=>{
    await expect(page.getByLabel('Image file')).toBeVisible();
    await expect(page.getByLabel('Search title')).toBeVisible();
    await expect(page.getByLabel('Status')).toBeVisible();
-   const rows=page.getByLabel('Rows');await expect(rows).toBeVisible();await expect(rows.locator('option')).toHaveCount(3);await expect(rows.locator('option').nth(0)).toHaveValue('25');await expect(rows.locator('option').nth(1)).toHaveValue('50');await expect(rows.locator('option').nth(2)).toHaveValue('100');
+   const rows=page.getByRole('combobox',{name:'Rows',exact:true});await expect(rows).toBeVisible();const options=rows.locator('option');await expect(options).toHaveCount(3);await expect(options.nth(0)).toHaveAttribute('value','25');await expect(options.nth(1)).toHaveAttribute('value','50');await expect(options.nth(2)).toHaveAttribute('value','100');
    await expect(page.getByRole('button',{name:'Upload image'})).toBeVisible();await noOverflow(page,`Website Media overflowed at ${width}px`);
   }
  });

@@ -12,7 +12,7 @@ const groups:NavGroup[]=[
  {label:'Projects',items:[{label:'Project operations',href:'/admin/project-operations/projects'},{label:'Project Architect',href:'/admin/project-architect-applications'},{label:'Project governance',href:'/admin/project-governance'}]},
  {label:'Community & Proof',items:[{label:'Proof review',href:'/admin/proof'},{label:'Spotlight & awards',href:'/admin/spotlights'},{label:'Events',href:'/admin/events'}]},
  {label:'Content & Comms',items:[{label:'Content & Insights',href:'/admin/content/news'},{label:'Communications',href:'/admin/notifications/overview'}]},
- {label:'System',items:[{label:'QA team',href:'/admin/qa'},{label:'Intake',href:'/admin/intake'},{label:'Admin access',href:'/admin/access'}]}
+ {label:'System',items:[{label:'QA team',href:'/admin/qa'},{label:'Intake',href:'/admin/intake'},{label:'Audit log',href:'/admin/system/audit'},{label:'Admin access',href:'/admin/access'}]}
 ];
 const flat=groups.flatMap(group=>group.items);
 function activeHref(pathname:string,href:string){if(href==='/admin/careers/roles')return pathname.startsWith('/admin/careers');if(href==='/admin/content/news')return pathname.startsWith('/admin/content');if(href==='/admin/notifications/overview')return pathname.startsWith('/admin/notifications');return pathname===href||pathname.startsWith(`${href}/`)}

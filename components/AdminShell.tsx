@@ -88,6 +88,13 @@ export default function AdminShell({children}:{children:React.ReactNode}){
  useEffect(()=>{setNavOpen(false)},[pathname]);
 
  useEffect(()=>{
+  const mobile=window.matchMedia('(max-width:760px)');
+  function onViewportChange(event:MediaQueryListEvent){if(!event.matches)setNavOpen(false)}
+  mobile.addEventListener('change',onViewportChange);
+  return()=>mobile.removeEventListener('change',onViewportChange);
+ },[]);
+
+ useEffect(()=>{
   if(!navOpen)return;
   const previousOverflow=document.body.style.overflow;
   document.body.style.overflow='hidden';

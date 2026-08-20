@@ -11,7 +11,7 @@ type NavItem={label:string;href:string};
 type NavGroup={label:string;items:NavItem[]};
 
 const groups:NavGroup[]=[
- {label:'Website',items:[{label:'Website overview',href:'/admin/website'}]},
+ {label:'Website',items:[{label:'Website overview',href:'/admin/website'},{label:'Navigation',href:'/admin/website/navigation'},{label:'Footer & Social',href:'/admin/website/footer'},{label:'Branding',href:'/admin/website/branding'}]},
  {label:'Recruiting',items:[{label:'Careers',href:'/admin/careers/roles'},{label:'Project applications',href:'/admin/project-operations/applications'},{label:'Opportunity review',href:'/admin/opportunities'},{label:'Job sources',href:'/admin/opportunity-sources'}]},
  {label:'Projects',items:[{label:'Project operations',href:'/admin/project-operations/projects'},{label:'Project Architect',href:'/admin/project-architect-applications'},{label:'Project governance',href:'/admin/project-governance'}]},
  {label:'Community & Proof',items:[{label:'Proof review',href:'/admin/proof'},{label:'Spotlight & awards',href:'/admin/spotlights'},{label:'Events',href:'/admin/events'}]},
@@ -36,6 +36,9 @@ function currentItem(pathname:string){return flat.find(item=>activeHref(pathname
 function breadcrumb(pathname:string){
  if(pathname==='/admin'||pathname==='/admin/overview')return ['Admin','Overview'];
  if(pathname==='/admin/website')return ['Admin','Website','Overview'];
+ if(pathname.startsWith('/admin/website/navigation'))return ['Admin','Website','Navigation'];
+ if(pathname.startsWith('/admin/website/footer'))return ['Admin','Website','Footer & Social'];
+ if(pathname.startsWith('/admin/website/branding'))return ['Admin','Website','Branding'];
  if(pathname==='/admin/platform')return ['Admin','Platform','Overview'];
  if(pathname==='/admin/settings')return ['Admin','Platform','Settings'];
  if(pathname==='/admin/system')return ['Admin','System','Overview'];

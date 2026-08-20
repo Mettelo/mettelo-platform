@@ -124,6 +124,15 @@
     overflow-wrap:anywhere!important;
     box-sizing:border-box;
   }
+
+  /* Spotlight hero words can exceed the phone content track when root text is scaled to 200%. */
+  #main-content .spotlightPublicHero h1{
+    min-width:0!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    word-break:break-word!important;
+  }
 }
 
 /* Keep the closed phone navigation drawer inside the viewport. Off-canvas

@@ -15,14 +15,22 @@ create table if not exists public.admin_audit_log (
   after_state jsonb,
   metadata jsonb,
   created_at timestamptz not null default now(),
+  constraint admin_audit_actor_email_length check (actor_email is null or length(actor_email) <= 320),
+  constraint admin_audit_capability_length check (capability is null or length(capability) <= 120),
   constraint admin_audit_action_not_blank check (length(btrim(action)) > 0),
-  constraint admin_audit_resource_type_not_blank check (length(btrim(resource_type)) > 0)
+  constraint admin_audit_action_length check (length(action) <= 120),
+  constraint admin_audit_resource_type_not_blank check (length(btrim(resource_type)) > 0),
+  constraint admin_audit_resource_type_length check (length(resource_type) <= 120),
+  constraint admin_audit_resource_id_length check (resource_id is null or length(resource_id) <= 180),
+  constraint admin_audit_reason_length check (reason is null or length(reason) <= 1000)
 );
 
 create index if not exists admin_audit_log_created_at_idx on public.admin_audit_log (created_at desc);
 create index if not exists admin_audit_log_actor_created_idx on public.admin_audit_log (actor_user_id, created_at desc);
+create index if not exists admin_audit_log_actor_email_created_idx on public.admin_audit_log (lower(actor_email), created_at desc) where actor_email is not null;
 create index if not exists admin_audit_log_resource_created_idx on public.admin_audit_log (resource_type, resource_id, created_at desc);
 create index if not exists admin_audit_log_action_created_idx on public.admin_audit_log (action, created_at desc);
+create index if not exists admin_audit_log_result_created_idx on public.admin_audit_log (result, created_at desc);
 
 alter table public.admin_audit_log enable row level security;
 

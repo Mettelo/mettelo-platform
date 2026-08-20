@@ -22,7 +22,12 @@ const PAGE_RULES:readonly RouteRule[]=[
  {prefix:'/admin/qa',capabilities:['projects.manage']},
  {prefix:'/admin/proof',capabilities:['proof.verify']},
  {prefix:'/admin/spotlights',capabilities:['spotlight.govern']},
- {prefix:'/admin/website/navigation',capabilities:['website.navigation.manage','website.content.publish']},
+ {prefix:'/admin/website/navigation',capabilities:['website.navigation.manage']},
+ {prefix:'/admin/website/pages',capabilities:['website.content.edit']},
+ {prefix:'/admin/website/media',capabilities:['website.content.edit']},
+ {prefix:'/admin/website/seo',capabilities:['website.content.edit']},
+ {prefix:'/admin/website/footer',capabilities:['website.content.edit']},
+ {prefix:'/admin/website/branding',capabilities:['website.content.edit']},
  {prefix:'/admin/website',capabilities:['website.content.edit','website.content.publish','website.navigation.manage']}
 ];
 
@@ -47,6 +52,9 @@ const API_RULES:readonly RouteRule[]=[
  {prefix:'/api/admin/qa-team',capabilities:['projects.manage']},
  {prefix:'/api/admin/contributions',capabilities:['proof.verify']},
  {prefix:'/api/admin/spotlights',capabilities:['spotlight.govern']},
+ {prefix:'/api/admin/website/media',capabilities:['website.content.edit']},
+ {prefix:'/api/admin/website/pages',capabilities:['website.content.edit','website.content.publish']},
+ {prefix:'/api/admin/website/seo',capabilities:['website.content.edit','website.content.publish']},
  {prefix:'/api/admin/website',capabilities:['website.content.edit','website.content.publish','website.navigation.manage']}
 ];
 

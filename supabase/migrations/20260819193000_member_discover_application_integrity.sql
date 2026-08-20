@@ -51,3 +51,8 @@ grant select on table public.profiles to authenticated;
 grant select on table public.profile_domain_preferences, public.profile_tool_preferences to authenticated;
 
 grant select,insert,delete on public.saved_projects to authenticated;
+
+-- Server-side capacity/fixture/admin paths use the service-role client. Service role bypasses
+-- row policies but still requires PostgreSQL table privileges on objects created after the
+-- historical default-grant baseline, so grant the table operations explicitly.
+grant select,insert,update,delete on public.saved_projects to service_role;

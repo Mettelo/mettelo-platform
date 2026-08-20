@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 const checks=[
- ['components/AdminShell.tsx',['Pages','/admin/website/pages','Admin / Website','adminBreadcrumb']],
+ ['components/AdminShell.tsx',['Pages','/admin/website/pages','adminBreadcrumb']],
  ['app/admin/website/page.tsx',['Website management','Pages','/admin/website/pages','Draft & publish','SEO','Media']],
  ['app/admin/website/pages/page.tsx',['AdminWebsitePagesEditor','website.content.edit','website_page_drafts','website_page_public','home','about','contact']],
  ['components/AdminWebsitePagesEditor.tsx',['Public pages','Choose a public page','Save draft','Publish page','Reset draft','Open public page','CONTENT SUMMARY','aria-live="polite"','@media(max-width:480px)','font-size:16px']],

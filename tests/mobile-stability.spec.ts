@@ -1,6 +1,7 @@
 import {expect,test,type Locator,type Page} from '@playwright/test';
 
 const mobileViewports=[375,390,414,480];
+const contentStressViewports=[390,768,1024];
 const stressText='GA4_ANALYSIS_FOR_MARKETING_AUTOMATION_WITH_A_VERY_LONG_UNBROKEN_ADMIN_ENTERED_IDENTIFIER_0123456789_ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 async function expectNoHorizontalOverflow(page:Page){
@@ -28,7 +29,7 @@ async function injectCatalogueStressFixture(page:Page){
     const main=document.querySelector('#main-content');
     if(!main)throw new Error('Main content landmark not found');
     const fixture=document.createElement('section');
-    fixture.id='mobile-project-card-stress-fixture';
+    fixture.id='project-card-stress-fixture';
     fixture.className='shell projectBriefGrid';
     fixture.innerHTML=`
       <article class="projectBriefCard">
@@ -38,7 +39,7 @@ async function injectCatalogueStressFixture(page:Page){
         </header>
         <div class="projectBriefBody">
           <section>
-            <h3><a href="#mobile-project-card-stress-fixture">${value}_${value}</a></h3>
+            <h3><a href="#project-card-stress-fixture">${value}_${value}</a></h3>
             <p class="projectBriefSummary">${value}_${value}_${value}</p>
             <div class="projectRoleList">
               <span>${value}</span>
@@ -52,7 +53,7 @@ async function injectCatalogueStressFixture(page:Page){
         </div>
         <footer class="projectBriefFoot">
           <span>${value}</span>
-          <div class="projectCardActions"><a class="button primary" href="#mobile-project-card-stress-fixture">View project</a></div>
+          <div class="projectCardActions"><a class="button primary" href="#project-card-stress-fixture">View project</a></div>
         </footer>
       </article>`;
     main.appendChild(fixture);
@@ -64,7 +65,7 @@ async function injectDetailStressFixture(page:Page){
     const main=document.querySelector('#main-content');
     if(!main)throw new Error('Main content landmark not found');
     const fixture=document.createElement('section');
-    fixture.id='mobile-project-detail-stress-fixture';
+    fixture.id='project-detail-stress-fixture';
     fixture.className='shell projectDetailContent';
     fixture.innerHTML=`
       <div class="projectDetailHeroV2">
@@ -73,7 +74,7 @@ async function injectDetailStressFixture(page:Page){
             <h1 id="project-detail-title">${value}_${value}</h1>
             <p class="projectDetailSummary">${value}_${value}_${value}</p>
             <div class="projectDetailActions">
-              <a class="button primary" href="#mobile-project-detail-stress-fixture">Apply to project</a>
+              <a class="button primary" href="#project-detail-stress-fixture">Apply to project</a>
             </div>
           </div>
           <aside class="projectDetailDecision">
@@ -119,39 +120,41 @@ test.describe('mobile stability contract',()=>{
     });
   }
 
-  test('contains long Admin-entered project content on the mobile catalogue',async({page})=>{
-    await page.setViewportSize({width:390,height:844});
-    await page.goto('/projects',{waitUntil:'networkidle'});
-    await injectCatalogueStressFixture(page);
+  for(const width of contentStressViewports){
+    test(`contains long Admin-entered project content on the catalogue at ${width}px`,async({page})=>{
+      await page.setViewportSize({width,height:900});
+      await page.goto('/projects',{waitUntil:'networkidle'});
+      await injectCatalogueStressFixture(page);
 
-    const card=page.locator('#mobile-project-card-stress-fixture .projectBriefCard');
-    const title=card.locator('h3').first();
-    const summary=card.locator('.projectBriefSummary');
-    const footer=card.locator('.projectBriefFoot');
-    await expect(card).toBeVisible();
+      const card=page.locator('#project-card-stress-fixture .projectBriefCard');
+      const title=card.locator('h3').first();
+      const summary=card.locator('.projectBriefSummary');
+      const footer=card.locator('.projectBriefFoot');
+      await expect(card).toBeVisible();
 
-    await expectNoHorizontalOverflow(page);
-    await expectContained(title,card,'project title');
-    await expectContained(summary,card,'project summary');
-    await expectContained(footer,card,'project footer');
-  });
+      await expectNoHorizontalOverflow(page);
+      await expectContained(title,card,'project title');
+      await expectContained(summary,card,'project summary');
+      await expectContained(footer,card,'project footer');
+    });
 
-  test('contains long project content on the mobile project detail surface',async({page})=>{
-    await page.setViewportSize({width:390,height:844});
-    await page.goto('/projects',{waitUntil:'networkidle'});
-    await injectDetailStressFixture(page);
+    test(`contains long project content on the detail surface at ${width}px`,async({page})=>{
+      await page.setViewportSize({width,height:900});
+      await page.goto('/projects',{waitUntil:'networkidle'});
+      await injectDetailStressFixture(page);
 
-    const fixture=page.locator('#mobile-project-detail-stress-fixture');
-    const title=fixture.locator('#project-detail-title');
-    const summary=fixture.locator('.projectDetailSummary');
-    const problem=fixture.locator('.projectDetailSectionV2').first().locator('p');
-    const role=fixture.locator('.roleListV2 article').first();
-    await expect(fixture).toBeVisible();
+      const fixture=page.locator('#project-detail-stress-fixture');
+      const title=fixture.locator('#project-detail-title');
+      const summary=fixture.locator('.projectDetailSummary');
+      const problem=fixture.locator('.projectDetailSectionV2').first().locator('p');
+      const role=fixture.locator('.roleListV2 article').first();
+      await expect(fixture).toBeVisible();
 
-    await expectNoHorizontalOverflow(page);
-    await expectContained(title,fixture,'project detail title');
-    await expectContained(summary,fixture,'project detail summary');
-    await expectContained(problem,fixture,'project problem statement');
-    await expectContained(role,fixture,'project role');
-  });
+      await expectNoHorizontalOverflow(page);
+      await expectContained(title,fixture,'project detail title');
+      await expectContained(summary,fixture,'project detail summary');
+      await expectContained(problem,fixture,'project problem statement');
+      await expectContained(role,fixture,'project role');
+    });
+  }
 });

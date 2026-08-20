@@ -7,12 +7,14 @@ import {hasAdminCapability} from '@/lib/admin-capabilities';
 export const metadata:Metadata={title:'Platform Admin | Mettelo',description:'Manage Mettelo platform configuration and administrative access.'};
 export const dynamic='force-dynamic';
 
+type PlatformLink={title:string;description:string;href:string;label?:string};
+
 export default async function AdminPlatformOverviewPage(){
  const auth=await createServerSupabaseClient();
  const {data:{user}}=await auth.auth.getUser();
  if(!user)redirect('/signin');
  if(user.app_metadata?.role!=='admin')redirect('/member');
- const available=[];
+ const available:PlatformLink[]=[];
  if(hasAdminCapability(user,'platform.settings.manage'))available.push(
   {title:'Platform settings',description:'Manage shared social links, contact details and the project contribution-role catalogue.',href:'/admin/settings'},
   {title:'Authentication & SSO status',description:'Review read-only authentication configuration and public Google/GitHub provider availability without exposing secrets.',href:'/admin/platform/auth',label:'Read only'}

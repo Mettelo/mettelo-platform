@@ -74,7 +74,7 @@ test.describe('Admin Website immutable page history',()=>{
    await page.setViewportSize({width,height:900});
    await page.goto('/admin/website/pages/history',{waitUntil:'networkidle'});
    await expect(page.getByRole('heading',{level:1,name:'Revision history'})).toBeVisible();
-   await expect(page.getByLabel('Page')).toBeVisible();
+   await expect(page.getByRole('combobox',{name:'Page',exact:true})).toBeVisible();
    const rows=page.getByLabel('Rows');await expect(rows).toBeVisible();
    await expect(rows.locator('option')).toHaveCount(3);
    await expect(rows.locator('option').nth(0)).toHaveValue('25');

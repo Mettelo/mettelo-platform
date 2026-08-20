@@ -38,9 +38,16 @@ to authenticated
 using ((select auth.uid())=user_id)
 with check ((select auth.uid())=user_id);
 
--- Discover and both public/internal project detail embed project_roles, while the existing
--- project visibility policies and member-state reads depend on project_members. Table
--- privileges permit those reads; RLS remains authoritative for which rows each caller sees.
+-- Hosted Supabase already carries the table privileges below, while the historical
+-- repository baseline primarily versioned the row policies. A clean reconstructed stack
+-- therefore reached 42501 before those policies could evaluate. Restore only the read
+-- operations used by Discover/public project detail; the existing RLS predicates remain
+-- authoritative for which rows each caller can see.
 grant select on table public.project_roles to anon, authenticated;
 grant select on table public.project_members to anon, authenticated;
+grant select on table public.domains, public.tools, public.methods to anon, authenticated;
+grant select on table public.project_domains, public.project_tools, public.project_methods to anon, authenticated;
+grant select on table public.profiles to authenticated;
+grant select on table public.profile_domain_preferences, public.profile_tool_preferences to authenticated;
+
 grant select,insert,delete on public.saved_projects to authenticated;

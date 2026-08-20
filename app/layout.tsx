@@ -20,6 +20,7 @@ import './public-chrome.css';
 import './public-hardening.css';
 import './public-legal-reflow.css';
 import './public-responsive-reflow.css';
+import './mobile-stability.css';
 
 const inter=Inter({subsets:['latin'],variable:'--font-inter',display:'swap'});const space=Space_Grotesk({subsets:['latin'],variable:'--font-space',display:'swap'});const mono=IBM_Plex_Mono({subsets:['latin'],weight:['500'],variable:'--font-mono',display:'swap'});
 export const metadata:Metadata={metadataBase:new URL('https://mettelo.com'),title:{default:'Mettelo — Build capability. Prove it. Get discovered.',template:'%s | Mettelo'},description:'Mettelo is where Data & AI professionals connect, solve real problems, build credible proof and create opportunity through contribution.',openGraph:{title:'Mettelo — Build capability. Prove it. Get discovered.',description:'Real problems. Real teams. Real proof. Mettelo connects community, meaningful work, credible evidence and opportunity.',url:'https://mettelo.com/',siteName:'Mettelo',images:[{url:'/og-image.svg',width:1200,height:630,alt:'Mettelo — Built for What’s Next'}],type:'website'},twitter:{card:'summary_large_image',title:'Mettelo — Build capability. Prove it. Get discovered.',description:'Real problems. Real teams. Real proof.',images:['/og-image.svg']}};

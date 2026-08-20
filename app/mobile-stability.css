@@ -1,0 +1,97 @@
+/* Cross-platform mobile stability contract.
+   Keep user pinch-zoom available; prevent iOS focus zoom by ensuring text-entry controls
+   render at 16px or larger, and defensively contain long real-world project content. */
+
+@media (max-width: 760px) {
+  :where(
+    input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+    select,
+    textarea
+  ) {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #main-content :where(
+    .projectBriefGrid,
+    .projectBriefCard,
+    .projectBriefHeader,
+    .projectBriefBody,
+    .projectBriefBody section,
+    .projectBriefFoot,
+    .projectCardActions,
+    .projectDetailHeroV2,
+    .projectDetailHeroGrid,
+    .projectDetailLead,
+    .projectDetailDecision,
+    .projectFactStrip,
+    .projectDetailContent,
+    .projectDetailGridV2,
+    .projectDetailMainV2,
+    .projectDetailSectionV2,
+    .projectDetailSideV2,
+    .projectApplyPanelV2,
+    .commitmentGridV2,
+    .roleListV2,
+    .roleListV2 article,
+    .projectFitGrid,
+    .projectFitGrid > div,
+    .projectRoleSkills,
+    .projectFitTags,
+    .mdProjectGrid,
+    .mdProjectCard,
+    .mdCardTop,
+    .mdFacts,
+    .mdFacts > div,
+    .mdGroup,
+    .mdTags,
+    .mdDeadline,
+    .mdCardActions
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  #main-content :where(.projectBriefGrid, .mdProjectGrid) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  #main-content :where(.projectBriefBody, .projectDetailHeroGrid, .projectDetailGridV2, .commitmentGridV2, .mdFacts) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  #main-content .projectFactStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #main-content :where(
+    .projectBriefCard,
+    .projectDetailHeroV2,
+    .projectDetailContent,
+    .mdProjectCard
+  ) :where(h1, h2, h3, h4, p, a, span, strong, small, li, dd, dt) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+  }
+
+  #main-content :where(.projectRoleList, .projectSkillList, .projectRoleSkills, .projectFitTags, .mdTags) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  #main-content :where(.projectRoleList, .projectSkillList, .projectRoleSkills, .projectFitTags, .mdTags) > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  #main-content :where(.projectCardActions, .projectDetailActions, .mdCardActions) > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}

@@ -47,7 +47,7 @@ test.describe('Admin Website public pages CMS',()=>{
    await page.setViewportSize({width,height:900});
    await page.goto('/admin/website/pages',{waitUntil:'networkidle'});
    await expect(page.getByRole('heading',{level:1,name:'Public pages'})).toBeVisible();
-   await expect(page.getByLabel('Page')).toBeVisible();
+   await expect(page.getByRole('combobox',{name:'Page',exact:true})).toBeVisible();
    await expect(page.getByRole('button',{name:'Save draft'})).toBeVisible();
    await expect(page.getByRole('button',{name:'Publish page'})).toBeVisible();
    await noOverflow(page,`Website Pages overflowed at ${width}px`);

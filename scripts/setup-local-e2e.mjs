@@ -108,4 +108,15 @@ const {error:careerError}=await db.from('career_roles').upsert({
 },{onConflict:'slug'});
 if(careerError)throw careerError;
 
-console.log('Created and verified isolated local E2E identities, Proof lifecycle records and deterministic fixture records.');
+const {data:termsTemplate,error:termsTemplateError}=await db.from('communication_templates').select('id,version').eq('template_key','project_application_terms').eq('active',true).maybeSingle();
+if(termsTemplateError)throw termsTemplateError;
+if(!termsTemplate)throw new Error('Active project application terms template is required for isolated E2E.');
+const termsAttachmentId='00000000-0000-4000-8000-00000000e2c1';
+const termsPath='e2e/project-participation-terms.pdf';
+const termsDocument=Buffer.from('%PDF-1.4\n% Deterministic local E2E Project Participation Terms\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n','utf8');
+const {error:termsUploadError}=await db.storage.from('communication-template-documents').upload(termsPath,termsDocument,{contentType:'application/pdf',upsert:true});
+if(termsUploadError)throw termsUploadError;
+const {error:termsAttachmentError}=await db.from('communication_template_attachments').upsert({id:termsAttachmentId,template_id:termsTemplate.id,file_name:'E2E Project Participation Terms.pdf',storage_path:termsPath,content_type:'application/pdf',size_bytes:termsDocument.length,sort_order:0,active:true,created_by:users.admin.id},{onConflict:'id'});
+if(termsAttachmentError)throw termsAttachmentError;
+
+console.log('Created and verified isolated local E2E identities, Proof lifecycle records, governed project terms and deterministic fixture records.');

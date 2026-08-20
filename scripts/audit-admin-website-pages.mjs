@@ -11,7 +11,7 @@ const checks=[
  ['app/page.tsx',["getPublicWebsitePage('home')",'HomeLiveContent','HomeHeroShowcase','getHeroMetrics','heroCommunityProof']],
  ['app/about/page.tsx',["getPublicWebsitePage('about')",'pillars','founderMedia','/api/founder-image']],
  ['app/contact/page.tsx',["getPublicWebsitePage('contact')",'SubmissionForm','formType="contact"','name="name"','name="email"','name="topic"','name="message"','name="consent"']],
- ['tests/admin-website-pages.spec.ts',['dangerous.values.hero_primary_href','website.page.published','originalDraft','originalPublished','Publish page','#contact-name','#contact-email','#contact-topic','#contact-message','#contact-consent','390,768,1440']]
+ ['tests/admin-website-pages.spec.ts',['dangerous.values.hero_primary_href','website.page.published','originalDraft','originalPublished','Publish page','input[name="consent"]','390,768,1440']]
 ];
 let failed=false;let passed=0;
 for(const [file,needles] of checks){

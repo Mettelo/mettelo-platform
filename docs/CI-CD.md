@@ -1,6 +1,6 @@
 # CI/CD, deployment, and rollback
 
-Last audited: 18 August 2026
+Last audited: 19 August 2026
 
 ## Release model
 
@@ -58,11 +58,16 @@ The `verify` job uses Node 22 and runs:
 2. lint and TypeScript typecheck
 3. interaction and regression-coverage audits
 4. project-interest and phase/domain contract audits
-5. Chromium installation
-6. `npm run test:regression`
-7. the production build (including deployment-configuration and interaction prechecks)
+5. the production build (including deployment-configuration and interaction prechecks)
+6. Playwright Chromium cache restore plus direct Chromium install/verification when staging is not required
+7. a fail-closed Chromium launch preflight on the hosted runner
+8. `npm run test:regression` when staging is not required
 
 On failure it uploads the interaction audit artifact when available.
+
+Chromium browser binaries are cached with `actions/cache@v4` under Playwright's standard Linux cache directory and keyed by runner OS plus `package-lock.json`. CI runs `npx playwright install chromium` after cache restore; on an exact cache hit this verifies the browser artifact, and on a miss it downloads the required Playwright Chromium revision. GitHub's Ubuntu hosted image already supplies the core Chromium runtime libraries used by this suite, so CI does not invoke Playwright's apt-based `install-deps` path. A dedicated Chromium launch preflight fails closed if the hosted image ever stops supplying a viable runtime. The cache and provisioning optimization do **not** skip, downgrade, or make browser regression tests non-blocking.
+
+This avoids coupling release completion to transient Ubuntu package-mirror throughput for optional font/X11 packages. The blocking browser suites remain the authoritative rendering, responsive, authenticated, and persistence evidence; if Chromium cannot launch or render the application on the hosted image, the release fails.
 
 #### Staging submission journeys
 
@@ -70,18 +75,20 @@ The `staging-e2e` job runs only when `Change scope` says authenticated backend E
 
 The current zero-cost implementation uses an **ephemeral local Supabase stack inside GitHub Actions** rather than a paid hosted staging project/branch. The job:
 
-1. installs the Supabase CLI;
-2. prepares the isolated migration workdir, including CI-only compatibility shims for hosted objects that pre-date canonical migration history;
-3. starts the local Supabase stack;
-4. exports local-only Supabase credentials into the runner environment;
-5. seeds disposable Member, Project Architect, and Admin identities plus deterministic fixtures;
-6. installs Chromium;
-7. starts Mettelo against local Supabase;
-8. verifies the Production guard;
-9. runs blocking authenticated smoke;
-10. runs the representative blocking persisted-submission journey required by the current infrastructure gate;
-11. runs the broader submission suite informationally and uploads evidence when it fails;
-12. tears the local stack down.
+1. installs project dependencies;
+2. restores the Playwright Chromium browser cache, installs/verifies the required Chromium revision, and verifies Chromium can launch;
+3. installs the Supabase CLI;
+4. prepares the isolated migration workdir, including CI-only compatibility shims for hosted objects that pre-date canonical migration history;
+5. starts the local Supabase stack;
+6. exports local-only Supabase credentials into the runner environment;
+7. seeds disposable Member, Project Architect, and Admin identities plus deterministic fixtures;
+8. starts Mettelo against local Supabase;
+9. verifies the Production guard;
+10. runs the blocking public browser regression suite;
+11. runs blocking authenticated smoke and Mettelo Lab Chromium visual QA;
+12. runs the representative blocking persisted-submission journey required by the current infrastructure gate;
+13. runs the broader submission suite informationally and uploads evidence when it fails;
+14. tears the local stack down.
 
 The config guard rejects Production Supabase and unsafe identity reuse before destructive tests run. `CI_LOCAL_SUPABASE=1` is accepted only for loopback Supabase URLs. Production credentials must never be substituted.
 
@@ -90,7 +97,8 @@ For the current release-infrastructure implementation, these are blocking:
 - isolated stack preparation/startup;
 - disposable fixture creation;
 - Production guard;
-- authenticated Member/Project Architect/Admin smoke;
+- public Chromium regression;
+- authenticated Member/Project Architect/Admin smoke and Mettelo Lab Chromium visual QA;
 - one representative browser -> API -> database persisted submission path.
 
 The broader project-interest and career submission journeys continue to run as evidence. A failure in one of those broader journeys is informational **unless the changed scope directly affects that journey or shared infrastructure makes it relevant**. When directly affected, that journey becomes release-blocking.
@@ -145,6 +153,8 @@ The project ref is currently present in workflow/script configuration. Treat it 
 | `npm run test:e2e:staging` | authenticated smoke + staging journeys | Full browser -> API -> database -> Admin queue -> notification evidence; may include informational journeys depending on scope |
 
 Playwright enables full parallel execution, one retry, and four CI/two local workers for standard tests. Destructive local E2E uses one worker where deterministic fixture ordering matters.
+
+The Chromium cache is a provisioning optimization only. Its key is tied to the dependency lockfile so a Playwright/browser revision change invalidates the cache automatically. Required Chromium tests still execute on every release path where scope requires them, and a missing, corrupt, incompatible, or non-launchable browser must fail rather than being treated as green evidence.
 
 The Phase 1 browser suite remains available as a separate command and is not currently part of `npm run test:regression` or a separate `main` CI step.
 

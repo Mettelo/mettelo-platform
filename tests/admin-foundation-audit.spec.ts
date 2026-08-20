@@ -51,5 +51,6 @@ test('audit sanitization redacts sensitive keys and credential-like values recur
 
 test('audit sanitization bounds non-JSON numeric values and deep input',()=>{
   expect(sanitizeAuditValue({nan:Number.NaN,infinity:Number.POSITIVE_INFINITY})).toEqual({nan:'NaN',infinity:'Infinity'});
-  expect(sanitizeAuditValue({a:{b:{c:{d:{e:{f:{g:'too deep'}}}}}}}})).toEqual({a:{b:{c:{d:{e:{f:'[truncated]'}}}}}});
+  const deep={level1:{level2:{level3:{level4:{level5:{level6:{level7:'too deep'}}}}}}};
+  expect(sanitizeAuditValue(deep)).toEqual({level1:{level2:{level3:{level4:{level5:{level6:'[truncated]'}}}}}});
 });

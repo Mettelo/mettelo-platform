@@ -4,6 +4,7 @@ const nav=fs.readFileSync('components/MetteloLabNavigation.tsx','utf8');
 const css=fs.readFileSync('app/member/projects/[id]/phase15-mobile-more-ia.module.css','utf8');
 const polish=fs.readFileSync('app/member/projects/[id]/phase18-interaction-polish.module.css','utf8');
 const composed=fs.readFileSync('app/member/projects/[id]/phase4-mobile-fixes.module.css','utf8');
+const layout=fs.readFileSync('app/member/projects/[id]/layout.tsx','utf8');
 
 const checks=[
  ['mobile direct destinations remain Home Tasks Chat Data',/const mobile:Item\[\]=\[\{view:'home'.*\{view:'tasks'.*\{view:'chat'.*\{view:'data'/s.test(nav)],
@@ -14,7 +15,7 @@ const checks=[
  ['More is a controlled drop-up instead of a replacement route',nav.includes('labMoreTrigger')&&nav.includes('labMoreDropupPanel')&&nav.includes('aria-expanded={moreOpen}')&&nav.includes("if(placement==='more')return null")],
  ['More destinations expose semantic destination hooks',/data-more-destination=\{item\.view\}/.test(nav)],
  ['Phase 15 IA layer remains composed into Lab shell',/phase15-mobile-more-ia\.module\.css/.test(composed)],
- ['interaction polish layer owns the anchored drop-up',/phase18-interaction-polish\.module\.css/.test(composed)&&/\.labMoreDropupPanel/.test(polish)&&/position:fixed/.test(polish)],
+ ['interaction polish layer owns the anchored drop-up',layout.includes("import interactionPolish from './phase18-interaction-polish.module.css'")&&layout.includes('${interactionPolish.interactionPolish}')&&/\.labMoreDropupPanel/.test(polish)&&/position:fixed/.test(polish)],
  ['mobile navigation targets remain at least 58px',/min-height:58px/.test(css)&&/labMoreTrigger[\s\S]*min-height:58px/.test(polish)],
  ['drop-up links remain bounded and naturally wrap',/labMoreDropupPanel a[\s\S]*min-height:54px/.test(polish)&&/overflow-wrap:break-word/.test(polish)],
  ['focus visibility is explicit',/labMoreTrigger:focus-visible[\s\S]*outline:3px solid var\(--lab-shell-focus\)/.test(polish)],

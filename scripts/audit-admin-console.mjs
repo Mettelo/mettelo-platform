@@ -27,7 +27,7 @@ const checks=[
   ['app/admin/project-operations/projects/[id]/page.tsx',['Admin / Projects / Projects /','Project brief','BRIEF DETAILS','COHORTS','cohortGrid','APPLICATION DEADLINE','PROJECT METADATA','Applications received','Open Team Formation','AdminProjectVisibilityControl','AdminExpandableText']],
   ['components/AdminExpandableText.tsx',['Show more','Show less','aria-expanded']],
   ['components/AdminProjectVisibilityControl.tsx',['Confirm visibility','Change visibility','removed from public discovery','Make this project']],
-  ['components/AdminProjectDetailActions.tsx',['Delete this project permanently?','applications, team activity or evidence','Edit project','Open team formation']],
+  ['components/AdminProjectDetailActions.tsx',['Delete this project permanently?','applications, team members and workspace data','Edit project','Open team formation']],
   ['app/admin/project-operations/applications/page.tsx',['Admin / Projects / Applications','focusProjectId','query.eq(\'project_id\',focusProjectId)','AdminApplicationQueue']],
   ['components/AdminApplicationQueue.tsx',['Current applications','All statuses','Filter applications by status','Rows per page','Previous','Next','No applications match your filters','applicationTable','applicationMobileList']],
   ['app/admin/project-operations/team-formation/page.tsx',['Admin / Projects / Team Formation','AdminTeamFormation']],

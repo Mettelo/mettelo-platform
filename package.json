@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "audit:interactions": "node scripts/audit-interactions.mjs",
-    "audit:mettelo-lab": "node scripts/audit-mettelo-lab-workspace.mjs && node scripts/audit-mettelo-lab-tasks.mjs && node scripts/audit-mettelo-lab-data.mjs && node scripts/audit-mettelo-lab-proof.mjs && node scripts/audit-mettelo-lab-resources.mjs",
+    "audit:mettelo-lab": "node scripts/audit-mettelo-lab-workspace.mjs && node scripts/audit-mettelo-lab-tasks.mjs && node scripts/audit-mettelo-lab-data.mjs && node scripts/audit-mettelo-lab-proof.mjs && node scripts/audit-mettelo-lab-resources.mjs && node scripts/audit-mettelo-lab-events.mjs",
     "audit:member-home": "node scripts/audit-member-home-v3.mjs",
     "audit:member-projects": "node scripts/audit-member-projects-v1.mjs",
     "audit:member-recommended": "node scripts/audit-member-recommended-v1.mjs",

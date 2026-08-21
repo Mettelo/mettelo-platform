@@ -1,0 +1,221 @@
+.dataExperience :global([data-lab-view="data"] #data-sources){
+  min-width:0;
+  margin:0;
+  padding:clamp(20px,2.8vw,30px);
+  border:1px solid var(--lab-shell-border);
+  border-radius:18px;
+  background:var(--lab-shell-surface);
+}
+
+.dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead){
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(210px,280px);
+  align-items:end;
+  gap:clamp(20px,4vw,42px);
+  margin:0 0 22px;
+  padding-bottom:20px;
+  border-bottom:1px solid var(--lab-shell-border);
+}
+.dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead>div){min-width:0}
+.dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead .eyebrow){
+  margin:0 0 8px;
+  font-size:0;
+  line-height:1.35;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead .eyebrow)::before{
+  content:'METTELO LAB / DATA';
+  display:block;
+  font-family:var(--font-plex-mono),ui-monospace,monospace;
+  font-size:.7rem;
+  font-weight:800;
+  letter-spacing:.1em;
+  color:var(--lab-shell-bronze);
+}
+.dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead .eyebrow)::after{content:none}
+.dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead h2){
+  max-width:22ch;
+  margin:0;
+  font-family:var(--font-space-grotesk),Inter,sans-serif;
+  font-size:clamp(1.85rem,3.6vw,3rem);
+  line-height:1.04;
+  letter-spacing:-.04em;
+  overflow-wrap:break-word;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead>p){
+  margin:0;
+  padding:14px 15px;
+  border-left:2px solid var(--lab-shell-border-strong);
+  border-radius:0 10px 10px 0;
+  background:var(--lab-shell-surface-muted);
+  color:var(--lab-shell-ink);
+  font-size:.78rem;
+  line-height:1.55;
+  overflow-wrap:break-word;
+}
+
+.dataExperience :global([data-lab-view="data"] #data-sources .workspaceCollection){
+  display:grid;
+  gap:12px;
+  min-width:0;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .dataRecord){
+  min-width:0;
+  padding:17px;
+  border:1px solid var(--lab-shell-border);
+  border-radius:14px;
+  background:var(--lab-shell-surface-muted);
+  box-shadow:none;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .dataRecordHead){
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:14px;
+  align-items:start;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .dataRecordHead>div){min-width:0}
+.dataExperience :global([data-lab-view="data"] #data-sources .dataRecord h3){
+  margin:7px 0 0;
+  color:var(--lab-shell-ink);
+  font-size:1.05rem;
+  line-height:1.35;
+  overflow-wrap:break-word;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .dataRecord p){
+  margin:9px 0 0;
+  color:color-mix(in srgb,var(--lab-shell-ink) 68%,var(--lab-shell-surface));
+  font-size:.86rem;
+  line-height:1.55;
+  overflow-wrap:break-word;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .chip){
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:break-word;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .recordFacts){
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px 14px;
+  margin:14px 0 0;
+  padding-top:12px;
+  border-top:1px solid var(--lab-shell-border);
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .recordFacts div){min-width:0}
+.dataExperience :global([data-lab-view="data"] #data-sources .recordFacts dt){
+  font-family:var(--font-plex-mono),ui-monospace,monospace;
+  color:color-mix(in srgb,var(--lab-shell-ink) 58%,var(--lab-shell-surface));
+  font-size:.68rem;
+  font-weight:800;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .recordFacts dd){
+  margin:3px 0 0;
+  color:var(--lab-shell-ink);
+  font-size:.82rem;
+  line-height:1.45;
+  overflow-wrap:break-word;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .linkArrow){
+  display:inline-flex;
+  align-items:center;
+  min-height:44px;
+  max-width:100%;
+  margin-top:8px;
+  color:var(--lab-shell-bronze);
+  font-weight:800;
+  overflow-wrap:break-word;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .recordActions){
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .recordActions button){min-height:44px}
+
+.dataExperience :global([data-lab-view="data"] #data-sources .emptyState),
+.dataExperience :global([data-lab-view="data"] #data-sources .empty){
+  min-width:0;
+  padding:22px;
+  border:1px dashed var(--lab-shell-border-strong);
+  border-radius:14px;
+  background:var(--lab-shell-surface-muted);
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .emptyState strong),
+.dataExperience :global([data-lab-view="data"] #data-sources .empty strong){
+  display:block;
+  color:var(--lab-shell-ink);
+  font-size:1rem;
+  line-height:1.4;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .emptyState p),
+.dataExperience :global([data-lab-view="data"] #data-sources .empty p){
+  max-width:62ch;
+  margin:6px 0 0;
+  color:color-mix(in srgb,var(--lab-shell-ink) 68%,var(--lab-shell-surface));
+  line-height:1.55;
+}
+
+.dataExperience :global([data-lab-view="data"] #data-sources .workspaceComposer){
+  margin-top:14px;
+  border:1px solid var(--lab-shell-border-strong);
+  border-radius:13px;
+  background:var(--lab-shell-surface);
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .workspaceComposer>summary){
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  padding:0 14px;
+  color:var(--lab-shell-ink);
+  font-weight:850;
+  cursor:pointer;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .workspaceComposer>summary:focus-visible),
+.dataExperience :global([data-lab-view="data"] #data-sources .recordActions button:focus-visible),
+.dataExperience :global([data-lab-view="data"] #data-sources .linkArrow:focus-visible),
+.dataExperience :global([data-lab-view="data"] #data-sources input:focus-visible),
+.dataExperience :global([data-lab-view="data"] #data-sources select:focus-visible),
+.dataExperience :global([data-lab-view="data"] #data-sources textarea:focus-visible){
+  outline:3px solid var(--lab-shell-focus);
+  outline-offset:2px;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources .fieldRow){
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.dataExperience :global([data-lab-view="data"] #data-sources input),
+.dataExperience :global([data-lab-view="data"] #data-sources select),
+.dataExperience :global([data-lab-view="data"] #data-sources textarea){
+  min-width:0;
+  max-width:100%;
+}
+
+@media(max-width:800px){
+  .dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead){grid-template-columns:1fr;gap:14px;align-items:start}
+  .dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead>p){max-width:62ch}
+  .dataExperience :global([data-lab-view="data"] #data-sources .recordFacts){grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(max-width:480px){
+  .dataExperience :global([data-lab-view="data"] #data-sources){padding:15px;border-radius:14px}
+  .dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead){margin-bottom:16px;padding-bottom:15px}
+  .dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead h2){font-size:clamp(1.6rem,7.2vw,2rem);line-height:1.07}
+  .dataExperience :global([data-lab-view="data"] #data-sources>.sectionHead>p){padding:12px 13px}
+  .dataExperience :global([data-lab-view="data"] #data-sources .dataRecord){padding:14px;border-radius:12px}
+  .dataExperience :global([data-lab-view="data"] #data-sources .dataRecordHead){grid-template-columns:1fr;gap:8px}
+  .dataExperience :global([data-lab-view="data"] #data-sources .dataRecordHead>.chip){justify-self:start}
+  .dataExperience :global([data-lab-view="data"] #data-sources .recordFacts),
+  .dataExperience :global([data-lab-view="data"] #data-sources .fieldRow){grid-template-columns:1fr}
+  .dataExperience :global([data-lab-view="data"] #data-sources .recordActions){display:grid;grid-template-columns:1fr}
+  .dataExperience :global([data-lab-view="data"] #data-sources .recordActions button){width:100%}
+  .dataExperience :global([data-lab-view="data"] #data-sources input),
+  .dataExperience :global([data-lab-view="data"] #data-sources select),
+  .dataExperience :global([data-lab-view="data"] #data-sources textarea){font-size:16px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .dataExperience :global([data-lab-view="data"] #data-sources *){scroll-behavior:auto}
+}

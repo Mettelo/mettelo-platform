@@ -20,7 +20,7 @@
 .welcome{padding:8px 0 2px;min-width:0}
 .eyebrow{font:800 11px/1.35 var(--font-plex-mono),ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--home-bronze)}
 .hero{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start;margin-bottom:18px}
-.hero h1{font:760 23px/1.18 var(--font-space-grotesk),Inter,sans-serif;letter-spacing:-.02em;margin:9px 0 7px;overflow-wrap:break-word;word-break:normal}
+.home .hero h1{font:760 23px/1.18 var(--font-space-grotesk),Inter,sans-serif;letter-spacing:-.02em;margin:9px 0 7px;overflow-wrap:break-word;word-break:normal}
 .heroText{max-width:760px;margin:0;color:#5d6678;font-size:14px;line-height:1.55}
 .profileMini{border:1px solid var(--home-line);background:var(--home-surface);border-radius:15px;padding:17px 18px;min-width:0}
 .profileMiniTop{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
@@ -118,7 +118,7 @@
   .wrap{padding:0 0 18px}
   .hero{margin-bottom:14px}
   .welcome{padding-top:2px}
-  .hero h1{font-size:21px;line-height:1.18;margin:6px 0 6px}
+  .home .hero h1{font-size:21px;line-height:1.18;margin:6px 0 6px}
   .heroText{font-size:13px;line-height:1.5}
   .profileMini{padding:14px 16px;border-radius:14px}
   .profileMiniTop{align-items:flex-start}

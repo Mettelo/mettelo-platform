@@ -5,6 +5,7 @@ const layout=read('app/member/projects/[id]/layout.tsx');
 const shellCss=read('app/member/projects/[id]/phase4-workspace.module.css');
 const shellStabilisation=read('app/member/projects/[id]/phase3-shell-stabilisation.module.css');
 const mobileFixes=read('app/member/projects/[id]/phase4-mobile-fixes.module.css');
+const messagesCss=read('app/messages.css');
 const navigation=read('components/MetteloLabNavigation.tsx');
 const surface=read('components/MetteloLabViewSurface.tsx');
 const home=read('components/MetteloLabPanel.tsx');
@@ -38,6 +39,11 @@ for(const contract of ['grid-template-rows:auto auto minmax(0,1fr) auto','positi
 for(const stale of ['top:72px!important','bottom:calc(70px + env(safe-area-inset-bottom))!important','position:fixed!important'])forbidText('Lab Chat fixed viewport workaround',mobileFixes,stale);
 requireText('Lab Chat feed owner',mobileFixes,'.messageFeed');
 requireText('Lab Chat composer owner',mobileFixes,'.messageComposer');
+for(const contract of ['grid-template-columns:minmax(0,1fr) 36px!important','grid-column:1!important','grid-column:2!important','writing-mode:horizontal-tb!important'])requireText('Lab Chat mobile message columns',mobileFixes,contract);
+
+for(const contract of ['.messageMenu>summary{','width:34px;height:34px','position:absolute;right:0;bottom:calc(100% + 7px)','visibility:hidden','.messageMenu[open] .messageActions','word-break:normal','overflow-wrap:break-word','writing-mode:horizontal-tb','.messageBubble{width:min(72%,680px)','.messageFeed{display:flex;flex-direction:column;gap:12px'])requireText('Lab Chat refined message design',messagesCss,contract);
+for(const contract of ['.messageMenu>summary{width:44px;height:44px','position:fixed;left:12px;right:12px','font-size:16px;resize:none'])requireText('Lab Chat mobile interaction design',messagesCss,contract);
+forbidText('Lab Chat menu regression',messagesCss,'.messageActions{display:flex');
 
 for(const label of ['Home','Plan','Tasks','Chat','Data','Proof','Resources','Events','Team'])requireText('desktop navigation',navigation,`label:'${label}'`);
 for(const label of ['Home','Tasks','Chat','Data'])requireText('mobile navigation',navigation,`label:'${label}'`);

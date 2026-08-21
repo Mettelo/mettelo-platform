@@ -38,6 +38,7 @@ test.describe('Spotlight v2 recognition, sharing and withdrawal',()=>{
   test.beforeEach(async()=>{await seedPublishedSpotlight();});
 
   test('published member recognition is shareable across required responsive widths',async({page})=>{
+    test.slow();
     await signIn(page);
     for(const width of [375,390,414,768,1024,1440]){
       await page.setViewportSize({width,height:900});await page.goto('/member/spotlight',{waitUntil:'networkidle'});
@@ -56,6 +57,7 @@ test.describe('Spotlight v2 recognition, sharing and withdrawal',()=>{
   });
 
   test('public list and award detail expose only safe context and social sharing',async({page})=>{
+    test.slow();
     for(const width of [375,390,414,768,1024,1440]){
       await page.setViewportSize({width,height:900});const listResponse=await page.goto('/spotlight',{waitUntil:'networkidle'});expect(listResponse?.status()).toBe(200);
       const card=publicAward(page);

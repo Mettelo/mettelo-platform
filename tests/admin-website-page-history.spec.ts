@@ -77,9 +77,9 @@ test.describe('Admin Website immutable page history',()=>{
    await expect(page.getByRole('combobox',{name:'Page',exact:true})).toBeVisible();
    const rows=page.getByLabel('Rows');await expect(rows).toBeVisible();
    await expect(rows.locator('option')).toHaveCount(3);
-   await expect(rows.locator('option').nth(0)).toHaveValue('25');
-   await expect(rows.locator('option').nth(1)).toHaveValue('50');
-   await expect(rows.locator('option').nth(2)).toHaveValue('100');
+   await expect(rows.locator('option').nth(0)).toHaveAttribute('value','25');
+   await expect(rows.locator('option').nth(1)).toHaveAttribute('value','50');
+   await expect(rows.locator('option').nth(2)).toHaveAttribute('value','100');
    await expect(page.getByRole('link',{name:'Back to Pages'})).toBeVisible();
    await noOverflow(page,`Revision history overflowed at ${width}px`);
   }

@@ -19,6 +19,19 @@ function redirectTarget(request:NextRequest){
   const protocol=forwardedProto==='http'||forwardedProto==='https'?forwardedProto:request.nextUrl.protocol.replace(':','');
   return new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`,`${protocol}://${host}`);
 }
+function hasLoopbackHostNormalization(request:NextRequest){
+  const host=(request.headers.get('host')||'').toLowerCase();
+  return request.nextUrl.hostname==='localhost'&&(host.startsWith('127.')||host.startsWith('[::1]'));
+}
+function adminCapabilityPageRedirect(request:NextRequest,response:NextResponse){
+  const destination='/admin?reason=capability';
+  if(hasLoopbackHostNormalization(request)){
+    const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0;url=${destination}"><title>Redirecting to Admin</title></head><body><p>Redirecting to <a href="${destination}">Admin overview</a>.</p></body></html>`;
+    return preserveAuthCookies(response,new NextResponse(html,{status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}}));
+  }
+  const target=redirectTarget(request);target.pathname='/admin';target.search='';target.searchParams.set('reason','capability');
+  return preserveAuthCookies(response,NextResponse.redirect(target));
+}
 
 export async function middleware(request:NextRequest){
   const pathname=request.nextUrl.pathname;
@@ -60,7 +73,7 @@ export async function middleware(request:NextRequest){
     }
     if(!adminRouteAllowed(user,pathname)){
       if(adminApi)return preserveAuthCookies(response,adminApiError('Admin capability required for this route.',403));
-      const target=redirectTarget(request);target.pathname='/admin';target.search='';target.searchParams.set('reason','capability');return preserveAuthCookies(response,NextResponse.redirect(target));
+      return adminCapabilityPageRedirect(request,response);
     }
   }
   return response;

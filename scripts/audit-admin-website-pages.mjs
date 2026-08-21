@@ -14,7 +14,7 @@ const checks=[
  ['app/api/admin/website/pages/history/route.ts',['isWebsiteCmsPageKey','restore_draft','website.page.revision.restored_to_draft','website_page_revisions']],
  ['supabase/migrations/20260821223500_expand_website_page_registry.sql',['website_page_public','website_page_drafts','website_page_revisions','community_guidelines','opportunities','careers']],
  ['lib/website-chrome.ts',["href.startsWith('#')",'/^#[A-Za-z][A-Za-z0-9_-]*$/']],
- ['tests/admin-website-pages.spec.ts',['Draft preview','Publish Opportunities','restore_draft','public page stays unchanged','390','768','1440']]
+ ['tests/admin-website-pages.spec.ts',['DRAFT PREVIEW · NOT LIVE','Publish Opportunities','restore_draft','public page stays unchanged','390','768','1440']]
 ];
 let failed=false;let passed=0;
 for(const [file,needles] of checks){

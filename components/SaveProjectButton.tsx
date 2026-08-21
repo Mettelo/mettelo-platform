@@ -1,6 +1,7 @@
 'use client';
 
 import {useState} from 'react';
+import styles from './SaveProjectButton.module.css';
 
 type Props={projectId:string;initialSaved:boolean;compact?:boolean};
 
@@ -34,10 +35,10 @@ export default function SaveProjectButton({projectId,initialSaved,compact=false}
     }
   }
 
-  return <div className={`mdSave${compact?' mdSaveCompact':''}`}>
+  return <div className={`${styles.wrap} ${compact?styles.compact:''}`}>
     <button type="button" className="mdButton mdButtonSoft mdSaveButton" aria-pressed={saved} disabled={working} onClick={toggle}>
       <span aria-hidden="true">{saved?'♥':'♡'}</span>{working?'Updating…':saved?'Saved':'Save project'}
     </button>
-    {message&&<span className={`mdSaveFeedback${failed?' mdSaveFeedbackError':''}`} role="status" aria-live="polite">{message}</span>}
+    {message&&<span className={`${styles.feedback} ${failed?styles.error:''}`} role="status" aria-live="polite">{message}</span>}
   </div>;
 }

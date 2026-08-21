@@ -17,15 +17,15 @@ END $$;
 
 ALTER TABLE public.website_page_public
   ADD CONSTRAINT website_page_public_page_key_check CHECK (page_key IN (
-    'home','about','contact','organisations','community','projects','opportunities','showcase','events','people','spotlight','blog','careers','faq','partnership','feedback','community_guidelines'
+    'home','about','contact','organisations','community','projects','opportunities','showcase','events','people','spotlight','blog','careers','faq','partnership','feedback','community_guidelines','privacy','terms'
   ));
 ALTER TABLE public.website_page_drafts
   ADD CONSTRAINT website_page_drafts_page_key_check CHECK (page_key IN (
-    'home','about','contact','organisations','community','projects','opportunities','showcase','events','people','spotlight','blog','careers','faq','partnership','feedback','community_guidelines'
+    'home','about','contact','organisations','community','projects','opportunities','showcase','events','people','spotlight','blog','careers','faq','partnership','feedback','community_guidelines','privacy','terms'
   ));
 ALTER TABLE public.website_page_revisions
   ADD CONSTRAINT website_page_revisions_page_key_check CHECK (page_key IN (
-    'home','about','contact','organisations','community','projects','opportunities','showcase','events','people','spotlight','blog','careers','faq','partnership','feedback','community_guidelines'
+    'home','about','contact','organisations','community','projects','opportunities','showcase','events','people','spotlight','blog','careers','faq','partnership','feedback','community_guidelines','privacy','terms'
   ));
 
 COMMENT ON TABLE public.website_page_public IS 'Published governed public-page copy for the Admin Website CMS. Public readers see published payloads only.';

@@ -84,6 +84,10 @@ requireText('single Lab navigation',memberShell,"!isProjectLab&&<nav className={
 requireText('Home',home,'METTELO LAB / HOME');
 requireText('Home',home,'UP NEXT');
 requireText('Home',home,'data-lab-home-section');
+for(const contract of ['Where things stand','role="progressbar"','headerContext','progressGrid','summaryGrid'])requireText('Phase 7 Home hierarchy',home,contract);
+for(const contract of ['font-size:clamp(1.65rem,7.4vw,2.05rem)','border-left:2px solid var(--lab-border-strong)','background:var(--lab-surface-soft)','.stat span{display:block;margin-bottom:5px;color:var(--lab-subtle);font-size:.72rem','.activity article p{margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.83rem;overflow-wrap:break-word'])requireText('Phase 7 Home premium refinements',homeCss,contract);
+forbidText('Phase 7 Home mobile title regression',homeCss,'font-size:clamp(1.75rem,9vw,2.35rem)');
+forbidText('Phase 7 Home chat preview wrapping',homeCss,'.activity article p{margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.83rem;overflow-wrap:anywhere}');
 requireText('Team privacy',home,'YOUR TEAM');
 requireText('Team privacy',home,'data-lab-team-section');
 for(const stale of ['lockedCohort','cohortSwitcher','Not a member','People working on this project'])forbidText('Team privacy',home,stale);

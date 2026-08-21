@@ -24,7 +24,16 @@ for(const contract of [
   '@media(max-width:480px)',
   'prefers-reduced-motion:reduce'
 ])requireText('Phase 10 Tasks UX',tasksCss,contract);
-for(const token of ['var(--lab-shell-border)','var(--lab-shell-surface)','var(--lab-shell-surface-muted)','var(--lab-shell-ink)','var(--lab-shell-focus)','var(--lab-shell-bronze)'])requireText('Phase 10 token usage',tasksCss,token);
+for(const token of ['var(--lab-shell-border)','var(--lab-shell-border-strong)','var(--lab-shell-surface)','var(--lab-shell-surface-muted)','var(--lab-shell-ink)','var(--lab-shell-focus)','var(--lab-shell-bronze)'])requireText('Phase 10 token usage',tasksCss,token);
+for(const refinement of [
+  '--tasks-muted:color-mix(',
+  '--tasks-subtle:color-mix(',
+  '--tasks-supporting:color-mix(',
+  '#delivery){\n  border:1px solid var(--lab-shell-border-strong)',
+  '#workstreams>.sectionHead),\n.tasksExperience :global([data-lab-view="tasks"] #deliverables>.sectionHead){\n  opacity:.88',
+  '.taskStatusControl){\n  min-width:0;\n  display:grid;\n  gap:8px;\n  padding:10px 0 0;\n  border:0;\n  border-top:1px solid var(--lab-shell-border);\n  border-radius:0;\n  background:transparent'
+])requireText('Phase 10 premium refinements',tasksCss,refinement);
+if(/#[0-9a-f]{3,8}\b/i.test(tasksCss))failures.push('Phase 10 token usage: hard-coded hex colours are not allowed');
 forbidText('Phase 10 viewport safety',tasksCss,'position:fixed');
 forbidText('Phase 10 wrapping',tasksCss,'overflow-wrap:anywhere');
 

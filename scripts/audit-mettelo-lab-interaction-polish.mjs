@@ -21,7 +21,7 @@ const checks=[
  ['mobile More closes on outside pointer and Escape',nav.includes("document.addEventListener('pointerdown',pointer)")&&nav.includes("event.key==='Escape'")&&nav.includes('setMoreOpen(false)')],
  ['Chat actions use controlled open state',chat.includes('openMenuId')&&chat.includes('messageMenuTrigger')&&chat.includes('aria-expanded={menuOpen}')],
  ['Chat actions close on outside pointer and Escape',chat.includes("target?.closest('.messageMenu')")&&chat.includes("event.key==='Escape'")&&chat.includes('setOpenMenuId(null)')],
- ['Chat mutations and linking APIs remain preserved',chat.includes("post('discussion_pin'")&&chat.includes("post('discussion_classify'")&&chat.includes("post('discussion_delete'")&&chat.includes("fetch('/api/project-message-links'")],
+ ['Chat mutations and linking APIs remain preserved',chat.includes('async function post(action:string')&&chat.includes("mutate(item,'discussion_pin'")&&chat.includes("mutate(item,'discussion_classify'")&&chat.includes("mutate(item,'discussion_delete'")&&chat.includes("fetch('/api/project-message-links'")],
  ['validated mobile Chat viewport ownership remains in Phase 4',composition.includes('--lab-chat-member-header:62px')&&composition.includes('var(--lab-shell-mobile-nav)')&&composition.includes('grid-template-rows:auto auto minmax(0,1fr) auto')&&composition.includes('position:relative!important')],
  ['Chat feed owns scrolling while composer remains in flow',composition.includes('.messageFeed')&&composition.includes('overflow-y:auto!important')&&composition.includes('.messageComposer')&&composition.includes('position:relative!important')],
  ['message action popover remains compact while preserving 44px targets',css.includes('width:min(244px')&&css.includes('min-height:44px')],

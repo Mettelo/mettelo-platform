@@ -80,9 +80,13 @@ export function memberProjectPrimaryAction(state:MemberProjectState,projectId:st
 }
 
 export function memberProjectCatalogueAction(state:MemberProjectState,projectId:string){
-  if(state==='open_eligible'||state==='ineligible'||state==='closed')return{label:'View project',href:`/member/discover/${projectId}`};
-  const primary=memberProjectPrimaryAction(state,projectId);
-  return primary||{label:'View project',href:`/member/discover/${projectId}`};
+  // Discover is an exploration surface. Every project card first opens the exact
+  // member-owned project context rather than dropping the member on a generic
+  // portfolio page or the public acquisition experience.
+  if(['application_submitted','application_action_required','application_in_review','team_forming'].includes(state)){
+    return{label:'View application',href:'/member/applications'};
+  }
+  return{label:'View project',href:`/member/discover/${projectId}`};
 }
 
 export function memberProjectStateLabel(state:MemberProjectState){

@@ -76,8 +76,16 @@ export async function PATCH(request:Request){
     const readiness=calculateProfileReadiness({profile:{full_name:fullName,headline,current_job_title:currentJobTitle,professional_area:professionalArea,bio,location,experience_level:experienceLevel,employment_status:employmentStatus,project_availability:projectAvailability,weekly_capacity:weeklyCapacity,primary_goal:primaryGoal,linkedin_url:linkedinUrl,github_url:githubUrl,portfolio_url:portfolioUrl,skills,preferred_roles:preferredRoles},domainCount:domainSlugs.length,toolCount:toolSlugs.length,verifiedProofCount:proofResult.count||0});
     const onboardingState=onboardingComplete?{onboarding_step:4,onboarding_completed_at:new Date().toISOString()}:hasOnboardingStep?{onboarding_step:onboardingStep}:{};
     const updatePayload={full_name:fullName,headline,bio,location,professional_area:professionalArea||null,primary_goal:primaryGoal||null,linkedin_url:linkedinUrl||null,github_url:githubUrl||null,portfolio_url:portfolioUrl||null,avatar_url:avatarUrl||null,current_job_title:currentJobTitle||null,organisation:organisation||null,experience_level:experienceLevel||null,employment_status:employmentStatus||null,project_availability:projectAvailability||null,weekly_capacity:weeklyCapacity||null,skills,preferred_roles:preferredRoles,languages,is_public:isPublic,profile_readiness:readiness.score,...onboardingState,updated_at:new Date().toISOString()};
-    const {data,error}=await supabase.from('profiles').update(updatePayload).eq('id',user.id).select('*').single();
-    if(error) return NextResponse.json({error:'Unable to save profile.'},{status:500});
+
+    // Historical/auth-imported accounts can legitimately exist without a profiles row.
+    // Upsert preserves the owner-only RLS contract while making save idempotent for both
+    // existing and missing rows instead of turning a missing row into a generic 500.
+    const {data,error}=await supabase.from('profiles').upsert({id:user.id,...updatePayload},{onConflict:'id'}).select('*').single();
+    if(error){
+      console.error('member profile upsert failed',{code:error.code,message:error.message,details:error.details,hint:error.hint});
+      const schemaMismatch=error.code==='42703'||error.code==='PGRST204';
+      return NextResponse.json({error:schemaMismatch?'Profile saving is temporarily unavailable while the profile schema is updated.':'Unable to save profile. Please try again.'},{status:500});
+    }
 
     const [clearDomains,clearTools]=await Promise.all([supabase.from('profile_domain_preferences').delete().eq('user_id',user.id),supabase.from('profile_tool_preferences').delete().eq('user_id',user.id)]);
     if(clearDomains.error||clearTools.error)return NextResponse.json({error:'Profile saved, but project preferences could not be updated.'},{status:500});
@@ -85,5 +93,8 @@ export async function PATCH(request:Request){
     const [saveDomains,saveTools]=await Promise.all([domainLinks.length?supabase.from('profile_domain_preferences').insert(domainLinks):Promise.resolve({error:null}),toolLinks.length?supabase.from('profile_tool_preferences').insert(toolLinks):Promise.resolve({error:null})]);
     if(saveDomains.error||saveTools.error)return NextResponse.json({error:'Profile saved, but project preferences could not be updated.'},{status:500});
     return NextResponse.json({profile:data,profile_readiness:readiness.score,domain_preferences:domainSlugs,tool_preferences:toolSlugs});
-  }catch{return NextResponse.json({error:'Invalid profile request.'},{status:400});}
+  }catch(error){
+    console.error('member profile request failed',error);
+    return NextResponse.json({error:'Invalid profile request.'},{status:400});
+  }
 }

@@ -1,0 +1,2 @@
+.wrap{display:grid;justify-items:end;gap:5px;min-width:0}.feedback{max-width:220px;font-size:11px;line-height:1.35;color:#47604f;text-align:right;overflow-wrap:break-word}.error{color:#8b2f2f}.compact .feedback{max-width:170px;font-size:10px}
+@media(max-width:480px){.wrap{justify-items:stretch}.feedback{text-align:left;max-width:100%}}

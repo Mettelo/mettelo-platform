@@ -62,7 +62,7 @@ const checks=[
  ['completed members bypass first-time onboarding',onboardingMigration.includes('onboarding_completed_at')&&onboardingPage.includes("if(profile.onboarding_completed_at)redirect('/member')")],
  ['onboarding has explicit completion state',Boolean(onboardingComplete)&&onboarding.includes("window.location.assign('/onboarding/complete')")&&onboardingComplete.includes('You’re ready to use My Mettelo.')],
  ['onboarding completion is persisted',profileApi.includes('onboarding_completed_at:new Date().toISOString()')&&onboarding.includes('save(4,true)')],
- ['onboarding reuses canonical profile API',profileApi.includes("supabase.from('profiles').update")],
+ ['onboarding reuses canonical profile API',(profileApi.includes("supabase.from('profiles').update")||(profileApi.includes("supabase.from('profiles').upsert")&&profileApi.includes('id:user.id')&&!profileApi.includes('id:body.id')))],
  ['onboarding has required-field gating',onboarding.includes('canContinue')],
  ['onboarding supports back navigation',onboarding.includes('← Back')],
  ['auth status messages expose aria-live',signin.includes('aria-live="polite"')&&checkEmail.includes('aria-live="polite"')&&updatePassword.includes('aria-live="polite"')&&socialComplete.includes('aria-live="polite"')&&onboarding.includes('aria-live="polite"')],

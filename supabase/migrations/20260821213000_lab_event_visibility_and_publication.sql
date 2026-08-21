@@ -51,6 +51,10 @@ declare
   public_status text;
   public_slug text;
   public_description text;
+  public_registration_url text;
+  public_registration_platform text;
+  public_registration_label text;
+  public_registration_required boolean;
 begin
   -- Only explicitly community-visible learning sessions and final presentations
   -- are eligible. Private/named-member events are removed from the catalogue if
@@ -79,6 +83,21 @@ begin
       then 'Learning objectives: ' || trim(new.learning_objectives) end
   );
 
+  -- Existing governed registration currently supports learning sessions. Final
+  -- presentations may be publicly listed as showcases, but are not advertised as
+  -- registerable until their registration contract is explicitly enabled.
+  if new.event_type = 'learning_session' then
+    public_registration_url := '/member/events?event=' || new.id::text;
+    public_registration_platform := 'mettelo';
+    public_registration_label := case when new.visibility='approval_required' then 'Request a place' else 'Reserve a place' end;
+    public_registration_required := true;
+  else
+    public_registration_url := null;
+    public_registration_platform := null;
+    public_registration_label := null;
+    public_registration_required := false;
+  end if;
+
   insert into public.events (
     id,slug,title,event_type,summary,description,starts_at,ends_at,timezone,
     delivery_mode,location_label,capacity,registration_url,
@@ -88,9 +107,8 @@ begin
     new.id,public_slug,new.title,public_type,nullif(trim(coalesce(new.purpose,'')),''),
     nullif(public_description,''),new.starts_at,new.ends_at,new.timezone,
     'online','Online · Mettelo',new.capacity,
-    '/member/events?event=' || new.id::text,'mettelo',
-    case when new.visibility='approval_required' then 'Request a place' else 'Reserve a place' end,
-    true,public_status,
+    public_registration_url,public_registration_platform,public_registration_label,
+    public_registration_required,public_status,
     case when public_status='published' then coalesce(new.created_at,now()) else null end,
     new.id,new.project_id,now()
   )
@@ -133,8 +151,10 @@ after insert or update of title,purpose,event_type,visibility,agenda,learning_ob
 for each row execute function public.sync_project_event_public_listing();
 
 -- Backfill any already-scheduled opted-in events without exposing private events.
+-- title is in the trigger's UPDATE OF list, so this intentional no-op invokes the
+-- synchroniser for canonical rows that predate this migration.
 update public.project_meetings
-set updated_at = updated_at
+set title = title
 where visibility in ('community_learning','approval_required')
   and event_type in ('learning_session','final_presentation');
 

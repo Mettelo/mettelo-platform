@@ -244,6 +244,8 @@ jobs:
           exit 1
       - name: Verify E2E production guard
         run: npm run check:e2e-config
+      - name: Blocking Mettelo Lab Chat permission preflight
+        run: npx playwright test tests/mettelo-lab-chat-permissions.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Blocking public browser regression suite
         run: npm run test:regression
       - name: Blocking authenticated smoke and Mettelo Lab Chromium visual QA

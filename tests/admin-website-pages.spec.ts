@@ -1,63 +1,11 @@
 import {expect,test,type APIRequestContext,type Page} from '@playwright/test';
 
-type Credentials={email:string;password:string};
-type PagePayload={values:Record<string,string>};
-
+type Credentials={email:string;password:string};type PagePayload={values:Record<string,string>};
 function credentials():Credentials{const email=process.env.E2E_ADMIN_EMAIL?.trim();const password=process.env.E2E_ADMIN_PASSWORD;if(!email||!password)throw new Error('Missing E2E_ADMIN_EMAIL or E2E_ADMIN_PASSWORD. Run npm run check:e2e-config first.');return{email,password}}
 async function signIn(page:Page,next:string){const account=credentials();await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(account.email);await main.locator('input[type="password"]').fill(account.password);await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000})}
-async function noOverflow(page:Page,label:string){const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));expect(dimensions.scrollWidth,label).toBeLessThanOrEqual(dimensions.clientWidth)}
-async function savePage(api:APIRequestContext,pageKey:string,payload:PagePayload){const response=await api.patch('/api/admin/website/pages',{data:{page:pageKey,payload}});expect(response.status()).toBe(200);return response.json()}
-async function publishPage(api:APIRequestContext,pageKey:string){const response=await api.post('/api/admin/website/pages',{data:{page:pageKey,action:'publish'}});expect(response.status()).toBe(200);return response.json()}
-function clone(payload:PagePayload):PagePayload{return{values:{...payload.values}}}
+async function noOverflow(page:Page,label:string){const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));expect(dimensions.scrollWidth,label).toBeLessThanOrEqual(dimensions.clientWidth)}async function savePage(api:APIRequestContext,pageKey:string,payload:PagePayload){const response=await api.patch('/api/admin/website/pages',{data:{page:pageKey,payload}});expect(response.status()).toBe(200);return response.json()}async function publishPage(api:APIRequestContext,pageKey:string){const response=await api.post('/api/admin/website/pages',{data:{page:pageKey,action:'publish'}});expect(response.status()).toBe(200);return response.json()}function clone(payload:PagePayload):PagePayload{return{values:{...payload.values}}}
 
 test.describe('Admin Website public pages CMS',()=>{
- test('draft validation, publishing, public rendering and restoration are governed',async({page})=>{
-  await signIn(page,'/admin/website/pages');
-  const api=page.context().request;
-  const response=await api.get('/api/admin/website/pages?page=home');
-  expect(response.status()).toBe(200);
-  const current=await response.json();
-  const originalDraft=clone(current.draft.payload as PagePayload);
-  const originalPublished=clone(current.published.payload as PagePayload);
-
-  const dangerous=clone(originalPublished);dangerous.values.hero_primary_href='//evil.example';
-  const rejected=await api.patch('/api/admin/website/pages',{data:{page:'home',payload:dangerous}});
-  expect(rejected.status()).toBe(400);
-
-  const changed=clone(originalPublished);const marker=`${originalPublished.values.hero_title} E2E`;
-  changed.values.hero_title=marker;
-  try{
-   const saved=await savePage(api,'home',changed);expect(saved.ok).toBe(true);
-   const published=await publishPage(api,'home');expect(published.ok).toBe(true);
-   await page.setViewportSize({width:1440,height:900});
-   await page.goto('/',{waitUntil:'networkidle'});
-   await expect(page.getByRole('heading',{level:1})).toContainText(marker);
-   const audit=await api.get('/api/admin/audit?action=website.page.published&page=1&page_size=25');
-   expect(audit.status()).toBe(200);const auditPayload=await audit.json();expect(auditPayload.total).toBeGreaterThan(0);
-  }finally{
-   await savePage(api,'home',originalPublished);
-   await publishPage(api,'home');
-   if(JSON.stringify(originalDraft)!==JSON.stringify(originalPublished))await savePage(api,'home',originalDraft);
-  }
- });
-
- test('Pages editor and protected Contact form remain responsive',async({page})=>{
-  await signIn(page,'/admin/website/pages');
-  for(const width of [390,768,1440]){
-   await page.setViewportSize({width,height:900});
-   await page.goto('/admin/website/pages',{waitUntil:'networkidle'});
-   await expect(page.getByRole('heading',{level:1,name:'Public pages'})).toBeVisible();
-   await expect(page.getByRole('combobox',{name:'Page',exact:true})).toBeVisible();
-   await expect(page.getByRole('button',{name:'Save draft'})).toBeVisible();
-   await expect(page.getByRole('button',{name:'Publish page'})).toBeVisible();
-   await noOverflow(page,`Website Pages overflowed at ${width}px`);
-  }
-
-  await page.goto('/contact',{waitUntil:'networkidle'});
-  await expect(page.locator('input[name="name"]')).toBeVisible();
-  await expect(page.locator('#contact-email')).toBeVisible();
-  await expect(page.locator('select[name="topic"]')).toBeVisible();
-  await expect(page.locator('textarea[name="message"]')).toBeVisible();
-  await expect(page.locator('input[name="consent"]')).toBeVisible();
- });
+ test('draft validation, publishing, public rendering and restoration are governed',async({page})=>{await signIn(page,'/admin/website/pages');const api=page.context().request;const response=await api.get('/api/admin/website/pages?page=home');expect(response.status()).toBe(200);const current=await response.json();const originalDraft=clone(current.draft.payload as PagePayload);const originalPublished=clone(current.published.payload as PagePayload);const dangerous=clone(originalPublished);dangerous.values.hero_primary_href='//evil.example';const rejected=await api.patch('/api/admin/website/pages',{data:{page:'home',payload:dangerous}});expect(rejected.status()).toBe(400);const changed=clone(originalPublished);const marker=`${originalPublished.values.hero_title} E2E`;changed.values.hero_title=marker;try{const saved=await savePage(api,'home',changed);expect(saved.ok).toBe(true);const published=await publishPage(api,'home');expect(published.ok).toBe(true);await page.setViewportSize({width:1440,height:900});await page.goto('/',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1})).toContainText(marker);const audit=await api.get('/api/admin/audit?action=website.page.published&page=1&page_size=25');expect(audit.status()).toBe(200);const auditPayload=await audit.json();expect(auditPayload.total).toBeGreaterThan(0)}finally{await savePage(api,'home',originalPublished);await publishPage(api,'home');if(JSON.stringify(originalDraft)!==JSON.stringify(originalPublished))await savePage(api,'home',originalDraft)}});
+ test('Pages editor and protected Contact form remain responsive',async({page})=>{await signIn(page,'/admin/website/pages');for(const width of [390,768,1440]){await page.setViewportSize({width,height:900});await page.goto('/admin/website/pages',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'Public pages'})).toBeVisible();await expect(page.getByRole('combobox',{name:'Page',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Save draft'})).toBeVisible();await expect(page.getByRole('button',{name:'Publish page'})).toBeVisible();await noOverflow(page,`Website Pages overflowed at ${width}px`)}await page.goto('/contact',{waitUntil:'networkidle'});await expect(page.locator('input[name="name"]')).toBeVisible();await expect(page.locator('#contact-email')).toBeVisible();await expect(page.locator('select[name="topic"]')).toBeVisible();await expect(page.locator('textarea[name="message"]')).toBeVisible();await expect(page.locator('input[name="consent"]')).toBeVisible()});
 });

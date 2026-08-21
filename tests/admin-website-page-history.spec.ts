@@ -29,59 +29,20 @@ test.describe('Admin Website immutable page history',()=>{
   try{
    await save(api,versionA);const publishA=await publish(api);expect(publishA.revision?.number).toBeGreaterThan(0);
    await save(api,versionB);const publishB=await publish(api);expect(publishB.revision.number).toBeGreaterThan(publishA.revision.number);
-
    const afterTwo=await history(api,25);
    const revisionA=afterTwo.items.find(item=>item.valid&&item.payload?.values.hero_title===versionA.values.hero_title);
    const revisionB=afterTwo.items.find(item=>item.valid&&item.payload?.values.hero_title===versionB.values.hero_title);
-   expect(revisionA,'first published marker should appear in immutable history').toBeTruthy();
-   expect(revisionB,'second published marker should appear in immutable history').toBeTruthy();
-
-   const restore=await api.post('/api/admin/website/pages/history',{data:{page:'home',revision_id:revisionA!.id,action:'restore_draft'}});
-   expect(restore.status()).toBe(200);
-   const restoreBody=await restore.json();expect(restoreBody.restored_revision.id).toBe(revisionA!.id);
-
-   const restoredState=await pageState(api);
-   expect(restoredState.draft.payload.values.hero_title).toBe(versionA.values.hero_title);
-   expect(restoredState.draft.restored_from_revision_id).toBe(revisionA!.id);
-   expect(restoredState.published.payload.values.hero_title).toBe(versionB.values.hero_title);
-
-   await page.goto('/',{waitUntil:'networkidle'});
-   await expect(page.getByRole('heading',{level:1})).toContainText(versionB.values.hero_title);
-   expect(await page.getByRole('heading',{level:1}).textContent(),'public page remains on version B after restore_draft').not.toContain(versionA.values.hero_title);
-
-   const republish=await publish(api);expect(republish.revision.number).toBeGreaterThan(publishB.revision.number);
-   await page.goto('/',{waitUntil:'networkidle'});
-   await expect(page.getByRole('heading',{level:1})).toContainText(versionA.values.hero_title);
-
-   const afterRestorePublish=await history(api,25);
-   const newest=afterRestorePublish.items[0];
-   expect(newest.source).toBe('restored_publish');
-   expect(newest.restored_from_revision_id).toBe(revisionA!.id);
-   expect(newest.payload?.values.hero_title).toBe(versionA.values.hero_title);
-
-   const audit=await api.get('/api/admin/audit?action=website.page.revision.restored_to_draft&page=1&page_size=25');
-   expect(audit.status()).toBe(200);const auditPayload=await audit.json();expect(auditPayload.total).toBeGreaterThan(0);
-  }finally{
-   await save(api,originalPublished);
-   await publish(api);
-   if(JSON.stringify(originalDraft)!==JSON.stringify(originalPublished))await save(api,originalDraft);
-  }
+   expect(revisionA,'first published marker should appear in immutable history').toBeTruthy();expect(revisionB,'second published marker should appear in immutable history').toBeTruthy();
+   const restore=await api.post('/api/admin/website/pages/history',{data:{page:'home',revision_id:revisionA!.id,action:'restore_draft'}});expect(restore.status()).toBe(200);const restoreBody=await restore.json();expect(restoreBody.restored_revision.id).toBe(revisionA!.id);
+   const restoredState=await pageState(api);expect(restoredState.draft.payload.values.hero_title).toBe(versionA.values.hero_title);expect(restoredState.draft.restored_from_revision_id).toBe(revisionA!.id);expect(restoredState.published.payload.values.hero_title).toBe(versionB.values.hero_title);
+   await page.goto('/',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1})).toContainText(versionB.values.hero_title);expect(await page.getByRole('heading',{level:1}).textContent(),'public page remains on version B after restore_draft').not.toContain(versionA.values.hero_title);
+   const republish=await publish(api);expect(republish.revision.number).toBeGreaterThan(publishB.revision.number);await page.goto('/',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1})).toContainText(versionA.values.hero_title);
+   const afterRestorePublish=await history(api,25);const newest=afterRestorePublish.items[0];expect(newest.source).toBe('restored_publish');expect(newest.restored_from_revision_id).toBe(revisionA!.id);expect(newest.payload?.values.hero_title).toBe(versionA.values.hero_title);
+   const audit=await api.get('/api/admin/audit?action=website.page.revision.restored_to_draft&page=1&page_size=25');expect(audit.status()).toBe(200);const auditPayload=await audit.json();expect(auditPayload.total).toBeGreaterThan(0);
+  }finally{await save(api,originalPublished);await publish(api);if(JSON.stringify(originalDraft)!==JSON.stringify(originalPublished))await save(api,originalDraft)}
  });
-
  test('Revision history workspace is responsive and exposes bounded pagination controls',async({page})=>{
   await signIn(page,'/admin/website/pages/history');
-  for(const width of [390,768,1440]){
-   await page.setViewportSize({width,height:900});
-   await page.goto('/admin/website/pages/history',{waitUntil:'networkidle'});
-   await expect(page.getByRole('heading',{level:1,name:'Revision history'})).toBeVisible();
-   await expect(page.getByRole('combobox',{name:'Page',exact:true})).toBeVisible();
-   const rows=page.getByRole('combobox',{name:'Rows',exact:true});await expect(rows).toBeVisible();
-   const options=rows.locator('option');await expect(options).toHaveCount(3);
-   await expect(options.nth(0)).toHaveAttribute('value','25');
-   await expect(options.nth(1)).toHaveAttribute('value','50');
-   await expect(options.nth(2)).toHaveAttribute('value','100');
-   await expect(page.getByRole('link',{name:'Back to Pages'})).toBeVisible();
-   await noOverflow(page,`Revision history overflowed at ${width}px`);
-  }
+  for(const width of [390,768,1440]){await page.setViewportSize({width,height:900});await page.goto('/admin/website/pages/history',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'Revision history'})).toBeVisible();await expect(page.getByRole('combobox',{name:'Page',exact:true})).toBeVisible();const rows=page.getByRole('combobox',{name:'Rows',exact:true});await expect(rows).toBeVisible();const options=rows.locator('option');await expect(options).toHaveCount(3);await expect(options.nth(0)).toHaveAttribute('value','25');await expect(options.nth(1)).toHaveAttribute('value','50');await expect(options.nth(2)).toHaveAttribute('value','100');await expect(page.getByRole('link',{name:'Back to Pages'})).toBeVisible();await noOverflow(page,`Revision history overflowed at ${width}px`)}
  });
 });

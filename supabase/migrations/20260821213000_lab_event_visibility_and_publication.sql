@@ -10,6 +10,10 @@
 -- * project_team and named_members events are never projected publicly.
 
 grant select on table public.project_meetings to authenticated;
+-- The public Events page uses the anon PostgREST role. RLS below remains the
+-- governing filter, so this grant exposes only rows whose status is explicitly
+-- public while keeping draft/private project event data inaccessible.
+grant select on table public.events to anon, authenticated;
 
 alter table public.events
   add column if not exists source_project_meeting_id uuid references public.project_meetings(id) on delete cascade,

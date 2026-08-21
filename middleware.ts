@@ -13,8 +13,9 @@ function adminApiError(message:string,status:number){return NextResponse.json({e
 function preserveAuthCookies(source:NextResponse,target:NextResponse){for(const cookie of source.cookies.getAll())target.cookies.set(cookie);return target}
 function redirectTarget(request:NextRequest){
   const target=request.nextUrl.clone();
+  const directHost=request.headers.get('host')?.trim();
   const forwardedHost=request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
-  const host=forwardedHost||request.headers.get('host');
+  const host=directHost||forwardedHost;
   if(host)target.host=host;
   const forwardedProto=request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim();
   if(forwardedProto==='http'||forwardedProto==='https')target.protocol=`${forwardedProto}:`;

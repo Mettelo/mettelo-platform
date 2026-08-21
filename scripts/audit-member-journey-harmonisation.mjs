@@ -20,7 +20,7 @@ const checks=[
   ['Applications uses shared header',applications.includes("import MemberPageHeader")&&applications.includes('<MemberPageHeader')],
   ['Proof uses shared header',proof.includes("import MemberPageHeader")&&proof.includes('<MemberPageHeader')],
   ['Discover uses shared header',discover.includes("import MemberPageHeader")&&discover.includes('<MemberPageHeader')],
-  ['Projects duplicate breadcrumb is visually removed',projects.includes('className={styles.crumb}')&&projectsCss.includes('.crumb{display:none}')],
+  ['Projects duplicate breadcrumb is removed from the rendered page',!projects.includes('className={styles.crumb}')],
   ['Projects content aligns to the Member Panel grid',projectsCss.includes('width:min(100%,1240px)')&&projectsCss.includes('margin:0;padding:0 0 88px')],
   ['Projects discovery CTAs stay inside My Mettelo',projects.includes('href="/member/discover"')&&!projects.includes('href="/projects"')],
   ['Applications Discover CTA stays inside My Mettelo',applications.includes('href="/member/discover"')&&!applications.includes('href="/projects"')],
@@ -38,7 +38,7 @@ const checks=[
   ['Profile save surfaces schema mismatch without exposing database detail',profileApi.includes("schemaMismatch=error.code==='42703'||error.code==='PGRST204'")],
   ['Contained public mobile menu restore is loaded last',rootLayout.includes("import './public-mobile-menu-restore.css';")],
   ['Restored mobile menu is contained rather than viewport-height',menuRestore.includes('width:min(86vw,340px)')&&menuRestore.includes('height:auto!important')&&menuRestore.includes('top:68px!important')],
-  ['Restored mobile menu retains a backdrop and bounded scrolling',menuRestore.includes('.mobileMenuBackdrop')&&menuRestore.includes('max-height:calc(100dvh - 80px)'))
+  ['Restored mobile menu retains a backdrop and bounded scrolling',menuRestore.includes('.mobileMenuBackdrop')&&menuRestore.includes('max-height:calc(100dvh - 80px)')]
 ];
 
 let passed=0;

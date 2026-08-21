@@ -38,7 +38,7 @@ const checks=[
   ['Profile save surfaces schema mismatch without exposing database detail',profileApi.includes("schemaMismatch=error.code==='42703'||error.code==='PGRST204'")],
   ['Contained public mobile menu restore is loaded last',rootLayout.includes("import './public-mobile-menu-restore.css';")],
   ['Restored mobile menu is contained rather than viewport-height',menuRestore.includes('width:min(86vw,340px)')&&menuRestore.includes('height:auto!important')&&menuRestore.includes('top:68px!important')],
-  ['Restored mobile menu retains a backdrop and bounded scrolling',menuRestore.includes('.mobileMenuBackdrop')&&menuRestore.includes('max-height:calc(100dvh - 80px)'))
+  ['Restored mobile menu retains a backdrop and bounded scrolling',menuRestore.includes('.mobileMenuBackdrop')&&menuRestore.includes('max-height:calc(100dvh - 80px)')]
 ];
 
 let passed=0;

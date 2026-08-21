@@ -30,7 +30,7 @@ test.describe('Admin Website SEO management',()=>{
    await expect(page).toHaveTitle(marker);
    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content',changed.description);
    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content',changed.og_title);
-   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href','https://mettelo.com/');
+   const canonicalHref=await page.locator('link[rel="canonical"]').getAttribute('href');expect(canonicalHref).toBeTruthy();const canonicalUrl=new URL(canonicalHref!);expect(canonicalUrl.origin).toBe('https://mettelo.com');expect(canonicalUrl.pathname).toBe('/');expect(canonicalUrl.search).toBe('');expect(canonicalUrl.hash).toBe('');
    const robots=await page.locator('meta[name="robots"]').getAttribute('content');expect(robots||'').toContain('noindex');
    await expect(page.getByRole('heading',{level:1})).toBeVisible();
 
@@ -56,7 +56,8 @@ test.describe('Admin Website SEO management',()=>{
    await noOverflow(page,`Website SEO overflowed at ${width}px`);
   }
   await page.getByLabel('Scope').selectOption('global');
-  await expect(page.getByText('Google verification token')).toBeVisible();
-  await expect(page.getByText('Bing verification token')).toBeVisible();
+  await page.getByText('Search verification',{exact:true}).click();
+  await expect(page.getByText('Google verification token',{exact:true})).toBeVisible();
+  await expect(page.getByText('Bing verification token',{exact:true})).toBeVisible();
  });
 });

@@ -59,8 +59,10 @@ export async function PATCH(request:Request){
   if(action==='update_capabilities'&&beforeUser.app_metadata?.role!=='admin')return NextResponse.json({error:'Grant Admin access before editing capabilities.'},{status:409});
 
   const appMetadata={...(beforeUser.app_metadata||{})};let afterCapabilities:string[]=[];
-  if(action==='revoke'){delete appMetadata.role;delete appMetadata.admin_capabilities;}
-  else{const requested=requestedCapabilities(body.mode,body.capabilities);if(!requested.ok)return NextResponse.json({error:requested.error},{status:400});appMetadata.role='admin';appMetadata.admin_capabilities=requested.capabilities;afterCapabilities=requested.capabilities;}
+  if(action==='revoke'){
+   appMetadata.role=null;
+   appMetadata.admin_capabilities=null;
+  }else{const requested=requestedCapabilities(body.mode,body.capabilities);if(!requested.ok)return NextResponse.json({error:requested.error},{status:400});appMetadata.role='admin';appMetadata.admin_capabilities=requested.capabilities;afterCapabilities=requested.capabilities;}
 
   const willManage=hasAdminCapability(stateForMetadata(appMetadata),'admin.access.manage');
   if(targetId===gate.user!.id&&!willManage)return NextResponse.json({error:'You cannot remove your own Admin access management capability.'},{status:409});

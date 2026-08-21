@@ -11,6 +11,8 @@ import MetteloLabSystemPanels from '@/components/MetteloLabSystemPanels';
 import MetteloLabViewSurface from '@/components/MetteloLabViewSurface';
 import styles from './phase4-workspace.module.css';
 import mobileFixes from './phase4-mobile-fixes.module.css';
+import interactionPolish from './phase18-interaction-polish.module.css';
+import reportedRegressions from './phase18-reported-regressions.module.css';
 
 type Membership={membership_status:string;project_run_id:string|null;team_role:string;project_runs:{status:string}|null};type TeamRow={user_id:string;team_role:string;membership_status:string};type ProfileRow={id:string;full_name:string|null};type DataSourceRow={id:string;name:string;owner_user_id:string|null;version_label:string|null;external_url:string;provenance:string|null;download_policy:string;publish_policy:string};type DataVersionRow={id:string;data_source_id:string;version_label:string;external_url:string;change_summary:string|null;created_at:string};type ConversationRow={id:string;author_user_id:string;created_at:string};
 type Readiness={ready:boolean;required_milestones:number;completed_milestones:number;required_tasks:number;completed_tasks:number;project_members_requiring_proof:number;members_with_verified_proof:number;pending_contributions:number;presentation_required:boolean;presentation_status:string};type CompletionRequest={id:string;status:string;review_notes:string|null;requested_at:string;reviewed_at:string|null};
@@ -35,7 +37,7 @@ export default async function ProjectWorkspaceGate({children,params}:{children:R
  const dataPanel=<ProjectDataGovernance projectId={id} projectRunId={runId} currentUserId={user.id} canLead={canLead} sources={governedSources} versions={dataVersions}/>;
  const proofPanel=<ProjectContributionStatusPanel projectId={id} projectRunId={runId}/>;
  const completionPanel=<ProjectCompletionRequestPanel projectId={id} projectRunId={runId} readiness={readiness} initialRequest={completionRequest} canLead={Boolean(membership?.team_role==='project_lead')} canReview={canReviewCompletion} projectStatus={workspaceStatus}/>;
- return <div className={`${styles.workspace} ${mobileFixes.mobileFixes}`}>
+ return <div className={`${styles.workspace} ${mobileFixes.mobileFixes} ${interactionPolish.interactionPolish} ${reportedRegressions.reportedRegressions}`}>
   <a className={styles.skipLink} href="#mettelo-lab-content">Skip to Mettelo Lab content</a>
   <div className={styles.shell}>
    <aside className={styles.rail} aria-label="Mettelo Lab workspace">

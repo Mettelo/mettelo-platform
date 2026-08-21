@@ -120,3 +120,37 @@
     scroll-behavior:auto!important;
   }
 }
+
+/* Train 1 Chat redesign: size the in-flow panel to the actual mobile workspace. */
+.mobileFixes{--lab-chat-member-header:62px}
+@media(max-width:480px){
+  .mobileFixes :global([data-lab-view="chat"] #discussion){
+    height:calc(100dvh - var(--lab-chat-member-header) - var(--lab-shell-mobile-nav) - 1.5rem - env(safe-area-inset-bottom))!important;
+    min-height:0!important;
+    max-height:none!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageFeed){
+    min-height:0!important;
+    padding-bottom:12px!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow){
+    grid-template-columns:30px minmax(0,1fr)!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow.own){
+    grid-template-columns:minmax(0,1fr) 30px!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageComposer){
+    position:relative!important;
+    inset:auto!important;
+    margin:0!important;
+    z-index:3!important;
+  }
+}
+
+@media(max-width:480px) and (orientation:landscape),
+       (max-width:480px) and (max-height:520px){
+  .mobileFixes :global([data-lab-view="chat"] #discussion){
+    height:calc(100dvh - var(--lab-chat-member-header) - var(--lab-shell-mobile-nav) - .75rem - env(safe-area-inset-bottom))!important;
+    min-height:0!important;
+  }
+}

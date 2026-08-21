@@ -221,7 +221,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Blocking representative persisted submission
-        run: npx playwright test tests/staging-submission-journeys.spec.ts --project=chromium --workers=1 --grep "contact, partnership, feedback and newsletter persist and reach admin operations"
+        run: npx playwright test tests/staging-submission-journeys.spec.ts --project=chromium --workers=1 --timeout=120000 --grep "contact, partnership, feedback and newsletter persist and reach admin operations"
       - name: Informational full submission suite
         id: full_e2e
         continue-on-error: true

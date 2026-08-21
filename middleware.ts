@@ -11,22 +11,14 @@ function normalizeProjectIntent(value:string|null){const safe=safePath(value);if
 function rememberIntent(response:NextResponse,request:NextRequest,intent:string|null){if(intent&&intent!=='/member')response.cookies.set('mettelo_return_to',intent,{httpOnly:true,sameSite:'lax',secure:request.nextUrl.protocol==='https:',path:'/',maxAge:60*60*4});return response}
 function adminApiError(message:string,status:number){return NextResponse.json({error:message},{status})}
 function preserveAuthCookies(source:NextResponse,target:NextResponse){for(const cookie of source.cookies.getAll())target.cookies.set(cookie);return target}
-function redirectTarget(request:NextRequest){
-  const target=request.nextUrl.clone();
-  const directHost=request.headers.get('host')?.trim();
-  const forwardedHost=request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
-  const host=directHost||forwardedHost;
-  if(host)target.host=host;
-  const forwardedProto=request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim();
-  if(forwardedProto==='http'||forwardedProto==='https')target.protocol=`${forwardedProto}:`;
-  return target;
-}
+function redirectTarget(request:NextRequest){return request.nextUrl.clone()}
+function localRedirect(target:ReturnType<typeof redirectTarget>){return new NextResponse(null,{status:307,headers:{location:`${target.pathname}${target.search}${target.hash}`}})}
 
 export async function middleware(request:NextRequest){
   const pathname=request.nextUrl.pathname;
   if(pathname==='/signin'){
     const rawNext=request.nextUrl.searchParams.get('next');const intent=normalizeProjectIntent(rawNext);
-    if(rawNext&&intent&&rawNext!==intent){const target=redirectTarget(request);target.searchParams.set('next',intent);return rememberIntent(NextResponse.redirect(target),request,intent)}
+    if(rawNext&&intent&&rawNext!==intent){const target=redirectTarget(request);target.searchParams.set('next',intent);return rememberIntent(localRedirect(target),request,intent)}
     return rememberIntent(NextResponse.next(),request,intent);
   }
   const architectEntry=pathname==='/project-architect';
@@ -39,7 +31,7 @@ export async function middleware(request:NextRequest){
   const anonKey=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if(!url||!anonKey){
     if(adminApi)return adminApiError('Authentication service is not configured.',503);
-    const target=redirectTarget(request);target.pathname='/signin';target.searchParams.set('reason','not-configured');if(architectEntry)target.searchParams.set('next','/member/project-architect');return NextResponse.redirect(target);
+    const target=redirectTarget(request);target.pathname='/signin';target.searchParams.set('reason','not-configured');if(architectEntry)target.searchParams.set('next','/member/project-architect');return localRedirect(target);
   }
 
   let response=NextResponse.next({request});
@@ -52,17 +44,17 @@ export async function middleware(request:NextRequest){
   const {data:{user}}=await supabase.auth.getUser();
   if(!user){
     if(adminApi)return preserveAuthCookies(response,adminApiError('Authentication required.',401));
-    const target=redirectTarget(request);target.pathname='/signin';const requested=`${pathname}${request.nextUrl.search}`;target.searchParams.set('next',architectEntry?'/member/project-architect':requested);return preserveAuthCookies(response,NextResponse.redirect(target));
+    const target=redirectTarget(request);target.pathname='/signin';const requested=`${pathname}${request.nextUrl.search}`;target.searchParams.set('next',architectEntry?'/member/project-architect':requested);return preserveAuthCookies(response,localRedirect(target));
   }
-  if(architectEntry){const target=redirectTarget(request);target.pathname='/member/project-architect';target.search='';return preserveAuthCookies(response,NextResponse.redirect(target))}
+  if(architectEntry){const target=redirectTarget(request);target.pathname='/member/project-architect';target.search='';return preserveAuthCookies(response,localRedirect(target))}
   if(adminPage||adminApi){
     if(!isTrustedAdmin(user)){
       if(adminApi)return preserveAuthCookies(response,adminApiError('Admin access required.',403));
-      const target=redirectTarget(request);target.pathname='/member';target.search='';return preserveAuthCookies(response,NextResponse.redirect(target));
+      const target=redirectTarget(request);target.pathname='/member';target.search='';return preserveAuthCookies(response,localRedirect(target));
     }
     if(!adminRouteAllowed(user,pathname)){
       if(adminApi)return preserveAuthCookies(response,adminApiError('Admin capability required for this route.',403));
-      const target=redirectTarget(request);target.pathname='/admin';target.search='';target.searchParams.set('reason','capability');return preserveAuthCookies(response,NextResponse.redirect(target));
+      const target=redirectTarget(request);target.pathname='/admin';target.search='';target.searchParams.set('reason','capability');return preserveAuthCookies(response,localRedirect(target));
     }
   }
   return response;

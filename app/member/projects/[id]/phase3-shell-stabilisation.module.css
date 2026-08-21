@@ -1,0 +1,78 @@
+.workspace{
+ --lab-shell-ink:#10131d;
+ --lab-shell-surface:#fff;
+ --lab-shell-surface-muted:#eff1ee;
+ --lab-shell-border:#d7dce3;
+ --lab-shell-border-strong:#98a2b3;
+ --lab-shell-focus:#d4aa55;
+ --lab-shell-bronze:#8b641f;
+ --lab-shell-mobile-nav:70px;
+ width:100%;
+ max-width:100%;
+ overflow-x:clip;
+ box-sizing:border-box;
+}
+.shell{
+ width:100%;
+ min-width:0;
+ max-width:100%;
+ box-sizing:border-box;
+}
+.rail,.stage,.main,.rightRail,.mobileHeader,.nav,.mobileNav,.moreMenu{
+ min-width:0;
+ box-sizing:border-box;
+}
+.stage,.main{
+ width:100%;
+ max-width:100%;
+}
+.main{
+ overflow-x:clip;
+}
+.rail{
+ max-width:100%;
+}
+.nav{
+ max-width:100%;
+}
+.rightRail{
+ overflow-wrap:anywhere;
+}
+.mobileHeader{
+ width:100%;
+ max-width:100%;
+}
+.mobileNav{
+ width:100%;
+ max-width:100vw;
+}
+.moreMenu{
+ max-width:100%;
+}
+@media(max-width:1180px){
+ .main{padding-left:clamp(1rem,2.3vw,1.6rem);padding-right:clamp(1rem,2.3vw,1.6rem)}
+}
+@media(max-width:1024px){
+ .rail{overflow-x:hidden}
+ .nav{overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+ .nav a{scroll-snap-align:start}
+ .mobileHeader{align-items:center}
+ .main{padding-left:clamp(1rem,2.6vw,1.25rem);padding-right:clamp(1rem,2.6vw,1.25rem)}
+}
+@media(max-width:768px) and (min-width:481px){
+ .mobileHeader{padding-left:1rem;padding-right:1rem}
+ .main{padding-left:1rem;padding-right:1rem}
+}
+@media(max-width:480px){
+ .main{padding-left:max(.85rem,env(safe-area-inset-left));padding-right:max(.85rem,env(safe-area-inset-right));padding-bottom:calc(var(--lab-shell-mobile-nav) + 2.25rem + env(safe-area-inset-bottom))}
+ .mobileHeader{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right))}
+ .mobileNav{min-height:var(--lab-shell-mobile-nav)}
+ .moreMenu{margin-left:0;margin-right:0}
+}
+@media(max-width:1024px) and (orientation:landscape) and (max-height:600px){
+ .mobileHeader{position:relative}
+ .rail{position:relative}
+}
+@media(zoom:2){
+ .workspace{overflow-x:clip}
+}

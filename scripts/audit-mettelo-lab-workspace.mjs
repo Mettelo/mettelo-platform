@@ -34,6 +34,11 @@ for(const token of ['--lab-shell-ink:','--lab-shell-surface:','--lab-shell-borde
 for(const contract of ['overflow-x:clip','max-width:100%','Mettelo Lab workspace','Mettelo Lab project context','Mettelo Lab mobile navigation','orientation:landscape','safe-area-inset-bottom'])requireText('Lab shell containment',shellStabilisation,contract);
 requireText('Lab shell attachment',mobileFixes,"composes:workspace from './phase3-shell-stabilisation.module.css'");
 
+for(const contract of ['grid-template-rows:auto auto minmax(0,1fr) auto','position:relative!important','100dvh','overscroll-behavior:contain','max-height:min(22dvh,132px)','orientation:landscape'])requireText('Lab Chat layout architecture',mobileFixes,contract);
+for(const stale of ['top:72px!important','bottom:calc(70px + env(safe-area-inset-bottom))!important','position:fixed!important'])forbidText('Lab Chat fixed viewport workaround',mobileFixes,stale);
+requireText('Lab Chat feed owner',mobileFixes,'.messageFeed');
+requireText('Lab Chat composer owner',mobileFixes,'.messageComposer');
+
 for(const label of ['Home','Plan','Tasks','Chat','Data','Proof','Resources','Events','Team'])requireText('desktop navigation',navigation,`label:'${label}'`);
 for(const label of ['Home','Tasks','Chat','Data'])requireText('mobile navigation',navigation,`label:'${label}'`);
 requireText('mobile navigation',navigation,"hrefFor('more')");

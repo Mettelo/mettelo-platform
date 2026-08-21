@@ -1,0 +1,76 @@
+.reportedRegressions{}
+
+/* The Lab owns its own Back action. Hide the legacy project-page Back link that can route admins into admin operations. */
+.reportedRegressions :global([data-lab-view]>.actions>a:first-child){display:none!important}
+.reportedRegressions :global([data-lab-back]){
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin:16px 0 0;
+  padding:0 14px;
+  border:1px solid var(--lab-shell-border);
+  border-radius:10px;
+  background:var(--lab-shell-surface);
+  color:var(--lab-shell-ink);
+  font-weight:800;
+  text-decoration:none;
+}
+.reportedRegressions :global([data-lab-back]:focus-visible){outline:3px solid var(--lab-shell-focus);outline-offset:2px}
+
+/* Proof uses the real semantic eyebrow only. Older generated pseudo-text caused stacked/vertical labels. */
+.reportedRegressions :global([data-lab-view="proof"] #proof>.sectionHead .eyebrow)::before,
+.reportedRegressions :global([data-lab-view="proof"] #proof>.sectionHead .eyebrow)::after{
+  content:none!important;
+  display:none!important;
+}
+.reportedRegressions :global([data-lab-view="proof"] #proof>.sectionHead .eyebrow){
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:break-word;
+}
+
+/* Fieldset legends remain semantic but sit inside the Events card instead of cutting through its border. */
+.reportedRegressions :global([data-lab-view="events"] .journeyCard){
+  padding-top:16px!important;
+}
+.reportedRegressions :global([data-lab-view="events"] .journeyCard>legend){
+  float:left;
+  width:100%;
+  max-width:100%;
+  margin:0 0 14px;
+  padding:0;
+  background:transparent;
+  color:var(--lab-shell-ink);
+  font-family:var(--font-space),Inter,sans-serif;
+  font-size:.9rem;
+  font-weight:780;
+  line-height:1.3;
+  letter-spacing:-.01em;
+  white-space:normal;
+  overflow-wrap:break-word;
+}
+.reportedRegressions :global([data-lab-view="events"] .journeyCard>legend+*){clear:both}
+
+@media(max-width:480px){
+  .reportedRegressions :global([data-lab-back]){
+    width:100%;
+    margin-top:14px;
+  }
+  .reportedRegressions :global([data-lab-view="proof"] #proof>.sectionHead){
+    gap:8px!important;
+  }
+  .reportedRegressions :global([data-lab-view="proof"] #proof>.sectionHead .eyebrow){
+    margin-bottom:6px;
+    font-size:.68rem!important;
+    line-height:1.35;
+  }
+  .reportedRegressions :global([data-lab-view="proof"] #proof>.sectionHead h2){
+    margin-top:0!important;
+    max-width:100%;
+  }
+  .reportedRegressions :global([data-lab-view="events"] .journeyCard>legend){
+    margin-bottom:12px;
+    font-size:.86rem;
+  }
+}

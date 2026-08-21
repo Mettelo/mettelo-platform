@@ -10,6 +10,7 @@ function safePath(value:string|null){return value&&value.startsWith('/')&&!value
 function normalizeProjectIntent(value:string|null){const safe=safePath(value);if(!safe)return null;const match=safe.match(/^\/projects\/([^/?#]+)(?:\?[^#]*)?#apply$/);return match?`/member/discover/${encodeURIComponent(match[1])}/apply`:safe}
 function rememberIntent(response:NextResponse,request:NextRequest,intent:string|null){if(intent&&intent!=='/member')response.cookies.set('mettelo_return_to',intent,{httpOnly:true,sameSite:'lax',secure:request.nextUrl.protocol==='https:',path:'/',maxAge:60*60*4});return response}
 function adminApiError(message:string,status:number){return NextResponse.json({error:message},{status})}
+function preserveAuthCookies(source:NextResponse,target:NextResponse){for(const cookie of source.cookies.getAll())target.cookies.set(cookie);return target}
 
 export async function middleware(request:NextRequest){
   const pathname=request.nextUrl.pathname;
@@ -40,18 +41,18 @@ export async function middleware(request:NextRequest){
   });
   const {data:{user}}=await supabase.auth.getUser();
   if(!user){
-    if(adminApi)return adminApiError('Authentication required.',401);
-    const target=request.nextUrl.clone();target.pathname='/signin';const requested=`${pathname}${request.nextUrl.search}`;target.searchParams.set('next',architectEntry?'/member/project-architect':requested);return NextResponse.redirect(target);
+    if(adminApi)return preserveAuthCookies(response,adminApiError('Authentication required.',401));
+    const target=request.nextUrl.clone();target.pathname='/signin';const requested=`${pathname}${request.nextUrl.search}`;target.searchParams.set('next',architectEntry?'/member/project-architect':requested);return preserveAuthCookies(response,NextResponse.redirect(target));
   }
-  if(architectEntry){const target=request.nextUrl.clone();target.pathname='/member/project-architect';target.search='';return NextResponse.redirect(target)}
+  if(architectEntry){const target=request.nextUrl.clone();target.pathname='/member/project-architect';target.search='';return preserveAuthCookies(response,NextResponse.redirect(target))}
   if(adminPage||adminApi){
     if(!isTrustedAdmin(user)){
-      if(adminApi)return adminApiError('Admin access required.',403);
-      const target=request.nextUrl.clone();target.pathname='/member';target.search='';return NextResponse.redirect(target);
+      if(adminApi)return preserveAuthCookies(response,adminApiError('Admin access required.',403));
+      const target=request.nextUrl.clone();target.pathname='/member';target.search='';return preserveAuthCookies(response,NextResponse.redirect(target));
     }
     if(!adminRouteAllowed(user,pathname)){
-      if(adminApi)return adminApiError('Admin capability required for this route.',403);
-      const target=request.nextUrl.clone();target.pathname='/admin';target.search='';target.searchParams.set('reason','capability');return NextResponse.redirect(target);
+      if(adminApi)return preserveAuthCookies(response,adminApiError('Admin capability required for this route.',403));
+      const target=request.nextUrl.clone();target.pathname='/admin';target.search='';target.searchParams.set('reason','capability');return preserveAuthCookies(response,NextResponse.redirect(target));
     }
   }
   return response;

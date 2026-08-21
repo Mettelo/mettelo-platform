@@ -118,6 +118,8 @@ jobs:
         run: npm run check:e2e-config
       - name: Verify authenticated Chat permissions
         run: npx playwright test tests/mettelo-lab-chat-permissions.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Verify Lab shell geometry
+        run: npx playwright test tests/mettelo-lab-shell-preflight.spec.ts --project=chromium --workers=1 --timeout=90000
       - name: Verify Mettelo Lab responsive composition
         run: npx playwright test tests/mettelo-lab-visual.spec.ts --project=chromium --workers=1
       - name: Upload Mettelo Lab screenshots

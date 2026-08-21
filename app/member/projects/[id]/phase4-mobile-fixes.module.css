@@ -1,4 +1,4 @@
-.mobileFixes{composes:workspace from './phase3-shell-stabilisation.module.css'}
+.mobileFixes{composes:workspace from './phase3-shell-stabilisation.module.css';composes:experience from './phase5-chat-message-experience.module.css'}
 
 @media(max-width:480px){
   /* Phase 4: Chat owns a single in-flow grid. The feed scrolls; the composer remains part of the panel. */

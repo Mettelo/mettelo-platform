@@ -5,6 +5,7 @@ const layout=read('app/member/projects/[id]/layout.tsx');
 const shellCss=read('app/member/projects/[id]/phase4-workspace.module.css');
 const shellStabilisation=read('app/member/projects/[id]/phase3-shell-stabilisation.module.css');
 const mobileFixes=read('app/member/projects/[id]/phase4-mobile-fixes.module.css');
+const messageExperience=read('app/member/projects/[id]/phase5-chat-message-experience.module.css');
 const messagesCss=read('app/messages.css');
 const navigation=read('components/MetteloLabNavigation.tsx');
 const surface=read('components/MetteloLabViewSurface.tsx');
@@ -44,6 +45,11 @@ for(const contract of ['grid-template-columns:minmax(0,1fr) 36px!important','gri
 for(const contract of ['.messageMenu>summary{','width:34px;height:34px','position:absolute;right:0;bottom:calc(100% + 7px)','visibility:hidden','.messageMenu[open] .messageActions','word-break:normal','overflow-wrap:break-word','writing-mode:horizontal-tb','.messageBubble{width:min(72%,680px)','.messageFeed{display:flex;flex-direction:column;gap:12px'])requireText('Lab Chat refined message design',messagesCss,contract);
 for(const contract of ['.messageMenu>summary{width:44px;height:44px','position:fixed;left:12px;right:12px','font-size:16px;resize:none'])requireText('Lab Chat mobile interaction design',messagesCss,contract);
 forbidText('Lab Chat menu regression',messagesCss,'.messageActions{display:flex');
+
+requireText('Lab Chat message experience attachment',mobileFixes,"composes:experience from './phase5-chat-message-experience.module.css'");
+for(const contract of ['--chat-message-text:','--chat-message-own:','.messageBubbleRow.own .messageBubble','.messageBubble.blocker','.messageBubble.decision','.messageLinkedItem','.messageBubble.failed','.messageBubble .deletedMessage','.messageBubble>p a','.messageMenu[open]>summary','@media(max-width:480px)'])requireText('Lab Chat message experience',messageExperience,contract);
+for(const contract of ['overflow-wrap:anywhere','font-variant-numeric:tabular-nums','min-height:20px','min-height:36px'])requireText('Lab Chat message resilience',messageExperience,contract);
+forbidText('Lab Chat message experience',messageExperience,'writing-mode:vertical');
 
 for(const label of ['Home','Plan','Tasks','Chat','Data','Proof','Resources','Events','Team'])requireText('desktop navigation',navigation,`label:'${label}'`);
 for(const label of ['Home','Tasks','Chat','Data'])requireText('mobile navigation',navigation,`label:'${label}'`);

@@ -75,11 +75,11 @@ test.describe('Admin Website immutable page history',()=>{
    await page.goto('/admin/website/pages/history',{waitUntil:'networkidle'});
    await expect(page.getByRole('heading',{level:1,name:'Revision history'})).toBeVisible();
    await expect(page.getByRole('combobox',{name:'Page',exact:true})).toBeVisible();
-   const rows=page.getByRole('combobox',{name:'Rows',exact:true});await expect(rows).toBeVisible();
-   const options=rows.locator('option');await expect(options).toHaveCount(3);
-   await expect(options.nth(0)).toHaveAttribute('value','25');
-   await expect(options.nth(1)).toHaveAttribute('value','50');
-   await expect(options.nth(2)).toHaveAttribute('value','100');
+   const rows=page.getByLabel('Rows');await expect(rows).toBeVisible();
+   await expect(rows.locator('option')).toHaveCount(3);
+   await expect(rows.locator('option').nth(0)).toHaveAttribute('value','25');
+   await expect(rows.locator('option').nth(1)).toHaveAttribute('value','50');
+   await expect(rows.locator('option').nth(2)).toHaveAttribute('value','100');
    await expect(page.getByRole('link',{name:'Back to Pages'})).toBeVisible();
    await noOverflow(page,`Revision history overflowed at ${width}px`);
   }

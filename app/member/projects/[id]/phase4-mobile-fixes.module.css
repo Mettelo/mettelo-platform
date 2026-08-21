@@ -2,23 +2,121 @@
 
 @media(max-width:480px){
   /* Phase 4: Chat owns a single in-flow grid. The feed scrolls; the composer remains part of the panel. */
-  .mobileFixes :global([data-lab-view="chat"] #discussion){position:relative!important;inset:auto!important;display:grid!important;grid-template-rows:auto auto minmax(0,1fr) auto!important;width:100%!important;max-width:100%!important;height:min(720px,calc(100dvh - var(--lab-shell-mobile-nav) - 1rem - env(safe-area-inset-bottom)))!important;min-height:420px!important;max-height:none!important;margin:0!important;overflow:hidden!important;box-sizing:border-box!important}
-  .mobileFixes :global([data-lab-view="chat"] .messagePanelHeader){min-width:0!important}
-  .mobileFixes :global([data-lab-view="chat"] .pinnedMessages){min-width:0!important;max-height:min(22dvh,132px)!important;overflow-y:auto!important;overscroll-behavior:contain}
-  .mobileFixes :global([data-lab-view="chat"] .messageFeed){min-width:0!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overscroll-behavior:contain;scrollbar-gutter:auto;padding-bottom:16px!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow){width:100%!important;min-width:0!important;grid-template-columns:36px minmax(0,1fr)!important;align-items:end!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow.own){grid-template-columns:minmax(0,1fr) 36px!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow:not(.own) .messageAvatar){grid-column:1!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow:not(.own) .messageBubble){grid-column:2!important;grid-row:1!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow.own .messageBubble){grid-column:1!important;grid-row:1!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow.own .messageAvatar){grid-column:2!important;grid-row:1!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageBubble){width:100%!important;min-width:0!important;max-width:100%!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageBubble header){min-width:0!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageBubble header strong){min-width:0!important;max-width:100%!important;white-space:normal!important;word-break:normal!important;overflow-wrap:anywhere!important;writing-mode:horizontal-tb!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageComposer){position:relative!important;inset:auto!important;width:100%!important;max-width:100%!important;margin:0!important;z-index:2!important;box-sizing:border-box!important;padding-bottom:max(11px,env(safe-area-inset-bottom))!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageComposerInput){min-width:0!important}
-  .mobileFixes :global([data-lab-view="chat"] .messageComposer textarea){min-width:0!important;max-height:min(28dvh,140px)!important}
+  .mobileFixes :global([data-lab-view="chat"] #discussion){
+    position:relative!important;
+    inset:auto!important;
+    display:grid!important;
+    grid-template-rows:auto auto minmax(0,1fr) auto!important;
+    width:100%!important;
+    max-width:100%!important;
+    height:min(720px,calc(100dvh - var(--lab-shell-mobile-nav) - 1rem - env(safe-area-inset-bottom)))!important;
+    min-height:420px!important;
+    max-height:none!important;
+    margin:0!important;
+    overflow:hidden!important;
+    box-sizing:border-box!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messagePanelHeader){
+    min-width:0!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .pinnedMessages){
+    min-width:0!important;
+    max-height:min(22dvh,132px)!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageFeed){
+    min-width:0!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    scrollbar-gutter:auto;
+    padding-bottom:16px!important;
+  }
+  /* Message-row ownership must mirror avatar placement. This prevents own messages collapsing into the 36px avatar column. */
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow){
+    width:100%!important;
+    min-width:0!important;
+    grid-template-columns:36px minmax(0,1fr)!important;
+    align-items:end!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow.own){
+    grid-template-columns:minmax(0,1fr) 36px!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow:not(.own) .messageAvatar){
+    grid-column:1!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow:not(.own) .messageBubble){
+    grid-column:2!important;
+    grid-row:1!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow.own .messageBubble){
+    grid-column:1!important;
+    grid-row:1!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow.own .messageAvatar){
+    grid-column:2!important;
+    grid-row:1!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubble){
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubble header){
+    min-width:0!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubble header strong){
+    min-width:0!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    word-break:normal!important;
+    overflow-wrap:anywhere!important;
+    writing-mode:horizontal-tb!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageComposer){
+    position:relative!important;
+    inset:auto!important;
+    width:100%!important;
+    max-width:100%!important;
+    margin:0!important;
+    z-index:2!important;
+    box-sizing:border-box!important;
+    padding-bottom:max(11px,env(safe-area-inset-bottom))!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageComposerInput){
+    min-width:0!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageComposer textarea){
+    min-width:0!important;
+    max-height:min(28dvh,140px)!important;
+  }
 }
-@media(max-width:360px){.mobileFixes :global([data-lab-view="chat"] #discussion){min-height:390px!important}}
-@media(max-width:480px) and (orientation:landscape),(max-width:480px) and (max-height:520px){.mobileFixes :global([data-lab-view="chat"] #discussion){height:calc(100dvh - var(--lab-shell-mobile-nav) - .5rem - env(safe-area-inset-bottom))!important;min-height:300px!important}.mobileFixes :global([data-lab-view="chat"] .messagePanelHeader p),.mobileFixes :global([data-lab-view="chat"] .messageComposerInput>small){display:none!important}.mobileFixes :global([data-lab-view="chat"] .pinnedMessages){max-height:84px!important}}
-@media(max-width:480px) and (prefers-reduced-motion:reduce){.mobileFixes :global([data-lab-view="chat"] .messageFeed){scroll-behavior:auto!important}}
+
+@media(max-width:360px){
+  .mobileFixes :global([data-lab-view="chat"] #discussion){
+    min-height:390px!important;
+  }
+}
+
+@media(max-width:480px) and (orientation:landscape),
+       (max-width:480px) and (max-height:520px){
+  .mobileFixes :global([data-lab-view="chat"] #discussion){
+    height:calc(100dvh - var(--lab-shell-mobile-nav) - .5rem - env(safe-area-inset-bottom))!important;
+    min-height:300px!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messagePanelHeader p),
+  .mobileFixes :global([data-lab-view="chat"] .messageComposerInput>small){
+    display:none!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .pinnedMessages){
+    max-height:84px!important;
+  }
+}
+
+@media(max-width:480px) and (prefers-reduced-motion:reduce){
+  .mobileFixes :global([data-lab-view="chat"] .messageFeed){
+    scroll-behavior:auto!important;
+  }
+}

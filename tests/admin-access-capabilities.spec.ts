@@ -15,7 +15,7 @@ async function closeContext(context:BrowserContext|null){if(context)await contex
 async function signInFresh(browser:Browser,account:Credentials,next:string){const context=await browser.newContext();const page=await context.newPage();await signIn(page,account,next);return{context,page}}
 
 test.describe('Admin capability access management',()=>{
- test('a member can receive narrow Admin access, remains blocked from ungranted publish, then is revoked safely',async({page,browser})=>{
+ test('a member can receive narrow Admin access, remains blocked from unrelated routes and ungranted publish, then is revoked safely',async({page,browser})=>{
   const admin=adminCredentials();const member=memberCredentials();await signIn(page,admin,'/admin/access');
   await revokeIfAdmin(page,member.email);
   const found=await findAccount(page,member.email);expect(found.account,'E2E member account must exist').not.toBeNull();const target=found.account!;const currentUserId=found.body.current_user_id;expect(target.id).not.toBe(currentUserId);
@@ -23,8 +23,11 @@ test.describe('Admin capability access management',()=>{
   try{
    const invalid=await page.request.patch('/api/admin/access',{data:{user_id:target.id,action:'grant',mode:'custom',capabilities:['website.content.edit','unknown.capability']}});expect(invalid.status()).toBe(400);
    const grant=await page.request.patch('/api/admin/access',{data:{user_id:target.id,action:'grant',mode:'custom',capabilities:['website.content.edit']}});expect(grant.status()).toBe(200);const granted=(await grant.json()).user as Account;expect(granted.is_admin).toBe(true);expect(granted.access_mode).toBe('custom');expect(granted.capabilities).toEqual(['website.content.edit']);expect(await auditCount(page,'admin.access.granted')).toBeGreaterThan(0);
-   const targetSession=await signInFresh(browser,member,'/admin/website/media');targetContext=targetSession.context;
+   const targetSession=await signInFresh(browser,member,'/admin/website/media');targetContext=targetSession.context;expect(new URL(targetSession.page.url()).pathname).toBe('/admin/website/media');
    const mediaRead=await targetSession.page.request.get('/api/admin/website/media?page=1&page_size=25&status=active');expect(mediaRead.status()).toBe(200);
+   const unrelatedApi=await targetSession.page.request.get('/api/admin/intake');expect(unrelatedApi.status()).toBe(403);const unrelatedBody=await unrelatedApi.json();expect(String(unrelatedBody.error||'')).toContain('capability');
+   await targetSession.page.goto('/admin/intake',{waitUntil:'networkidle'});const blockedPage=new URL(targetSession.page.url());expect(blockedPage.pathname).toBe('/admin');expect(blockedPage.searchParams.get('reason')).toBe('capability');
+   const stillAllowed=await targetSession.page.request.get('/api/admin/website/media?page=1&page_size=25&status=active');expect(stillAllowed.status()).toBe(200);
    const forbiddenPublish=await targetSession.page.request.post('/api/admin/website/seo',{data:{scope:'home',action:'publish'}});expect(forbiddenPublish.status()).toBe(403);const forbiddenBody=await forbiddenPublish.json();expect(String(forbiddenBody.error||'')).toContain('publishing capability');
    await closeContext(targetContext);targetContext=null;
    const update=await page.request.patch('/api/admin/access',{data:{user_id:target.id,action:'update_capabilities',mode:'custom',capabilities:['website.content.edit','website.content.publish']}});expect(update.status()).toBe(200);const updated=(await update.json()).user as Account;expect(updated.capabilities.sort()).toEqual(['website.content.edit','website.content.publish'].sort());expect(await auditCount(page,'admin.capabilities.updated')).toBeGreaterThan(0);

@@ -1,0 +1,144 @@
+name: Member Home Release Train
+
+on:
+  push:
+    branches:
+      - 'release/member-home-v4-integration'
+    paths:
+      - 'app/member/page.tsx'
+      - 'app/member/member-home-*.module.css'
+      - 'components/MemberAppShell.tsx'
+      - 'components/MemberAppShell.module.css'
+      - 'lib/member-navigation.ts'
+      - 'scripts/audit-member-home-*.mjs'
+      - 'scripts/audit-phase-2-member-projects.mjs'
+      - 'tests/member-home-*.spec.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/member-home-release-train.yml'
+  pull_request:
+    branches:
+      - 'release/member-home-v4-integration'
+    paths:
+      - 'app/member/page.tsx'
+      - 'app/member/member-home-*.module.css'
+      - 'components/MemberAppShell.tsx'
+      - 'components/MemberAppShell.module.css'
+      - 'lib/member-navigation.ts'
+      - 'scripts/audit-member-home-*.mjs'
+      - 'scripts/audit-phase-2-member-projects.mjs'
+      - 'tests/member-home-*.spec.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/member-home-release-train.yml'
+
+concurrency:
+  group: member-home-train-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  member-home-targeted:
+    name: Member Home targeted authenticated QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI_LOCAL_SUPABASE: '1'
+      E2E_BASE_URL: http://127.0.0.1:3000
+      E2E_MEMBER_EMAIL: member.e2e@example.test
+      E2E_MEMBER_PASSWORD: Local-E2E-member-2026!
+      E2E_ARCHITECT_EMAIL: architect.e2e@example.test
+      E2E_ARCHITECT_PASSWORD: Local-E2E-architect-2026!
+      E2E_ADMIN_EMAIL: admin.e2e@example.test
+      E2E_ADMIN_PASSWORD: Local-E2E-admin-2026!
+      PRODUCTION_SUPABASE_URL: https://aconptuqupsgznyrxhrh.supabase.co
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify Member Home deterministic contract
+        run: npm run audit:member-home
+      - name: Verify Phase 2 member/project contract
+        run: npm run audit:phase2
+      - name: Restore Playwright Chromium cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install or verify Playwright Chromium
+        run: npx playwright install chromium
+      - name: Verify Chromium launches
+        run: node -e "const { chromium } = require('@playwright/test'); (async () => { const browser = await chromium.launch(); await browser.close(); })().catch(error => { console.error(error); process.exit(1); });"
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.111.0
+      - name: Prepare isolated Supabase migration set
+        run: node scripts/prepare-local-supabase.mjs
+      - name: Start isolated Supabase stack
+        run: supabase start --workdir .supabase-ci -x studio,imgproxy,logflare,vector,supavisor
+      - name: Export isolated Supabase credentials
+        shell: bash
+        run: |
+          supabase status --workdir .supabase-ci -o env > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+      - name: Seed disposable Member Home fixtures
+        run: node scripts/setup-local-e2e.mjs
+      - name: Start Mettelo against isolated Supabase
+        shell: bash
+        run: |
+          npm run dev -- --hostname 127.0.0.1 > /tmp/member-home-e2e.log 2>&1 &
+          echo $! > /tmp/member-home-e2e.pid
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/signin > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/member-home-e2e.log
+          exit 1
+      - name: Verify E2E production guard
+        run: npm run check:e2e-config
+      - name: Verify Member Home V4 responsive composition
+        run: npx playwright test tests/member-home-v3-visual.spec.ts --project=chromium --workers=1
+      - name: Upload Member Home screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: member-home-v4-release-train-visuals
+          path: artifacts/mettelo-lab-visual/member-home-v4/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload Member Home evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: member-home-v4-release-train-evidence
+          path: |
+            playwright-report/
+            test-results/
+            artifacts/mettelo-lab-visual/member-home-v4/
+            /tmp/member-home-e2e.log
+            .supabase-ci/manifest.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: supabase stop --workdir .supabase-ci --no-backup

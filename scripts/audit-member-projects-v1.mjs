@@ -17,7 +17,7 @@ const checks=[
  ['Team Forming is plain language and no action state is explicit',page.includes('Team forming')&&page.includes('No action needed right now')],
  ['preparing projects do not expose Lab entry',page.includes('href="/member/applications"')&&page.includes('Mettelo Lab will only open when the project is ready')],
  ['completed Proof links require verified contribution state',page.includes("verification_status','verified'")&&page.includes('proofProjects.has(item.project_id)')],
- ['Discover and Recommended remain distinct',page.includes('href="/projects"')&&page.includes('href="/member/recommended"')],
+ ['Discover and Recommended remain distinct member journeys',page.includes('href="/member/discover"')&&page.includes('href="/member/recommended"')&&!page.includes('href="/projects"')],
  ['search state and role filtering are accessible',page.includes('aria-label="Search my projects"')&&page.includes('aria-label="Project state"')&&page.includes('aria-label="Filter by project role"')],
  ['completed history is paginated',page.includes('PAGE_SIZE=6')&&page.includes('Page {page} of {totalPages}')],
  ['own team context uses assigned run only',page.includes('run_number')&&page.includes('Your team')],

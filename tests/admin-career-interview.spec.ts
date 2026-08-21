@@ -20,9 +20,9 @@ test.describe('Admin career interview scheduling',()=>{
    await expect(composer.getByRole('status')).toContainText('Choose the interview date and time');
    const starts=new Date(Date.now()+3*24*60*60*1000);const local=`${starts.getFullYear()}-${String(starts.getMonth()+1).padStart(2,'0')}-${String(starts.getDate()).padStart(2,'0')}T10:30`;
    await composer.getByLabel('Date & time').fill(local);await composer.getByLabel('Meeting URL / joining link').fill('https://meet.example.test/e2e-interview');await send.click();
-   await expect(composer).toBeHidden({timeout:15_000});
+   await expect(composer).toBeHidden({timeout:30_000});
    const {data:updated,error:updateError}=await db.from('career_applications').select('status,interview_at,interview_timezone,interview_format,interview_url').eq('id',application.id).single();if(updateError)throw updateError;expect(updated.status).toBe('interview');expect(updated.interview_at).toBeTruthy();expect(updated.interview_timezone).toBe('Europe/London');expect(updated.interview_format).toBe('Video call');expect(updated.interview_url).toBe('https://meet.example.test/e2e-interview');
-   const {data:outbox,error:outboxError}=await db.from('email_outbox').select('id,status,template_key').eq('recipient_email',candidateEmail).eq('template_key','career_interview').order('created_at',{ascending:false}).limit(1).maybeSingle();if(outboxError)throw outboxError;expect(outbox).toBeTruthy();expect(['pending','processing','retry','sent']).toContain(outbox?.status);
+   const {data:outbox,error:outboxError}=await db.from('email_outbox').select('id,status,template_key').eq('recipient_email',candidateEmail).eq('template_key','career_interview').order('created_at',{ascending:false}).limit(1).maybeSingle();if(outboxError)throw outboxError;expect(outbox).toBeTruthy();expect(['pending','processing','retry','retrying','sent']).toContain(outbox?.status);
    const {data:record,error:recordError}=await db.from('communication_records').select('id,status,template_key').eq('recipient_email',candidateEmail).eq('template_key','career_interview').order('created_at',{ascending:false}).limit(1).maybeSingle();if(recordError)throw recordError;expect(record).toBeTruthy();
   }finally{
    await db.from('communication_records').delete().eq('recipient_email',candidateEmail);

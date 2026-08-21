@@ -25,6 +25,7 @@ const checks=[
   ['Member shell remains authoritative',shell.includes("from '@/lib/member-navigation'")],
   ['approved maximum content width is present',css.includes('max-width:1210px')],
   ['approved page title size is present',css.includes('23px/1.18')&&css.includes('font-size:21px')],
+  ['authoritative typography tokens are used',css.includes('var(--font-space)')&&css.includes('var(--font-mono)')&&!css.includes('--font-space-grotesk')&&!css.includes('--font-plex-mono')],
   ['approved section title scale is present',css.includes('18px/1.2')&&css.includes('font-size:17px')],
   ['approved body and supporting text floors are present',css.includes('font-size:14px')&&css.includes('font-size:13px')&&css.includes('font-size:12px')&&css.includes('font-size:11px')],
   ['approved Up Next radius and hierarchy are present',css.includes('border-radius:22px')&&css.includes('font:760 22px/1.2')],

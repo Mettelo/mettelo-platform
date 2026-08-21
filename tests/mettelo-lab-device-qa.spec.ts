@@ -1,0 +1,25 @@
+import {expect,test,type Page} from '@playwright/test';
+
+type Credentials={email:string;password:string};
+const projectId='00000000-0000-4000-8000-00000000e2e1';
+const runId='00000000-0000-4000-8000-00000000e211';
+const views=['home','plan','tasks','chat','data','proof','resources','events','team'] as const;
+const secondaryViews=['plan','proof','resources','events','team'] as const;
+const urlFor=(view:string)=>`/member/projects/${projectId}?run=${runId}&view=${view}`;
+function credentials():Credentials{const email=process.env.E2E_MEMBER_EMAIL?.trim();const password=process.env.E2E_MEMBER_PASSWORD;if(!email||!password)throw new Error('Missing E2E member credentials.');return{email,password}}
+async function signIn(page:Page,next:string){const account=credentials();await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(account.email);await main.locator('input[type="password"]').fill(account.password);await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000})}
+async function assertNoHorizontalOverflow(page:Page,label:string){const dimensions=await page.evaluate(()=>({documentScrollWidth:document.documentElement.scrollWidth,documentClientWidth:document.documentElement.clientWidth,bodyScrollWidth:document.body.scrollWidth}));expect(dimensions.documentScrollWidth,`${label}: document overflow`).toBeLessThanOrEqual(dimensions.documentClientWidth);expect(dimensions.bodyScrollWidth,`${label}: body overflow`).toBeLessThanOrEqual(dimensions.documentClientWidth)}
+async function assertVisibleContentWithinViewport(page:Page,label:string){const result=await page.evaluate(()=>{const width=document.documentElement.clientWidth;const offenders=[...document.querySelectorAll<HTMLElement>('[data-lab-view] a,[data-lab-view] button,[data-lab-view] input,[data-lab-view] select,[data-lab-view] textarea')].filter(element=>{const style=getComputedStyle(element);if(style.display==='none'||style.visibility==='hidden')return false;const box=element.getBoundingClientRect();return box.width>0&&box.height>0&&(box.right>width+2||box.left<-2)}).slice(0,10).map(element=>({tag:element.tagName,text:(element.innerText||element.getAttribute('aria-label')||'').slice(0,60),left:element.getBoundingClientRect().left,right:element.getBoundingClientRect().right,width}));return offenders});expect(result,`${label}: interactive controls must remain inside the viewport`).toEqual([])}
+
+test('Mettelo Lab survives 200% text zoom across every destination',async({page})=>{
+ test.setTimeout(180_000);await page.emulateMedia({reducedMotion:'reduce'});await page.setViewportSize({width:390,height:844});await signIn(page,urlFor('home'));
+ for(const view of views){await page.goto(urlFor(view),{waitUntil:'networkidle'});await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});await expect(page.locator('[data-lab-view]')).toHaveAttribute('data-lab-view',view);await assertNoHorizontalOverflow(page,`zoom-200/${view}`);await assertVisibleContentWithinViewport(page,`zoom-200/${view}`);await page.evaluate(()=>{document.documentElement.style.fontSize=''})}
+});
+
+test('Mettelo Lab More preserves mobile location for secondary destinations',async({page})=>{
+ test.setTimeout(120_000);await page.emulateMedia({reducedMotion:'reduce'});await page.setViewportSize({width:390,height:844});await signIn(page,urlFor('plan'));const nav=page.getByRole('navigation',{name:'Mettelo Lab mobile navigation'});
+ for(const view of secondaryViews){await page.goto(urlFor(view),{waitUntil:'networkidle'});const label=view.charAt(0).toUpperCase()+view.slice(1);const more=nav.getByRole('link',{name:`More, ${label} selected`,exact:true});await expect(more).toHaveAttribute('aria-current','page');await expect(more).toHaveAttribute('data-more-current',view);await assertNoHorizontalOverflow(page,`more-current/${view}`)}
+});
+
+test('Mettelo Lab remains usable in short mobile landscape',async({page})=>{
+ test.setTimeout(120_000);await page.emulateMedia({reducedMotion:'reduce'});await page.setViewportSize({width:430,height:500});await signIn(page,urlFor('chat'));const nav=page.getByRole('navigation',{name:'Mettelo Lab mobile navigation'});await expect(nav).toBeVisible();const composer=page.locator('#discussion .messageComposer');await expect(composer).toBeVisible();const[navBox,composerBox]=await Promise.all([nav.boundingBox(),composer.boundingBox()]);expect(navBox).not.toBeNull();expect(composerBox).not.toBeNull();if(navBox&&composerBox)expect(composerBox.y+composerBox.height,'short landscape: Chat composer stays above bottom navigation').toBeLessThanOrEqual(navBox.y+2);await assertNoHorizontalOverflow(page,'short-landscape/chat');await assertVisibleContentWithinViewport(page,'short-landscape/chat');await page.goto(urlFor('more'),{waitUntil:'networkidle'});await expect(page.locator('#lab-more')).toBeVisible();await assertNoHorizontalOverflow(page,'short-landscape/more');await assertVisibleContentWithinViewport(page,'short-landscape/more')});

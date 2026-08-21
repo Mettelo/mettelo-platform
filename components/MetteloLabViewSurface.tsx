@@ -30,7 +30,27 @@ export default function MetteloLabViewSurface({children,className}:{children:Rea
    [data-lab-surface] > section.softSection > .shell > .sectionHead,
    [data-lab-surface] > section.softSection > .shell > .workspaceNav,
    [data-lab-surface] > section.softSection > .shell > .statBand{display:none!important}
-   @media(max-width:480px){body.metteloLabActive header:has(+ main#mettelo-lab-content){display:none!important}}
+   @media(max-width:480px){
+    body.metteloLabActive header:has(+ main#mettelo-lab-content){display:none!important}
+    body.metteloLabActive [data-lab-surface][data-lab-view="chat"] #discussion .messageBubble header{
+     grid-template-columns:minmax(0,1fr)!important;
+     gap:2px!important;
+    }
+    body.metteloLabActive [data-lab-surface][data-lab-view="chat"] #discussion .messageBubble header strong{
+     grid-column:1!important;
+     width:100%!important;
+     min-width:0!important;
+     justify-self:stretch!important;
+    }
+    body.metteloLabActive [data-lab-surface][data-lab-view="chat"] #discussion .messageBubble time{
+     grid-column:1!important;
+     justify-self:start!important;
+     max-width:100%!important;
+    }
+    body.metteloLabActive [data-lab-surface][data-lab-view="chat"] #discussion .messageBubble header span{
+     grid-column:1!important;
+    }
+   }
   `}</style>
  </>;
 }

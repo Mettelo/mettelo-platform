@@ -6,14 +6,22 @@ const shellCss=read('app/member/projects/[id]/phase4-workspace.module.css');
 const navigation=read('components/MetteloLabNavigation.tsx');
 const surface=read('components/MetteloLabViewSurface.tsx');
 const home=read('components/MetteloLabPanel.tsx');
+const homeCss=read('components/MetteloLabPanel.module.css');
 const chat=read('components/ProjectMessagePanel.tsx');
 const events=read('components/ProjectEventsPanel.tsx');
 const eventApi=read('app/api/project-events/route.ts');
 const memberShell=read('components/MemberAppShell.tsx');
+const projectPage=read('app/member/projects/[id]/page.tsx');
 const visualTest=read('tests/mettelo-lab-visual.spec.ts');
 const failures=[];
 const requireText=(name,text,needle)=>{if(!text.includes(needle))failures.push(`${name}: missing ${JSON.stringify(needle)}`)};
 const forbidText=(name,text,needle)=>{if(text.includes(needle))failures.push(`${name}: stale or unsafe text ${JSON.stringify(needle)}`)};
+
+if(fs.existsSync('components/MetteloLabClient.tsx'))failures.push('architecture: duplicate MetteloLabClient.tsx must not exist');
+requireText('single Home implementation',projectPage,"import MetteloLabPanel from '@/components/MetteloLabPanel'");
+requireText('single Home implementation',projectPage,'<MetteloLabPanel');
+requireText('single Home styles',home,"import styles from './MetteloLabPanel.module.css'");
+requireText('single Home styles',homeCss,'.metteloLab');
 
 for(const label of ['Home','Plan','Tasks','Chat','Data','Proof','Resources','Events','Team'])requireText('desktop navigation',navigation,`label:'${label}'`);
 for(const label of ['Home','Tasks','Chat','Data'])requireText('mobile navigation',navigation,`label:'${label}'`);
@@ -51,8 +59,9 @@ requireText('Events',events,'5 · Review & schedule');
 requireText('Events API',eventApi,"meetingMode==='external'");
 requireText('Events API',eventApi,"parsed.protocol!=='https:'");
 requireText('Events API',eventApi,"provider=meetingMode==='external'?'external':'livekit'");
-for(const width of ['375','390','414','768','1024','1440'])requireText('Chromium viewport coverage',visualTest,`width:${width}`);
+for(const width of ['320','360','375','390','412','414','430','768','1024','1440'])requireText('Chromium viewport coverage',visualTest,`width:${width}`);
 for(const screen of ['home','plan','tasks','chat','data','proof','resources','events','team'])requireText('Chromium screen coverage',visualTest,`'${screen}'`);
+requireText('Chromium zoom coverage',visualTest,"fontSize='200%'");
 
 if(failures.length){console.error('Mettelo Lab workspace audit failed:\n'+failures.map(item=>`- ${item}`).join('\n'));process.exit(1)}
 console.log('Mettelo Lab workspace audit passed.');

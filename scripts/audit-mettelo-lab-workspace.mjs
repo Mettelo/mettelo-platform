@@ -3,6 +3,8 @@ import fs from 'node:fs';
 const read=(file)=>fs.readFileSync(file,'utf8');
 const layout=read('app/member/projects/[id]/layout.tsx');
 const shellCss=read('app/member/projects/[id]/phase4-workspace.module.css');
+const shellStabilisation=read('app/member/projects/[id]/phase3-shell-stabilisation.module.css');
+const mobileFixes=read('app/member/projects/[id]/phase4-mobile-fixes.module.css');
 const navigation=read('components/MetteloLabNavigation.tsx');
 const surface=read('components/MetteloLabViewSurface.tsx');
 const home=read('components/MetteloLabPanel.tsx');
@@ -27,6 +29,10 @@ for(const token of ['--lab-ink:','--lab-muted:','--lab-border:','--lab-surface:'
 for(const usage of ['var(--lab-border)','var(--lab-surface)','var(--lab-muted)','var(--lab-bronze)','var(--lab-focus)','var(--lab-radius-lg)','var(--lab-space-4)','var(--lab-target)'])requireText('Lab token consumption',homeCss,usage);
 requireText('Lab target contract',homeCss,'--lab-target:44px');
 forbidText('Lab focus contract',homeCss,'outline:none');
+
+for(const token of ['--lab-shell-ink:','--lab-shell-surface:','--lab-shell-border:','--lab-shell-mobile-nav:70px'])requireText('Lab shell tokens',shellStabilisation,token);
+for(const contract of ['overflow-x:clip','max-width:100%','Mettelo Lab workspace','Mettelo Lab project context','Mettelo Lab mobile navigation','orientation:landscape','safe-area-inset-bottom'])requireText('Lab shell containment',shellStabilisation,contract);
+requireText('Lab shell attachment',mobileFixes,"composes:workspace from './phase3-shell-stabilisation.module.css'");
 
 for(const label of ['Home','Plan','Tasks','Chat','Data','Proof','Resources','Events','Team'])requireText('desktop navigation',navigation,`label:'${label}'`);
 for(const label of ['Home','Tasks','Chat','Data'])requireText('mobile navigation',navigation,`label:'${label}'`);

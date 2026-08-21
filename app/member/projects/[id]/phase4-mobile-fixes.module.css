@@ -1,4 +1,4 @@
-.mobileFixes{}
+.mobileFixes{composes:workspace from './phase3-shell-stabilisation.module.css'}
 
 @media(max-width:480px){
   /* Chat owns the middle viewport between the persistent Lab header and navigation. */

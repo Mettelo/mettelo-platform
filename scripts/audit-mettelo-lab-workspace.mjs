@@ -6,6 +6,7 @@ const shellCss=read('app/member/projects/[id]/phase4-workspace.module.css');
 const shellStabilisation=read('app/member/projects/[id]/phase3-shell-stabilisation.module.css');
 const mobileFixes=read('app/member/projects/[id]/phase4-mobile-fixes.module.css');
 const messageExperience=read('app/member/projects/[id]/phase5-chat-message-experience.module.css');
+const composerExperience=read('app/member/projects/[id]/phase6-chat-composer.module.css');
 const messagesCss=read('app/messages.css');
 const navigation=read('components/MetteloLabNavigation.tsx');
 const surface=read('components/MetteloLabViewSurface.tsx');
@@ -50,6 +51,14 @@ requireText('Lab Chat message experience attachment',mobileFixes,"composes:exper
 for(const contract of ['--chat-message-text:','--chat-message-own:','.messageBubbleRow.own .messageBubble','.messageBubble.blocker','.messageBubble.decision','.messageLinkedItem','.messageBubble.failed','.messageBubble .deletedMessage','.messageBubble>p a','.messageMenu[open]>summary','@media(max-width:480px)'])requireText('Lab Chat message experience',messageExperience,contract);
 for(const contract of ['overflow-wrap:anywhere','font-variant-numeric:tabular-nums','min-height:20px','min-height:36px'])requireText('Lab Chat message resilience',messageExperience,contract);
 forbidText('Lab Chat message experience',messageExperience,'writing-mode:vertical');
+
+requireText('Lab Chat composer attachment',mobileFixes,"composes:composerExperience from './phase6-chat-composer.module.css'");
+for(const contract of ['.messageComposer){','.messageComposer textarea){','.messageSend){','.messageSend:disabled','.mentionSuggestions){','.mentionSuggestions button){','font-size:16px','safe-area-inset-bottom','orientation:landscape','prefers-reduced-motion:reduce'])requireText('Lab Chat composer experience',composerExperience,contract);
+for(const contract of ['min-height:48px','max-height:152px','min-height:44px','outline:3px solid #174ea6','cursor:not-allowed'])requireText('Lab Chat composer resilience',composerExperience,contract);
+forbidText('Lab Chat composer fixed viewport',composerExperience,'position:fixed!important');
+requireText('Lab Chat keyboard contract',chat,"event.key==='Enter'&&!event.shiftKey");
+requireText('Lab Chat mention contract',chat,'Type @ to mention');
+requireText('Lab Chat disabled send contract',chat,'disabled={!body.trim()}');
 
 for(const label of ['Home','Plan','Tasks','Chat','Data','Proof','Resources','Events','Team'])requireText('desktop navigation',navigation,`label:'${label}'`);
 for(const label of ['Home','Tasks','Chat','Data'])requireText('mobile navigation',navigation,`label:'${label}'`);

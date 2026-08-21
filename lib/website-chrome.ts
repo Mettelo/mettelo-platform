@@ -27,87 +27,18 @@ const DEFAULT_NAVIGATION:WebsiteNavigationConfig={items:[
  {id:'feedback',label:'Feedback',href:'/feedback',placement:'explore',desktop_visible:false,mobile_visible:true,enabled:true,sort_order:130}
 ]};
 
-const DEFAULT_FOOTER:WebsiteFooterConfig={
- description:'Professional capability infrastructure for Data & AI — connecting community, real work, proof and opportunity.',
- tagline:'Built for What’s Next.',
- sections:[
-  {id:'explore',title:'Explore',enabled:true,sort_order:10,links:[
-   {id:'projects',label:'Projects',href:'/projects',enabled:true,sort_order:10},{id:'opportunities',label:'Opportunities',href:'/opportunities',enabled:true,sort_order:20},{id:'proof',label:'Proof',href:'/showcase',enabled:true,sort_order:30},{id:'events',label:'Events',href:'/events',enabled:true,sort_order:40},{id:'community',label:'Community',href:'/community',enabled:true,sort_order:50},{id:'people',label:'People',href:'/people',enabled:true,sort_order:60},{id:'insights',label:'Insights',href:'/blog',enabled:true,sort_order:70},{id:'spotlight',label:'Spotlight',href:'/spotlight',enabled:true,sort_order:80}
-  ]},
-  {id:'organisations',title:'For organisations',enabled:true,sort_order:20,links:[
-   {id:'organisation-overview',label:'Organisation overview',href:'/organisations',enabled:true,sort_order:10},{id:'post-opportunity',label:'Post an opportunity',href:'/partnership#partnership-form',enabled:true,sort_order:20},{id:'bring-project',label:'Bring a project',href:'/partnership#partnership-form',enabled:true,sort_order:30},{id:'partner',label:'Partner with Mettelo',href:'/partnership',enabled:true,sort_order:40},{id:'careers',label:'Careers',href:'/careers',enabled:true,sort_order:50}
-  ]},
-  {id:'support',title:'Company & Support',enabled:true,sort_order:30,links:[
-   {id:'about',label:'About Mettelo',href:'/about',enabled:true,sort_order:10},{id:'faq',label:'FAQ',href:'/faq',enabled:true,sort_order:20},{id:'contact',label:'Contact us',href:'/contact',enabled:true,sort_order:30},{id:'feedback',label:'Give feedback',href:'/feedback',enabled:true,sort_order:40},{id:'guidelines',label:'Community Guidelines',href:'/community-guidelines',enabled:true,sort_order:50},{id:'privacy',label:'Privacy',href:'/privacy',enabled:true,sort_order:60},{id:'terms',label:'Terms',href:'/terms',enabled:true,sort_order:70}
-  ]}
- ]
-};
-
-const DEFAULT_BRANDING:WebsiteBrandingConfig={site_name:'Mettelo',logo_dark_url:'/mettelo-logo-dark.svg',logo_light_url:'/mettelo-logo-light.svg'};
-
-export const DEFAULT_WEBSITE_CHROME:WebsiteChromeConfig={navigation:DEFAULT_NAVIGATION,footer:DEFAULT_FOOTER,branding:DEFAULT_BRANDING};
-
-function record(value:unknown):Record<string,unknown>|null{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:null}
-function cleanText(value:unknown,max:number){return String(value??'').trim().slice(0,max)}
-function cleanBoolean(value:unknown,fallback=true){return typeof value==='boolean'?value:fallback}
-function cleanOrder(value:unknown,fallback:number){const parsed=Number(value);return Number.isFinite(parsed)?Math.max(0,Math.min(10000,Math.round(parsed))):fallback}
-function cleanId(value:unknown,fallback:string){const cleaned=cleanText(value,80).toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'');return cleaned||fallback}
-export function isSafePublicHref(value:string){
- const href=String(value||'').trim();if(!href||href.length>500||/[\u0000-\u001f\u007f\\]/.test(href))return false;
- if(href.startsWith('/')){if(href.startsWith('//'))return false;try{return new URL(href,'https://mettelo.com').origin==='https://mettelo.com'}catch{return false}}
- try{const url=new URL(href);return url.protocol==='https:'&&Boolean(url.hostname)}catch{return false}
-}
+const DEFAULT_FOOTER:WebsiteFooterConfig={description:'Professional capability infrastructure for Data & AI — connecting community, real work, proof and opportunity.',tagline:'Built for What’s Next.',sections:[
+ {id:'explore',title:'Explore',enabled:true,sort_order:10,links:[{id:'projects',label:'Projects',href:'/projects',enabled:true,sort_order:10},{id:'opportunities',label:'Opportunities',href:'/opportunities',enabled:true,sort_order:20},{id:'proof',label:'Proof',href:'/showcase',enabled:true,sort_order:30},{id:'events',label:'Events',href:'/events',enabled:true,sort_order:40},{id:'community',label:'Community',href:'/community',enabled:true,sort_order:50},{id:'people',label:'People',href:'/people',enabled:true,sort_order:60},{id:'insights',label:'Insights',href:'/blog',enabled:true,sort_order:70},{id:'spotlight',label:'Spotlight',href:'/spotlight',enabled:true,sort_order:80}]},
+ {id:'organisations',title:'For organisations',enabled:true,sort_order:20,links:[{id:'organisation-overview',label:'Organisation overview',href:'/organisations',enabled:true,sort_order:10},{id:'post-opportunity',label:'Post an opportunity',href:'/partnership#partnership-form',enabled:true,sort_order:20},{id:'bring-project',label:'Bring a project',href:'/partnership#partnership-form',enabled:true,sort_order:30},{id:'partner',label:'Partner with Mettelo',href:'/partnership',enabled:true,sort_order:40},{id:'careers',label:'Careers',href:'/careers',enabled:true,sort_order:50}]},
+ {id:'support',title:'Company & Support',enabled:true,sort_order:30,links:[{id:'about',label:'About Mettelo',href:'/about',enabled:true,sort_order:10},{id:'faq',label:'FAQ',href:'/faq',enabled:true,sort_order:20},{id:'contact',label:'Contact us',href:'/contact',enabled:true,sort_order:30},{id:'feedback',label:'Give feedback',href:'/feedback',enabled:true,sort_order:40},{id:'guidelines',label:'Community Guidelines',href:'/community-guidelines',enabled:true,sort_order:50},{id:'privacy',label:'Privacy',href:'/privacy',enabled:true,sort_order:60},{id:'terms',label:'Terms',href:'/terms',enabled:true,sort_order:70}]}
+]};
+const DEFAULT_BRANDING:WebsiteBrandingConfig={site_name:'Mettelo',logo_dark_url:'/mettelo-logo-dark.svg',logo_light_url:'/mettelo-logo-light.svg'};export const DEFAULT_WEBSITE_CHROME:WebsiteChromeConfig={navigation:DEFAULT_NAVIGATION,footer:DEFAULT_FOOTER,branding:DEFAULT_BRANDING};
+function record(value:unknown):Record<string,unknown>|null{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:null}function cleanText(value:unknown,max:number){return String(value??'').trim().slice(0,max)}function cleanBoolean(value:unknown,fallback=true){return typeof value==='boolean'?value:fallback}function cleanOrder(value:unknown,fallback:number){const parsed=Number(value);return Number.isFinite(parsed)?Math.max(0,Math.min(10000,Math.round(parsed))):fallback}function cleanId(value:unknown,fallback:string){const cleaned=cleanText(value,80).toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'');return cleaned||fallback}
+export function isSafePublicHref(value:string){const href=String(value||'').trim();if(!href||href.length>500||/[\u0000-\u001f\u007f\\]/.test(href))return false;if(href.startsWith('#'))return /^#[A-Za-z][A-Za-z0-9_-]*$/.test(href);if(href.startsWith('/')){if(href.startsWith('//'))return false;try{return new URL(href,'https://mettelo.com').origin==='https://mettelo.com'}catch{return false}}try{const url=new URL(href);return url.protocol==='https:'&&Boolean(url.hostname)}catch{return false}}
 export function isExternalPublicHref(value:string){try{return new URL(value).protocol==='https:'}catch{return false}}
-
-function sanitizeNavigation(value:unknown):WebsiteNavigationConfig|null{
- const source=record(value);if(!source||!Array.isArray(source.items)||source.items.length>30)return null;
- const ids=new Set<string>();const items:WebsiteNavigationItem[]=[];
- for(let index=0;index<source.items.length;index++){
-  const item=record(source.items[index]);if(!item)return null;
-  const id=cleanId(item.id,`nav-${index+1}`);const label=cleanText(item.label,80);const href=cleanText(item.href,500);const placement=cleanText(item.placement,20) as WebsiteNavigationPlacement;
-  if(!label||!isSafePublicHref(href)||!['primary','secondary','explore'].includes(placement)||ids.has(id))return null;
-  ids.add(id);items.push({id,label,href,placement,desktop_visible:cleanBoolean(item.desktop_visible),mobile_visible:cleanBoolean(item.mobile_visible),enabled:cleanBoolean(item.enabled),sort_order:cleanOrder(item.sort_order,(index+1)*10)});
- }
- if(!items.some(item=>item.enabled&&item.desktop_visible)||!items.some(item=>item.enabled&&item.mobile_visible))return null;
- return{items:items.sort((a,b)=>a.sort_order-b.sort_order||a.label.localeCompare(b.label))};
-}
-
-function sanitizeFooter(value:unknown):WebsiteFooterConfig|null{
- const source=record(value);if(!source||!Array.isArray(source.sections)||source.sections.length>8)return null;
- const description=cleanText(source.description,600);const tagline=cleanText(source.tagline,140);if(!description||!tagline)return null;
- const sectionIds=new Set<string>();const sections:WebsiteFooterSection[]=[];
- for(let s=0;s<source.sections.length;s++){
-  const raw=record(source.sections[s]);if(!raw||!Array.isArray(raw.links)||raw.links.length>20)return null;
-  const id=cleanId(raw.id,`section-${s+1}`);const title=cleanText(raw.title,80);if(!title||sectionIds.has(id))return null;sectionIds.add(id);
-  const linkIds=new Set<string>();const links:WebsiteFooterLink[]=[];
-  for(let l=0;l<raw.links.length;l++){
-   const item=record(raw.links[l]);if(!item)return null;const linkId=cleanId(item.id,`${id}-link-${l+1}`);const label=cleanText(item.label,100);const href=cleanText(item.href,500);
-   if(!label||!isSafePublicHref(href)||linkIds.has(linkId))return null;linkIds.add(linkId);links.push({id:linkId,label,href,enabled:cleanBoolean(item.enabled),sort_order:cleanOrder(item.sort_order,(l+1)*10)});
-  }
-  sections.push({id,title,enabled:cleanBoolean(raw.enabled),sort_order:cleanOrder(raw.sort_order,(s+1)*10),links:links.sort((a,b)=>a.sort_order-b.sort_order||a.label.localeCompare(b.label))});
- }
- if(!sections.some(section=>section.enabled))return null;
- return{description,tagline,sections:sections.sort((a,b)=>a.sort_order-b.sort_order||a.title.localeCompare(b.title))};
-}
-
-function sanitizeBranding(value:unknown):WebsiteBrandingConfig|null{
- const source=record(value);if(!source)return null;const site_name=cleanText(source.site_name,80);const logo_dark_url=cleanText(source.logo_dark_url,500);const logo_light_url=cleanText(source.logo_light_url,500);
- if(!site_name||!isSafePublicHref(logo_dark_url)||!isSafePublicHref(logo_light_url))return null;return{site_name,logo_dark_url,logo_light_url};
-}
-
-export function validateWebsiteChromePayload(scope:WebsiteChromeScope,value:unknown){
- const payload=scope==='navigation'?sanitizeNavigation(value):scope==='footer'?sanitizeFooter(value):sanitizeBranding(value);
- return payload?{ok:true as const,payload}:{ok:false as const,error:scope==='navigation'?'Navigation must contain valid labels, safe internal/https destinations and at least one visible item per platform.':scope==='footer'?'Footer content must contain a description, tagline, enabled section and safe internal/https links.':'Branding requires a site name and safe internal/https logo URLs.'};
-}
-
+function sanitizeNavigation(value:unknown):WebsiteNavigationConfig|null{const source=record(value);if(!source||!Array.isArray(source.items)||source.items.length>30)return null;const ids=new Set<string>();const items:WebsiteNavigationItem[]=[];for(let index=0;index<source.items.length;index++){const item=record(source.items[index]);if(!item)return null;const id=cleanId(item.id,`nav-${index+1}`);const label=cleanText(item.label,80);const href=cleanText(item.href,500);const placement=cleanText(item.placement,20) as WebsiteNavigationPlacement;if(!label||!isSafePublicHref(href)||!['primary','secondary','explore'].includes(placement)||ids.has(id))return null;ids.add(id);items.push({id,label,href,placement,desktop_visible:cleanBoolean(item.desktop_visible),mobile_visible:cleanBoolean(item.mobile_visible),enabled:cleanBoolean(item.enabled),sort_order:cleanOrder(item.sort_order,(index+1)*10)})}if(!items.some(item=>item.enabled&&item.desktop_visible)||!items.some(item=>item.enabled&&item.mobile_visible))return null;return{items:items.sort((a,b)=>a.sort_order-b.sort_order||a.label.localeCompare(b.label))}}
+function sanitizeFooter(value:unknown):WebsiteFooterConfig|null{const source=record(value);if(!source||!Array.isArray(source.sections)||source.sections.length>8)return null;const description=cleanText(source.description,600);const tagline=cleanText(source.tagline,140);if(!description||!tagline)return null;const sectionIds=new Set<string>();const sections:WebsiteFooterSection[]=[];for(let s=0;s<source.sections.length;s++){const raw=record(source.sections[s]);if(!raw||!Array.isArray(raw.links)||raw.links.length>20)return null;const id=cleanId(raw.id,`section-${s+1}`);const title=cleanText(raw.title,80);if(!title||sectionIds.has(id))return null;sectionIds.add(id);const linkIds=new Set<string>();const links:WebsiteFooterLink[]=[];for(let l=0;l<raw.links.length;l++){const item=record(raw.links[l]);if(!item)return null;const linkId=cleanId(item.id,`${id}-link-${l+1}`);const label=cleanText(item.label,100);const href=cleanText(item.href,500);if(!label||!isSafePublicHref(href)||linkIds.has(linkId))return null;linkIds.add(linkId);links.push({id:linkId,label,href,enabled:cleanBoolean(item.enabled),sort_order:cleanOrder(item.sort_order,(l+1)*10)})}sections.push({id,title,enabled:cleanBoolean(raw.enabled),sort_order:cleanOrder(raw.sort_order,(s+1)*10),links:links.sort((a,b)=>a.sort_order-b.sort_order||a.label.localeCompare(b.label))})}if(!sections.some(section=>section.enabled))return null;return{description,tagline,sections:sections.sort((a,b)=>a.sort_order-b.sort_order||a.title.localeCompare(b.title))}}
+function sanitizeBranding(value:unknown):WebsiteBrandingConfig|null{const source=record(value);if(!source)return null;const site_name=cleanText(source.site_name,80);const logo_dark_url=cleanText(source.logo_dark_url,500);const logo_light_url=cleanText(source.logo_light_url,500);if(!site_name||!isSafePublicHref(logo_dark_url)||!isSafePublicHref(logo_light_url))return null;return{site_name,logo_dark_url,logo_light_url}}
+export function validateWebsiteChromePayload(scope:WebsiteChromeScope,value:unknown){const payload=scope==='navigation'?sanitizeNavigation(value):scope==='footer'?sanitizeFooter(value):sanitizeBranding(value);return payload?{ok:true as const,payload}:{ok:false as const,error:scope==='navigation'?'Navigation must contain valid labels, safe internal/https destinations and at least one visible item per platform.':scope==='footer'?'Footer content must contain a description, tagline, enabled section and safe internal/https links.':'Branding requires a site name and safe internal/https logo URLs.'}}
 function cloneDefaults():WebsiteChromeConfig{return JSON.parse(JSON.stringify(DEFAULT_WEBSITE_CHROME)) as WebsiteChromeConfig}
-
-export async function getPublicWebsiteChrome():Promise<WebsiteChromeConfig>{
- noStore();
- const fallback=cloneDefaults();const db=createPublicSupabaseClient();if(!db)return fallback;
- try{
-  const {data,error}=await db.from('website_chrome_public').select('scope,payload');if(error)throw error;
-  for(const row of data||[]){const scope=String(row.scope) as WebsiteChromeScope;if(!['navigation','footer','branding'].includes(scope))continue;const validated=validateWebsiteChromePayload(scope,row.payload);if(validated.ok)(fallback as unknown as Record<string,unknown>)[scope]=validated.payload;}
-  return fallback;
- }catch{return fallback;}
-}
+export async function getPublicWebsiteChrome():Promise<WebsiteChromeConfig>{noStore();const fallback=cloneDefaults();const db=createPublicSupabaseClient();if(!db)return fallback;try{const {data,error}=await db.from('website_chrome_public').select('scope,payload');if(error)throw error;for(const row of data||[]){const scope=String(row.scope) as WebsiteChromeScope;if(!['navigation','footer','branding'].includes(scope))continue;const validated=validateWebsiteChromePayload(scope,row.payload);if(validated.ok)(fallback as unknown as Record<string,unknown>)[scope]=validated.payload}return fallback}catch{return fallback}}

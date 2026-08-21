@@ -36,7 +36,7 @@ const checks=[
   ['components/MetteloLabPanel.module.css',['grid-template-columns:repeat(2,minmax(0,1fr))','min-height:44px','@media(max-width:480px)']],
   ['components/WorkspaceRouteTabs.tsx',["key:'team',label:'Mettelo Lab'","['mettelo-lab','Lab']",'Collaborate with your cohort and see what to do next.']],
   ['app/member/projects/[id]/layout.tsx',['METTELO LAB','MetteloLabNavigation','MetteloLabViewSurface','mobileNav']],
-  ['components/MetteloLabNavigation.tsx',["label:'Home'","label:'Chat'","label:'Team'","hrefFor('more')"]],
+  ['components/MetteloLabNavigation.tsx',["label:'Home'","label:'Chat'","label:'Team'",'labMoreTrigger','labMoreDropupPanel','href={hrefFor(item.view)}','window.history.pushState']],
   ['app/member/projects/[id]/page.tsx',['MetteloLabPanel','reviewSlot','href="#mettelo-lab">Mettelo Lab','recentDiscussions']],
   ['components/AdminCompletionRequirements.tsx',['Verified presentation required','Published GitHub repository required','Final Proof / deliverable URL required']],
   ['supabase/migrations/20260818190000_project_completion_permissions.sql',['project_submission_permissions','project_final_proof_submissions','github_repo_required','final_proof_required']],

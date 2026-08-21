@@ -1,0 +1,205 @@
+.eventsExperience :global([data-lab-view="events"] #meetings){
+  min-width:0;
+  margin:0 0 16px;
+  padding:clamp(18px,2.4vw,24px);
+  border:1px solid var(--lab-shell-border);
+  border-radius:16px;
+  background:var(--lab-shell-surface);
+}
+.eventsExperience :global([data-lab-view="events"] .labSectionTitle){margin:0 0 18px}
+.eventsExperience :global([data-lab-view="events"] .labSectionTitle .cardNumber){
+  font-family:var(--font-plex-mono),ui-monospace,monospace;
+  font-size:.7rem;
+  letter-spacing:.09em;
+  color:var(--lab-shell-bronze);
+}
+.eventsExperience :global([data-lab-view="events"] .labSectionTitle h2){
+  max-width:22ch;
+  margin:5px 0 6px;
+  font-family:var(--font-space-grotesk),Inter,sans-serif;
+  font-size:clamp(1.7rem,3vw,2.45rem);
+  line-height:1.08;
+  letter-spacing:-.035em;
+  overflow-wrap:break-word;
+}
+.eventsExperience :global([data-lab-view="events"] .labSectionTitle p),
+.eventsExperience :global([data-lab-view="events"] .panelNote),
+.eventsExperience :global([data-lab-view="events"] .projectEventCard>p),
+.eventsExperience :global([data-lab-view="events"] .nextEventCard>p),
+.eventsExperience :global([data-lab-view="events"] .pastEvents small){
+  color:color-mix(in srgb,var(--lab-shell-ink) 64%,transparent);
+}
+.eventsExperience :global([data-lab-view="events"] .eventToolbar){
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  align-items:center;
+  margin-bottom:18px;
+}
+.eventsExperience :global([data-lab-view="events"] .localTabs){
+  display:flex;
+  gap:6px;
+  min-width:0;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.eventsExperience :global([data-lab-view="events"] .localTab){
+  min-height:44px;
+  border-color:var(--lab-shell-border-strong);
+  background:var(--lab-shell-surface);
+  color:var(--lab-shell-ink);
+}
+.eventsExperience :global([data-lab-view="events"] .localTab.active){
+  border-color:color-mix(in srgb,var(--lab-shell-bronze) 58%,var(--lab-shell-border));
+  background:color-mix(in srgb,var(--lab-shell-bronze) 10%,var(--lab-shell-surface));
+}
+.eventsExperience :global([data-lab-view="events"] .eventToolbar .button){min-height:44px}
+.eventsExperience :global([data-lab-view="events"] .nextEventCard){
+  padding:clamp(18px,2.4vw,24px);
+  margin-bottom:16px;
+  border:1px solid color-mix(in srgb,var(--lab-shell-bronze) 42%,var(--lab-shell-border));
+  border-radius:15px;
+  background:color-mix(in srgb,var(--lab-shell-bronze) 5%,var(--lab-shell-surface));
+  box-shadow:none;
+}
+.eventsExperience :global([data-lab-view="events"] .nextEventCard h3){
+  max-width:28ch;
+  margin:7px 0 5px;
+  font-size:clamp(1.25rem,2.2vw,1.55rem);
+  line-height:1.2;
+  overflow-wrap:break-word;
+}
+.eventsExperience :global([data-lab-view="events"] .projectEventList){display:grid;gap:10px}
+.eventsExperience :global([data-lab-view="events"] .projectEventCard){
+  min-width:0;
+  padding:17px;
+  border:1px solid var(--lab-shell-border);
+  border-radius:13px;
+  background:var(--lab-shell-surface-muted);
+  box-shadow:none;
+}
+.eventsExperience :global([data-lab-view="events"] .projectEventMeta){
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.eventsExperience :global([data-lab-view="events"] .projectEventMeta .chip){font-size:.69rem}
+.eventsExperience :global([data-lab-view="events"] .projectEventCard h3){
+  margin:10px 0 5px;
+  font-size:1.05rem;
+  line-height:1.32;
+  overflow-wrap:break-word;
+}
+.eventsExperience :global([data-lab-view="events"] .projectEventCard dl){
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px 16px;
+  margin:14px 0;
+}
+.eventsExperience :global([data-lab-view="events"] .projectEventCard dl>div){min-width:0}
+.eventsExperience :global([data-lab-view="events"] .projectEventCard dt){
+  font-size:.7rem;
+  line-height:1.35;
+  color:color-mix(in srgb,var(--lab-shell-ink) 60%,transparent);
+}
+.eventsExperience :global([data-lab-view="events"] .projectEventCard dd){
+  margin:2px 0 0;
+  font-size:.84rem;
+  line-height:1.4;
+  overflow-wrap:break-word;
+}
+.eventsExperience :global([data-lab-view="events"] .projectEventCard p),
+.eventsExperience :global([data-lab-view="events"] .projectEventCard a),
+.eventsExperience :global([data-lab-view="events"] .eventOutcome p),
+.eventsExperience :global([data-lab-view="events"] .eventOutcome small){overflow-wrap:break-word}
+.eventsExperience :global([data-lab-view="events"] .eventOutcome){
+  padding:12px;
+  border:1px solid var(--lab-shell-border);
+  border-radius:10px;
+  background:var(--lab-shell-surface);
+}
+.eventsExperience :global([data-lab-view="events"] .projectEventActions){
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:14px;
+}
+.eventsExperience :global([data-lab-view="events"] .projectEventActions .button){min-height:44px}
+.eventsExperience :global([data-lab-view="events"] .projectEventActions .button:focus-visible),
+.eventsExperience :global([data-lab-view="events"] .eventToolbar .button:focus-visible),
+.eventsExperience :global([data-lab-view="events"] .pastEvents summary:focus-visible),
+.eventsExperience :global([data-lab-view="events"] .workspaceComposer>summary:focus-visible),
+.eventsExperience :global([data-lab-view="events"] input:focus-visible),
+.eventsExperience :global([data-lab-view="events"] select:focus-visible),
+.eventsExperience :global([data-lab-view="events"] textarea:focus-visible),
+.eventsExperience :global([data-lab-view="events"] button:focus-visible){
+  outline:3px solid var(--lab-shell-focus);
+  outline-offset:2px;
+}
+.eventsExperience :global([data-lab-view="events"] .pastEvents){
+  margin-top:16px;
+  border-top:1px solid var(--lab-shell-border);
+}
+.eventsExperience :global([data-lab-view="events"] .pastEvents summary){min-height:44px}
+.eventsExperience :global([data-lab-view="events"] .pastEvents article){
+  min-width:0;
+  gap:12px;
+  border-color:var(--lab-shell-border);
+}
+.eventsExperience :global([data-lab-view="events"] .pastEvents strong),
+.eventsExperience :global([data-lab-view="events"] .pastEvents small){overflow-wrap:break-word}
+.eventsExperience :global([data-lab-view="events"] .eventCreateJourney){
+  margin-top:24px;
+  padding-top:22px;
+  border-top:1px solid var(--lab-shell-border);
+}
+.eventsExperience :global([data-lab-view="events"] .eventJourneyForm){
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.eventsExperience :global([data-lab-view="events"] .journeyCard){
+  min-width:0;
+  border-color:var(--lab-shell-border);
+  background:var(--lab-shell-surface-muted);
+  box-shadow:none;
+}
+.eventsExperience :global([data-lab-view="events"] .journeyCard input),
+.eventsExperience :global([data-lab-view="events"] .journeyCard select),
+.eventsExperience :global([data-lab-view="events"] .journeyCard textarea){
+  max-width:100%;
+  min-width:0;
+  min-height:44px;
+  border-color:var(--lab-shell-border-strong);
+  background:var(--lab-shell-surface);
+  color:var(--lab-shell-ink);
+}
+.eventsExperience :global([data-lab-view="events"] .meetingMode button){min-height:44px}
+.eventsExperience :global([data-lab-view="events"] .emptyState){
+  padding:22px;
+  border:1px dashed var(--lab-shell-border-strong);
+  border-radius:13px;
+  background:var(--lab-shell-surface-muted);
+}
+@media(max-width:800px){
+  .eventsExperience :global([data-lab-view="events"] .eventToolbar),
+  .eventsExperience :global([data-lab-view="events"] .eventJourneyForm){grid-template-columns:1fr}
+  .eventsExperience :global([data-lab-view="events"] .eventToolbar .button){justify-self:start}
+  .eventsExperience :global([data-lab-view="events"] .projectEventCard dl){grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:480px){
+  .eventsExperience :global([data-lab-view="events"] #meetings){padding:14px;border-radius:14px}
+  .eventsExperience :global([data-lab-view="events"] .labSectionTitle h2){font-size:clamp(1.5rem,7vw,1.9rem);line-height:1.1}
+  .eventsExperience :global([data-lab-view="events"] .eventToolbar .button){width:100%;justify-content:center}
+  .eventsExperience :global([data-lab-view="events"] .projectEventCard dl){grid-template-columns:1fr}
+  .eventsExperience :global([data-lab-view="events"] .projectEventActions){display:grid;grid-template-columns:1fr}
+  .eventsExperience :global([data-lab-view="events"] .projectEventActions .button){width:100%;justify-content:center}
+  .eventsExperience :global([data-lab-view="events"] .pastEvents article){display:grid;grid-template-columns:1fr}
+  .eventsExperience :global([data-lab-view="events"] .meetingMode){grid-template-columns:1fr}
+  .eventsExperience :global([data-lab-view="events"] input),
+  .eventsExperience :global([data-lab-view="events"] select),
+  .eventsExperience :global([data-lab-view="events"] textarea){font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .eventsExperience :global([data-lab-view="events"] *){scroll-behavior:auto}
+}

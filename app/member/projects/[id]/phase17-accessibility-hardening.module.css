@@ -1,0 +1,50 @@
+.accessibility{}
+
+.accessibility :global([data-lab-view] a:focus-visible),
+.accessibility :global([data-lab-view] button:focus-visible),
+.accessibility :global([data-lab-view] input:focus-visible),
+.accessibility :global([data-lab-view] select:focus-visible),
+.accessibility :global([data-lab-view] textarea:focus-visible),
+.accessibility :global([data-lab-view] summary:focus-visible){outline:3px solid var(--lab-shell-focus);outline-offset:3px}
+
+.accessibility :global([data-lab-view] button),
+.accessibility :global([data-lab-view] .button),
+.accessibility :global([data-lab-view] summary),
+.accessibility :global([data-lab-view] select){min-height:44px}
+
+.accessibility :global([data-lab-view] input:not([type="checkbox"]):not([type="radio"])),
+.accessibility :global([data-lab-view] textarea){min-height:44px}
+
+.accessibility :global([data-lab-view] [aria-current="page"]),
+.accessibility :global([data-lab-view] [aria-pressed="true"]),
+.accessibility :global([data-lab-view] [data-active="true"]){text-decoration-thickness:.12em;text-underline-offset:.18em}
+
+.accessibility :global([data-lab-view] [role="status"]),
+.accessibility :global([data-lab-view] [role="log"]){min-width:0}
+
+.accessibility :global([data-lab-view] .srOnly){position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+@media(prefers-reduced-motion:reduce){
+ .accessibility :global([data-lab-view] *),
+ .accessibility :global([data-lab-view] *::before),
+ .accessibility :global([data-lab-view] *::after){scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
+
+@media(forced-colors:active){
+ .accessibility :global([data-lab-view] a:focus-visible),
+ .accessibility :global([data-lab-view] button:focus-visible),
+ .accessibility :global([data-lab-view] input:focus-visible),
+ .accessibility :global([data-lab-view] select:focus-visible),
+ .accessibility :global([data-lab-view] textarea:focus-visible),
+ .accessibility :global([data-lab-view] summary:focus-visible){outline:3px solid Highlight}
+ .accessibility :global([data-lab-view] [aria-current="page"]),
+ .accessibility :global([data-lab-view] [aria-pressed="true"]),
+ .accessibility :global([data-lab-view] [data-active="true"]){outline:2px solid currentColor;outline-offset:-2px}
+}
+
+@media(max-width:480px){
+ .accessibility :global([data-lab-view] button),
+ .accessibility :global([data-lab-view] .button),
+ .accessibility :global([data-lab-view] summary),
+ .accessibility :global([data-lab-view] select){min-height:44px}
+}

@@ -1,0 +1,40 @@
+.contentStress{}
+
+.contentStress :global([data-lab-view] h1),
+.contentStress :global([data-lab-view] h2),
+.contentStress :global([data-lab-view] h3),
+.contentStress :global([data-lab-view] strong),
+.contentStress :global([data-lab-view] p),
+.contentStress :global([data-lab-view] li),
+.contentStress :global([data-lab-view] dt),
+.contentStress :global([data-lab-view] dd),
+.contentStress :global([data-lab-view] label),
+.contentStress :global([data-lab-view] a),
+.contentStress :global([data-lab-view] button){min-width:0;max-width:100%}
+.contentStress :global([data-lab-view] h1),
+.contentStress :global([data-lab-view] h2),
+.contentStress :global([data-lab-view] h3),
+.contentStress :global([data-lab-view] p),
+.contentStress :global([data-lab-view] li),
+.contentStress :global([data-lab-view] dd),
+.contentStress :global([data-lab-view] a){overflow-wrap:break-word;word-break:normal}
+.contentStress :global([data-lab-view] .sectionHead h2),
+.contentStress :global([data-lab-view] .labSectionTitle h2){font-size:clamp(1.75rem,3.8vw,2.55rem);line-height:1.08;letter-spacing:-.035em;text-wrap:balance}
+.contentStress :global([data-lab-view] .sectionHead p),
+.contentStress :global([data-lab-view] .labSectionTitle p){max-width:68ch;line-height:1.55}
+.contentStress :global([data-lab-view] .cardNumber),
+.contentStress :global([data-lab-view] .eyebrow),
+.contentStress :global([data-lab-view] .chip){max-width:100%;white-space:normal;overflow-wrap:break-word}
+.contentStress :global([data-lab-view] .fieldRow),
+.contentStress :global([data-lab-view] .recordFacts),
+.contentStress :global([data-lab-view] .summaryGrid),
+.contentStress :global([data-lab-view] .teamGrid),
+.contentStress :global([data-lab-view] .problemBriefGrid),
+.contentStress :global([data-lab-view] .dashboardGrid){min-width:0}
+.contentStress :global([data-lab-view] input),
+.contentStress :global([data-lab-view] select),
+.contentStress :global([data-lab-view] textarea){min-width:0;max-width:100%}
+@media(max-width:768px){.contentStress :global([data-lab-view] .sectionHead h2),.contentStress :global([data-lab-view] .labSectionTitle h2){font-size:clamp(1.6rem,6vw,2.15rem);line-height:1.08}.contentStress :global([data-lab-view] .fieldRow),.contentStress :global([data-lab-view] .recordFacts),.contentStress :global([data-lab-view] .summaryGrid),.contentStress :global([data-lab-view] .teamGrid),.contentStress :global([data-lab-view] .problemBriefGrid),.contentStress :global([data-lab-view] .dashboardGrid){grid-template-columns:1fr}}
+@media(max-width:480px){.contentStress :global([data-lab-view] .sectionHead h2),.contentStress :global([data-lab-view] .labSectionTitle h2){font-size:clamp(1.45rem,7.2vw,1.9rem);line-height:1.1;text-wrap:wrap}.contentStress :global([data-lab-view] .cardNumber),.contentStress :global([data-lab-view] .eyebrow){font-size:max(.7rem,11px);line-height:1.35;letter-spacing:.08em}.contentStress :global([data-lab-view] .chip){min-height:32px;line-height:1.25}.contentStress :global([data-lab-view] p),.contentStress :global([data-lab-view] li),.contentStress :global([data-lab-view] dd){line-height:1.5}}
+@media(max-width:360px){.contentStress :global([data-lab-view] .sectionHead h2),.contentStress :global([data-lab-view] .labSectionTitle h2){font-size:1.45rem}}
+@media(max-width:1024px) and (orientation:landscape) and (max-height:600px){.contentStress :global([data-lab-view] .sectionHead h2),.contentStress :global([data-lab-view] .labSectionTitle h2){margin-bottom:.45rem}}

@@ -12,8 +12,8 @@
   .mobileIa :global(nav[aria-label="Mettelo Lab mobile navigation"] a){
     min-width:0;
     min-height:58px;
-    border-radius:var(--lab-shell-radius-sm);
-    color:var(--lab-shell-muted);
+    border-radius:10px;
+    color:color-mix(in srgb,var(--lab-shell-ink) 58%,var(--lab-shell-surface));
   }
 
   .mobileIa :global(nav[aria-label="Mettelo Lab mobile navigation"] a>span:first-child){
@@ -29,7 +29,7 @@
   }
 
   .mobileIa :global(nav[aria-label="Mettelo Lab mobile navigation"] a[data-active="true"]){
-    background:var(--lab-shell-sand);
+    background:color-mix(in srgb,var(--lab-shell-bronze) 13%,var(--lab-shell-surface));
     color:var(--lab-shell-ink);
   }
 
@@ -44,7 +44,7 @@
     max-width:100%;
     padding:1.15rem;
     border:1px solid var(--lab-shell-border);
-    border-radius:var(--lab-shell-radius-lg);
+    border-radius:20px;
     background:var(--lab-shell-surface);
     overflow:hidden;
   }
@@ -71,7 +71,7 @@
   .mobileIa :global(#lab-more>p:not(:first-child)){
     max-width:38rem;
     margin:.55rem 0 0;
-    color:var(--lab-shell-muted);
+    color:color-mix(in srgb,var(--lab-shell-ink) 58%,var(--lab-shell-surface));
     font-size:.88rem;
     line-height:1.5;
   }
@@ -93,16 +93,16 @@
     gap:.7rem;
     padding:.9rem;
     border:1px solid var(--lab-shell-border);
-    border-radius:var(--lab-shell-radius-md);
+    border-radius:14px;
     background:var(--lab-shell-surface-muted);
-    color:var(--lab-shell-text);
+    color:var(--lab-shell-ink);
     text-decoration:none;
   }
 
   .mobileIa :global(#lab-more a:hover),
   .mobileIa :global(#lab-more a:focus-visible){
     border-color:var(--lab-shell-border-strong);
-    background:var(--lab-shell-sand);
+    background:color-mix(in srgb,var(--lab-shell-bronze) 13%,var(--lab-shell-surface));
   }
 
   .mobileIa :global(#lab-more a>span:first-child){
@@ -130,7 +130,7 @@
   }
 
   .mobileIa :global(#lab-more a small){
-    color:var(--lab-shell-muted);
+    color:color-mix(in srgb,var(--lab-shell-ink) 58%,var(--lab-shell-surface));
     font-size:.75rem;
     line-height:1.35;
     overflow-wrap:break-word;

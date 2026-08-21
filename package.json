@@ -53,8 +53,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
-    "eslint": "^9.22.0",
-    "eslint-config-next": "^15.2.4",
     "@playwright/test": "^1.55.0",
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.10",

@@ -1,12 +1,26 @@
+.tasksExperience :global([data-lab-view="tasks"]){
+  --tasks-muted:color-mix(in srgb,var(--lab-shell-ink) 62%,var(--lab-shell-surface));
+  --tasks-subtle:color-mix(in srgb,var(--lab-shell-ink) 52%,var(--lab-shell-surface));
+  --tasks-supporting:color-mix(in srgb,var(--lab-shell-surface-muted) 72%,var(--lab-shell-surface));
+}
+
 .tasksExperience :global([data-lab-view="tasks"] #workstreams),
 .tasksExperience :global([data-lab-view="tasks"] #deliverables),
 .tasksExperience :global([data-lab-view="tasks"] #delivery){
   min-width:0;
   margin:0 0 14px;
   padding:clamp(18px,2.4vw,24px);
-  border:1px solid var(--lab-shell-border);
   border-radius:16px;
+}
+.tasksExperience :global([data-lab-view="tasks"] #workstreams),
+.tasksExperience :global([data-lab-view="tasks"] #deliverables){
+  border:1px solid color-mix(in srgb,var(--lab-shell-border) 78%,var(--lab-shell-surface));
+  background:var(--tasks-supporting);
+}
+.tasksExperience :global([data-lab-view="tasks"] #delivery){
+  border:1px solid var(--lab-shell-border-strong);
   background:var(--lab-shell-surface);
+  box-shadow:inset 0 3px 0 color-mix(in srgb,var(--lab-shell-bronze) 76%,var(--lab-shell-surface));
 }
 
 .tasksExperience :global([data-lab-view="tasks"] #workstreams>.sectionHead),
@@ -17,6 +31,13 @@
   gap:16px;
   align-items:start;
   margin-bottom:16px;
+}
+.tasksExperience :global([data-lab-view="tasks"] #workstreams>.sectionHead),
+.tasksExperience :global([data-lab-view="tasks"] #deliverables>.sectionHead){
+  opacity:.88;
+}
+.tasksExperience :global([data-lab-view="tasks"] #delivery>.sectionHead){
+  padding-bottom:4px;
 }
 .tasksExperience :global([data-lab-view="tasks"] .sectionHead>div){min-width:0}
 .tasksExperience :global([data-lab-view="tasks"] .sectionHead .eyebrow),
@@ -36,10 +57,13 @@
   letter-spacing:-.035em;
   overflow-wrap:break-word;
 }
+.tasksExperience :global([data-lab-view="tasks"] #delivery>.sectionHead h2){
+  font-size:clamp(1.7rem,3vw,2.5rem);
+}
 .tasksExperience :global([data-lab-view="tasks"] .sectionHead p){
   max-width:62ch;
   margin:4px 0 0;
-  color:#5f6b7a;
+  color:var(--tasks-muted);
   font-size:.86rem;
   line-height:1.55;
 }
@@ -58,6 +82,10 @@
   border-radius:13px;
   background:var(--lab-shell-surface-muted);
   box-shadow:none;
+}
+.tasksExperience :global([data-lab-view="tasks"] #delivery .taskRow),
+.tasksExperience :global([data-lab-view="tasks"] #delivery .listRow){
+  background:var(--lab-shell-surface);
 }
 .tasksExperience :global([data-lab-view="tasks"] .taskRow){
   display:grid;
@@ -81,7 +109,7 @@
 .tasksExperience :global([data-lab-view="tasks"] .dataRecord p),
 .tasksExperience :global([data-lab-view="tasks"] .listRow p){
   margin:6px 0 0;
-  color:#5f6b7a;
+  color:var(--tasks-muted);
   font-size:.84rem;
   line-height:1.5;
   overflow-wrap:break-word;
@@ -94,7 +122,7 @@
 }
 .tasksExperience :global([data-lab-view="tasks"] .recordFacts div){min-width:0}
 .tasksExperience :global([data-lab-view="tasks"] .recordFacts dt){
-  color:#687386;
+  color:var(--tasks-subtle);
   font-size:.68rem;
   font-weight:800;
   letter-spacing:.04em;
@@ -112,10 +140,11 @@
   min-width:0;
   display:grid;
   gap:8px;
-  padding:12px;
-  border:1px solid var(--lab-shell-border);
-  border-radius:11px;
-  background:var(--lab-shell-surface);
+  padding:10px 0 0;
+  border:0;
+  border-top:1px solid var(--lab-shell-border);
+  border-radius:0;
+  background:transparent;
 }
 .tasksExperience :global([data-lab-view="tasks"] .taskStatusControl label),
 .tasksExperience :global([data-lab-view="tasks"] .taskStatusControl strong){
@@ -171,7 +200,7 @@
   min-width:0;
   padding:9px 10px;
   border-radius:9px;
-  background:var(--lab-shell-surface-muted);
+  background:var(--tasks-supporting);
 }
 .tasksExperience :global([data-lab-view="tasks"] .taskActivityItem p),
 .tasksExperience :global([data-lab-view="tasks"] .taskActivityItem a){overflow-wrap:break-word}
@@ -213,6 +242,7 @@
   .tasksExperience :global([data-lab-view="tasks"] #deliverables),
   .tasksExperience :global([data-lab-view="tasks"] #delivery){padding:14px;border-radius:14px}
   .tasksExperience :global([data-lab-view="tasks"] .sectionHead h2){font-size:clamp(1.45rem,6.8vw,1.85rem);line-height:1.1}
+  .tasksExperience :global([data-lab-view="tasks"] #delivery>.sectionHead h2){font-size:clamp(1.55rem,7vw,1.95rem)}
   .tasksExperience :global([data-lab-view="tasks"] .taskRow),
   .tasksExperience :global([data-lab-view="tasks"] .dataRecord),
   .tasksExperience :global([data-lab-view="tasks"] .listRow){padding:13px;border-radius:11px}

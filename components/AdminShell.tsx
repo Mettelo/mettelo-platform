@@ -16,7 +16,7 @@ const groups:NavGroup[]=[
  {label:'Projects',items:[{label:'Project operations',href:'/admin/project-operations/projects'},{label:'Project Architect',href:'/admin/project-architect-applications'},{label:'Project governance',href:'/admin/project-governance'}]},
  {label:'Community & Proof',items:[{label:'Proof review',href:'/admin/proof'},{label:'Spotlight & awards',href:'/admin/spotlights'},{label:'Events',href:'/admin/events'}]},
  {label:'Content & Comms',items:[{label:'Content & Insights',href:'/admin/content/news'},{label:'Communications',href:'/admin/notifications/overview'}]},
- {label:'Platform',items:[{label:'Platform overview',href:'/admin/platform'},{label:'Settings',href:'/admin/settings'}]},
+ {label:'Platform',items:[{label:'Platform overview',href:'/admin/platform'},{label:'Settings',href:'/admin/settings'},{label:'Auth & SSO status',href:'/admin/platform/auth'}]},
  {label:'System',items:[{label:'System overview',href:'/admin/system'},{label:'Audit log',href:'/admin/system/audit'},{label:'QA team',href:'/admin/qa'},{label:'Intake',href:'/admin/intake'},{label:'Admin access',href:'/admin/access'}]}
 ];
 
@@ -42,6 +42,7 @@ function breadcrumb(pathname:string){
  if(pathname.startsWith('/admin/website/branding'))return ['Admin','Website','Branding'];
  if(pathname==='/admin/platform')return ['Admin','Platform','Overview'];
  if(pathname==='/admin/settings')return ['Admin','Platform','Settings'];
+ if(pathname.startsWith('/admin/platform/auth'))return ['Admin','Platform','Auth & SSO status'];
  if(pathname==='/admin/system')return ['Admin','System','Overview'];
  if(pathname.startsWith('/admin/system/audit'))return ['Admin','System','Audit log'];
  if(pathname.startsWith('/admin/project-operations/projects/'))return ['Admin','Projects','Projects','Project detail'];

@@ -14,7 +14,7 @@ const checks=[
   ['app/api/admin/website/chrome/route.ts',['website.navigation.manage','website.content.edit','website.content.publish','website.chrome.draft.updated','website.chrome.published','recordAdminAudit','website_chrome_drafts','website_chrome_public']],
   ['supabase/migrations/20260820143000_website_chrome_management.sql',['website_chrome_public','website_chrome_drafts','public website chrome readable','revoke all on public.website_chrome_drafts','grant select on public.website_chrome_public to anon, authenticated','grant select, insert, update on public.website_chrome_public to service_role']],
   ['app/admin/platform/page.tsx',['Platform controls','Platform settings','Admin access','Authentication & SSO','Feature flags']],
-  ['app/admin/system/page.tsx',['System operations','Audit log','QA team','General intake','System health','Jobs & errors']],
+  ['app/admin/system/page.tsx',['System operations','Audit log','QA team','General intake','System health','/admin/system/health','General background-job telemetry','canonical job registry']],
   ['components/AdminStatusBadge.tsx',['adminStatusBadge','iconByStatus','success','warning','danger','neutral','info']],
   ['app/admin/page.tsx',['NEEDS ATTENTION','WORKSPACE SHORTCUTS','Nothing needs attention right now','Applications to review','Teams forming','overviewStats','Platform settings','/admin/settings']],
   ['app/admin/settings/page.tsx',['Settings unavailable','AdminPlatformSettings','platform_settings','project_role_catalogue']],

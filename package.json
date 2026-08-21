@@ -21,7 +21,7 @@
     "audit:phase1": "node scripts/audit-phase-1-identity.mjs",
     "audit:phase2": "node scripts/audit-phase-2-member-projects.mjs",
     "audit:phase3": "node scripts/audit-phase-3-careers.mjs",
-    "audit:admin": "node scripts/audit-admin-console.mjs && node scripts/audit-admin-website-pages.mjs && node scripts/audit-admin-page-history.mjs && node scripts/audit-admin-website-seo.mjs && node scripts/audit-admin-website-media.mjs && node scripts/audit-admin-access-capabilities.mjs && node scripts/audit-admin-platform-configuration.mjs && node scripts/audit-admin-system-health.mjs",
+    "audit:admin": "node scripts/audit-admin-console.mjs && node scripts/audit-admin-website-pages.mjs && node scripts/audit-admin-page-history.mjs && node scripts/audit-admin-website-seo.mjs && node scripts/audit-admin-website-media.mjs && node scripts/audit-admin-access-capabilities.mjs && node scripts/audit-admin-platform-configuration.mjs && node scripts/audit-admin-system-health.mjs && node scripts/audit-admin-custom-route-guard.mjs",
     "audit:admin2": "node scripts/audit-admin-part-2.mjs",
     "test:phase1-browser": "playwright test tests/phase1-browser.spec.ts --project=chromium",
     "audit:phase5": "node scripts/audit-phase-5-governance.mjs",

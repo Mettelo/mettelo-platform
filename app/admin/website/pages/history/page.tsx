@@ -11,6 +11,6 @@ export const dynamic='force-dynamic';
 export default async function AdminWebsitePageHistoryPage(){
  const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();
  if(!user)redirect('/signin');if(!hasAdminCapability(user,'website.content.edit'))redirect('/member');
- const pages=WEBSITE_CMS_PAGES.map(item=>({key:item.key,label:item.label,fields:item.fields}));
+ const pages=WEBSITE_CMS_PAGES.map(item=>({key:item.key,label:item.label,path:item.path,fields:item.fields}));
  return <section className="section"><div className="shell"><AdminWebsitePageHistory pages={pages}/></div></section>;
 }

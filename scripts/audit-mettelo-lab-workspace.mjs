@@ -37,8 +37,10 @@ forbidText('Lab focus contract',homeCss,'outline:none');
 for(const token of ['--lab-shell-ink:','--lab-shell-surface:','--lab-shell-border:','--lab-shell-mobile-nav:70px'])requireText('Lab shell tokens',shellStabilisation,token);
 for(const contract of ['overflow-x:clip','max-width:100%','Mettelo Lab workspace','Mettelo Lab project context','Mettelo Lab mobile navigation','orientation:landscape','safe-area-inset-bottom'])requireText('Lab shell containment',shellStabilisation,contract);
 requireText('Lab shell attachment',mobileFixes,"composes:workspace from './phase3-shell-stabilisation.module.css'");
-requireText('Lab interaction attachment',mobileFixes,"composes:interactionPolish from './phase18-interaction-polish.module.css'");
-requireText('Lab regression attachment',mobileFixes,"composes:reportedRegressions from './phase18-reported-regressions.module.css'");
+requireText('Lab interaction attachment',layout,"import interactionPolish from './phase18-interaction-polish.module.css'");
+requireText('Lab interaction attachment',layout,'${interactionPolish.interactionPolish}');
+requireText('Lab regression attachment',layout,"import reportedRegressions from './phase18-reported-regressions.module.css'");
+requireText('Lab regression attachment',layout,'${reportedRegressions.reportedRegressions}');
 
 for(const contract of ['grid-template-rows:auto auto minmax(0,1fr) auto','position:relative!important','100dvh','overscroll-behavior:contain','max-height:min(22dvh,132px)','orientation:landscape','--lab-chat-member-header:62px'])requireText('Lab Chat layout architecture',mobileFixes,contract);
 for(const stale of ['top:72px!important','bottom:calc(70px + env(safe-area-inset-bottom))!important','position:fixed!important'])forbidText('Lab Chat fixed viewport workaround',mobileFixes,stale);

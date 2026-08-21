@@ -23,6 +23,11 @@ requireText('single Home implementation',projectPage,'<MetteloLabPanel');
 requireText('single Home styles',home,"import styles from './MetteloLabPanel.module.css'");
 requireText('single Home styles',homeCss,'.metteloLab');
 
+for(const token of ['--lab-ink:','--lab-muted:','--lab-border:','--lab-surface:','--lab-bronze:','--lab-focus:','--lab-radius-sm:','--lab-radius-lg:','--lab-space-2:','--lab-space-4:','--lab-target:'])requireText('Lab design tokens',homeCss,token);
+for(const usage of ['var(--lab-border)','var(--lab-surface)','var(--lab-muted)','var(--lab-bronze)','var(--lab-focus)','var(--lab-radius-lg)','var(--lab-space-4)','var(--lab-target)'])requireText('Lab token consumption',homeCss,usage);
+requireText('Lab target contract',homeCss,'--lab-target:44px');
+forbidText('Lab focus contract',homeCss,'outline:none');
+
 for(const label of ['Home','Plan','Tasks','Chat','Data','Proof','Resources','Events','Team'])requireText('desktop navigation',navigation,`label:'${label}'`);
 for(const label of ['Home','Tasks','Chat','Data'])requireText('mobile navigation',navigation,`label:'${label}'`);
 requireText('mobile navigation',navigation,"hrefFor('more')");

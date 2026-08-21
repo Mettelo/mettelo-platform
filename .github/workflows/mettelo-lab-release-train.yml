@@ -120,6 +120,14 @@ jobs:
         run: npx playwright test tests/mettelo-lab-chat-permissions.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Verify Lab shell geometry
         run: npx playwright test tests/mettelo-lab-shell-preflight.spec.ts --project=chromium --workers=1 --timeout=90000
+      - name: Verify Phase 18 device QA when present
+        shell: bash
+        run: |
+          if [ -f tests/mettelo-lab-device-qa.spec.ts ]; then
+            npx playwright test tests/mettelo-lab-device-qa.spec.ts --project=chromium --workers=1
+          else
+            echo "Phase 18 device QA is not present on this release head yet."
+          fi
       - name: Verify Mettelo Lab responsive composition
         run: npx playwright test tests/mettelo-lab-visual.spec.ts --project=chromium --workers=1
       - name: Upload Mettelo Lab screenshots

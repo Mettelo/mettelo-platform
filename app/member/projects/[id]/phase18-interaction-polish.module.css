@@ -41,13 +41,15 @@
 }
 .interactionPolish :global(#discussion .messageMenuTrigger:focus-visible){outline:3px solid var(--lab-shell-focus);outline-offset:2px}
 .interactionPolish :global(#discussion .messageActions){
-  position:absolute;
-  right:0;
-  bottom:calc(100% + 7px);
-  left:auto;
+  position:absolute!important;
+  right:0!important;
+  bottom:calc(100% + 7px)!important;
+  left:auto!important;
   z-index:45;
-  width:min(244px,calc(100vw - 32px));
+  width:min(244px,calc(100vw - 32px))!important;
+  max-width:calc(100vw - 32px)!important;
   max-height:min(56dvh,380px);
+  box-sizing:border-box!important;
   display:grid;
   gap:2px;
   padding:6px;
@@ -115,13 +117,16 @@
 
 @media(max-width:480px){
   .interactionPolish :global(#discussion .messageMenuTrigger){width:44px;height:44px;min-width:44px}
+  /* Neutralise the legacy global mobile bottom-sheet geometry. Lab uses a compact anchored popover. */
   .interactionPolish :global(#discussion .messageActions){
-    position:absolute;
-    right:0;
-    left:auto;
-    bottom:calc(100% + 6px);
-    width:min(232px,calc(100vw - 28px));
-    max-height:min(52dvh,340px);
+    position:absolute!important;
+    right:0!important;
+    left:auto!important;
+    bottom:calc(100% + 6px)!important;
+    width:min(232px,calc(100vw - 28px))!important;
+    max-width:calc(100vw - 28px)!important;
+    max-height:min(52dvh,340px)!important;
+    box-sizing:border-box!important;
   }
 
   /* More is an anchored drop-up, not a replacement view. */

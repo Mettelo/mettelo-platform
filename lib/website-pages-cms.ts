@@ -15,9 +15,10 @@ export type WebsiteCmsPageKey=
   |'organisations'|'community'
   |'projects'|'opportunities'|'showcase'|'events'|'people'|'spotlight'
   |'blog'|'careers'|'faq'
-  |'partnership'|'feedback'|'community_guidelines';
+  |'partnership'|'feedback'|'community_guidelines'
+  |'privacy'|'terms';
 
-export type WebsiteCmsCategory='Core'|'Discover'|'Content & growth'|'Conversion & support'|'Community';
+export type WebsiteCmsCategory='Core'|'Discover'|'Content & growth'|'Conversion & support'|'Community'|'Legal';
 export type WebsiteCmsPageDefinition={
   key:WebsiteCmsPageKey;
   label:string;
@@ -45,6 +46,17 @@ function landingFields(fallbacks:{eyebrow:string;title:string;lead:string;sectio
   ];
 }
 
+function legalFields(config:{title:string;updated:string;sections:{title:string;body:string}[]}){
+  return [
+    field('legal_title','Document title','01 · Document','text',180,config.title),
+    field('last_updated','Last updated','01 · Document','text',80,config.updated),
+    ...config.sections.flatMap((section,index)=>[
+      field(`section_${index+1}_title`,`Section ${index+1} heading`,`${String(index+2).padStart(2,'0')} · ${section.title}`,'text',220,section.title),
+      field(`section_${index+1}_body`,`Section ${index+1} content`,`${String(index+2).padStart(2,'0')} · ${section.title}`,'textarea',4000,section.body)
+    ])
+  ];
+}
+
 const definitions:WebsiteCmsPageDefinition[]=[
   {key:'home',label:LEGACY_LABELS.home,path:'/',category:'Core',description:'Homepage hero, explanatory sections, Proof and final conversion copy.',fields:LEGACY_FIELDS.home},
   {key:'about',label:LEGACY_LABELS.about,path:'/about',category:'Core',description:'Company story, mission, vision, ecosystem and founder copy.',fields:LEGACY_FIELDS.about},
@@ -62,7 +74,28 @@ const definitions:WebsiteCmsPageDefinition[]=[
   {key:'partnership',label:'Partnership',path:'/partnership',category:'Conversion & support',description:'Partnership proposition, enquiry guidance and conversion copy.',fields:landingFields({eyebrow:'PARTNER WITH METTELO',title:'Bring a problem, opportunity or collaboration.',lead:'Tell us what you are trying to achieve and we will route the conversation to the right Mettelo team.',sectionTitle:'Start with the context.',sectionBody:'Projects, hiring, research, events, sponsorship and ecosystem partnerships can all start here.',emptyTitle:'Partnership form unavailable.',emptyBody:'Please use the Contact page while the partnership form is unavailable.',ctaLabel:'Contact Mettelo →',ctaHref:'/contact'})},
   {key:'contact',label:LEGACY_LABELS.contact,path:'/contact',category:'Conversion & support',description:'Contact routes, form introduction and faster-route copy.',fields:LEGACY_FIELDS.contact},
   {key:'feedback',label:'Feedback',path:'/feedback',category:'Conversion & support',description:'Feedback invitation, expectations and support-routing copy.',fields:landingFields({eyebrow:'FEEDBACK',title:'Help us make Mettelo better.',lead:'Share what worked, what was unclear and what would make the experience more useful.',sectionTitle:'Tell us what happened.',sectionBody:'Give enough context for the team to understand the experience and follow up when needed.',emptyTitle:'Feedback form unavailable.',emptyBody:'Please use Contact if you need to reach the team urgently.',ctaLabel:'Contact Mettelo →',ctaHref:'/contact'})},
-  {key:'community_guidelines',label:'Community Guidelines',path:'/community-guidelines',category:'Community',description:'Community participation principles and guidance. Legal Terms and Privacy remain outside general copy editing.',fields:landingFields({eyebrow:'COMMUNITY GUIDELINES',title:'Build with respect, evidence and shared responsibility.',lead:'These guidelines explain how people are expected to participate across Mettelo community spaces, projects and events.',sectionTitle:'How we work together.',sectionBody:'Participate professionally, protect privacy, respect project boundaries and contribute in ways that help others do useful work.',emptyTitle:'Guidelines unavailable.',emptyBody:'Please contact Mettelo if you need clarification on community expectations.',ctaLabel:'Contact Mettelo →',ctaHref:'/contact'})}
+  {key:'community_guidelines',label:'Community Guidelines',path:'/community-guidelines',category:'Community',description:'Community participation principles and guidance.',fields:landingFields({eyebrow:'COMMUNITY GUIDELINES',title:'Build with respect, evidence and shared responsibility.',lead:'These guidelines explain how people are expected to participate across Mettelo community spaces, projects and events.',sectionTitle:'How we work together.',sectionBody:'Participate professionally, protect privacy, respect project boundaries and contribute in ways that help others do useful work.',emptyTitle:'Guidelines unavailable.',emptyBody:'Please contact Mettelo if you need clarification on community expectations.',ctaLabel:'Contact Mettelo →',ctaHref:'/contact'})},
+  {key:'privacy',label:'Privacy Policy',path:'/privacy',category:'Legal',description:'Lawyer-editable Privacy Policy. Save drafts safely, preview before release and publish only reviewed legal copy.',fields:legalFields({title:'Privacy Policy',updated:'9 August 2026',sections:[
+    {title:'What we collect',body:'Mettelo collects information you choose to provide when you create an account, join the newsletter, apply to a project, submit a partnership or contributor enquiry, register interest in events, send feedback or contact the team. This can include your name, email, location, professional information, links to public profiles and the content of your submission.'},
+    {title:'How we use it',body:'We use personal information to provide account access, operate community and project workflows, respond to enquiries, send requested updates, improve Mettelo, protect the platform and understand which parts of the product are useful. We do not sell personal data to advertisers.'},
+    {title:'Community and public contribution',body:'Some Mettelo activity is designed to become public proof, such as approved project credits, showcases or Spotlight recognition. We will distinguish private application data from information intended for public display and provide a clear step before publication.'},
+    {title:'Service providers and international use',body:'Mettelo serves professionals in Nigeria, the UK, the diaspora and other regions. We may use specialist providers for hosting, authentication, email, analytics, events and community services. Data may therefore be processed in more than one country, subject to the safeguards and terms provided by those services and applicable law.'},
+    {title:'Analytics and cookies',body:'Analytics is only loaded when a measurement ID is configured. We use it to understand page usage and important conversion actions. Authentication providers may also use cookies or local storage to maintain secure sessions.'},
+    {title:'Retention and security',body:'We keep information only as long as it is reasonably needed for the purpose collected, operational records, dispute handling or legal obligations. Access to private submissions and administrative data should be limited to authorised roles.'},
+    {title:'Your choices',body:'You can unsubscribe from marketing emails, ask us to correct inaccurate profile information, or request access to or deletion of personal information where applicable. Some records may need to be retained for security, project integrity or legal reasons.'},
+    {title:'Contact',body:'Use the Contact page for privacy questions or requests. We may update this policy as the product, legal obligations and service providers change.'}
+  ]})},
+  {key:'terms',label:'Terms of Use',path:'/terms',category:'Legal',description:'Lawyer-editable Terms of Use. Draft and review changes before deliberate publication to the public site.',fields:legalFields({title:'Terms of Use',updated:'9 August 2026',sections:[
+    {title:'Using Mettelo',body:'Mettelo provides community, project, event, content, contribution and opportunity-discovery experiences for Data & AI professionals. You must provide accurate account information, keep credentials secure and use the service lawfully.'},
+    {title:'No guaranteed outcome',body:'Membership, contribution, project participation, mentoring, referrals or visibility do not guarantee employment, sponsorship, funding, certification, promotion or any other professional outcome.'},
+    {title:'Projects and contribution',body:'Project briefs may involve public data, partner-provided material or open-source work. Contributors must follow the project brief, repository licence, data-handling rules and team standards. Public credit is based on verified contribution, not attendance alone.'},
+    {title:'Opportunities',body:'Mettelo may curate or link to third-party jobs, fellowships, volunteering and other opportunities. Unless explicitly stated, Mettelo is not the employer or organiser and cannot guarantee that a third-party listing remains open, accurate or suitable.'},
+    {title:'Community conduct',body:'Use of Mettelo Community spaces is subject to the Community Guidelines. We may restrict or remove access where behaviour creates safety, integrity, spam, harassment or trust risks.'},
+    {title:'Content and intellectual property',body:'You retain ownership of content you create unless a project or open-source licence states otherwise. By submitting material for publication, you grant Mettelo permission to display, reproduce and promote that approved material in connection with the platform and community.'},
+    {title:'Availability',body:'Mettelo is an early-stage product. Features may change, be paused or be removed as we learn what is useful. We aim to label unfinished or unavailable functionality clearly.'},
+    {title:'Privacy',body:'Personal information is handled as described in the Privacy Policy.'},
+    {title:'Contact',body:'Use the Contact page for questions about these terms.'}
+  ]})}
 ];
 
 export const WEBSITE_CMS_PAGES=definitions;

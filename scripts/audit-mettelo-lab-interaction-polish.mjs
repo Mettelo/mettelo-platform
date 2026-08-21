@@ -8,6 +8,7 @@ const chat=read('components/ProjectMessagePanel.tsx');
 const css=read('app/member/projects/[id]/phase18-interaction-polish.module.css');
 const regressions=read('app/member/projects/[id]/phase18-reported-regressions.module.css');
 const composition=read('app/member/projects/[id]/phase4-mobile-fixes.module.css');
+const layout=read('app/member/projects/[id]/layout.tsx');
 const qa=read('tests/mettelo-lab-device-qa.spec.ts');
 
 const checks=[
@@ -28,9 +29,9 @@ const checks=[
  ['Lab Back action always returns to My Mettelo projects',view.includes('data-lab-back')&&view.includes('href="/member#projects"')&&regressions.includes('[data-lab-view]>.actions>a:first-child')],
  ['Proof generated heading content is disabled',regressions.includes('data-lab-view="proof"')&&regressions.includes('.eyebrow)::before')&&regressions.includes('content:none!important')],
  ['Event journey legends remain semantic and move inside card flow',regressions.includes('.journeyCard>legend')&&regressions.includes('float:left')&&regressions.includes('.journeyCard>legend+*')&&regressions.includes('clear:both')],
- ['interaction polish layers are composed into the Lab workspace',composition.includes("composes:interactionPolish from './phase18-interaction-polish.module.css'")&&composition.includes("composes:reportedRegressions from './phase18-reported-regressions.module.css'")],
+ ['interaction polish layers attach at the Lab workspace root without replacing Phase 4 geometry',layout.includes("import interactionPolish from './phase18-interaction-polish.module.css'")&&layout.includes("import reportedRegressions from './phase18-reported-regressions.module.css'")&&layout.includes('${interactionPolish.interactionPolish}')&&layout.includes('${reportedRegressions.reportedRegressions}')],
  ['device QA enforces local view timing',qa.includes('toBeLessThan(750)')&&qa.includes('local Lab view switch should not wait for a server reload')],
- ['device QA checks drop-up, composer visibility and compact actions',qa.includes('More is an anchored drop-up')&&qa.includes('toBeInViewport()')&&qa.includes('Message actions remains compact')],
+ ['device QA checks drop-up, composer visibility and compact actions',qa.includes('Mettelo Lab More is an anchored drop-up')&&qa.includes('toBeInViewport()')&&qa.includes('Message actions remains compact')],
  ['device QA covers Back Proof and permission-aware Events regressions',qa.includes('Reported Back and Proof regressions stay fixed on mobile')&&qa.includes('Events legends stay in card flow for a lead-capable user')&&qa.includes('Back to My Mettelo')&&qa.includes('CONTRIBUTION LEDGER · PROOF')&&qa.includes('.journeyCard>legend')],
  ['interaction polish uses authoritative typography tokens',css.includes('var(--font-space)')&&css.includes('var(--font-mono)')&&!css.includes('--font-space-grotesk')&&!css.includes('--font-plex-mono')],
  ['interaction polish introduces no hard-coded hex colours',!/#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/.test(css)],

@@ -1,4 +1,4 @@
-.mobileFixes{composes:workspace from './phase3-shell-stabilisation.module.css';composes:experience from './phase5-chat-message-experience.module.css';composes:composerExperience from './phase6-chat-composer.module.css';composes:planExperience from './phase9-plan-harmonisation.module.css';composes:tasksExperience from './phase10-tasks-harmonisation.module.css'}
+.mobileFixes{composes:workspace from './phase3-shell-stabilisation.module.css';composes:experience from './phase5-chat-message-experience.module.css';composes:composerExperience from './phase6-chat-composer.module.css';composes:planExperience from './phase9-plan-harmonisation.module.css';composes:tasksExperience from './phase10-tasks-harmonisation.module.css';composes:dataExperience from './phase11-data-harmonisation.module.css'}
 
 @media(max-width:480px){
   /* Phase 4: Chat owns a single in-flow grid. The feed scrolls; the composer remains part of the panel. */

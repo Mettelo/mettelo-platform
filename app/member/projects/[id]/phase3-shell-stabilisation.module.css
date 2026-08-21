@@ -12,67 +12,72 @@
  overflow-x:clip;
  box-sizing:border-box;
 }
-.shell{
+.workspace>div{
  width:100%;
  min-width:0;
  max-width:100%;
  box-sizing:border-box;
 }
-.rail,.stage,.main,.rightRail,.mobileHeader,.nav,.mobileNav,.moreMenu{
+.workspace>div>div,
+.workspace #mettelo-lab-content,
+.workspace [aria-label="Mettelo Lab workspace"],
+.workspace [aria-label="Mettelo Lab project context"],
+.workspace [aria-label="Mettelo Lab primary navigation"],
+.workspace [aria-label="Mettelo Lab project tools"],
+.workspace [aria-label="Mettelo Lab mobile navigation"],
+.workspace #lab-more{
  min-width:0;
  box-sizing:border-box;
 }
-.stage,.main{
+.workspace>div>div,
+.workspace #mettelo-lab-content{
  width:100%;
  max-width:100%;
 }
-.main{
+.workspace #mettelo-lab-content{
  overflow-x:clip;
 }
-.rail{
+.workspace [aria-label="Mettelo Lab workspace"],
+.workspace [aria-label="Mettelo Lab primary navigation"],
+.workspace [aria-label="Mettelo Lab project tools"]{
  max-width:100%;
 }
-.nav{
- max-width:100%;
-}
-.rightRail{
+.workspace [aria-label="Mettelo Lab project context"]{
  overflow-wrap:anywhere;
 }
-.mobileHeader{
+.workspace>div>div>header{
  width:100%;
  max-width:100%;
+ box-sizing:border-box;
 }
-.mobileNav{
+.workspace [aria-label="Mettelo Lab mobile navigation"]{
  width:100%;
  max-width:100vw;
 }
-.moreMenu{
+.workspace #lab-more{
  max-width:100%;
 }
 @media(max-width:1180px){
- .main{padding-left:clamp(1rem,2.3vw,1.6rem);padding-right:clamp(1rem,2.3vw,1.6rem)}
+ .workspace #mettelo-lab-content{padding-left:clamp(1rem,2.3vw,1.6rem);padding-right:clamp(1rem,2.3vw,1.6rem)}
 }
 @media(max-width:1024px){
- .rail{overflow-x:hidden}
- .nav{overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
- .nav a{scroll-snap-align:start}
- .mobileHeader{align-items:center}
- .main{padding-left:clamp(1rem,2.6vw,1.25rem);padding-right:clamp(1rem,2.6vw,1.25rem)}
+ .workspace [aria-label="Mettelo Lab workspace"]{overflow-x:hidden}
+ .workspace [aria-label="Mettelo Lab primary navigation"]{overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+ .workspace [aria-label="Mettelo Lab primary navigation"] a{scroll-snap-align:start}
+ .workspace>div>div>header{align-items:center}
+ .workspace #mettelo-lab-content{padding-left:clamp(1rem,2.6vw,1.25rem);padding-right:clamp(1rem,2.6vw,1.25rem)}
 }
 @media(max-width:768px) and (min-width:481px){
- .mobileHeader{padding-left:1rem;padding-right:1rem}
- .main{padding-left:1rem;padding-right:1rem}
+ .workspace>div>div>header{padding-left:1rem;padding-right:1rem}
+ .workspace #mettelo-lab-content{padding-left:1rem;padding-right:1rem}
 }
 @media(max-width:480px){
- .main{padding-left:max(.85rem,env(safe-area-inset-left));padding-right:max(.85rem,env(safe-area-inset-right));padding-bottom:calc(var(--lab-shell-mobile-nav) + 2.25rem + env(safe-area-inset-bottom))}
- .mobileHeader{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right))}
- .mobileNav{min-height:var(--lab-shell-mobile-nav)}
- .moreMenu{margin-left:0;margin-right:0}
+ .workspace #mettelo-lab-content{padding-left:max(.85rem,env(safe-area-inset-left));padding-right:max(.85rem,env(safe-area-inset-right));padding-bottom:calc(var(--lab-shell-mobile-nav) + 2.25rem + env(safe-area-inset-bottom))}
+ .workspace>div>div>header{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right))}
+ .workspace [aria-label="Mettelo Lab mobile navigation"]{min-height:var(--lab-shell-mobile-nav)}
+ .workspace #lab-more{margin-left:0;margin-right:0}
 }
 @media(max-width:1024px) and (orientation:landscape) and (max-height:600px){
- .mobileHeader{position:relative}
- .rail{position:relative}
-}
-@media(zoom:2){
- .workspace{overflow-x:clip}
+ .workspace>div>div>header,
+ .workspace [aria-label="Mettelo Lab workspace"]{position:relative}
 }

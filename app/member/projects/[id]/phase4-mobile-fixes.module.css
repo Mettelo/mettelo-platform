@@ -34,6 +34,47 @@
     scrollbar-gutter:auto;
     padding-bottom:16px!important;
   }
+  /* Message-row ownership must mirror avatar placement. This prevents own messages collapsing into the 36px avatar column. */
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow){
+    width:100%!important;
+    min-width:0!important;
+    grid-template-columns:36px minmax(0,1fr)!important;
+    align-items:end!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow.own){
+    grid-template-columns:minmax(0,1fr) 36px!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow:not(.own) .messageAvatar){
+    grid-column:1!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow:not(.own) .messageBubble){
+    grid-column:2!important;
+    grid-row:1!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow.own .messageBubble){
+    grid-column:1!important;
+    grid-row:1!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubbleRow.own .messageAvatar){
+    grid-column:2!important;
+    grid-row:1!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubble){
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubble header){
+    min-width:0!important;
+  }
+  .mobileFixes :global([data-lab-view="chat"] .messageBubble header strong){
+    min-width:0!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    word-break:normal!important;
+    overflow-wrap:anywhere!important;
+    writing-mode:horizontal-tb!important;
+  }
   .mobileFixes :global([data-lab-view="chat"] .messageComposer){
     position:relative!important;
     inset:auto!important;

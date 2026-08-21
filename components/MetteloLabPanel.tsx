@@ -51,7 +51,7 @@ export default async function MetteloLabPanel(props:Props){
   </section>
   <section className={styles.teamRoster} data-lab-team-section id="team" aria-labelledby="team-roster-title">
    <div className={styles.teamHero}>
-    <div><span className={styles.cardNumber}>METTELO LAB / TEAM</span><h3 id="team-roster-title">{current?`Team ${current.run_number}`:'Your team'}</h3><p className={styles.teamIntro}>The people working with you on this project, their responsibilities and the current team state. Other cohorts are intentionally not shown.</p></div>
+    <div><span className={styles.cardNumber}>YOUR TEAM · METTELO LAB</span><h3 id="team-roster-title">{current?`Team ${current.run_number}`:'Your team'}</h3><p className={styles.teamIntro}>The people working with you on this project, their responsibilities and the current team state. Other cohorts are intentionally not shown.</p></div>
     <div className={styles.teamSnapshot} aria-label="Team status"><span>{current?humanise(current.status):'Forming'}</span><strong>{current?`${current.members.length}/${current.required_team_size??current.members.length}`:'—'}</strong><small>{current?'members':'team placement'}</small></div>
    </div>
    {current?<>

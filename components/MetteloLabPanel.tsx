@@ -1,5 +1,3 @@
-'use server';
-
 import type {ReactNode} from 'react';
 import {serviceDb} from '@/lib/project-flow';
 import {resolveProjectTeamOverview,type ProjectTeamOverview,type ProjectTeamOverviewMember} from '@/lib/project-team-overview';

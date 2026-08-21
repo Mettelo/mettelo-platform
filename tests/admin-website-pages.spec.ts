@@ -35,6 +35,20 @@ test.describe('Admin Website public pages CMS',()=>{
   }
  });
 
+ test('Privacy and Terms are governed legal pages with draft isolation and deliberate publication',async({page})=>{
+  await signIn(page,'/admin/website/pages');const api=page.context().request;
+  await page.getByPlaceholder('Search public pages').fill('Privacy');await expect(page.getByRole('button',{name:/Privacy Policy/})).toBeVisible();await page.getByRole('button',{name:/Privacy Policy/}).click();await expect(page.getByText('LEGAL · PUBLIC PAGE')).toBeVisible();await expect(page.getByText('/privacy',{exact:true})).toBeVisible();
+  await page.getByPlaceholder('Search public pages').fill('Terms');await expect(page.getByRole('button',{name:/Terms of Use/})).toBeVisible();
+
+  const pageKey='privacy';const response=await api.get(`/api/admin/website/pages?page=${pageKey}`);expect(response.status()).toBe(200);const current=await response.json();const originalDraft=clone(current.draft.payload as PagePayload);const originalPublished=clone(current.published.payload as PagePayload);const changed=clone(originalPublished);changed.values.section_1_title=`${originalPublished.values.section_1_title} LEGAL E2E`;
+  try{
+   await savePage(api,pageKey,changed);await page.goto('/privacy',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:2}).first()).not.toContainText('LEGAL E2E');
+   await publishPage(api,pageKey);await page.goto('/privacy',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:2}).first()).toContainText('LEGAL E2E');
+  }finally{
+   await savePage(api,pageKey,originalPublished);await publishPage(api,pageKey);if(JSON.stringify(originalDraft)!==JSON.stringify(originalPublished))await savePage(api,pageKey,originalDraft);
+  }
+ });
+
  test('Page library, publishing controls and protected Contact form remain responsive',async({page})=>{
   await signIn(page,'/admin/website/pages');
   for(const width of [390,768,1440]){await page.setViewportSize({width,height:900});await page.goto('/admin/website/pages',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'Public pages'})).toBeVisible();await expect(page.getByPlaceholder('Search public pages')).toBeVisible();await expect(page.getByRole('button',{name:/Projects/}).first()).toBeVisible();await expect(page.getByRole('button',{name:'Preview draft'})).toBeVisible();await expect(page.getByRole('button',{name:'Save draft'})).toBeVisible();await expect(page.getByRole('button',{name:'Publish changes'})).toBeVisible();await noOverflow(page,`Website Pages overflowed at ${width}px`)}

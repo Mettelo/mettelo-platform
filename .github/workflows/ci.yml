@@ -2,7 +2,9 @@ name: Mettelo CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'release/**'
   pull_request:
 
 concurrency:
@@ -18,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       requires_staging: ${{ steps.classify.outputs.requires_staging }}
+      run_fast_browser: ${{ steps.classify.outputs.run_fast_browser }}
       classification: ${{ steps.classify.outputs.classification }}
     steps:
       - uses: actions/checkout@v4
@@ -32,11 +35,23 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ]; then
             before="${{ github.event.before }}"
             after="${{ github.sha }}"
+            target_branch="${GITHUB_REF_NAME}"
 
-            # A missing/all-zero predecessor cannot be scoped safely, so fail
-            # closed and require the authenticated backend gate.
+            # A missing/all-zero predecessor cannot be scoped safely. Main
+            # therefore fails closed to the full release gate. Release-train
+            # branches remain integration-only and can use the deterministic
+            # fast lane because they cannot deploy directly to Production.
             if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+              if [[ "$target_branch" == release/* ]]; then
+                echo "requires_staging=false" >> "$GITHUB_OUTPUT"
+                echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
+                echo "classification=release-train-integration-fast" >> "$GITHUB_OUTPUT"
+                echo "Release-train branch push: deterministic integration checks are mandatory; full E2E remains deferred to the final PR into main."
+                exit 0
+              fi
+
               echo "requires_staging=true" >> "$GITHUB_OUTPUT"
+              echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
               echo "classification=unscoped-main-push-full-release" >> "$GITHUB_OUTPUT"
               echo "Main push has no trustworthy predecessor: authenticated backend E2E is mandatory."
               exit 0
@@ -44,6 +59,7 @@ jobs:
 
             git diff --name-only "$before" "$after" > /tmp/changed-files.txt
           else
+            target_branch="${{ github.event.pull_request.base.ref }}"
             git diff --name-only \
               "${{ github.event.pull_request.base.sha }}" \
               "${{ github.event.pull_request.head.sha }}" > /tmp/changed-files.txt
@@ -51,6 +67,23 @@ jobs:
 
           echo "Changed files:"
           cat /tmp/changed-files.txt
+
+          # Release-train PRs and release-branch pushes preserve the complete
+          # deterministic quality gate (lint, typecheck, audits, focused flow
+          # tests and production build) while avoiding repeated expensive
+          # browser/Supabase runs. A release-train PR targeting main does NOT
+          # match this branch rule and therefore receives the normal full gate.
+          if [[ "$target_branch" == release/* ]]; then
+            echo "requires_staging=false" >> "$GITHUB_OUTPUT"
+            echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
+            if [ "${{ github.event_name }}" = "push" ]; then
+              echo "classification=release-train-integration-fast" >> "$GITHUB_OUTPUT"
+            else
+              echo "classification=release-train-pr-fast" >> "$GITHUB_OUTPUT"
+            fi
+            echo "Release-train integration change: deterministic audits/build are mandatory; browser/authenticated/persistence validation is deferred to the final PR into main."
+            exit 0
+          fi
 
           requires_staging=false
           while IFS= read -r file; do
@@ -67,10 +100,12 @@ jobs:
 
           if [ "$requires_staging" = "true" ]; then
             echo "requires_staging=true" >> "$GITHUB_OUTPUT"
+            echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
             echo "classification=runtime-or-backend-impact" >> "$GITHUB_OUTPUT"
             echo "Runtime/backend-impacting change: authenticated backend E2E is mandatory."
           else
             echo "requires_staging=false" >> "$GITHUB_OUTPUT"
+            echo "run_fast_browser=true" >> "$GITHUB_OUTPUT"
             echo "classification=docs-or-ci-policy-only" >> "$GITHUB_OUTPUT"
             echo "Documentation/CI-policy-only change: destructive backend E2E is explicitly not required by scope."
           fi
@@ -107,22 +142,23 @@ jobs:
       - run: npm run audit:journey-phase7
       - run: npm run audit:journey-phase8
       - run: npm run audit:platform-resilience
+      - run: npm run audit:mettelo-lab
       - run: npm run build
       - name: Restore Playwright Chromium cache for fast regression
         id: playwright-cache-fast
-        if: needs.scope.outputs.requires_staging != 'true'
+        if: needs.scope.outputs.run_fast_browser == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install or verify Playwright Chromium
-        if: needs.scope.outputs.requires_staging != 'true'
+        if: needs.scope.outputs.run_fast_browser == 'true'
         run: npx playwright install chromium
       - name: Verify Chromium launches on the hosted runner
-        if: needs.scope.outputs.requires_staging != 'true'
+        if: needs.scope.outputs.run_fast_browser == 'true'
         run: node -e "const { chromium } = require('@playwright/test'); (async () => { const browser = await chromium.launch(); await browser.close(); })().catch(error => { console.error(error); process.exit(1); });"
       - name: Run browser regression suite when staging is not required
-        if: needs.scope.outputs.requires_staging != 'true'
+        if: needs.scope.outputs.run_fast_browser == 'true'
         run: npm run test:regression
       - name: Upload interaction audit on failure
         if: failure()
@@ -208,6 +244,8 @@ jobs:
           exit 1
       - name: Verify E2E production guard
         run: npm run check:e2e-config
+      - name: Blocking Mettelo Lab Chat permission preflight
+        run: npx playwright test tests/mettelo-lab-chat-permissions.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Blocking public browser regression suite
         run: npm run test:regression
       - name: Blocking authenticated smoke and Mettelo Lab Chromium visual QA
@@ -283,7 +321,12 @@ jobs:
               echo "Release blocked: optional staging job ended unexpectedly ($STAGING_RESULT)."
               exit 1
             fi
-            echo "Release gate passed: classification=$CLASSIFICATION; fast browser regression is green and backend E2E is explicitly not required by scope."
+
+            if [[ "$CLASSIFICATION" == release-train-* ]]; then
+              echo "Release-train integration gate passed: lint, typecheck, deterministic audits, focused flow checks and production build are green. Full browser/authenticated/persistence validation remains mandatory on the final PR into main."
+            else
+              echo "Release gate passed: classification=$CLASSIFICATION; fast browser regression is green and backend E2E is explicitly not required by scope."
+            fi
           fi
 
   deployment-gate:
@@ -296,5 +339,9 @@ jobs:
         env:
           CLASSIFICATION: ${{ needs.scope.outputs.classification }}
         run: |
-          echo "All required release prerequisites passed for scope=$CLASSIFICATION."
-          echo "Deployment validation/promotion may run now when deployment is required by that scope."
+          if [[ "$CLASSIFICATION" == release-train-* ]]; then
+            echo "Integration branch is eligible for additional reviewed PRs. Production promotion remains blocked until the release-train PR into main passes the full release gate."
+          else
+            echo "All required release prerequisites passed for scope=$CLASSIFICATION."
+            echo "Deployment validation/promotion may run now when deployment is required by that scope."
+          fi

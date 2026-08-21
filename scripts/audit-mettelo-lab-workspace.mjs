@@ -3,6 +3,11 @@ import fs from 'node:fs';
 const read=(file)=>fs.readFileSync(file,'utf8');
 const layout=read('app/member/projects/[id]/layout.tsx');
 const shellCss=read('app/member/projects/[id]/phase4-workspace.module.css');
+const shellStabilisation=read('app/member/projects/[id]/phase3-shell-stabilisation.module.css');
+const mobileFixes=read('app/member/projects/[id]/phase4-mobile-fixes.module.css');
+const messageExperience=read('app/member/projects/[id]/phase5-chat-message-experience.module.css');
+const composerExperience=read('app/member/projects/[id]/phase6-chat-composer.module.css');
+const messagesCss=read('app/messages.css');
 const navigation=read('components/MetteloLabNavigation.tsx');
 const surface=read('components/MetteloLabViewSurface.tsx');
 const home=read('components/MetteloLabPanel.tsx');
@@ -22,6 +27,41 @@ requireText('single Home implementation',projectPage,"import MetteloLabPanel fro
 requireText('single Home implementation',projectPage,'<MetteloLabPanel');
 requireText('single Home styles',home,"import styles from './MetteloLabPanel.module.css'");
 requireText('single Home styles',homeCss,'.metteloLab');
+
+for(const token of ['--lab-ink:','--lab-muted:','--lab-border:','--lab-surface:','--lab-bronze:','--lab-focus:','--lab-radius-sm:','--lab-radius-lg:','--lab-space-2:','--lab-space-4:','--lab-target:'])requireText('Lab design tokens',homeCss,token);
+for(const usage of ['var(--lab-border)','var(--lab-surface)','var(--lab-muted)','var(--lab-bronze)','var(--lab-focus)','var(--lab-radius-lg)','var(--lab-space-4)','var(--lab-target)'])requireText('Lab token consumption',homeCss,usage);
+requireText('Lab target contract',homeCss,'--lab-target:44px');
+forbidText('Lab focus contract',homeCss,'outline:none');
+
+for(const token of ['--lab-shell-ink:','--lab-shell-surface:','--lab-shell-border:','--lab-shell-mobile-nav:70px'])requireText('Lab shell tokens',shellStabilisation,token);
+for(const contract of ['overflow-x:clip','max-width:100%','Mettelo Lab workspace','Mettelo Lab project context','Mettelo Lab mobile navigation','orientation:landscape','safe-area-inset-bottom'])requireText('Lab shell containment',shellStabilisation,contract);
+requireText('Lab shell attachment',mobileFixes,"composes:workspace from './phase3-shell-stabilisation.module.css'");
+
+for(const contract of ['grid-template-rows:auto auto minmax(0,1fr) auto','position:relative!important','100dvh','overscroll-behavior:contain','max-height:min(22dvh,132px)','orientation:landscape'])requireText('Lab Chat layout architecture',mobileFixes,contract);
+for(const stale of ['top:72px!important','bottom:calc(70px + env(safe-area-inset-bottom))!important','position:fixed!important'])forbidText('Lab Chat fixed viewport workaround',mobileFixes,stale);
+requireText('Lab Chat feed owner',mobileFixes,'.messageFeed');
+requireText('Lab Chat composer owner',mobileFixes,'.messageComposer');
+for(const contract of ['grid-template-columns:minmax(0,1fr) 36px!important','grid-column:1!important','grid-column:2!important','writing-mode:horizontal-tb!important'])requireText('Lab Chat mobile message columns',mobileFixes,contract);
+
+for(const contract of ['.messageMenu>summary{','width:34px;height:34px','position:absolute;right:0;bottom:calc(100% + 7px)','visibility:hidden','.messageMenu[open] .messageActions','word-break:normal','overflow-wrap:break-word','writing-mode:horizontal-tb','.messageBubble{width:min(72%,680px)','.messageFeed{display:flex;flex-direction:column;gap:12px'])requireText('Lab Chat refined message design',messagesCss,contract);
+for(const contract of ['.messageMenu>summary{width:44px;height:44px','position:fixed;left:12px;right:12px','font-size:16px;resize:none'])requireText('Lab Chat mobile interaction design',messagesCss,contract);
+forbidText('Lab Chat menu regression',messagesCss,'.messageActions{display:flex');
+
+requireText('Lab Chat message experience attachment',mobileFixes,"composes:experience from './phase5-chat-message-experience.module.css'");
+for(const contract of ['--chat-message-text:','--chat-message-own:','.messageBubbleRow.own .messageBubble','.messageBubble.blocker','.messageBubble.decision','.messageLinkedItem','.messageBubble.failed','.messageBubble .deletedMessage','.messageBubble>p a','.messageMenu[open]>summary','@media(max-width:480px)'])requireText('Lab Chat message experience',messageExperience,contract);
+for(const contract of ['overflow-wrap:anywhere','font-variant-numeric:tabular-nums','min-height:20px','min-height:36px'])requireText('Lab Chat message resilience',messageExperience,contract);
+forbidText('Lab Chat message experience',messageExperience,'writing-mode:vertical');
+
+requireText('Lab Chat composer attachment',mobileFixes,"composes:composerExperience from './phase6-chat-composer.module.css'");
+for(const contract of ['.messageComposer){','.messageComposer textarea){','.messageSend){','.messageSend:disabled','.mentionSuggestions){','.mentionSuggestions button){','font-size:16px','safe-area-inset-bottom','orientation:landscape','prefers-reduced-motion:reduce'])requireText('Lab Chat composer experience',composerExperience,contract);
+for(const contract of ['min-height:48px','max-height:152px','min-height:44px','outline:3px solid var(--lab-shell-focus)','cursor:not-allowed','font-size:.75rem','bottom:calc(var(--lab-shell-mobile-nav) + 12px + env(safe-area-inset-bottom))'])requireText('Lab Chat composer resilience',composerExperience,contract);
+for(const usage of ['var(--lab-shell-ink)','var(--lab-shell-surface)','var(--lab-shell-border)','var(--lab-shell-focus)','var(--lab-shell-bronze)','var(--lab-shell-mobile-nav)'])requireText('Lab Chat composer token usage',composerExperience,usage);
+if(/#[0-9a-f]{3,8}\b/i.test(composerExperience))failures.push('Lab Chat composer token usage: hard-coded hex colours are not allowed');
+forbidText('Lab Chat composer magic mobile offset',composerExperience,'bottom:calc(82px');
+forbidText('Lab Chat composer fixed viewport',composerExperience,'position:fixed!important');
+requireText('Lab Chat keyboard contract',chat,"event.key==='Enter'&&!event.shiftKey");
+requireText('Lab Chat mention contract',chat,'Type @ to mention');
+requireText('Lab Chat disabled send contract',chat,'disabled={!body.trim()}');
 
 for(const label of ['Home','Plan','Tasks','Chat','Data','Proof','Resources','Events','Team'])requireText('desktop navigation',navigation,`label:'${label}'`);
 for(const label of ['Home','Tasks','Chat','Data'])requireText('mobile navigation',navigation,`label:'${label}'`);
@@ -44,6 +84,10 @@ requireText('single Lab navigation',memberShell,"!isProjectLab&&<nav className={
 requireText('Home',home,'METTELO LAB / HOME');
 requireText('Home',home,'UP NEXT');
 requireText('Home',home,'data-lab-home-section');
+for(const contract of ['Where things stand','role="progressbar"','headerContext','progressGrid','summaryGrid'])requireText('Phase 7 Home hierarchy',home,contract);
+for(const contract of ['font-size:clamp(1.65rem,7.4vw,2.05rem)','border-left:2px solid var(--lab-border-strong)','background:var(--lab-surface-soft)','.stat span{display:block;margin-bottom:5px;color:var(--lab-subtle);font-size:.72rem','.activity article p{margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.83rem;overflow-wrap:break-word'])requireText('Phase 7 Home premium refinements',homeCss,contract);
+forbidText('Phase 7 Home mobile title regression',homeCss,'font-size:clamp(1.75rem,9vw,2.35rem)');
+forbidText('Phase 7 Home chat preview wrapping',homeCss,'.activity article p{margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.83rem;overflow-wrap:anywhere}');
 requireText('Team privacy',home,'YOUR TEAM');
 requireText('Team privacy',home,'data-lab-team-section');
 for(const stale of ['lockedCohort','cohortSwitcher','Not a member','People working on this project'])forbidText('Team privacy',home,stale);

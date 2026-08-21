@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+const read=file=>fs.readFileSync(file,'utf8');
+const mobile=read('app/member/projects/[id]/phase4-mobile-fixes.module.css');
+const resourcesCss=read('app/member/projects/[id]/phase13-resources-harmonisation.module.css');
+const shell=read('app/member/projects/[id]/phase4-workspace.module.css');
+const page=read('app/member/projects/[id]/page.tsx');
+const failures=[];
+const requireText=(name,text,needle)=>{if(!text.includes(needle))failures.push(`${name}: missing ${JSON.stringify(needle)}`)};
+const forbidText=(name,text,needle)=>{if(text.includes(needle))failures.push(`${name}: unsafe ${JSON.stringify(needle)}`)};
+requireText('Phase 13 attachment',mobile,"composes:resourcesExperience from './phase13-resources-harmonisation.module.css'");
+for(const contract of ['[data-lab-view="resources"] #resources','.resourceList','grid-template-columns:repeat(2,minmax(0,1fr))','.resourceItem','min-height:44px','outline:3px solid var(--lab-shell-focus)','overflow-wrap:break-word','@media(max-width:800px)','@media(max-width:480px)','font-size:16px','prefers-reduced-motion:reduce'])requireText('Phase 13 Resources UX',resourcesCss,contract);
+for(const token of ['var(--lab-shell-border)','var(--lab-shell-surface)','var(--lab-shell-surface-muted)','var(--lab-shell-ink)','var(--lab-shell-focus)','var(--lab-shell-bronze)'])requireText('Phase 13 token usage',resourcesCss,token);
+if(/#[0-9a-f]{3,8}\b/i.test(resourcesCss))failures.push('Phase 13 token usage: hard-coded hex colours are not allowed');
+forbidText('Phase 13 viewport safety',resourcesCss,'position:fixed');
+forbidText('Phase 13 wrapping',resourcesCss,'overflow-wrap:anywhere');
+requireText('Resources route ownership',shell,'.content[data-lab-view="resources"] :global(#resources){display:block!important}');
+requireText('Resource data preservation',page,"from('project_resources')");
+requireText('Resource data preservation',page,'resourceQuery');
+if(failures.length){console.error('Mettelo Lab Resources audit failed:\n'+failures.map(item=>`- ${item}`).join('\n'));process.exit(1)}
+console.log('Mettelo Lab Resources audit passed.');

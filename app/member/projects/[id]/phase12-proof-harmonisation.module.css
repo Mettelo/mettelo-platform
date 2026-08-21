@@ -1,0 +1,213 @@
+.proofExperience :global([data-lab-view="proof"] #proof){
+  min-width:0;
+  margin:0 0 14px;
+  padding:clamp(18px,2.4vw,24px);
+  border:1px solid var(--lab-shell-border);
+  border-radius:16px;
+  background:var(--lab-shell-surface);
+}
+
+.proofExperience :global([data-lab-view="proof"] #proof>.sectionHead){
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;
+  gap:16px;
+  margin-bottom:18px;
+}
+.proofExperience :global([data-lab-view="proof"] #proof>.sectionHead>div){min-width:0}
+.proofExperience :global([data-lab-view="proof"] #proof>.sectionHead .eyebrow){
+  margin:0 0 7px;
+  font-family:var(--font-plex-mono),ui-monospace,monospace;
+  font-size:.7rem;
+  line-height:1.35;
+  letter-spacing:.1em;
+  color:var(--lab-shell-bronze);
+}
+.proofExperience :global([data-lab-view="proof"] #proof>.sectionHead h2){
+  max-width:25ch;
+  margin:0;
+  font-family:var(--font-space-grotesk),Inter,sans-serif;
+  font-size:clamp(1.65rem,3vw,2.45rem);
+  line-height:1.06;
+  letter-spacing:-.035em;
+  overflow-wrap:break-word;
+}
+.proofExperience :global([data-lab-view="proof"] #proof>.sectionHead p){
+  max-width:58ch;
+  margin:4px 0 0;
+  color:color-mix(in srgb,var(--lab-shell-ink) 68%,var(--lab-shell-surface));
+  font-size:.86rem;
+  line-height:1.55;
+}
+
+.proofExperience :global([data-lab-view="proof"] #proof .formCard){
+  min-width:0;
+  border:1px solid var(--lab-shell-border);
+  border-radius:14px;
+  background:var(--lab-shell-surface-muted);
+}
+.proofExperience :global([data-lab-view="proof"] #proof .formCard>.panelHead){
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  align-items:start;
+  margin-bottom:16px;
+}
+.proofExperience :global([data-lab-view="proof"] #proof .formCard>.panelHead h3){
+  margin:6px 0 0!important;
+  color:var(--lab-shell-ink);
+  font-size:1.08rem;
+  line-height:1.3;
+}
+.proofExperience :global([data-lab-view="proof"] #proof .formCard label),
+.proofExperience :global([data-lab-view="proof"] #proof .formCard legend){
+  color:var(--lab-shell-ink);
+  font-weight:800;
+}
+.proofExperience :global([data-lab-view="proof"] #proof .formCard input),
+.proofExperience :global([data-lab-view="proof"] #proof .formCard select),
+.proofExperience :global([data-lab-view="proof"] #proof .formCard textarea){
+  max-width:100%;
+  min-width:0;
+}
+
+.proofExperience :global([data-lab-view="proof"] #proof .evidenceLedger){
+  min-width:0;
+  margin:16px 0;
+  padding:14px;
+  border:1px solid var(--lab-shell-border);
+  border-radius:12px;
+  background:var(--lab-shell-surface);
+}
+.proofExperience :global([data-lab-view="proof"] #proof .evidenceLedger>p){
+  margin:4px 0 12px;
+  color:color-mix(in srgb,var(--lab-shell-ink) 68%,var(--lab-shell-surface));
+  font-size:.84rem;
+  line-height:1.5;
+}
+.proofExperience :global([data-lab-view="proof"] #proof .ledgerOption){
+  min-width:0;
+  min-height:48px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:10px;
+  align-items:start;
+  padding:10px 0;
+  border-top:1px solid var(--lab-shell-border);
+}
+.proofExperience :global([data-lab-view="proof"] #proof .ledgerOption:first-of-type){border-top:0}
+.proofExperience :global([data-lab-view="proof"] #proof .ledgerOption strong),
+.proofExperience :global([data-lab-view="proof"] #proof .ledgerOption small){
+  display:block;
+  overflow-wrap:break-word;
+}
+.proofExperience :global([data-lab-view="proof"] #proof .ledgerOption small){
+  margin-top:2px;
+  color:color-mix(in srgb,var(--lab-shell-ink) 64%,var(--lab-shell-surface));
+}
+
+.proofExperience :global([data-lab-view="proof"] .applicationQueue){
+  display:grid;
+  gap:12px;
+  min-width:0;
+}
+.proofExperience :global([data-lab-view="proof"] .applicationReview){
+  min-width:0;
+  padding:16px;
+  border:1px solid var(--lab-shell-border);
+  border-left:3px solid var(--lab-shell-bronze);
+  border-radius:13px;
+  background:var(--lab-shell-surface-muted);
+}
+.proofExperience :global([data-lab-view="proof"] .applicationReview>.panelHead){
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:14px;
+  align-items:start;
+}
+.proofExperience :global([data-lab-view="proof"] .applicationReview>.panelHead>div){min-width:0}
+.proofExperience :global([data-lab-view="proof"] .applicationReview h3){
+  margin:8px 0 4px!important;
+  color:var(--lab-shell-ink);
+  font-size:1.05rem;
+  line-height:1.32;
+  overflow-wrap:break-word;
+}
+.proofExperience :global([data-lab-view="proof"] .applicationReview p),
+.proofExperience :global([data-lab-view="proof"] .applicationReview small),
+.proofExperience :global([data-lab-view="proof"] .applicationReview a){overflow-wrap:break-word}
+.proofExperience :global([data-lab-view="proof"] .applicationReview>.panelHead>small){
+  color:color-mix(in srgb,var(--lab-shell-ink) 62%,var(--lab-shell-surface));
+  font-variant-numeric:tabular-nums;
+}
+.proofExperience :global([data-lab-view="proof"] .reviewLedger){
+  min-width:0;
+  display:grid;
+  gap:8px;
+  margin:14px 0;
+  padding:12px;
+  border:1px solid var(--lab-shell-border);
+  border-radius:11px;
+  background:var(--lab-shell-surface);
+}
+.proofExperience :global([data-lab-view="proof"] .reviewLedger>div){
+  min-width:0;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:9px;
+  align-items:center;
+}
+.proofExperience :global([data-lab-view="proof"] .reviewLedger a),
+.proofExperience :global([data-lab-view="proof"] .reviewLedger span){min-width:0;overflow-wrap:break-word}
+
+.proofExperience :global([data-lab-view="proof"] .applicationReview textarea){
+  width:100%;
+  min-width:0;
+  min-height:96px;
+  resize:vertical;
+}
+.proofExperience :global([data-lab-view="proof"] .reviewActions){
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+.proofExperience :global([data-lab-view="proof"] .reviewActions button),
+.proofExperience :global([data-lab-view="proof"] #proof .button){min-height:44px}
+.proofExperience :global([data-lab-view="proof"] .reviewActions button:focus-visible),
+.proofExperience :global([data-lab-view="proof"] #proof input:focus-visible),
+.proofExperience :global([data-lab-view="proof"] #proof select:focus-visible),
+.proofExperience :global([data-lab-view="proof"] #proof textarea:focus-visible),
+.proofExperience :global([data-lab-view="proof"] #proof a:focus-visible){
+  outline:3px solid var(--lab-shell-focus);
+  outline-offset:2px;
+}
+
+.proofExperience :global([data-lab-view="proof"] #presentation),
+.proofExperience :global([data-lab-view="proof"] #completion){
+  min-width:0;
+  margin-bottom:14px;
+}
+
+@media(max-width:800px){
+  .proofExperience :global([data-lab-view="proof"] #proof>.sectionHead),
+  .proofExperience :global([data-lab-view="proof"] .applicationReview>.panelHead),
+  .proofExperience :global([data-lab-view="proof"] #proof .formCard>.panelHead){grid-template-columns:1fr;gap:10px}
+}
+
+@media(max-width:480px){
+  .proofExperience :global([data-lab-view="proof"] #proof){padding:14px;border-radius:14px}
+  .proofExperience :global([data-lab-view="proof"] #proof>.sectionHead h2){font-size:clamp(1.45rem,6.8vw,1.9rem);line-height:1.1}
+  .proofExperience :global([data-lab-view="proof"] .applicationReview){padding:13px;border-radius:11px}
+  .proofExperience :global([data-lab-view="proof"] .reviewLedger>div){grid-template-columns:1fr}
+  .proofExperience :global([data-lab-view="proof"] .reviewActions){display:grid;grid-template-columns:1fr}
+  .proofExperience :global([data-lab-view="proof"] .reviewActions button){width:100%}
+  .proofExperience :global([data-lab-view="proof"] #proof input),
+  .proofExperience :global([data-lab-view="proof"] #proof select),
+  .proofExperience :global([data-lab-view="proof"] #proof textarea),
+  .proofExperience :global([data-lab-view="proof"] .applicationReview textarea){font-size:16px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .proofExperience :global([data-lab-view="proof"] *){scroll-behavior:auto}
+}

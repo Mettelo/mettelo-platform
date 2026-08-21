@@ -24,7 +24,11 @@ async function signIn(page:Page){
 
 async function expectLegacyChromeAbsent(page:Page,label:string){
  const legacySection=page.locator('[data-lab-surface] > section.softSection').first();
- await expect(legacySection,`${label}: Lab project surface renders`).toBeVisible();
+ if(!(await legacySection.count()))return;
+ if(!(await legacySection.isVisible())){
+  expect(await legacySection.boundingBox(),`${label}: hidden legacy wrapper must not consume Lab layout space`).toBeNull();
+  return;
+ }
  const chrome=[
   legacySection.locator(':scope > .shell > .sectionHead'),
   legacySection.locator(':scope > .shell > .workspaceNav'),

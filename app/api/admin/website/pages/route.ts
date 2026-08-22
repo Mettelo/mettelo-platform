@@ -3,13 +3,13 @@ import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
 import {hasAdminCapability} from '@/lib/admin-capabilities';
 import {recordAdminAudit} from '@/lib/admin-audit';
-import {defaultWebsitePagePayload,isWebsitePageKey,validateWebsitePagePayload} from '@/lib/website-pages';
+import {defaultWebsiteCmsPagePayload,isWebsiteCmsPageKey,validateWebsiteCmsPagePayload} from '@/lib/website-pages-cms';
 
 export const dynamic='force-dynamic';
 type PublishRevision={revision_id:number;revision_number:number;published_at:string};
 
 async function context(page:unknown,mode:'read'|'edit'|'publish'){
- if(!isWebsitePageKey(page))return{error:NextResponse.json({error:'Valid Website page is required.'},{status:400})};
+ if(!isWebsiteCmsPageKey(page))return{error:NextResponse.json({error:'Valid Website page is required.'},{status:400})};
  const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();
  if(!user)return{error:NextResponse.json({error:'Authentication required.'},{status:401})};
  if(!hasAdminCapability(user,'website.content.edit'))return{error:NextResponse.json({error:'Website content capability required.'},{status:403})};
@@ -25,16 +25,16 @@ export async function GET(request:Request){
   ctx.db.from('website_page_public').select('page_key,payload,published_at,published_by').eq('page_key',ctx.page).maybeSingle()
  ]);
  if(draftError||publishedError)return NextResponse.json({error:'Unable to load Website page content.'},{status:500});
- const fallback=defaultWebsitePagePayload(ctx.page);
- const safeDraft=draft?validateWebsitePagePayload(ctx.page,draft.payload):null;
- const safePublished=published?validateWebsitePagePayload(ctx.page,published.payload):null;
+ const fallback=defaultWebsiteCmsPagePayload(ctx.page);
+ const safeDraft=draft?validateWebsiteCmsPagePayload(ctx.page,draft.payload):null;
+ const safePublished=published?validateWebsiteCmsPagePayload(ctx.page,published.payload):null;
  return NextResponse.json({page:ctx.page,draft:draft&&safeDraft?.ok?{...draft,payload:safeDraft.payload}:{page_key:ctx.page,payload:fallback,updated_at:null,updated_by:null,restored_from_revision_id:null},published:published&&safePublished?.ok?{...published,payload:safePublished.payload}:{page_key:ctx.page,payload:fallback,published_at:null,published_by:null}});
 }
 
 export async function PATCH(request:Request){
  try{
   const body=await request.json();const ctx=await context(body.page,'edit');if('error'in ctx)return ctx.error;
-  const validated=validateWebsitePagePayload(ctx.page,body.payload);if(!validated.ok)return NextResponse.json({error:validated.error},{status:400});
+  const validated=validateWebsiteCmsPagePayload(ctx.page,body.payload);if(!validated.ok)return NextResponse.json({error:validated.error},{status:400});
   const {data:before}=await ctx.db.from('website_page_drafts').select('payload').eq('page_key',ctx.page).maybeSingle();
   const updatedAt=new Date().toISOString();
   const {data,error}=await ctx.db.from('website_page_drafts').upsert({page_key:ctx.page,payload:validated.payload,updated_at:updatedAt,updated_by:ctx.user.id},{onConflict:'page_key'}).select('page_key,payload,updated_at,updated_by,restored_from_revision_id').single();
@@ -53,7 +53,7 @@ export async function POST(request:Request){
    ctx.db.from('website_page_public').select('payload').eq('page_key',ctx.page).maybeSingle()
   ]);
   if(draftError)throw draftError;if(!draft)return NextResponse.json({error:'Save a valid draft before publishing.'},{status:409});
-  const validated=validateWebsitePagePayload(ctx.page,draft.payload);if(!validated.ok)return NextResponse.json({error:validated.error},{status:400});
+  const validated=validateWebsiteCmsPagePayload(ctx.page,draft.payload);if(!validated.ok)return NextResponse.json({error:validated.error},{status:400});
   const {data,error}=await ctx.db.rpc('publish_website_page_with_revision',{
    p_page_key:ctx.page,p_payload:validated.payload,p_actor:ctx.user.id,p_restored_from_revision_id:draft.restored_from_revision_id||null
   }).single();

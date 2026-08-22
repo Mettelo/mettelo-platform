@@ -8,6 +8,7 @@ type CookieToSet={name:string;value:string;options?:CookieOptions};
 
 function safePath(value:string|null){return value&&value.startsWith('/')&&!value.startsWith('//')?value:null}
 function normalizeProjectIntent(value:string|null){const safe=safePath(value);if(!safe)return null;const match=safe.match(/^\/projects\/([^/?#]+)(?:\?[^#]*)?#apply$/);return match?`/member/discover/${encodeURIComponent(match[1])}/apply`:safe}
+function publicProjectId(pathname:string){const match=pathname.match(/^\/projects\/([^/]+)\/?$/);return match?.[1]||null}
 function rememberIntent(response:NextResponse,request:NextRequest,intent:string|null){if(intent&&intent!=='/member')response.cookies.set('mettelo_return_to',intent,{httpOnly:true,sameSite:'lax',secure:request.nextUrl.protocol==='https:',path:'/',maxAge:60*60*4});return response}
 function adminApiError(message:string,status:number){return NextResponse.json({error:message},{status})}
 function preserveAuthCookies(source:NextResponse,target:NextResponse){for(const cookie of source.cookies.getAll())target.cookies.set(cookie);return target}
@@ -22,6 +23,16 @@ function redirectTarget(request:NextRequest){
 function hasLoopbackHostNormalization(request:NextRequest){
   const host=(request.headers.get('host')||'').toLowerCase();
   return request.nextUrl.hostname==='localhost'&&(host.startsWith('127.')||host.startsWith('[::1]'));
+}
+function loopbackSafePageRedirect(request:NextRequest,response:NextResponse,destination:string,title:string){
+  if(hasLoopbackHostNormalization(request)){
+    const escapedDestination=destination.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    const escapedTitle=title.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0;url=${escapedDestination}"><title>${escapedTitle}</title></head><body><p>Redirecting to <a href="${escapedDestination}">${escapedTitle}</a>.</p></body></html>`;
+    return preserveAuthCookies(response,new NextResponse(html,{status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}}));
+  }
+  const target=redirectTarget(request);target.pathname=destination;target.search='';
+  return preserveAuthCookies(response,NextResponse.redirect(target));
 }
 function adminCapabilityPageRedirect(request:NextRequest,response:NextResponse){
   const destination='/admin?reason=capability';
@@ -41,14 +52,18 @@ export async function middleware(request:NextRequest){
     return rememberIntent(NextResponse.next(),request,intent);
   }
   const architectEntry=pathname==='/project-architect';
+  const memberCatalogueEntry=pathname==='/projects';
+  const memberPublicProjectId=publicProjectId(pathname);
+  const publicProjectEntry=memberCatalogueEntry||Boolean(memberPublicProjectId);
   const adminPage=pathname.startsWith('/admin');
   const adminApi=pathname.startsWith('/api/admin');
-  const protectedPath=pathname.startsWith('/member')||adminPage||adminApi||architectEntry;
+  const protectedPath=pathname.startsWith('/member')||adminPage||adminApi||architectEntry||publicProjectEntry;
   if(!protectedPath)return NextResponse.next();
 
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if(!url||!anonKey){
+    if(publicProjectEntry)return NextResponse.next();
     if(adminApi)return adminApiError('Authentication service is not configured.',503);
     const target=redirectTarget(request);target.pathname='/signin';target.searchParams.set('reason','not-configured');if(architectEntry)target.searchParams.set('next','/member/project-architect');return NextResponse.redirect(target);
   }
@@ -62,9 +77,12 @@ export async function middleware(request:NextRequest){
   });
   const {data:{user}}=await supabase.auth.getUser();
   if(!user){
+    if(publicProjectEntry)return response;
     if(adminApi)return preserveAuthCookies(response,adminApiError('Authentication required.',401));
     const target=redirectTarget(request);target.pathname='/signin';const requested=`${pathname}${request.nextUrl.search}`;target.searchParams.set('next',architectEntry?'/member/project-architect':requested);return preserveAuthCookies(response,NextResponse.redirect(target));
   }
+  if(memberCatalogueEntry)return loopbackSafePageRedirect(request,response,'/member/discover','Redirecting to My Mettelo Discover');
+  if(memberPublicProjectId)return loopbackSafePageRedirect(request,response,`/member/discover/${memberPublicProjectId}`,'Redirecting to My Mettelo project');
   if(architectEntry){const target=redirectTarget(request);target.pathname='/member/project-architect';target.search='';return preserveAuthCookies(response,NextResponse.redirect(target))}
   if(adminPage||adminApi){
     if(!isTrustedAdmin(user)){
@@ -79,4 +97,4 @@ export async function middleware(request:NextRequest){
   return response;
 }
 
-export const config={matcher:['/signin','/member/:path*','/admin/:path*','/api/admin/:path*','/project-architect']};
+export const config={matcher:['/signin','/projects','/projects/:path*','/member/:path*','/admin/:path*','/api/admin/:path*','/project-architect']};

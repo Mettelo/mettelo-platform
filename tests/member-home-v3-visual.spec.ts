@@ -36,7 +36,7 @@ async function assertV4Home(page:Page,width:number,label:string){
   await expect(page.getByText('WHAT NEEDS YOU NOW',{exact:true})).toHaveCount(0);
   const overview=page.locator('[aria-label="Member overview"]');await expect(overview).toBeVisible();await expect(overview.locator(':scope > a')).toHaveCount(4);
   await expect(overview.getByText(/Recommendations?/,{exact:true})).toHaveCount(0);
-  await expect(page.locator('[aria-label="Profile readiness"]')).toBeVisible();
+  await expect(page.locator('[aria-label="Profile completion"]')).toBeVisible();
   await assertNoHorizontalOverflow(page,label);
 }
 

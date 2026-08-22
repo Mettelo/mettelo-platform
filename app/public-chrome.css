@@ -32,14 +32,12 @@
     box-shadow:0 24px 64px rgba(16,19,29,.22)!important;
     -webkit-overflow-scrolling:touch
   }
-  .mobilePublicNav{display:grid;grid-template-rows:auto auto auto auto auto;gap:0;width:100%;min-width:0;padding:12px 14px 14px;color:#10131d;background:#fff}
+  .mobilePublicNav{display:grid;grid-template-rows:auto auto auto;gap:0;width:100%;min-width:0;padding:12px 14px 14px;color:#10131d;background:#fff}
   .mobilePublicNav a,.mobilePublicNav button{font:inherit;color:inherit}
   .mobilePublicNav a:focus-visible,.mobilePublicNav button:focus-visible{outline:3px solid rgba(198,137,42,.34);outline-offset:2px;border-radius:8px}
 
   .mobilePublicMenuHead{min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 2px 8px;border-bottom:1px solid #e7e1d6}
   .mobilePublicMenuHead>strong{font-family:var(--font-space),sans-serif;font-size:1rem;letter-spacing:-.02em}
-  .mobilePublicClose{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;font-size:1.55rem;line-height:1;cursor:pointer;color:#303744}
-  .mobilePublicClose:hover{background:#fbf7ee}
 
   body.publicMobileNavV2 .mobilePublicPrimary{display:grid!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:6px 0!important}
   body.publicMobileNavV2 .mobilePublicPrimary>a{display:flex!important;visibility:visible!important;opacity:1!important}
@@ -80,25 +78,81 @@
   body.publicMobileNavV2 .mobileMenuPanel{right:16px!important;width:min(360px,46vw)!important;min-width:300px!important;max-width:360px!important}
 }
 
+/* Phone navigation has one authoritative geometry contract. It stays below
+   the header, sizes to its content, and scrolls only when content exceeds the
+   available viewport. Do not reintroduce a second full-height override. */
 @media(max-width:480px){
-  .mobileMenuBackdrop{inset:64px 0 0}
-  body.publicMobileNavV2 .mobileMenuPanel{left:auto!important;right:8px!important;top:68px!important;width:min(74vw,340px)!important;min-width:280px!important;max-width:340px!important;max-height:calc(100dvh - 76px)!important;border-radius:13px!important}
-  .mobilePublicNav{padding:10px 12px 12px}
-  .mobilePublicPrimary>a,.mobilePublicSecondary>a,.mobilePublicDisclosure{min-height:44px;font-size:.8rem}
-  .mobilePublicExploreGrid a{min-height:38px;font-size:.73rem}
+  .mobileMenuBackdrop{inset:64px 0 0!important;z-index:98!important;background:rgba(8,14,23,.52)!important}
+  body.mobileNavOpen .mobileMenu{z-index:120!important}
+  body.mobileNavOpen .mobileMenu>summary{position:relative;z-index:102!important}
+  body.publicMobileNavV2 .mobileMenuPanel{
+    display:block!important;
+    left:auto!important;
+    right:8px!important;
+    top:68px!important;
+    inset:auto 8px auto auto!important;
+    width:min(88vw,380px)!important;
+    min-width:0!important;
+    max-width:380px!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:calc(100dvh - 76px)!important;
+    padding:0!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    opacity:0!important;
+    visibility:hidden!important;
+    transform:translateX(calc(100% + 16px))!important;
+    pointer-events:none!important;
+    background:#fff!important;
+    border:1px solid rgba(16,19,29,.1)!important;
+    border-radius:14px!important;
+    box-shadow:0 24px 64px rgba(16,19,29,.22)!important;
+    z-index:100!important;
+    transition:transform 220ms ease,opacity 180ms ease,visibility 0s linear 220ms!important;
+    overscroll-behavior:contain
+  }
+  body.mobileNavOpen.publicMobileNavV2 .mobileMenuPanel{
+    opacity:1!important;
+    visibility:visible!important;
+    transform:translateX(0)!important;
+    pointer-events:auto!important;
+    transition:transform 220ms ease,opacity 180ms ease!important
+  }
+  .mobilePublicNav{display:grid!important;grid-template-rows:auto auto auto;min-height:0!important;height:auto!important;padding:10px 12px 12px!important;overflow:visible!important;color:#10131d;background:#fff!important}
+  .mobilePublicMenuHead{display:flex!important;min-height:48px!important;align-items:center;justify-content:space-between;padding:0 2px 8px!important;border-bottom:1px solid #e7e1d6!important}
+  .mobilePublicScroll{display:block;min-height:0;overflow:visible;padding:0}
+  .mobilePublicPrimary,.mobilePublicSecondary{display:grid!important;padding:0!important}
+  .mobilePublicPrimary>a,.mobilePublicSecondary>a,.mobilePublicDisclosure{display:grid!important;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:44px!important;padding:9px 4px!important}
+  .mobilePublicPrimary>a svg,.mobilePublicSecondary>a svg,.mobilePublicDisclosure>svg{width:20px;height:20px;color:#313957}
+  .mobilePublicPrimary>a.isActive,.mobilePublicSecondary>a.isActive{position:relative;background:#fbf7ee!important;color:#8b641f!important;border-bottom-color:#c6892a!important}
+  .mobilePublicPrimary>a.isActive:before,.mobilePublicSecondary>a.isActive:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:999px;background:#c6892a}
+  .mobilePublicSecondary{margin-top:8px!important;padding-top:8px!important;border-top:1px solid #e7e1d6!important}
+  .mobilePublicSecondary>a{font-size:.8rem!important;font-weight:650!important}
+  .mobilePublicExplore{display:block!important;margin-top:8px!important;border-top:1px solid #e7e1d6!important;border-bottom:1px solid #e7e1d6!important}
+  .mobilePublicDisclosure{width:100%;cursor:pointer;border-bottom:0!important}
+  .mobilePublicDisclosure .mobilePublicChevron{grid-column:3;grid-row:1;width:24px;height:24px;transition:transform 180ms ease}
+  .mobilePublicChevron.isOpen{transform:rotate(180deg)}
+  .mobilePublicExploreGrid{display:block!important;max-height:0;overflow:hidden;opacity:0;visibility:hidden;transition:max-height 220ms ease,opacity 160ms ease,visibility 0s linear 220ms}
+  .mobilePublicExploreGrid.isOpen{max-height:360px;opacity:1;visibility:visible;transition:max-height 220ms ease,opacity 180ms ease}
+  .mobilePublicExploreInner{display:grid;gap:2px;padding:0 4px 10px 40px}
+  .mobilePublicExploreGrid a{min-height:40px!important;display:flex!important;align-items:center;padding:6px 0!important;border:0!important;color:#4a5360!important;font-size:.78rem!important;font-weight:620!important;text-decoration:none}
+  .mobilePublicFooter{display:block!important;margin-top:8px!important;padding:10px 0 0!important;border-top:1px solid #e7e1d6!important;background:#fff!important;box-shadow:none!important}
+  .mobilePublicGuestActions{display:grid!important;gap:8px!important}
+  .mobilePublicGuestActions a{min-height:46px!important}
+  .mobilePublicAccountTrigger{min-height:52px!important}
+  .mobilePublicAccountLinks{padding-left:46px!important}
 }
 
 @media(max-width:375px){
-  body.publicMobileNavV2 .mobileMenuPanel{width:82vw!important;min-width:0!important;max-width:310px!important;right:8px!important}
+  body.publicMobileNavV2 .mobileMenuPanel{width:min(90vw,330px)!important;max-width:330px!important}
   .mobilePublicExploreGrid{grid-template-columns:1fr 1fr;gap-column:8px}
 }
 
 @media(max-width:320px){
-  body.publicMobileNavV2 .mobileMenuPanel{width:calc(100vw - 24px)!important;max-width:none!important;right:8px!important}
+  body.publicMobileNavV2 .mobileMenuPanel{width:calc(100vw - 16px)!important;max-width:none!important;right:8px!important;inset:auto 8px auto auto!important}
   .mobilePublicExploreGrid{grid-template-columns:1fr}
 }
-
-@media(prefers-reduced-motion:reduce){.mobileMenuBackdrop,.mobilePublicNav *{transition:none!important;animation:none!important}}
 
 /* The existing mobile toggle remains in place while its three bars morph
    into a close icon. This keeps the interaction spatially predictable. */
@@ -113,61 +167,4 @@
   .mobileMenu[open]>summary .hamburgerIcon i:nth-child(3){top:7px;transform:rotate(-45deg)}
 }
 
-@media(prefers-reduced-motion:reduce){.mobileMenu>summary .hamburgerIcon i{transition:none!important}}
-
-/* Mobile drawer: an opaque, viewport-height panel which enters from the
-   same (right) edge as its trigger. This override intentionally replaces the
-   older floating/left-hand panel at phone widths only. */
-@media(max-width:767px){
-  .mobileMenuBackdrop{inset:0!important;z-index:0!important;background:rgba(8,14,23,.56)!important}
-  body.mobileNavOpen .mobileMenu{z-index:122!important}
-  body.mobileNavOpen .mobileMenu>summary{position:relative;z-index:2!important}
-  body.publicMobileNavV2 .mobileMenuPanel{
-    display:block!important;position:fixed!important;inset:0 0 0 auto!important;
-    left:auto!important;right:0!important;top:0!important;
-    width:min(88vw,360px)!important;min-width:0!important;max-width:360px!important;
-    height:100dvh!important;max-height:100dvh!important;
-    padding:0!important;overflow:hidden!important;opacity:0!important;visibility:hidden!important;
-    transform:translateX(100%)!important;pointer-events:none!important;
-    background:#fff!important;border:0!important;border-radius:0!important;
-    box-shadow:-18px 0 42px rgba(8,14,23,.24)!important;z-index:1!important;
-    transition:transform 220ms ease,opacity 180ms ease,visibility 0s linear 220ms!important
-  }
-  body.mobileNavOpen.publicMobileNavV2 .mobileMenuPanel{
-    opacity:1!important;visibility:visible!important;transform:translateX(0)!important;pointer-events:auto!important;
-    transition:transform 220ms ease,opacity 180ms ease!important
-  }
-  .mobilePublicNav{display:flex!important;flex-direction:column;min-height:100%;height:100%;padding:0!important;overflow:hidden!important;color:#10131d;background:#fff!important}
-  .mobilePublicMenuHead{display:flex!important;flex:none;min-height:64px!important;align-items:center;justify-content:space-between;padding:0 16px!important;border-bottom:1px solid #e7e1d6!important}
-  .mobilePublicMenuHead>strong{font-family:var(--font-space),sans-serif;font-size:1rem!important;letter-spacing:-.02em}
-  .mobilePublicClose{width:44px!important;height:44px!important;display:grid!important;place-items:center;border:1px solid #dcd6ca!important;border-radius:10px!important;background:#fff!important;color:#10131d!important;font-size:2rem!important;line-height:1!important;cursor:pointer}
-  .mobilePublicClose:hover{background:#fbf7ee!important}
-  .mobilePublicScroll{display:block;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px 16px 20px;-webkit-overflow-scrolling:touch}
-  .mobilePublicPrimary,.mobilePublicSecondary{display:grid!important;padding:0!important;border:0!important}
-  .mobilePublicPrimary>a,.mobilePublicSecondary>a,.mobilePublicDisclosure{display:grid!important;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:52px!important;padding:10px 12px!important;border:0!important;border-bottom:1px solid rgba(16,19,29,.09)!important;border-radius:0!important;background:#fff!important;text-align:left;font-size:.94rem!important;font-weight:700!important;color:#293141!important}
-  .mobilePublicPrimary>a svg,.mobilePublicSecondary>a svg,.mobilePublicDisclosure>svg{width:21px;height:21px;color:#313957}
-  .mobilePublicPrimary>a.isActive,.mobilePublicSecondary>a.isActive{position:relative;background:#fbf7ee!important;color:#8b641f!important;border-bottom-color:#c6892a!important}
-  .mobilePublicPrimary>a.isActive:before,.mobilePublicSecondary>a.isActive:before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:999px;background:#c6892a}
-  .mobilePublicSecondary{margin-top:12px!important;padding-top:12px!important;border-top:1px solid #e7e1d6!important}
-  .mobilePublicSecondary>a{font-size:.84rem!important;font-weight:650!important}
-  .mobilePublicExplore{display:block!important;margin-top:16px!important;border-top:1px solid #e7e1d6!important;border-bottom:1px solid #e7e1d6!important}
-  .mobilePublicDisclosure{width:100%;cursor:pointer;border-bottom:0!important}
-  .mobilePublicDisclosure .mobilePublicChevron{grid-column:3;grid-row:1;width:24px;height:24px;transition:transform 180ms ease}
-  .mobilePublicChevron.isOpen{transform:rotate(180deg)}
-  .mobilePublicExploreGrid{display:block!important;max-height:0;overflow:hidden;opacity:0;visibility:hidden;transition:max-height 220ms ease,opacity 160ms ease,visibility 0s linear 220ms}
-  .mobilePublicExploreGrid.isOpen{max-height:360px;opacity:1;visibility:visible;transition:max-height 220ms ease,opacity 180ms ease}
-  .mobilePublicExploreInner{display:grid;gap:2px;padding:0 12px 12px 48px}
-  .mobilePublicExploreGrid a{min-height:42px!important;display:flex!important;align-items:center;padding:6px 0!important;border:0!important;color:#4a5360!important;font-size:.82rem!important;font-weight:620!important;text-decoration:none}
-  .mobilePublicExploreGrid a:hover{text-decoration:underline!important;text-underline-offset:3px}
-  .mobilePublicFooter{display:block!important;flex:none;margin:0!important;padding:16px calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) 16px!important;border-top:1px solid #e7e1d6!important;background:#fff!important;box-shadow:0 -10px 22px rgba(16,19,29,.04)}
-  .mobilePublicGuestActions{display:grid!important;gap:10px!important}
-  .mobilePublicGuestActions a{min-height:50px!important;display:flex!important;align-items:center;justify-content:center!important;padding:10px 14px!important;border-radius:10px!important;font-size:.9rem!important;font-weight:760!important}
-  .mobilePublicAccountTrigger{min-height:52px!important}
-  .mobilePublicAccountLinks{padding-left:46px!important}
-}
-
-@media(max-width:360px){
-  body.publicMobileNavV2 .mobileMenuPanel{width:92vw!important}
-  .mobilePublicScroll{padding-inline:12px!important}
-  .mobilePublicFooter{padding-inline:12px!important}
-}
+@media(prefers-reduced-motion:reduce){.mobileMenuBackdrop,.mobilePublicNav *,.mobileMenuPanel,.mobileMenu>summary .hamburgerIcon i{transition:none!important;animation:none!important}}

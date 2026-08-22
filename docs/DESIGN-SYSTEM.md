@@ -1,6 +1,6 @@
 # Design system: Ink and Value
 
-Last audited: 18 August 2026
+Last audited: 22 August 2026
 
 Mettelo's visual system pairs dark “ink” surfaces with warm bronze/value signals and quiet paper/sand backgrounds. The design should feel credible, practical, and evidence-led: hierarchy comes from contrast, spacing, typography, and state—not decorative noise.
 
@@ -120,7 +120,7 @@ Eyebrows and data labels use the mono face, compact sizing, and limited letter s
 
 ### Navigation drawers and disclosures
 
-The public mobile menu is a right-anchored, viewport-height, opaque panel because its trigger is at the top-right. It renders inside the menu panel on first open, slides with `translateX`, contains a solid white surface, and places a dim backdrop behind—not over—the controls.
+The public mobile menu is a right-anchored, opaque contained drawer. On phones (`<=480px`) it begins below the mobile header, uses a responsive width up to a bounded maximum, sizes naturally to its content, and uses `max-height` only as a viewport safety boundary. It must never force `height:100dvh`, `height:100%`, or a flex spacer that pushes the account area away from the navigation. When its content exceeds the available screen height, the drawer itself scrolls without widening or shifting the underlying page. A dim backdrop covers only the remaining viewport behind the drawer.
 
 Required behavior:
 
@@ -130,10 +130,11 @@ Required behavior:
 - Escape, outside tap/backdrop, link selection, and the X all close it;
 - focus remains within the open drawer and returns to the opener;
 - Explore rotates its chevron and animates a distinguished sub-item group;
-- content scrolls independently while account/guest actions remain reachable;
+- the account/guest section follows the navigation naturally with no artificial blank spacer;
+- the underlying document remains viewport width with no horizontal overflow or page shift;
 - reduced-motion removes non-essential transitions.
 
-Do not reintroduce a second close button inside the panel unless a tested design decision replaces the stateful trigger. Do not portal the menu in a way that leaves its first render empty or moves the backdrop above the controls.
+Do not add a second phone geometry contract later in the cascade. The phone drawer must have one authoritative `@media(max-width:480px)` sizing/positioning rule, with narrower breakpoints only refining width where necessary. Do not reintroduce a second close button inside the panel unless a tested design decision replaces the stateful trigger. Do not portal the menu in a way that leaves its first render empty or moves the backdrop above the controls.
 
 ## Node-and-connection language
 

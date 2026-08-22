@@ -23,21 +23,21 @@ const checks=[
   ['no prototype member or project names are hardcoded',!home.includes('Johnson')&&!home.includes('Open Data Quality Monitor')&&!home.includes('GA4 analysis for marketing automation')],
   ['member navigation contract is unchanged',['Home','Projects','Applications','Proof','Profile','Discover','Recommended','Opportunities','Saved','Events','Spotlight'].every(label=>nav.includes(`label:'${label}'`))],
   ['Member shell remains authoritative',shell.includes("from '@/lib/member-navigation'")],
-  ['approved maximum content width is present',css.includes('max-width:1210px')],
-  ['approved page title size is present',css.includes('23px/1.18')&&css.includes('font-size:21px')],
+  ['approved Projects-aligned content width is present',css.includes('width:min(100%,1240px)')&&!css.includes('margin:0 auto')],
+  ['approved page title scale is present',css.includes('clamp(30px,3vw,34px)/1.08')&&css.includes('font-size:21px')],
   ['authoritative typography tokens are used',css.includes('var(--font-space)')&&css.includes('var(--font-mono)')&&!css.includes('--font-space-grotesk')&&!css.includes('--font-plex-mono')],
-  ['approved section title scale is present',css.includes('18px/1.2')&&css.includes('font-size:17px')],
+  ['approved section title scale is present',css.includes('22px/1.15')&&css.includes('font-size:17px')],
   ['approved body and supporting text floors are present',css.includes('font-size:14px')&&css.includes('font-size:13px')&&css.includes('font-size:12px')&&css.includes('font-size:11px')],
-  ['approved Up Next radius and hierarchy are present',css.includes('border-radius:22px')&&css.includes('font:760 22px/1.2')],
+  ['approved compact Up Next hierarchy is present',css.includes('border-radius:18px')&&css.includes('font:780 21px/1.18')&&css.includes('border-radius:20px')],
   ['four-column metrics collapse responsively',css.includes('grid-template-columns:repeat(4,minmax(0,1fr))')&&css.includes('grid-template-columns:repeat(2,minmax(0,1fr))')],
   ['desktop content uses approved approximate 65/35 split',css.includes('grid-template-columns:minmax(0,1.65fr) minmax(320px,.85fr)')],
   ['buttons preserve practical target and visual hierarchy',css.includes('min-height:46px')&&css.includes('border-radius:10px')&&css.includes('.buttonDark{background:var(--home-ink)')],
   ['shared visual palette uses Ink bronze sand and warm page',css.includes('--home-ink:#10131d')&&css.includes('--home-bronze:#8b641f')&&css.includes('--home-sand:#f5efe3')&&css.includes('--home-page:#f5f6f3')],
   ['focus and reduced motion contracts are present',css.includes('outline:3px solid var(--home-focus)')&&css.includes('prefers-reduced-motion:reduce')],
   ['Explore retains one primary and three secondary destinations',home.includes('Explore projects')&&home.includes('Recommended')&&home.includes('Opportunities')&&home.includes('Saved')&&explore.includes('.primary')&&explore.includes('.secondary')],
-  ['visual matrix includes all acceptance widths',['phone-320','phone-360','phone-375','phone-390','phone-412','phone-430','tablet-768','tablet-1024','desktop-1440'].every(name=>visual.includes(name))],
+  ['visual matrix includes all acceptance widths',['phone-320','phone-360','phone-375','phone-390','phone-412','phone-430','tablet-768','tablet-1024','desktop-1280','desktop-1440','desktop-1920'].every(name=>visual.includes(name))],
   ['visual test retains 200 percent zoom and overflow protection',visual.includes("document.documentElement.style.fontSize='200%'")&&visual.includes('assertNoHorizontalOverflow')],
-  ['visual test checks V4 hierarchy',visual.includes('IMPORTANT UPDATES')&&visual.includes('Member overview')&&visual.includes('toHaveCount(4)')]
+  ['visual test checks V4 hierarchy and Projects alignment',visual.includes('IMPORTANT UPDATES')&&visual.includes('Member overview')&&visual.includes('toHaveCount(4)')&&visual.includes('Projects content alignment')]
 ];
 
 const failed=checks.filter(([,ok])=>!ok);

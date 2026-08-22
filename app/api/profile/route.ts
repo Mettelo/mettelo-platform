@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import {calculateProfileReadiness} from '@/lib/profile-readiness';
+import {calculateMemberReadiness} from '@/lib/member-readiness';
 
 const allowedAreas=new Set(['Data Analysis / BI','Data Science / ML','Data Engineering','AI / Generative AI','Analytics Engineering','Research / Product / Design','Career transition / Student','Other']);
 const experienceLevels=new Set(['entry','mid','senior','lead','executive']);
@@ -14,13 +14,15 @@ export async function GET(){
     const supabase=await createServerSupabaseClient();
     const {data:{user}}=await supabase.auth.getUser();
     if(!user) return NextResponse.json({error:'Authentication required.'},{status:401});
-    const [profileResult,domainPrefs,toolPrefs]=await Promise.all([
+    const [profileResult,domainPrefs,toolPrefs,proofResult]=await Promise.all([
       supabase.from('profiles').select('*').eq('id',user.id).single(),
       supabase.from('profile_domain_preferences').select('domains(slug,name)').eq('user_id',user.id),
-      supabase.from('profile_tool_preferences').select('tools(slug,name)').eq('user_id',user.id)
+      supabase.from('profile_tool_preferences').select('tools(slug,name)').eq('user_id',user.id),
+      supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified')
     ]);
     if(profileResult.error) return NextResponse.json({error:'Unable to load profile.'},{status:500});
-    return NextResponse.json({profile:profileResult.data,domain_preferences:domainPrefs.data||[],tool_preferences:toolPrefs.data||[]});
+    const memberReadiness=calculateMemberReadiness({profile:profileResult.data,domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0,verifiedProofCount:proofResult.count||0});
+    return NextResponse.json({profile:profileResult.data,member_readiness:memberReadiness,domain_preferences:domainPrefs.data||[],tool_preferences:toolPrefs.data||[]});
   }catch{return NextResponse.json({error:'Profile service is unavailable.'},{status:503});}
 }
 
@@ -73,9 +75,9 @@ export async function PATCH(request:Request){
     if(domainRows.error||toolRows.error) return NextResponse.json({error:'Unable to validate project preferences.'},{status:500});
     if((domainRows.data||[]).length!==domainSlugs.length||(toolRows.data||[]).length!==toolSlugs.length)return NextResponse.json({error:'One or more project preferences are invalid. Refresh and try again.'},{status:400});
 
-    const readiness=calculateProfileReadiness({profile:{full_name:fullName,headline,current_job_title:currentJobTitle,professional_area:professionalArea,bio,location,experience_level:experienceLevel,employment_status:employmentStatus,project_availability:projectAvailability,weekly_capacity:weeklyCapacity,primary_goal:primaryGoal,linkedin_url:linkedinUrl,github_url:githubUrl,portfolio_url:portfolioUrl,skills,preferred_roles:preferredRoles},domainCount:domainSlugs.length,toolCount:toolSlugs.length,verifiedProofCount:proofResult.count||0});
+    const memberReadiness=calculateMemberReadiness({profile:{full_name:fullName,headline,current_job_title:currentJobTitle,professional_area:professionalArea,bio,location,experience_level:experienceLevel,employment_status:employmentStatus,project_availability:projectAvailability,weekly_capacity:weeklyCapacity,primary_goal:primaryGoal,linkedin_url:linkedinUrl,github_url:githubUrl,portfolio_url:portfolioUrl,skills,preferred_roles:preferredRoles},domainCount:domainSlugs.length,toolCount:toolSlugs.length,verifiedProofCount:proofResult.count||0});
     const onboardingState=onboardingComplete?{onboarding_step:4,onboarding_completed_at:new Date().toISOString()}:hasOnboardingStep?{onboarding_step:onboardingStep}:{};
-    const updatePayload={full_name:fullName,headline,bio,location,professional_area:professionalArea||null,primary_goal:primaryGoal||null,linkedin_url:linkedinUrl||null,github_url:githubUrl||null,portfolio_url:portfolioUrl||null,avatar_url:avatarUrl||null,current_job_title:currentJobTitle||null,organisation:organisation||null,experience_level:experienceLevel||null,employment_status:employmentStatus||null,project_availability:projectAvailability||null,weekly_capacity:weeklyCapacity||null,skills,preferred_roles:preferredRoles,languages,is_public:isPublic,profile_readiness:readiness.score,...onboardingState,updated_at:new Date().toISOString()};
+    const updatePayload={full_name:fullName,headline,bio,location,professional_area:professionalArea||null,primary_goal:primaryGoal||null,linkedin_url:linkedinUrl||null,github_url:githubUrl||null,portfolio_url:portfolioUrl||null,avatar_url:avatarUrl||null,current_job_title:currentJobTitle||null,organisation:organisation||null,experience_level:experienceLevel||null,employment_status:employmentStatus||null,project_availability:projectAvailability||null,weekly_capacity:weeklyCapacity||null,skills,preferred_roles:preferredRoles,languages,is_public:isPublic,profile_readiness:memberReadiness.legacyProfileReadiness,...onboardingState,updated_at:new Date().toISOString()};
 
     // Historical/auth-imported accounts can legitimately exist without a profiles row.
     // Upsert preserves the owner-only RLS contract while making save idempotent for both
@@ -92,7 +94,7 @@ export async function PATCH(request:Request){
     const domainLinks=(domainRows.data||[]).map(row=>({user_id:user.id,domain_id:row.id}));const toolLinks=(toolRows.data||[]).map(row=>({user_id:user.id,tool_id:row.id}));
     const [saveDomains,saveTools]=await Promise.all([domainLinks.length?supabase.from('profile_domain_preferences').insert(domainLinks):Promise.resolve({error:null}),toolLinks.length?supabase.from('profile_tool_preferences').insert(toolLinks):Promise.resolve({error:null})]);
     if(saveDomains.error||saveTools.error)return NextResponse.json({error:'Profile saved, but project preferences could not be updated.'},{status:500});
-    return NextResponse.json({profile:data,profile_readiness:readiness.score,domain_preferences:domainSlugs,tool_preferences:toolSlugs});
+    return NextResponse.json({profile:data,profile_readiness:memberReadiness.legacyProfileReadiness,member_readiness:memberReadiness,domain_preferences:domainSlugs,tool_preferences:toolSlugs});
   }catch(error){
     console.error('member profile request failed',error);
     return NextResponse.json({error:'Invalid profile request.'},{status:400});

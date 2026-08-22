@@ -37,7 +37,7 @@ const checks=[
   ['Explore retains one primary and three secondary destinations',home.includes('Explore projects')&&home.includes('Recommended')&&home.includes('Opportunities')&&home.includes('Saved')&&explore.includes('.primary')&&explore.includes('.secondary')],
   ['visual matrix includes all acceptance widths',['phone-320','phone-360','phone-375','phone-390','phone-412','phone-430','tablet-768','tablet-1024','desktop-1280','desktop-1440','desktop-1920'].every(name=>visual.includes(name))],
   ['visual test retains 200 percent zoom and overflow protection',visual.includes("document.documentElement.style.fontSize='200%'")&&visual.includes('assertNoHorizontalOverflow')],
-  ['visual test checks V4 hierarchy and Projects alignment',visual.includes('IMPORTANT UPDATES')&&visual.includes('Member overview')&&visual.includes('toHaveCount(4)')&&visual.includes('Projects content alignment')]
+  ['visual test checks V4 hierarchy and Projects alignment',visual.includes('IMPORTANT UPDATES')&&visual.includes('Member overview')&&visual.includes('toHaveCount(4)')&&visual.includes('Home/Projects content start')&&visual.includes('toBeLessThanOrEqual(2)')]
 ];
 
 const failed=checks.filter(([,ok])=>!ok);

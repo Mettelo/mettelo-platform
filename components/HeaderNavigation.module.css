@@ -6,9 +6,9 @@
   :global(.siteHeader .shell.nav):has(.headerNavigation){width:min(calc(100% - 24px),1440px)!important;max-width:100%!important;min-width:0!important}
   :global(.siteHeader .shell.nav):has(.headerNavigation) :global(.brandImageLink){min-width:0!important;flex:0 1 auto!important}
   :global(.siteHeader .shell.nav):has(.headerNavigation) :global(.brandLogo){width:min(112px,34vw)!important;max-width:112px!important;height:auto!important}
-  .headerNavigation ~ :global(.mobileMenu) :global(.mobileMenuPanel){display:none;overflow-y:auto!important;overflow-x:hidden!important;max-height:calc(100dvh - 76px)!important;-webkit-overflow-scrolling:touch}
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobileMenuPanel){display:none;overflow-y:auto!important;overflow-x:hidden!important;max-height:calc(100dvh - 76px)!important;padding:10px!important;border-radius:12px!important;box-shadow:0 18px 42px rgba(16,19,29,.16)!important;-webkit-overflow-scrolling:touch}
   .headerNavigation ~ :global(.mobileMenu[open]) :global(.mobileMenuPanel){display:block!important}
-  .headerNavigation ~ :global(.mobileMenu) :global(.metteloMobileNav){display:grid!important;gap:14px!important;width:100%!important;min-width:0!important;color:#10131d!important}
+  .headerNavigation ~ :global(.mobileMenu) :global(.metteloMobileNav){display:grid!important;gap:12px!important;width:100%!important;min-width:0!important;color:#10131d!important}
   .headerNavigation ~ :global(.mobileMenu) :global(.mobileNavGroup){display:grid!important;gap:4px!important;width:100%!important;min-width:0!important}
   .headerNavigation ~ :global(.mobileMenu) :global(.mobileDirectNav){display:grid!important;width:100%!important;min-width:0!important}
   .headerNavigation ~ :global(.mobileMenu) :global(.mobileDirectNav a){display:flex!important;visibility:visible!important;opacity:1!important;width:100%!important;min-width:0!important;min-height:46px!important;align-items:center!important;justify-content:space-between!important;color:#10131d!important;background:transparent!important;overflow-wrap:anywhere!important;word-break:normal!important}
@@ -16,11 +16,14 @@
   .headerNavigation ~ :global(.mobileMenu) :global(.mobileNavLabel){display:block!important;visibility:visible!important;color:#5b6472!important}
   .headerNavigation ~ :global(.mobileMenu) :global(.mobileSupportGroup){display:grid!important}
   .headerNavigation ~ :global(.mobileMenu) :global(.mobileGuestActions){display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important;width:100%!important;min-width:0!important}
-  .headerNavigation ~ :global(.mobileMenu) :global(.mobileGuestActions)>a{display:flex!important;width:100%!important;min-width:0!important;min-height:46px!important;margin:0!important;align-items:center!important;justify-content:center!important}
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobileGuestActions)>a{display:flex!important;width:100%!important;min-width:0!important;min-height:46px!important;margin:0!important;align-items:center!important;justify-content:center!important;border-radius:10px!important;font-weight:750!important}
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobileGuestActions)>a[href^="/signin"]{background:#fff!important;color:#10131d!important;border:1px solid rgba(16,19,29,.14)!important}
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobileGuestActions)>a[href*="mode=signup"],
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobileGuestActions)>a[href^="/auth/signup"]{background:#10131d!important;color:#fff!important;border-color:#10131d!important}
   .headerNavigation ~ :global(.mobileMenu[open]){position:relative!important;z-index:1000!important}
   .headerNavigation ~ :global(.mobileMenu[open]) :global(.mobileMenuBackdrop){position:fixed!important;inset:0!important;z-index:1000!important;pointer-events:auto!important}
   .headerNavigation ~ :global(.mobileMenu[open]) :global(.mobileMenuPanel){position:absolute;z-index:1001!important}
-  .headerNavigation ~ :global(.mobileMenu[open]) > :global(summary){position:relative;z-index:1002!important}
+  .headerNavigation ~ :global(.mobileMenu[open]) > :global(summary){position:relative;z-index:1002!important;border-radius:9px!important}
   :global(body):has(.headerNavigation) :global(#main-content),
   :global(body):has(.headerNavigation) :global(#main-content > *),
   :global(body):has(.headerNavigation) :global(#main-content .shell),
@@ -38,14 +41,16 @@
   /* Public menu rows use a different layer from the compact Explore/account controls.
      Keep those resolved controls untouched and bring only the unresolved direct/about
      rows onto the same accessible 48px rhythm. */
-  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary),
-  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary){padding-block:4px!important}
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary){padding-block:2px 4px!important}
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary){padding-block:8px 4px!important;margin-top:2px!important;border-top:1px solid rgba(16,19,29,.08)!important}
   .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary) :global(.mobileList),
   .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary) :global(.mobileList){display:grid!important;gap:0!important;margin:0!important}
   .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary) :global(.mobileList)>li,
   .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary) :global(.mobileList)>li{margin:0!important;padding:0!important;min-height:0!important}
   .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary) :global(.mobileNavLink),
   .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary) :global(.mobileNavLink){min-height:48px!important;padding:10px 16px!important;margin:0!important;align-items:center!important;line-height:1.25!important}
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary) :global(.mobileNavLink) svg,
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary) :global(.mobileNavLink) svg{width:18px!important;height:18px!important;flex:0 0 18px!important;opacity:.84!important}
 }
 
 @media(max-width:760px){

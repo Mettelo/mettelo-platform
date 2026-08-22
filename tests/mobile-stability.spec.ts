@@ -136,11 +136,11 @@ test.describe('mobile stability contract',()=>{
       const geometry=await page.evaluate(()=>{
         const panel=document.querySelector<HTMLElement>('.mobileMenuPanel');
         const account=document.querySelector<HTMLElement>('.mobilePublicFooter');
-        const explore=document.querySelector<HTMLElement>('.mobilePublicExplore');
-        if(!panel||!account||!explore)throw new Error('Mobile navigation geometry targets are missing');
+        const navigation=document.querySelector<HTMLElement>('.managedMobileNavigation');
+        if(!panel||!account||!navigation)throw new Error('Visible mobile navigation geometry targets are missing');
         const box=panel.getBoundingClientRect();
         const accountBox=account.getBoundingClientRect();
-        const exploreBox=explore.getBoundingClientRect();
+        const navigationBox=navigation.getBoundingClientRect();
         return {
           viewportWidth:window.innerWidth,
           viewportHeight:window.innerHeight,
@@ -150,7 +150,7 @@ test.describe('mobile stability contract',()=>{
           panelTop:box.top,
           panelBottom:box.bottom,
           panelHeight:box.height,
-          accountGap:accountBox.top-exploreBox.bottom,
+          accountGap:accountBox.top-navigationBox.bottom,
           bodyOverflowX:getComputedStyle(document.body).overflowX
         };
       });
@@ -162,7 +162,7 @@ test.describe('mobile stability contract',()=>{
       expect(geometry.panelTop,'drawer should start below the mobile header').toBeGreaterThanOrEqual(64);
       expect(geometry.panelBottom,'drawer must remain inside the viewport').toBeLessThanOrEqual(geometry.viewportHeight+1);
       expect(geometry.panelHeight,'drawer must not be forced to full viewport height').toBeLessThan(geometry.viewportHeight-64);
-      expect(geometry.accountGap,'account section should follow navigation naturally without a flex spacer').toBeLessThanOrEqual(20);
+      expect(geometry.accountGap,'account section should follow the visible navigation naturally without a flex spacer').toBeLessThanOrEqual(20);
 
       await page.keyboard.press('Escape');
       await expect(panel).not.toBeVisible();

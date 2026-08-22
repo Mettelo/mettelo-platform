@@ -12,7 +12,9 @@ const viewports=[
   {name:'phone-430',width:430,height:932},
   {name:'tablet-768',width:768,height:1024},
   {name:'tablet-1024',width:1024,height:900},
-  {name:'desktop-1440',width:1440,height:900}
+  {name:'desktop-1280',width:1280,height:900},
+  {name:'desktop-1440',width:1440,height:900},
+  {name:'desktop-1920',width:1920,height:1080}
 ] as const;
 function credentials():Credentials{const email=process.env.E2E_MEMBER_EMAIL?.trim();const password=process.env.E2E_MEMBER_PASSWORD;if(!email||!password)throw new Error('Missing E2E member credentials.');return{email,password}}
 async function signIn(page:Page){const account=credentials();await page.goto('/signin?next=%2Fmember',{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(account.email);await main.locator('input[type="password"]').fill(account.password);await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>url.pathname==='/member',{timeout:20_000})}
@@ -21,9 +23,8 @@ async function assertLabelsDoNotOverlap(labels:Locator,label:string){const boxes
 
 async function assertV4Home(page:Page,width:number,label:string){
   const heading=page.getByRole('heading',{name:/Good to see you,/});await expect(heading).toBeVisible();
-  const headingSize=await heading.evaluate(element=>Number.parseFloat(getComputedStyle(element).fontSize));
-  if(width<=480)expect(headingSize,`${label}: mobile page title`).toBeGreaterThanOrEqual(20);else expect(headingSize,`${label}: desktop/tablet page title`).toBeGreaterThanOrEqual(22);
-  expect(headingSize,`${label}: page title remains controlled`).toBeLessThanOrEqual(24);
+  const typography=await heading.evaluate(element=>({size:Number.parseFloat(getComputedStyle(element).fontSize),weight:Number.parseInt(getComputedStyle(element).fontWeight,10)}));
+  if(width<=480){expect(typography.size,`${label}: mobile page title`).toBeGreaterThanOrEqual(20);expect(typography.size,`${label}: mobile title remains controlled`).toBeLessThanOrEqual(24)}else{expect(typography.size,`${label}: desktop/tablet page title`).toBeGreaterThanOrEqual(28);expect(typography.size,`${label}: desktop/tablet title remains controlled`).toBeLessThanOrEqual(34);expect(typography.weight,`${label}: strong workspace title`).toBeGreaterThanOrEqual(760)}
   await expect(page.getByText(/Up next ·/i).first()).toBeVisible();
   const upNext=page.locator('[aria-labelledby="up-next-heading"]');await expect(upNext).toBeVisible();await expect(upNext.getByRole('link')).toHaveCount(1);
   const upNextAction=upNext.getByRole('link').first();const upNextBox=await upNextAction.boundingBox();expect(upNextBox?.height||0,`${label}: Up Next target`).toBeGreaterThanOrEqual(44);
@@ -36,12 +37,13 @@ async function assertV4Home(page:Page,width:number,label:string){
   await expect(page.getByText('WHAT NEEDS YOU NOW',{exact:true})).toHaveCount(0);
   const overview=page.locator('[aria-label="Member overview"]');await expect(overview).toBeVisible();await expect(overview.locator(':scope > a')).toHaveCount(4);
   await expect(overview.getByText(/Recommendations?/,{exact:true})).toHaveCount(0);
-  await expect(page.locator('[aria-label="Profile readiness"]')).toBeVisible();
+  await expect(page.getByRole('complementary',{name:'Profile completion'})).toBeVisible();
+  const completion=page.getByRole('progressbar',{name:'Profile completion'});await expect(completion).toBeVisible();await expect(completion).toHaveAttribute('aria-valuemin','0');await expect(completion).toHaveAttribute('aria-valuemax','100');
   await assertNoHorizontalOverflow(page,label);
 }
 
 test('My Mettelo Home V4 matches the approved hierarchy and responsive visual contract',async({page})=>{
-  test.setTimeout(300_000);await page.emulateMedia({reducedMotion:'reduce'});await signIn(page);await mkdir(artifactDir,{recursive:true});
+  test.setTimeout(360_000);await page.emulateMedia({reducedMotion:'reduce'});await signIn(page);await mkdir(artifactDir,{recursive:true});
   for(const viewport of viewports){
     await page.setViewportSize({width:viewport.width,height:viewport.height});await page.goto('/member',{waitUntil:'networkidle'});await assertV4Home(page,viewport.width,viewport.name);
     const desktopNav=page.getByRole('complementary',{name:'My Mettelo navigation'});const mobileNav=page.getByRole('navigation',{name:'My Mettelo mobile navigation'});
@@ -56,6 +58,15 @@ test('My Mettelo Home V4 matches the approved hierarchy and responsive visual co
     }
     const labLink=page.getByRole('link',{name:/Open Mettelo Lab/}).first();if(await labLink.count()){await expect(labLink).toHaveAttribute('href',/\/member\/projects\//);const box=await labLink.boundingBox();expect(box?.height||0,`${viewport.name}: Mettelo Lab CTA`).toBeGreaterThanOrEqual(44)}
     await page.screenshot({path:`${artifactDir}/${viewport.name}-home.png`,fullPage:true,animations:'disabled'});
+  }
+});
+
+test('Member Home shares the Projects desktop content start and workspace rhythm',async({page})=>{
+  test.setTimeout(180_000);await signIn(page);
+  for(const width of [1280,1440,1920]){
+    await page.setViewportSize({width,height:900});await page.goto('/member',{waitUntil:'networkidle'});const homeHeading=page.getByRole('heading',{name:/Good to see you,/});const homeBox=await homeHeading.boundingBox();expect(homeBox).not.toBeNull();
+    await page.goto('/member/projects',{waitUntil:'networkidle'});const projectsHeading=page.getByRole('heading',{level:1,name:'Projects'});const projectsBox=await projectsHeading.boundingBox();expect(projectsBox).not.toBeNull();
+    expect(Math.abs((homeBox?.x||0)-(projectsBox?.x||0)),`${width}px Home/Projects content start`).toBeLessThanOrEqual(2);await assertNoHorizontalOverflow(page,`projects-${width}`);
   }
 });
 

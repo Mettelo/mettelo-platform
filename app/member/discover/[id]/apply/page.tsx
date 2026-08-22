@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {notFound,redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
-import {calculateProfileReadiness,PROFILE_APPLICATION_READY} from '@/lib/profile-readiness';
+import {calculateMemberReadiness} from '@/lib/member-readiness';
 import {memberProjectPrimaryAction,resolveMemberProjectState} from '@/lib/member-project-journey';
 import MemberProjectApplicationFlow from '@/components/MemberProjectApplicationFlow';
 
@@ -16,17 +16,17 @@ type Membership={membership_status:string;project_run_id:string|null;project_run
 export default async function MemberProjectApplyPage({params,searchParams}:{params:Promise<{id:string}>;searchParams?:Promise<{role?:string|string[]}>}){
   const {id}=await params;const query=await searchParams||{};const requestedRole=Array.isArray(query.role)?query.role[0]:query.role;
   const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect(`/signin?next=${encodeURIComponent(`/member/discover/${id}/apply${requestedRole?`?role=${encodeURIComponent(requestedRole)}`:''}`)}`);
-  const [projectResult,applicationsResult,membershipResult,profileResult,domainPrefs,toolPrefs,proofResult]=await Promise.all([
+  const [projectResult,applicationsResult,membershipResult,profileResult,domainPrefs,toolPrefs]=await Promise.all([
     supabase.from('projects').select('id,title,status,project_type,visibility,applications_open,application_deadline,weekly_commitment,project_roles(id,title,description,openings)').eq('id',id).in('visibility',['public','members']).maybeSingle(),
     supabase.from('project_applications').select('id,status,project_run_id').eq('project_id',id).eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}).limit(10),
     supabase.from('project_members').select('membership_status,project_run_id,project_runs(status)').eq('project_id',id).eq('user_id',user.id).in('membership_status',['waiting','active','completed']).order('joined_at',{ascending:false}).limit(1).maybeSingle(),
-    supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles,profile_readiness').eq('id',user.id).maybeSingle(),
+    supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).maybeSingle(),
     supabase.from('profile_domain_preferences').select('domain_id').eq('user_id',user.id),
-    supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id),
-    supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified')
+    supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id)
   ]);
   if(projectResult.error||!projectResult.data)notFound();const project=projectResult.data as unknown as Project;const profile=profileResult.data as Record<string,unknown>|null;
-  const calculated=profile?calculateProfileReadiness({profile,domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0,verifiedProofCount:proofResult.count||0}):{score:0};const persisted=profile?.profile_readiness;const readiness=typeof persisted==='number'&&Number.isFinite(persisted)?persisted:calculated.score;const applicationReady=readiness>=PROFILE_APPLICATION_READY;
+  const memberReadiness=calculateMemberReadiness({profile:profile||{},domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0});
+  const applicationReady=memberReadiness.applicationReadiness.ready;
   const applications=(applicationsResult.data||[]) as Application[];const application=applications.find(item=>!['declined','withdrawn'].includes(item.status))||null;const membership=(membershipResult.data||null) as unknown as Membership|null;
   const roles=project.project_roles||[];const db=serviceDb();let availabilityKnown=false;const filled=new Map<string,number>();if(db){const result=await db.from('project_members').select('project_role_id').eq('project_id',id).in('membership_status',['waiting','active']);if(!result.error){for(const row of result.data||[]){if(row.project_role_id)filled.set(row.project_role_id,(filled.get(row.project_role_id)||0)+1)}availabilityKnown=true}else console.error('member apply role capacity lookup failed',result.error)}
   const availableRoles=roles.filter(role=>availabilityKnown&&(filled.get(role.id)||0)<role.openings);const state=resolveMemberProjectState({project,application,membership,run:membership?.project_runs||null,applicationReady,hasAvailableRole:availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});

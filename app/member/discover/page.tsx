@@ -1,7 +1,7 @@
 import {redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
-import {calculateProfileReadiness,PROFILE_APPLICATION_READY} from '@/lib/profile-readiness';
+import {calculateMemberReadiness} from '@/lib/member-readiness';
 import MemberDiscoverCatalogue from '@/components/MemberDiscoverCatalogue';
 import MemberPageHeader from '@/components/MemberPageHeader';
 import {memberProjectCatalogueAction,memberProjectStateLabel,projectAcceptsApplications,resolveMemberProjectState} from '@/lib/member-project-journey';
@@ -20,11 +20,10 @@ function workingModel(project:Project){return project.location_type?titleCase(pr
 
 export default async function MemberDiscoverPage(){
   const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/signin?next=%2Fmember%2Fdiscover');
-  const [profileResult,domainPrefs,toolPrefs,proofResult,projectsResult,applicationsResult,membershipsResult,savedResult]=await Promise.all([
-    supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles,profile_readiness').eq('id',user.id).maybeSingle(),
+  const [profileResult,domainPrefs,toolPrefs,projectsResult,applicationsResult,membershipsResult,savedResult]=await Promise.all([
+    supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).maybeSingle(),
     supabase.from('profile_domain_preferences').select('domain_id').eq('user_id',user.id),
     supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id),
-    supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified'),
     supabase.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,duration_weeks,weekly_commitment,application_deadline,applications_open,created_at,project_roles(id,title,skills,openings)').in('visibility',['public','members']).in('status',['recruiting','open','forming','active','review','completed']).order('created_at',{ascending:false}).limit(60),
     supabase.from('project_applications').select('id,project_id,status,project_run_id').eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}),
     supabase.from('project_members').select('project_id,project_run_id,membership_status,project_runs(status)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']),
@@ -32,9 +31,8 @@ export default async function MemberDiscoverPage(){
   ]);
   if(projectsResult.error)console.error('member Discover project query failed',projectsResult.error);
   const profile=profileResult.data as Record<string,unknown>|null;
-  const calculated=profile?calculateProfileReadiness({profile,domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0,verifiedProofCount:proofResult.count||0}):{score:0};
-  const persisted=profile?.profile_readiness;const readiness=typeof persisted==='number'&&Number.isFinite(persisted)?persisted:calculated.score;
-  const applicationReady=readiness>=PROFILE_APPLICATION_READY;
+  const memberReadiness=calculateMemberReadiness({profile:profile||{},domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0});
+  const applicationReady=memberReadiness.applicationReadiness.ready;
   const projects=(projectsResult.data||[]) as unknown as Project[];const applications=(applicationsResult.data||[]) as unknown as Application[];const memberships=(membershipsResult.data||[]) as unknown as Membership[];const saved=new Set(((savedResult.data||[]) as Saved[]).map(row=>row.project_id));
   const latestApplication=new Map<string,Application>();for(const item of applications){if(!latestApplication.has(item.project_id))latestApplication.set(item.project_id,item)}
   const membershipByProject=new Map(memberships.map(item=>[item.project_id,item]));

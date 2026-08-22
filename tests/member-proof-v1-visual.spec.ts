@@ -65,7 +65,7 @@ test('My Mettelo Proof preserves verification truth and approved responsive hier
 
     const desktopNav=page.getByRole('complementary',{name:'My Mettelo navigation'});
     const mobileNav=page.getByRole('navigation',{name:'My Mettelo mobile navigation'});
-    const profileAction=page.getByRole('link',{name:'View profile'});
+    const profileAction=page.locator('a.proofButtonDark[href="/member/profile"]');
     await expect(profileAction).toBeVisible();
     if(width<=480){
       await expect(desktopNav).toBeHidden();

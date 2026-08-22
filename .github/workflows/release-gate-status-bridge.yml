@@ -1,0 +1,72 @@
+name: Release Gate Status Bridge
+
+on:
+  pull_request:
+
+permissions:
+  actions: read
+  contents: read
+  statuses: write
+
+concurrency:
+  group: release-gate-status-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  publish-release-gate-status:
+    name: Publish protected Release gate status
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Wait for exact-head Mettelo CI and publish protected status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const headSha = context.payload.pull_request.head.sha;
+            const headRef = context.payload.pull_request.head.ref;
+            const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+            for (let attempt = 0; attempt < 90; attempt += 1) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: 'ci.yml',
+                branch: headRef,
+                event: 'pull_request',
+                per_page: 20,
+              });
+
+              const run = data.workflow_runs.find(item => item.head_sha === headSha);
+              if (!run) {
+                core.info(`Mettelo CI has not attached to ${headSha} yet.`);
+                await sleep(30000);
+                continue;
+              }
+
+              if (run.status !== 'completed') {
+                core.info(`Mettelo CI #${run.run_number} is ${run.status}.`);
+                await sleep(30000);
+                continue;
+              }
+
+              if (run.conclusion !== 'success') {
+                core.setFailed(`Mettelo CI #${run.run_number} completed with ${run.conclusion}; protected Release gate status will not be published.`);
+                return;
+              }
+
+              await github.rest.repos.createCommitStatus({
+                owner,
+                repo,
+                sha: headSha,
+                state: 'success',
+                context: 'Release gate',
+                description: 'Exact-head Mettelo CI release gate completed successfully',
+                target_url: run.html_url,
+              });
+              core.info(`Published protected Release gate status for ${headSha} from Mettelo CI #${run.run_number}.`);
+              return;
+            }
+
+            core.setFailed(`Timed out waiting for exact-head Mettelo CI on ${headSha}.`);

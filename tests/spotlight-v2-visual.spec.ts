@@ -61,7 +61,8 @@ test.describe('Spotlight v2 recognition, sharing and withdrawal',()=>{
     for(const width of [375,390,414,768,1024,1440]){
       await page.setViewportSize({width,height:900});const listResponse=await page.goto('/spotlight',{waitUntil:'networkidle'});expect(listResponse?.status()).toBe(200);
       const card=publicAward(page);
-      await expect(page.getByRole('heading',{level:1,name:'Recognition earned through real contribution.'})).toBeVisible();
+      await expect(page.locator('#spotlight-public-title')).toBeVisible();
+      await expect(page.locator('h1')).toHaveCount(1);
       await expect(card.getByRole('heading',{name:'Builder of the Month'})).toBeVisible();
       await expect(card.getByRole('link',{name:'Share this Spotlight recognition on LinkedIn'})).toBeVisible();
       await expect(page.getByText(/Score 88|rank_position|score_breakdown/i)).toHaveCount(0);await noOverflow(page);

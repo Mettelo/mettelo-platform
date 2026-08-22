@@ -24,6 +24,16 @@ function hasLoopbackHostNormalization(request:NextRequest){
   const host=(request.headers.get('host')||'').toLowerCase();
   return request.nextUrl.hostname==='localhost'&&(host.startsWith('127.')||host.startsWith('[::1]'));
 }
+function loopbackSafePageRedirect(request:NextRequest,response:NextResponse,destination:string,title:string){
+  if(hasLoopbackHostNormalization(request)){
+    const escapedDestination=destination.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    const escapedTitle=title.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0;url=${escapedDestination}"><title>${escapedTitle}</title></head><body><p>Redirecting to <a href="${escapedDestination}">${escapedTitle}</a>.</p></body></html>`;
+    return preserveAuthCookies(response,new NextResponse(html,{status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}}));
+  }
+  const target=redirectTarget(request);target.pathname=destination;target.search='';
+  return preserveAuthCookies(response,NextResponse.redirect(target));
+}
 function adminCapabilityPageRedirect(request:NextRequest,response:NextResponse){
   const destination='/admin?reason=capability';
   if(hasLoopbackHostNormalization(request)){
@@ -71,8 +81,8 @@ export async function middleware(request:NextRequest){
     if(adminApi)return preserveAuthCookies(response,adminApiError('Authentication required.',401));
     const target=redirectTarget(request);target.pathname='/signin';const requested=`${pathname}${request.nextUrl.search}`;target.searchParams.set('next',architectEntry?'/member/project-architect':requested);return preserveAuthCookies(response,NextResponse.redirect(target));
   }
-  if(memberCatalogueEntry){const target=redirectTarget(request);target.pathname='/member/discover';target.search='';return preserveAuthCookies(response,NextResponse.redirect(target))}
-  if(memberPublicProjectId){const target=redirectTarget(request);target.pathname=`/member/discover/${memberPublicProjectId}`;target.search='';return preserveAuthCookies(response,NextResponse.redirect(target))}
+  if(memberCatalogueEntry)return loopbackSafePageRedirect(request,response,'/member/discover','Redirecting to My Mettelo Discover');
+  if(memberPublicProjectId)return loopbackSafePageRedirect(request,response,`/member/discover/${memberPublicProjectId}`,'Redirecting to My Mettelo project');
   if(architectEntry){const target=redirectTarget(request);target.pathname='/member/project-architect';target.search='';return preserveAuthCookies(response,NextResponse.redirect(target))}
   if(adminPage||adminApi){
     if(!isTrustedAdmin(user)){

@@ -41,14 +41,16 @@ export async function middleware(request:NextRequest){
     return rememberIntent(NextResponse.next(),request,intent);
   }
   const architectEntry=pathname==='/project-architect';
+  const memberCatalogueEntry=pathname==='/projects';
   const adminPage=pathname.startsWith('/admin');
   const adminApi=pathname.startsWith('/api/admin');
-  const protectedPath=pathname.startsWith('/member')||adminPage||adminApi||architectEntry;
+  const protectedPath=pathname.startsWith('/member')||adminPage||adminApi||architectEntry||memberCatalogueEntry;
   if(!protectedPath)return NextResponse.next();
 
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if(!url||!anonKey){
+    if(memberCatalogueEntry)return NextResponse.next();
     if(adminApi)return adminApiError('Authentication service is not configured.',503);
     const target=redirectTarget(request);target.pathname='/signin';target.searchParams.set('reason','not-configured');if(architectEntry)target.searchParams.set('next','/member/project-architect');return NextResponse.redirect(target);
   }
@@ -62,9 +64,11 @@ export async function middleware(request:NextRequest){
   });
   const {data:{user}}=await supabase.auth.getUser();
   if(!user){
+    if(memberCatalogueEntry)return response;
     if(adminApi)return preserveAuthCookies(response,adminApiError('Authentication required.',401));
     const target=redirectTarget(request);target.pathname='/signin';const requested=`${pathname}${request.nextUrl.search}`;target.searchParams.set('next',architectEntry?'/member/project-architect':requested);return preserveAuthCookies(response,NextResponse.redirect(target));
   }
+  if(memberCatalogueEntry){const target=redirectTarget(request);target.pathname='/member/discover';target.search='';return preserveAuthCookies(response,NextResponse.redirect(target))}
   if(architectEntry){const target=redirectTarget(request);target.pathname='/member/project-architect';target.search='';return preserveAuthCookies(response,NextResponse.redirect(target))}
   if(adminPage||adminApi){
     if(!isTrustedAdmin(user)){
@@ -79,4 +83,4 @@ export async function middleware(request:NextRequest){
   return response;
 }
 
-export const config={matcher:['/signin','/member/:path*','/admin/:path*','/api/admin/:path*','/project-architect']};
+export const config={matcher:['/signin','/projects','/member/:path*','/admin/:path*','/api/admin/:path*','/project-architect']};

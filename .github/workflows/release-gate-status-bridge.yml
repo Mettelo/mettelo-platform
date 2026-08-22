@@ -2,6 +2,9 @@ name: Release Gate Status Bridge
 
 on:
   pull_request:
+  push:
+    branches:
+      - 'admin/**'
 
 permissions:
   actions: read
@@ -9,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-gate-status-${{ github.event.pull_request.number }}
+  group: release-gate-status-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -24,8 +27,13 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const headSha = context.payload.pull_request.head.sha;
-            const headRef = context.payload.pull_request.head.ref;
+            const isPullRequest = context.eventName === 'pull_request';
+            const headSha = isPullRequest
+              ? context.payload.pull_request.head.sha
+              : context.sha;
+            const headRef = isPullRequest
+              ? context.payload.pull_request.head.ref
+              : context.ref.replace('refs/heads/', '');
             const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
             for (let attempt = 0; attempt < 90; attempt += 1) {

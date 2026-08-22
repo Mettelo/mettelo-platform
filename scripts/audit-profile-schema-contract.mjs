@@ -38,8 +38,9 @@ if(!failures.length){
   }
 
   if(!route.includes('calculateMemberReadiness'))failures.push('Profile save must calculate the canonical member readiness result.');
-  if(!route.includes('profile_readiness:memberReadiness.profileCompletion.percentage'))failures.push('Profile save must persist canonical profile completion as the compatibility profile_readiness value.');
-  if(!route.includes('readiness:memberReadiness'))failures.push('Profile save must return the canonical readiness result to the client.');
+  if(!route.includes('profile_readiness:memberReadiness.legacyProfileReadiness'))failures.push('Profile save must persist the canonical compatibility readiness value.');
+  if(!canonical.includes('legacyProfileReadiness:completionPercentage'))failures.push('Compatibility profile_readiness must be derived from canonical profile completion.');
+  if(!route.includes('member_readiness:memberReadiness'))failures.push('Profile save must return the canonical readiness result to the client.');
   if(!route.includes("supabase.from('profiles').upsert"))failures.push('Profile save must remain idempotent for existing and historical members.');
 
   for(const requiredState of ['profileCompletion','matchingReadiness','applicationReadiness','publicProfileReadiness','proofStatus']){

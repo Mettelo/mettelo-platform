@@ -19,7 +19,10 @@ for(const needle of [
   'PERSONALISED · RELEVANCE',
   'Recommended for you',
   'Projects, events and member opportunities that may be useful to you right now',
-  "Your recommendations use what you&apos;ve shared with Mettelo",
+  'Your matching profile is ready',
+  'matching requirement',
+  'matchingReadiness.ready',
+  'matchingReadiness.missing',
   'Why this is recommended',
   'Most relevant right now',
   'Projects for you',
@@ -97,4 +100,4 @@ if(failures.length){
   failures.forEach(item=>console.error(`- ${item}`));
   process.exit(1);
 }
-console.log('My Mettelo Recommended audit passed: personalized, explainable, lifecycle-aware, Careers-separated and responsive.');
+console.log('My Mettelo Recommended audit passed: personalized, explainable, lifecycle-aware, readiness-aware, Careers-separated and responsive.');

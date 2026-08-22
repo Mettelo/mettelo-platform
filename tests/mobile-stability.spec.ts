@@ -1,6 +1,6 @@
 import {expect,test,type Locator,type Page} from '@playwright/test';
 
-const mobileViewports=[375,390,414,480];
+const mobileViewports=[320,360,375,390,412,430,480];
 const contentStressViewports=[390,768,1024];
 const stressText='GA4_ANALYSIS_FOR_MARKETING_AUTOMATION_WITH_A_VERY_LONG_UNBROKEN_ADMIN_ENTERED_IDENTIFIER_0123456789_ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -117,6 +117,56 @@ test.describe('mobile stability contract',()=>{
         const fontSize=await control.evaluate(element=>parseFloat(getComputedStyle(element).fontSize));
         expect(fontSize,`visible form control ${index} must be at least 16px to avoid iOS focus zoom`).toBeGreaterThanOrEqual(16);
       }
+    });
+
+    test(`keeps the public navigation contained on ${width}px`,async({page})=>{
+      await page.setViewportSize({width,height:844});
+      await page.goto('/projects',{waitUntil:'networkidle'});
+      await expectNoHorizontalOverflow(page);
+
+      const toggle=page.locator('.mobileMenu > summary');
+      await expect(toggle).toBeVisible();
+      await toggle.click();
+
+      const panel=page.locator('.mobileMenuPanel');
+      const backdrop=page.locator('.mobileMenuBackdrop');
+      await expect(panel).toBeVisible();
+      await expect(backdrop).toBeVisible();
+
+      const geometry=await page.evaluate(()=>{
+        const panel=document.querySelector<HTMLElement>('.mobileMenuPanel');
+        const account=document.querySelector<HTMLElement>('.mobilePublicFooter');
+        const explore=document.querySelector<HTMLElement>('.mobilePublicExplore');
+        if(!panel||!account||!explore)throw new Error('Mobile navigation geometry targets are missing');
+        const box=panel.getBoundingClientRect();
+        const accountBox=account.getBoundingClientRect();
+        const exploreBox=explore.getBoundingClientRect();
+        return {
+          viewportWidth:window.innerWidth,
+          viewportHeight:window.innerHeight,
+          documentWidth:document.documentElement.scrollWidth,
+          panelLeft:box.left,
+          panelRight:box.right,
+          panelTop:box.top,
+          panelBottom:box.bottom,
+          panelHeight:box.height,
+          accountGap:accountBox.top-exploreBox.bottom,
+          bodyOverflowX:getComputedStyle(document.body).overflowX
+        };
+      });
+
+      expect(geometry.documentWidth,'opening navigation must not widen the document').toBeLessThanOrEqual(geometry.viewportWidth+1);
+      expect(geometry.panelLeft,'drawer must remain inside the viewport').toBeGreaterThanOrEqual(-1);
+      expect(geometry.panelRight,'drawer must remain anchored to the right edge').toBeLessThanOrEqual(geometry.viewportWidth+1);
+      expect(geometry.viewportWidth-geometry.panelRight,'drawer right gap should stay small and intentional').toBeLessThanOrEqual(9);
+      expect(geometry.panelTop,'drawer should start below the mobile header').toBeGreaterThanOrEqual(64);
+      expect(geometry.panelBottom,'drawer must remain inside the viewport').toBeLessThanOrEqual(geometry.viewportHeight+1);
+      expect(geometry.panelHeight,'drawer must not be forced to full viewport height').toBeLessThan(geometry.viewportHeight-64);
+      expect(geometry.accountGap,'account section should follow navigation naturally without a flex spacer').toBeLessThanOrEqual(20);
+
+      await page.keyboard.press('Escape');
+      await expect(panel).not.toBeVisible();
+      await expect(toggle).toBeFocused();
     });
   }
 

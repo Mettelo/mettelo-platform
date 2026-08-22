@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import {redirect} from 'next/navigation';
+import {createClient} from '@supabase/supabase-js';
 import SaveOpportunityButton from '@/components/SaveOpportunityButton';
 import SavedOpportunityReminderToggle from '@/components/SavedOpportunityReminderToggle';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
@@ -18,16 +19,21 @@ function cleanText(value:string|null){return(value||'').replace(/<[^>]*>/g,' ').
 function formatDate(value:string){return new Date(value).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
 function arrangement(value:string|null){if(!value||value==='unknown')return null;return value==='onsite'?'On-site':value.charAt(0).toUpperCase()+value.slice(1)}
 function deadlineLabel(value:string|null,now:number){if(!value)return'No closing date published';const date=new Date(value);if(Number.isNaN(date.getTime()))return'Closing date unavailable';const days=Math.ceil((date.getTime()-now)/86400000);if(days<0)return`Closed ${formatDate(value)}`;if(days===0)return'Closes today';if(days===1)return'Closes tomorrow';if(days<=14)return`Closes in ${days} days`;return`Closes ${formatDate(value)}`}
+function savedOpportunityReader(){const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!url||!serviceKey)return null;return createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}})}
 
 export default async function SavedOpportunitiesPage(){
   const supabase=await createServerSupabaseClient();
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)redirect('/signin?next=%2Fmember%2Fsaved-opportunities');
 
-  const savedResult=await supabase.from('saved_opportunities').select('opportunity_id,saved_at,reminders_enabled').eq('user_id',user.id).order('saved_at',{ascending:false});
+  // The authenticated user is established above. A server-only service reader is deliberately
+  // scoped back to that exact user ID so saved listings can still be rendered after a source
+  // listing becomes closed/changed and is no longer visible through the public opportunity RLS.
+  const reader=savedOpportunityReader()||supabase;
+  const savedResult=await reader.from('saved_opportunities').select('opportunity_id,saved_at,reminders_enabled').eq('user_id',user.id).order('saved_at',{ascending:false});
   const saved=(savedResult.data||[])as SavedRecord[];
   const opportunityIds=saved.map(row=>row.opportunity_id);
-  const opportunityResult=opportunityIds.length?await supabase.from('opportunities').select('id,title,organisation,summary,location,opportunity_type,work_arrangement,applicant_scope,sponsorship_status,closes_at,status,access_level,data_ai_relevance_status,official_application_url,source_url').in('id',opportunityIds):{data:[] as Opportunity[],error:null};
+  const opportunityResult=opportunityIds.length?await reader.from('opportunities').select('id,title,organisation,summary,location,opportunity_type,work_arrangement,applicant_scope,sponsorship_status,closes_at,status,access_level,data_ai_relevance_status,official_application_url,source_url').in('id',opportunityIds):{data:[] as Opportunity[],error:null};
   const error=savedResult.error||opportunityResult.error;
   const opportunities=new Map(((opportunityResult.data||[])as Opportunity[]).map(item=>[item.id,item]));
   const rows:SavedRow[]=saved.map(row=>({...row,opportunities:opportunities.get(row.opportunity_id)||null})).filter(row=>row.opportunities);

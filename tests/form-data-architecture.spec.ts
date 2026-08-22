@@ -29,7 +29,7 @@ test.describe('canonical Mettelo readiness',()=>{
     const readiness=calculateMemberReadiness({profile:{...completeProfile,project_availability:'',weekly_capacity:''},domainCount:1,verifiedProofCount:0});
     expect(readiness.matchingReadiness.ready).toBe(true);
     expect(readiness.applicationReadiness.ready).toBe(false);
-    expect(readiness.applicationReadiness.missing.map(item=>item.key)).toEqual(expect.arrayContaining(['project_availability','weekly_capacity']));
+    expect(readiness.applicationReadiness.missing.map(item=>item.key)).toEqual(expect.arrayContaining(['availability','weekly_capacity']));
   });
 });
 

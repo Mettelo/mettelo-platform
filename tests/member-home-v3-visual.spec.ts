@@ -37,7 +37,8 @@ async function assertV4Home(page:Page,width:number,label:string){
   await expect(page.getByText('WHAT NEEDS YOU NOW',{exact:true})).toHaveCount(0);
   const overview=page.locator('[aria-label="Member overview"]');await expect(overview).toBeVisible();await expect(overview.locator(':scope > a')).toHaveCount(4);
   await expect(overview.getByText(/Recommendations?/,{exact:true})).toHaveCount(0);
-  await expect(page.locator('[aria-label="Profile completion"]')).toBeVisible();
+  await expect(page.getByRole('complementary',{name:'Profile completion'})).toBeVisible();
+  const completion=page.getByRole('progressbar',{name:'Profile completion'});await expect(completion).toBeVisible();await expect(completion).toHaveAttribute('aria-valuemin','0');await expect(completion).toHaveAttribute('aria-valuemax','100');
   await assertNoHorizontalOverflow(page,label);
 }
 

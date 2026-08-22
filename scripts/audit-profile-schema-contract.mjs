@@ -2,17 +2,19 @@ import fs from 'node:fs';
 
 const routePath='app/api/profile/route.ts';
 const migrationPath='supabase/migrations/20260819133000_profile_readiness.sql';
-const readinessPath='lib/profile-readiness.ts';
+const canonicalReadinessPath='lib/member-readiness.ts';
+const compatibilityPath='lib/profile-readiness.ts';
 
 const failures=[];
-for(const file of [routePath,migrationPath,readinessPath]){
+for(const file of [routePath,migrationPath,canonicalReadinessPath,compatibilityPath]){
   if(!fs.existsSync(file))failures.push(`Missing required profile contract file: ${file}`);
 }
 
 if(!failures.length){
   const route=fs.readFileSync(routePath,'utf8');
   const migration=fs.readFileSync(migrationPath,'utf8');
-  const readiness=fs.readFileSync(readinessPath,'utf8');
+  const canonical=fs.readFileSync(canonicalReadinessPath,'utf8');
+  const compatibility=fs.readFileSync(compatibilityPath,'utf8');
 
   const requiredColumns=[
     'portfolio_url','current_job_title','organisation','experience_level',
@@ -35,11 +37,20 @@ if(!failures.length){
     if(!migration.toLowerCase().includes(evidence.toLowerCase()))failures.push(`Canonical readiness migration is missing: ${evidence}`);
   }
 
-  if(!route.includes('profile_readiness:readiness.score'))failures.push('Profile save must persist the calculated readiness score.');
+  if(!route.includes('calculateMemberReadiness'))failures.push('Profile save must calculate the canonical member readiness result.');
+  if(!route.includes('profile_readiness:memberReadiness.legacyProfileReadiness'))failures.push('Profile save must persist the canonical compatibility readiness value.');
+  if(!canonical.includes('legacyProfileReadiness:completionPercentage'))failures.push('Compatibility profile_readiness must be derived from canonical profile completion.');
+  if(!route.includes('member_readiness:memberReadiness'))failures.push('Profile save must return the canonical readiness result to the client.');
   if(!route.includes("supabase.from('profiles').upsert"))failures.push('Profile save must remain idempotent for existing and historical members.');
-  if(!readiness.includes('PROFILE_APPLICATION_READY=85'))failures.push('Application readiness threshold must remain 85.');
-  if(!readiness.includes('PROFILE_INTEREST_READY=60'))failures.push('Interest readiness threshold must remain 60.');
-  if(/profile_readiness\s*[<>]=?\s*85/.test(route))failures.push('Profile editing must not be gated by the 85% readiness threshold.');
+
+  for(const requiredState of ['profileCompletion','matchingReadiness','applicationReadiness','publicProfileReadiness','proofStatus']){
+    if(!canonical.includes(requiredState))failures.push(`Canonical readiness domain must expose ${requiredState}.`);
+  }
+  if(!canonical.includes('verifiedProofCount'))failures.push('Canonical readiness must keep Verified Proof as a separate status input.');
+  if(!compatibility.includes('calculateMemberReadiness'))failures.push('Legacy profile-readiness compatibility facade must delegate to the canonical readiness domain.');
+
+  if(/profile_readiness\s*[<>]=?\s*\d+/.test(route))failures.push('Profile editing must never be gated by a persisted profile_readiness threshold.');
+  if(/PROFILE_(APPLICATION|INTEREST)_READY/.test(canonical))failures.push('Canonical readiness must not reintroduce legacy numeric eligibility thresholds.');
 }
 
 if(failures.length){

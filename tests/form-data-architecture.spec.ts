@@ -1,5 +1,5 @@
 import {expect,test} from '@playwright/test';
-import {calculateProfileReadiness,PROFILE_APPLICATION_READY,PROFILE_INTEREST_READY} from '../lib/profile-readiness';
+import {calculateMemberReadiness} from '../lib/member-readiness';
 
 const completeProfile={
   full_name:'Test Member',
@@ -19,18 +19,17 @@ const completeProfile={
 
 test.describe('canonical Mettelo readiness',()=>{
   test('full profile reaches application readiness without requiring Proof',()=>{
-    const readiness=calculateProfileReadiness({profile:completeProfile,domainCount:1,toolCount:2});
-    expect(readiness.score).toBe(95);
-    expect(readiness.applicationReady).toBe(true);
-    expect(readiness.score).toBeGreaterThanOrEqual(PROFILE_APPLICATION_READY);
+    const readiness=calculateMemberReadiness({profile:completeProfile,domainCount:1,toolCount:2,verifiedProofCount:0});
+    expect(readiness.applicationReadiness.ready).toBe(true);
+    expect(readiness.applicationReadiness.missing).toHaveLength(0);
+    expect(readiness.proofStatus.hasVerifiedProof).toBe(false);
   });
 
-  test('interest unlocks before full application readiness',()=>{
-    const readiness=calculateProfileReadiness({profile:{...completeProfile,bio:'',linkedin_url:'',project_availability:'',weekly_capacity:''},domainCount:1});
-    expect(readiness.score).toBe(60);
-    expect(readiness.interestReady).toBe(true);
-    expect(readiness.applicationReady).toBe(false);
-    expect(readiness.score).toBeGreaterThanOrEqual(PROFILE_INTEREST_READY);
+  test('matching can be ready while application requirements remain incomplete',()=>{
+    const readiness=calculateMemberReadiness({profile:{...completeProfile,project_availability:'',weekly_capacity:''},domainCount:1,verifiedProofCount:0});
+    expect(readiness.matchingReadiness.ready).toBe(true);
+    expect(readiness.applicationReadiness.ready).toBe(false);
+    expect(readiness.applicationReadiness.missing.map(item=>item.key)).toEqual(expect.arrayContaining(['availability','weekly_capacity']));
   });
 });
 

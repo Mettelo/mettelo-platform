@@ -11,17 +11,19 @@ expect('supabase/migrations/20260819193000_member_discover_application_integrity
 // Authenticated Discover must stay in My Mettelo and use real project-domain data only.
 expect('lib/member-navigation.ts',["{label:'Discover',href:'/member/discover'","{label:'Saved',href:'/member/saved'"]);
 expect('components/MemberAppShell.tsx',["href=\"/member/discover\"","isActive('/member/discover')",'hasProjectBreadcrumb']);
-expect('app/member/discover/page.tsx',[".from('projects')","project_roles(id,title,skills,openings)",".from('project_applications')",".from('project_members')",".from('saved_projects')",'resolveMemberProjectState','memberProjectCatalogueAction']);
-forbid('app/member/discover/page.tsx',['career_roles','career_applications','/careers/']);
+expect('app/member/discover/page.tsx',[".from('projects')","project_roles(id,title,skills,openings)",".from('project_applications')",".from('project_members')",".from('saved_projects')",'calculateMemberReadiness','applicationReadiness.ready','resolveMemberProjectState','memberProjectCatalogueAction']);
+forbid('app/member/discover/page.tsx',['career_roles','career_applications','/careers/','PROFILE_APPLICATION_READY']);
 expect('components/MemberDiscoverCatalogue.tsx',['Search projects, skills or topics','All roles','All skills','Any commitment','Any location','Discover is broad. Recommended is personalized.','View Recommended','mdFilterDialog','showModal()','aria-haspopup="dialog"']);
 
-// Member Project Detail is the authenticated decision surface; public page is secondary.
-expect('app/member/discover/[id]/page.tsx',[".in('visibility',['public','members'])",'PROFILE_APPLICATION_READY','project_members','role capacity lookup','resolveMemberProjectState']);
+// Member Project Detail is the authenticated decision surface and consumes canonical application readiness.
+expect('app/member/discover/[id]/page.tsx',[".in('visibility',['public','members'])",'calculateMemberReadiness','applicationReadiness.ready','applicationReadiness.missing','project_members','role capacity lookup','resolveMemberProjectState']);
+forbid('app/member/discover/[id]/page.tsx',['PROFILE_APPLICATION_READY']);
 expect('components/MemberProjectDetailClient.tsx',['MEMBER PROJECT DETAIL','Your status','OPEN PROJECT ROLES','Choose how you could contribute','What happens after applying','Track review in Applications','Move into Projects when confirmed','Enter Mettelo Lab when delivery opens','View public project page']);
 forbid('components/MemberProjectDetailClient.tsx',['career','Careers role','Open Mettelo Lab']);
 
-// The member form owns role/review/submit and public full-application UI converges into it.
-expect('app/member/discover/[id]/apply/page.tsx',['PROFILE_APPLICATION_READY','resolveMemberProjectState',"state!=='open_eligible'",'MemberProjectApplicationFlow']);
+// The member form owns role/review/submit and uses the same canonical application readiness result.
+expect('app/member/discover/[id]/apply/page.tsx',['calculateMemberReadiness','applicationReadiness.ready','resolveMemberProjectState',"state!=='open_eligible'",'MemberProjectApplicationFlow']);
+forbid('app/member/discover/[id]/apply/page.tsx',['PROFILE_APPLICATION_READY']);
 expect('components/MemberProjectApplicationFlow.tsx',['Role & fit','Availability','Your response','Review','terms_accepted:true','/api/project-applications','Application submitted','View application','Back to project','localStorage']);
 expect('components/ProjectApplicationForm.tsx',['Continue this project application inside My Mettelo.',"/member/discover/${selected.id}/apply"]);
 forbid('components/ProjectApplicationForm.tsx',["fetch('/api/project-applications'",'project_role_catalogue']);

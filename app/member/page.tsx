@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {mobileMoreNav} from '@/lib/member-navigation';
+import {calculateMemberReadiness} from '@/lib/member-readiness';
 import styles from './member-home-v3.module.css';
 import exploreStyles from './member-home-explore.module.css';
 
@@ -66,6 +67,7 @@ export default async function MemberHome(){
 
   const domainPrefs=((domainPrefsResult.data||[]) as unknown as Preference[]).map(item=>item.domains?.slug).filter((value):value is string=>Boolean(value));
   const toolPrefs=((toolPrefsResult.data||[]) as unknown as Preference[]).map(item=>item.tools?.slug).filter((value):value is string=>Boolean(value));
+  const memberReadiness=calculateMemberReadiness({profile,domainCount:domainPrefs.length,toolCount:toolPrefs.length,verifiedProofCount:proofResult.count||0});
   const recommendationCount=((recommendationProjectsResult.data||[]) as unknown as Project[]).filter(project=>{
     const projectDomains=(project.project_domains||[]).map(item=>item.domains?.slug).filter((value):value is string=>Boolean(value));
     const projectTools=(project.project_tools||[]).map(item=>item.tools?.slug).filter((value):value is string=>Boolean(value));
@@ -75,11 +77,9 @@ export default async function MemberHome(){
 
   const name=profile.full_name||user.user_metadata?.full_name||user.email?.split('@')[0]||'Member';
   const firstName=String(name).trim().split(/\s+/)[0]||'Member';
-  const profileChecks=[Boolean(profile.full_name),Boolean(profile.headline||profile.current_job_title||profile.professional_area),Boolean(Array.isArray(profile.skills)?profile.skills.length:profile.skills),Boolean(profile.project_availability)];
-  const profileCompleteCount=profileChecks.filter(Boolean).length;
-  const profilePercent=Math.round((profileCompleteCount/profileChecks.length)*100);
-  const profileReady=profilePercent===100;
-  const profileRemaining=profileChecks.length-profileCompleteCount;
+  const profilePercent=memberReadiness.profileCompletion.percentage;
+  const profileReady=memberReadiness.profileCompletion.complete;
+  const profileRemaining=memberReadiness.profileCompletion.missing.length;
   const now=Date.now();
   const overdueTask=tasks.find(task=>task.due_at&&new Date(task.due_at).getTime()<now);
   const blockedTask=tasks.find(task=>task.status==='blocked'||Boolean(task.blocker_reason));
@@ -99,7 +99,7 @@ export default async function MemberHome(){
   }:latestApplication&&latestApplicationMeta?.actionRequired?{
     label:'Up next · Application',title:`Continue ${one(latestApplication.projects)?.title||'your project'}`,text:latestApplicationMeta.meaning,href:labHref(latestApplication.project_id,latestApplication.project_run_id),cta:'Open Mettelo Lab'
   }:!profileReady?{
-    label:'Up next · Profile',title:'Complete the details that improve matching',text:`Your profile is ${profilePercent}% complete. Add the remaining detail${profileRemaining===1?'':'s'} to strengthen future recommendations and team formation.`,href:'/member/profile',cta:'Complete profile'
+    label:'Up next · Profile',title:'Complete your professional profile',text:`Your profile is ${profilePercent}% complete. Add the remaining detail${profileRemaining===1?'':'s'} so your professional context is complete and reusable across Mettelo.`,href:'/member/profile',cta:'Complete profile'
   }:{
     label:'Up next · Explore',title:recommendationCount?'Review work matched to your profile':'Find your next practical project',text:recommendationCount?`${recommendationCount} current project${recommendationCount===1?' matches':'s match'} your selected domains or tools.`:'Browse current projects when you are ready for another commitment.',href:recommendationCount?'/member/recommended':'/member/discover',cta:recommendationCount?'See recommendations':'Discover projects'
   };
@@ -120,7 +120,7 @@ export default async function MemberHome(){
   return <section className={`${styles.home} memberWorkspace`} aria-labelledby="member-home-title"><div className={styles.wrap}>
     <header className={styles.hero}>
       <div className={styles.welcome}><div className={styles.eyebrow}>MY METTELO · HOME</div><h1 id="member-home-title">Good to see you, {firstName}.</h1><p className={styles.heroText}>Your work, progress and next actions — in one place.</p></div>
-      <aside className={styles.profileMini} aria-label="Profile readiness"><div className={styles.profileMiniTop}><div className={styles.eyebrow}>PROFILE READINESS</div><strong>{profileReady?'Complete':`${profilePercent}% · ${profileRemaining} left`}</strong></div><div className={styles.meter} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={profilePercent} aria-label="Profile completeness"><span style={{width:`${profilePercent}%`}}/></div><p>{profileReady?'Your matching profile is complete.':'Complete the remaining details to improve matching.'}</p></aside>
+      <aside className={styles.profileMini} aria-label="Profile completion"><div className={styles.profileMiniTop}><div className={styles.eyebrow}>PROFILE COMPLETION</div><strong>{profileReady?'Complete':`${profilePercent}% · ${profileRemaining} left`}</strong></div><div className={styles.meter} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={profilePercent} aria-label="Profile completion"><span style={{width:`${profilePercent}%`}}/></div><p>{profileReady?'Your editable professional profile is complete.':'Complete the remaining profile details. Matching and application readiness are evaluated separately.'}</p></aside>
     </header>
 
     <section className={styles.upNext} aria-labelledby="up-next-heading"><div><div className={styles.eyebrow}>{upNext.label}</div><h2 id="up-next-heading">{upNext.title}</h2><p>{upNext.text}</p>{nextTask&&<div className={styles.chips}><span>{nextTask.status.replaceAll('_',' ')}</span>{nextTask.due_at&&<span>Due {dateLabel(nextTask.due_at)}</span>}{nextTask.blocker_reason&&<span>Blocker recorded</span>}</div>}</div><Link className={`${styles.button} ${styles.buttonLight}`} href={upNext.href}>{upNext.cta} →</Link></section>

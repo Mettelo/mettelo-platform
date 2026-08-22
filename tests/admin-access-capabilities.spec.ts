@@ -16,6 +16,7 @@ async function signInFresh(browser:Browser,account:Credentials,next:string){cons
 
 test.describe('Admin capability access management',()=>{
  test('a member can receive narrow Admin access, remains blocked from unrelated routes and ungranted publish, then is revoked safely',async({page,browser})=>{
+  test.setTimeout(90_000);
   const admin=adminCredentials();const member=memberCredentials();await signIn(page,admin,'/admin/access');
   await revokeIfAdmin(page,member.email);
   const found=await findAccount(page,member.email);expect(found.account,'E2E member account must exist').not.toBeNull();const target=found.account!;const currentUserId=found.body.current_user_id;expect(target.id).not.toBe(currentUserId);

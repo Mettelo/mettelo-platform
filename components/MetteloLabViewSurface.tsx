@@ -1,15 +1,18 @@
 'use client';
 
 import type {ReactNode} from 'react';
-import {useLayoutEffect,useRef} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {useSearchParams} from 'next/navigation';
 import type {LabView} from './MetteloLabNavigation';
 
 const valid:LabView[]=['home','plan','tasks','chat','data','proof','resources','events','team','more'];
+const LAB_VIEW_EVENT='mettelo-lab-view-change';
 const legacyChromeSelectors=[':scope > section.softSection > .shell > .sectionHead',':scope > section.softSection > .shell > .workspaceNav',':scope > section.softSection > .shell > .statBand'];
+function resolveView(raw:string|null):LabView{if(raw==='more')return'home';return valid.includes(raw as LabView)?raw as LabView:'home'}
 
 export default function MetteloLabViewSurface({children,className}:{children:ReactNode;className?:string}){
- const raw=useSearchParams().get('view');const view:LabView=valid.includes(raw as LabView)?raw as LabView:'home';const surfaceRef=useRef<HTMLDivElement>(null);
+ const params=useSearchParams();const [view,setView]=useState<LabView>(()=>resolveView(params.get('view')));const surfaceRef=useRef<HTMLDivElement>(null);
+ useEffect(()=>{const sync=()=>setView(resolveView(new URL(window.location.href).searchParams.get('view')));const custom=(event:Event)=>{const detail=(event as CustomEvent<{view?:LabView}>).detail;setView(detail?.view||resolveView(new URL(window.location.href).searchParams.get('view')))};window.addEventListener('popstate',sync);window.addEventListener(LAB_VIEW_EVENT,custom);return()=>{window.removeEventListener('popstate',sync);window.removeEventListener(LAB_VIEW_EVENT,custom)}},[]);
  useLayoutEffect(()=>{
   const surface=surfaceRef.current;if(!surface)return;
   // The project workspace predates Mettelo Lab and still renders its own hero,
@@ -23,7 +26,7 @@ export default function MetteloLabViewSurface({children,className}:{children:Rea
   }
  },[view]);
  return <>
-  <div ref={surfaceRef} className={className} data-lab-view={view} data-lab-surface>{children}</div>
+  <div ref={surfaceRef} className={className} data-lab-view={view} data-lab-surface>{children}<a data-lab-back href="/member#projects">← Back to My Mettelo</a></div>
   <style jsx global>{`
    [data-lab-surface] > section.softSection{padding:0!important;background:transparent!important}
    [data-lab-surface] > section.softSection > .shell{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}

@@ -5,8 +5,8 @@ on:
 
 permissions:
   actions: read
+  checks: write
   contents: read
-  statuses: write
 
 concurrency:
   group: release-gate-status-${{ github.event.pull_request.number }}
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Wait for exact-head Mettelo CI and publish protected status
+      - name: Wait for exact-head Mettelo CI and publish protected check
         uses: actions/github-script@v7
         with:
           script: |
@@ -52,20 +52,24 @@ jobs:
               }
 
               if (run.conclusion !== 'success') {
-                core.setFailed(`Mettelo CI #${run.run_number} completed with ${run.conclusion}; protected Release gate status will not be published.`);
+                core.setFailed(`Mettelo CI #${run.run_number} completed with ${run.conclusion}; protected Release gate check will not be published.`);
                 return;
               }
 
-              await github.rest.repos.createCommitStatus({
+              await github.rest.checks.create({
                 owner,
                 repo,
-                sha: headSha,
-                state: 'success',
-                context: 'Release gate',
-                description: 'Exact-head Mettelo CI release gate completed successfully',
-                target_url: run.html_url,
+                name: 'Release gate',
+                head_sha: headSha,
+                status: 'completed',
+                conclusion: 'success',
+                details_url: run.html_url,
+                output: {
+                  title: 'Release gate passed',
+                  summary: `Exact-head Mettelo CI #${run.run_number} completed successfully.`,
+                },
               });
-              core.info(`Published protected Release gate status for ${headSha} from Mettelo CI #${run.run_number}.`);
+              core.info(`Published protected Release gate check run for ${headSha} from Mettelo CI #${run.run_number}.`);
               return;
             }
 

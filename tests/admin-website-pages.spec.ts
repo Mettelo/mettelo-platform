@@ -37,7 +37,7 @@ test.describe('Admin Website public pages CMS',()=>{
 
  test('Privacy and Terms are governed legal pages with draft isolation and deliberate publication',async({page})=>{
   await signIn(page,'/admin/website/pages');const api=page.context().request;
-  await page.getByPlaceholder('Search public pages').fill('Privacy');await expect(page.getByRole('button',{name:/Privacy Policy/})).toBeVisible();await page.getByRole('button',{name:/Privacy Policy/}).click();await expect(page.getByText('LEGAL · PUBLIC PAGE')).toBeVisible();await expect(page.getByText('/privacy',{exact:true})).toBeVisible();
+  await page.getByPlaceholder('Search public pages').fill('Privacy');await expect(page.getByRole('button',{name:/Privacy Policy/})).toBeVisible();await page.getByRole('button',{name:/Privacy Policy/}).click();await expect(page.getByText('LEGAL · PUBLIC PAGE')).toBeVisible();await expect(page.locator('code').filter({hasText:'/privacy'})).toBeVisible();
   await page.getByPlaceholder('Search public pages').fill('Terms');await expect(page.getByRole('button',{name:/Terms of Use/})).toBeVisible();
 
   const pageKey='privacy';const response=await api.get(`/api/admin/website/pages?page=${pageKey}`);expect(response.status()).toBe(200);const current=await response.json();const originalDraft=clone(current.draft.payload as PagePayload);const originalPublished=clone(current.published.payload as PagePayload);const changed=clone(originalPublished);changed.values.section_1_title=`${originalPublished.values.section_1_title} LEGAL E2E`;

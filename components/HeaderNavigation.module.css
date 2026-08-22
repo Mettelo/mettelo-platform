@@ -32,6 +32,18 @@
   :global(body):has(.headerNavigation) :global(#main-content .contactGrid),
   :global(body):has(.headerNavigation) :global(#main-content .formShell),
   :global(body):has(.headerNavigation) :global(#main-content .homeSplit){grid-template-columns:minmax(0,1fr)!important}
+
+  /* Public menu rows use a different layer from the compact Explore/account controls.
+     Keep those resolved controls untouched and bring only the unresolved direct/about
+     rows onto the same accessible 48px rhythm. */
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary),
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary){padding-block:4px!important}
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary) :global(.mobileList),
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary) :global(.mobileList){display:grid!important;gap:0!important;margin:0!important}
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary) :global(.mobileList)>li,
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary) :global(.mobileList)>li{margin:0!important;padding:0!important;min-height:0!important}
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary) :global(.mobileNavLink),
+  .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary) :global(.mobileNavLink){min-height:48px!important;padding:10px 16px!important;margin:0!important;align-items:center!important;line-height:1.25!important}
 }
 
 @media(max-width:760px){

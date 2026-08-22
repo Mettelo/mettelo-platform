@@ -80,12 +80,12 @@ export function memberProjectPrimaryAction(state:MemberProjectState,projectId:st
 }
 
 export function memberProjectCatalogueAction(state:MemberProjectState,projectId:string){
-  // Discover is an exploration surface. Every project card first opens the exact
-  // member-owned project context rather than dropping the member on a generic
-  // portfolio page or the public acquisition experience.
-  if(['application_submitted','application_action_required','application_in_review','team_forming'].includes(state)){
-    return{label:'View application',href:'/member/applications'};
-  }
+  // Discover owns exploration. Once an application or project lifecycle exists,
+  // hand the member to the surface that owns that lifecycle instead of sending
+  // them back through discovery.
+  if(['application_submitted','application_action_required','application_in_review','team_forming'].includes(state))return{label:'View application',href:'/member/applications'};
+  if(state==='confirmed'||state==='active')return{label:'Open in Projects',href:'/member/projects'};
+  if(state==='completed')return{label:'View in Projects',href:'/member/projects?state=completed'};
   return{label:'View project',href:`/member/discover/${projectId}`};
 }
 

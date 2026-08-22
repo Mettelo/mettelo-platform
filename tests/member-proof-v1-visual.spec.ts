@@ -65,17 +65,17 @@ test('My Mettelo Proof preserves verification truth and approved responsive hier
 
     const desktopNav=page.getByRole('complementary',{name:'My Mettelo navigation'});
     const mobileNav=page.getByRole('navigation',{name:'My Mettelo mobile navigation'});
+    const profileAction=page.locator('a.proofButtonDark[href="/member/profile"]');
+    await expect(profileAction).toBeVisible();
     if(width<=480){
       await expect(desktopNav).toBeHidden();
       await expect(mobileNav).toBeVisible();
       await expect(mobileNav.locator('a[href="/member/proof"]')).toHaveAttribute('aria-current','page');
-      await expect(page.locator('.proofHeroActions')).toBeHidden();
       for(const item of await mobileNav.locator(':scope > a, :scope > details > summary').all()){const box=await item.boundingBox();expect(box?.height||0,`${width}px mobile navigation target`).toBeGreaterThanOrEqual(44)}
     }else{
       await expect(desktopNav).toBeVisible();
       await expect(mobileNav).toBeHidden();
       await expect(desktopNav.locator('a[href="/member/proof"]')).toHaveAttribute('aria-current','page');
-      await expect(page.locator('.proofHeroActions')).toBeVisible();
     }
 
     await noOverflow(page,`${width}px Proof`);

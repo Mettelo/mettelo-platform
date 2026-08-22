@@ -7,6 +7,7 @@ const shellStabilisation=read('app/member/projects/[id]/phase3-shell-stabilisati
 const mobileFixes=read('app/member/projects/[id]/phase4-mobile-fixes.module.css');
 const messageExperience=read('app/member/projects/[id]/phase5-chat-message-experience.module.css');
 const composerExperience=read('app/member/projects/[id]/phase6-chat-composer.module.css');
+const interactionPolish=read('app/member/projects/[id]/phase18-interaction-polish.module.css');
 const messagesCss=read('app/messages.css');
 const navigation=read('components/MetteloLabNavigation.tsx');
 const surface=read('components/MetteloLabViewSurface.tsx');
@@ -36,19 +37,23 @@ forbidText('Lab focus contract',homeCss,'outline:none');
 for(const token of ['--lab-shell-ink:','--lab-shell-surface:','--lab-shell-border:','--lab-shell-mobile-nav:70px'])requireText('Lab shell tokens',shellStabilisation,token);
 for(const contract of ['overflow-x:clip','max-width:100%','Mettelo Lab workspace','Mettelo Lab project context','Mettelo Lab mobile navigation','orientation:landscape','safe-area-inset-bottom'])requireText('Lab shell containment',shellStabilisation,contract);
 requireText('Lab shell attachment',mobileFixes,"composes:workspace from './phase3-shell-stabilisation.module.css'");
+requireText('Lab interaction attachment',layout,"import interactionPolish from './phase18-interaction-polish.module.css'");
+requireText('Lab interaction attachment',layout,'${interactionPolish.interactionPolish}');
+requireText('Lab regression attachment',layout,"import reportedRegressions from './phase18-reported-regressions.module.css'");
+requireText('Lab regression attachment',layout,'${reportedRegressions.reportedRegressions}');
 
-for(const contract of ['grid-template-rows:auto auto minmax(0,1fr) auto','position:relative!important','100dvh','overscroll-behavior:contain','max-height:min(22dvh,132px)','orientation:landscape'])requireText('Lab Chat layout architecture',mobileFixes,contract);
+for(const contract of ['grid-template-rows:auto auto minmax(0,1fr) auto','position:relative!important','100dvh','overscroll-behavior:contain','max-height:min(22dvh,132px)','orientation:landscape','--lab-chat-member-header:62px'])requireText('Lab Chat layout architecture',mobileFixes,contract);
 for(const stale of ['top:72px!important','bottom:calc(70px + env(safe-area-inset-bottom))!important','position:fixed!important'])forbidText('Lab Chat fixed viewport workaround',mobileFixes,stale);
 requireText('Lab Chat feed owner',mobileFixes,'.messageFeed');
 requireText('Lab Chat composer owner',mobileFixes,'.messageComposer');
 for(const contract of ['grid-template-columns:minmax(0,1fr) 36px!important','grid-column:1!important','grid-column:2!important','writing-mode:horizontal-tb!important'])requireText('Lab Chat mobile message columns',mobileFixes,contract);
 
-for(const contract of ['.messageMenu>summary{','width:34px;height:34px','position:absolute;right:0;bottom:calc(100% + 7px)','visibility:hidden','.messageMenu[open] .messageActions','word-break:normal','overflow-wrap:break-word','writing-mode:horizontal-tb','.messageBubble{width:min(72%,680px)','.messageFeed{display:flex;flex-direction:column;gap:12px'])requireText('Lab Chat refined message design',messagesCss,contract);
-for(const contract of ['.messageMenu>summary{width:44px;height:44px','position:fixed;left:12px;right:12px','font-size:16px;resize:none'])requireText('Lab Chat mobile interaction design',messagesCss,contract);
+for(const contract of ['.messageMenu>summary{','width:34px;height:34px','position:absolute;right:0;bottom:calc(100% + 7px)','visibility:hidden','.messageMenu[open] .messageActions','word-break:normal','overflow-wrap:break-word','writing-mode:horizontal-tb','.messageBubble{width:min(72%,680px)','.messageFeed{display:flex;flex-direction:column;gap:12px'])requireText('Lab Chat base message design',messagesCss,contract);
 forbidText('Lab Chat menu regression',messagesCss,'.messageActions{display:flex');
+for(const contract of ['.messageMenuTrigger','width:min(244px','min-height:44px','messageDeleteAction'])requireText('Lab Chat controlled compact actions',interactionPolish,contract);
 
 requireText('Lab Chat message experience attachment',mobileFixes,"composes:experience from './phase5-chat-message-experience.module.css'");
-for(const contract of ['--chat-message-text:','--chat-message-own:','.messageBubbleRow.own .messageBubble','.messageBubble.blocker','.messageBubble.decision','.messageLinkedItem','.messageBubble.failed','.messageBubble .deletedMessage','.messageBubble>p a','.messageMenu[open]>summary','@media(max-width:480px)'])requireText('Lab Chat message experience',messageExperience,contract);
+for(const contract of ['--chat-message-text:','--chat-message-own:','.messageBubbleRow.own .messageBubble','.messageBubble.blocker','.messageBubble.decision','.messageLinkedItem','.messageBubble.failed','.messageBubble .deletedMessage','.messageBubble>p a','@media(max-width:480px)'])requireText('Lab Chat message experience',messageExperience,contract);
 for(const contract of ['overflow-wrap:anywhere','font-variant-numeric:tabular-nums','min-height:20px','min-height:36px'])requireText('Lab Chat message resilience',messageExperience,contract);
 forbidText('Lab Chat message experience',messageExperience,'writing-mode:vertical');
 
@@ -62,15 +67,22 @@ forbidText('Lab Chat composer fixed viewport',composerExperience,'position:fixed
 requireText('Lab Chat keyboard contract',chat,"event.key==='Enter'&&!event.shiftKey");
 requireText('Lab Chat mention contract',chat,'Type @ to mention');
 requireText('Lab Chat disabled send contract',chat,'disabled={!body.trim()}');
+requireText('Lab Chat controlled action contract',chat,'openMenuId');
+requireText('Lab Chat outside dismissal contract',chat,"target?.closest('.messageMenu')");
 
 for(const label of ['Home','Plan','Tasks','Chat','Data','Proof','Resources','Events','Team'])requireText('desktop navigation',navigation,`label:'${label}'`);
 for(const label of ['Home','Tasks','Chat','Data'])requireText('mobile navigation',navigation,`label:'${label}'`);
-requireText('mobile navigation',navigation,"hrefFor('more')");
+requireText('mobile More trigger',navigation,'labMoreTrigger');
+requireText('mobile More drop-up',navigation,'labMoreDropupPanel');
+requireText('instant Lab navigation',navigation,'window.history.pushState');
+requireText('instant Lab navigation',navigation,'mettelo-lab-view-change');
+requireText('legacy More normalization',navigation,"if(raw==='more')return'home'");
 requireText('workspace identity',layout,'METTELO ECOSYSTEM');
 requireText('workspace identity',layout,'Mettelo Lab');
 forbidText('workspace identity',layout,'Project workspace');
 requireText('routed screen surface',layout,'MetteloLabViewSurface');
 requireText('routed screen surface',surface,'data-lab-view');
+requireText('routed screen surface',surface,"if(raw==='more')return'home'");
 requireText('routed screen surface',shellCss,'data-lab-view="home"');
 requireText('routed screen surface',shellCss,'data-lab-view="events"');
 requireText('routed screen surface',shellCss,'data-lab-view="team"');
@@ -100,12 +112,14 @@ requireText('Events',events,'NEXT EVENT');
 requireText('Events',events,'Mettelo Video');
 requireText('Events',events,'External Meeting');
 requireText('Events',events,'5 · Review & schedule');
+requireText('Events legend hardening',interactionPolish,'.journeyCard legend');
 requireText('Events API',eventApi,"meetingMode==='external'");
 requireText('Events API',eventApi,"parsed.protocol!=='https:'");
 requireText('Events API',eventApi,"provider=meetingMode==='external'?'external':'livekit'");
 for(const width of ['320','360','375','390','412','414','430','768','1024','1440'])requireText('Chromium viewport coverage',visualTest,`width:${width}`);
 for(const screen of ['home','plan','tasks','chat','data','proof','resources','events','team'])requireText('Chromium screen coverage',visualTest,`'${screen}'`);
 requireText('Chromium zoom coverage',visualTest,"fontSize='200%'");
+requireText('Chromium More drop-up coverage',visualTest,'More Mettelo Lab destinations');
 
 if(failures.length){console.error('Mettelo Lab workspace audit failed:\n'+failures.map(item=>`- ${item}`).join('\n'));process.exit(1)}
 console.log('Mettelo Lab workspace audit passed.');

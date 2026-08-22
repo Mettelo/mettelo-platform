@@ -90,16 +90,34 @@ Public-profile readiness requires:
 
 Public exposure additionally requires the member's explicit `is_public` preference.
 
+## Phase 2 Profile UX contract
+
+Phase 2 presents the canonical states without changing their business rules. The Profile experience must make the following understandable without asking a member to interpret one readiness score:
+
+1. **Who Mettelo thinks I am** — professional identity appears before readiness mechanics.
+2. **How complete my editable profile is** — Profile Completion remains a percentage and is labelled only as completion.
+3. **What I can do now** — Matching, Applications and Public Profile are separate capability cards with explicit ready/not-ready language.
+4. **What remains** — missing requirements are named in plain language and expose an Edit Profile action.
+5. **What I should do next** — one Best Next Action is selected from the canonical missing requirements.
+6. **What Proof means** — Verified Proof is visually separate and explicitly described as evidence earned through completed work, never as a default application gate.
+7. **How public visibility works** — being public-ready does not publish a member; `is_public` remains the explicit choice.
+8. **Editing is always available** — every readiness state retains a direct route into the existing ProfileEditor and Save profile flow.
+9. **Existing journeys stay intact** — Discover, Recommended, public-profile preview, profile links, profile save and member navigation keep their existing routes and behavior.
+10. **Responsive/accessibility quality** — the experience has no horizontal overflow across supported phone/tablet/desktop widths, primary edit actions remain usable, visible focus is retained and the page survives 200% text sizing.
+
+The static contract audit `scripts/audit-member-profile-readiness-v2.mjs` protects the Phase 2 hierarchy and semantics. Authenticated browser coverage in `tests/member-profile-readiness-v2-visual.spec.ts` validates the profile at 320, 360, 375, 390, 412, 430, 768, 1024, 1280, 1440 and 1920px, verifies Edit Profile and Save profile remain reachable, and checks 200% text sizing.
+
 ## Verification
 
-Phase 1 is not complete unless all required release gates are green on the exact PR head. Regression evidence includes:
+Phase 1 and Phase 2 are not complete unless all required release gates are green on the exact PR head. Regression evidence includes:
 
 - deterministic domain tests proving no-Proof application readiness and Proof-cannot-compensate cases;
 - architecture audit across all canonical consumers;
 - profile schema contract audit;
-- authenticated profile save and project journey coverage;
+- Phase 2 profile UX contract audit;
+- authenticated profile save, profile responsive UX and project journey coverage;
 - standard lint, typecheck, interaction, browser, isolated Supabase, Release gate and Deployment gate.
 
 ## Rollback
 
-The application can revert the Phase 1 integration while leaving the additive `profile_readiness` database column in place. The compatibility column is safe to retain because it is not the authority for capability eligibility.
+The application can revert the readiness integration and Profile UX while leaving the additive `profile_readiness` database column in place. The compatibility column is safe to retain because it is not the authority for capability eligibility.

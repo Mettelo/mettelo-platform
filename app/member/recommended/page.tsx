@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {redirect} from 'next/navigation';
 import SaveProjectButton from '@/components/SaveProjectButton';
 import {serviceDb} from '@/lib/project-flow';
-import {calculateProfileReadiness,PROFILE_APPLICATION_READY} from '@/lib/profile-readiness';
+import {calculateMemberReadiness} from '@/lib/member-readiness';
 import {memberProjectCatalogueAction,memberProjectStateLabel,projectAcceptsApplications,resolveMemberProjectState} from '@/lib/member-project-journey';
 import {eventRecommendationEligible,projectRecommendationEligible,projectRecommendationReason,recommendationRank,sortRecommendations,spotlightRecommendationEligible,textRecommendationReason,type RecommendationKind,type RecommendationProfile,type RecommendationReason} from '@/lib/member-recommendations';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
@@ -59,11 +59,10 @@ export default async function RecommendedPage(){
   if(!user)redirect('/signin?next=%2Fmember%2Frecommended');
   const now=Date.now();const nowIso=new Date(now).toISOString();
 
-  const [profileResult,domainPrefsResult,toolPrefsResult,proofResult,projectsResult,applicationsResult,membershipsResult,savedResult,eventsResult,spotlightsResult]=await Promise.all([
-    supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles,profile_readiness').eq('id',user.id).maybeSingle(),
+  const [profileResult,domainPrefsResult,toolPrefsResult,projectsResult,applicationsResult,membershipsResult,savedResult,eventsResult,spotlightsResult]=await Promise.all([
+    supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).maybeSingle(),
     supabase.from('profile_domain_preferences').select('domains(slug,name)').eq('user_id',user.id),
     supabase.from('profile_tool_preferences').select('tools(slug,name)').eq('user_id',user.id),
-    supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified'),
     supabase.from('projects').select('id,title,summary,status,project_type,applications_open,application_deadline,location,location_type,duration_weeks,weekly_commitment,project_roles(id,title,skills,openings),project_domains(domains(slug,name)),project_tools(tools(slug,name))').in('visibility',['public','members']).in('status',['recruiting','open','forming','active','review','completed']).order('created_at',{ascending:false}).limit(60),
     supabase.from('project_applications').select('id,project_id,status,project_run_id').eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}),
     supabase.from('project_members').select('project_id,project_run_id,membership_status,project_runs(status)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']),
@@ -81,9 +80,10 @@ export default async function RecommendedPage(){
     domains:domainPrefs,
     tools:toolPrefs
   };
-  const calculated=profileRow?calculateProfileReadiness({profile:profileRow,domainCount:domainPrefs.length,toolCount:toolPrefs.length,verifiedProofCount:proofResult.count||0}):{score:0};
-  const persisted=profileRow?.profile_readiness;const readiness=typeof persisted==='number'&&Number.isFinite(persisted)?persisted:calculated.score;
-  const applicationReady=readiness>=PROFILE_APPLICATION_READY;
+  const memberReadiness=calculateMemberReadiness({profile:profileRow||{},domainCount:domainPrefs.length,toolCount:toolPrefs.length});
+  const applicationReady=memberReadiness.applicationReadiness.ready;
+  const matchingReady=memberReadiness.matchingReadiness.ready;
+  const matchingMissing=memberReadiness.matchingReadiness.missing;
 
   const applications=(applicationsResult.data||[]) as unknown as Application[];const memberships=(membershipsResult.data||[]) as unknown as Membership[];
   const latestApplication=new Map<string,Application>();for(const item of applications){if(!latestApplication.has(item.project_id))latestApplication.set(item.project_id,item)}
@@ -117,7 +117,6 @@ export default async function RecommendedPage(){
     const meta=[titleCase(event.delivery_mode),dateLabel(event.starts_at),timeLabel(event.starts_at),event.location_label].filter((value):value is string=>Boolean(value));
     return [{id:event.id,kind:'event' as const,title:event.title,summary:event.summary||event.description||'Open the event details for the confirmed session information.',reason,rank:recommendationRank({kind:'event',reason,date:event.starts_at,now}),href:`/events/${event.slug}`,actionLabel:'View event',meta}];
   });
-
   const spotlightCards:CardItem[]=((spotlightsResult.data||[]) as SpotlightItem[]).flatMap(item=>{
     if(!spotlightRecommendationEligible({status:item.status,isExcluded:item.is_excluded,consentStatus:item.consent_status,id:item.id}))return [];
     const reason=textRecommendationReason(profile,{title:item.title,summary:item.summary});if(!reason)return [];
@@ -135,7 +134,7 @@ export default async function RecommendedPage(){
       <Link className={styles.button} href="/member/discover">Browse Discover</Link>
     </header>
 
-    <section className={styles.contextCard} aria-label="Recommendation context"><div className={styles.contextIcon} aria-hidden="true">Me</div><div><strong>Your recommendations use what you&apos;ve shared with Mettelo</strong><p>Skills, interests, preferred roles and availability can help make these suggestions more useful.</p></div><Link className={styles.button} href="/member/profile">Update profile</Link></section>
+    <section className={styles.contextCard} aria-label="Recommendation context"><div className={styles.contextIcon} aria-hidden="true">Me</div><div><strong>{matchingReady?'Your matching profile is ready':`${matchingMissing.length} matching requirement${matchingMissing.length===1?'':'s'} remaining`}</strong><p>{matchingReady?'Skills, project interests and preferred roles give Mettelo enough context to make useful recommendations.':matchingMissing.map(item=>item.label).join(' ')}</p></div><Link className={styles.button} href="/member/profile">Update profile</Link></section>
 
     {profileUnavailable?<section className={styles.empty} role="alert"><h2>We couldn&apos;t load your recommendations</h2><p>Your profile signals are temporarily unavailable, so Mettelo will not guess what is relevant.</p><div className={styles.emptyActions}><Link className={`${styles.button} ${styles.primary}`} href="/member/recommended">Try again</Link><Link className={styles.button} href="/member/discover">Browse Discover</Link></div></section>:all.length?<>
       <section className={styles.section} aria-labelledby="top-picks-heading"><div className={styles.sectionHead}><div><div className={styles.eyebrow}>TOP PICKS</div><h2 id="top-picks-heading">Most relevant right now</h2><p>A small mix of things worth looking at first.</p></div></div><div className={styles.topGrid}>{topPicks.map(item=><RecommendationCard item={item} featured key={keyOf(item)}/>)}</div></section>

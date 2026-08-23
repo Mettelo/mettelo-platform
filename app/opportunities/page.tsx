@@ -5,6 +5,7 @@ import {getPublicWebsiteCmsPage} from '@/lib/website-pages-cms';
 import './opportunities.css';
 import './opportunity-card-polish.css';
 import './opportunity-mobile-filters.css';
+import './opportunity-accessibility-reflow.css';
 
 export const metadata:Metadata={title:'Data & AI Opportunities',description:'Explore current Data & AI jobs, internships, graduate roles, fellowships, apprenticeships and volunteering opportunities with useful context on location, eligibility, remote work and sponsorship.'};
 export const dynamic='force-dynamic';

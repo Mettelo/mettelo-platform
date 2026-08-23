@@ -6,9 +6,10 @@ type AppEvent={id:string;application_id:string;from_status:string|null;to_status
 type Formation={filled:number;threshold:number;status:string;is_full:boolean;kickoff_at:string|null;forming_deadline:string|null;run_number:number|null};
 type Application={id:string;status:string;submitted_at:string;updated_at:string;project_id:string;project_run_id?:string|null;application_kind?:string;requested_role?:string|null;projects:{title:string;status?:string;project_type?:string}|null;project_roles:{title:string}|null;formation?:Formation|null;events?:AppEvent[]};
 type ViewState='current'|'needs'|'closed'|'all';
-type CardState='review'|'forming'|'confirmed'|'paused'|'closed';
+type CardState='action'|'review'|'forming'|'confirmed'|'paused'|'closed';
 
-const labels:Record<string,string>={submitted:'Submitted',in_review:'In review',shortlisted:'Shortlisted',approved:'Team forming',accepted:'Team forming',waiting_for_team:'Team forming',team_complete:'Project confirmed',declined:'Not selected',withdrawn:'Withdrawn'};
+const labels:Record<string,string>={submitted:'Submitted',in_review:'In review',shortlisted:'Shortlisted',action_required:'Action required',needs_changes:'Changes requested',approved:'Team forming',accepted:'Team forming',waiting_for_team:'Team forming',team_complete:'Project confirmed',declined:'Not selected',withdrawn:'Withdrawn'};
+const actionRequiredStates=new Set(['action_required','needs_changes']);
 const reviewStates=new Set(['submitted','in_review','shortlisted']);
 const formingStates=new Set(['approved','accepted','waiting_for_team']);
 const closedStates=new Set(['declined','withdrawn']);
@@ -22,19 +23,21 @@ function isPaused(item:Application){return item.formation?.status==='paused'}
 function isConfirmed(item:Application){return !isPaused(item)&&(item.status==='team_complete'||item.projects?.status==='active'||item.formation?.status==='active')}
 function isForming(item:Application){return isPaused(item)||formingStates.has(item.status)}
 function isClosed(item:Application){return closedStates.has(item.status)||item.projects?.status==='cancelled'}
-function cardState(item:Application):CardState{if(isClosed(item))return'closed';if(isConfirmed(item))return'confirmed';if(isPaused(item))return'paused';if(isForming(item))return'forming';return'review'}
-function statusLabel(item:Application){if(item.projects?.status==='cancelled')return'Project cancelled';const state=cardState(item);if(state==='confirmed')return'✓ Project confirmed';if(state==='forming')return'◷ Team forming';if(state==='paused')return'◷ Team paused';if(state==='closed')return timelineLabel(item.status);return'● In review'}
+function needsAction(item:Application){return actionRequiredStates.has(item.status)&&!isClosed(item)&&!isConfirmed(item)&&!isForming(item)}
+function cardState(item:Application):CardState{if(isClosed(item))return'closed';if(isConfirmed(item))return'confirmed';if(isPaused(item))return'paused';if(isForming(item))return'forming';if(needsAction(item))return'action';return'review'}
+function statusLabel(item:Application){if(item.projects?.status==='cancelled')return'Project cancelled';const state=cardState(item);if(state==='confirmed')return'✓ Project confirmed';if(state==='forming')return'◷ Team forming';if(state==='paused')return'◷ Team paused';if(state==='action')return'! '+timelineLabel(item.status);if(state==='closed')return timelineLabel(item.status);return'● In review'}
 function applicationCopy(item:Application){
   const state=cardState(item);
-  if(state==='confirmed')return{body:'Your application has successfully become project work. Ongoing status and access now live in Projects.',sideLabel:'NEXT DESTINATION',sideTitle:'Continue in Projects',sideBody:'Projects is now the source of truth for this work.'};
-  if(state==='forming')return{body:'You’ve progressed beyond application review. Mettelo is forming the delivery team before the project becomes active.',sideLabel:'WHAT HAPPENS NEXT',sideTitle:'Mettelo is forming the team',sideBody:'When your team and delivery run are confirmed, this work will move into Projects.'};
+  if(state==='confirmed')return{body:'Your application has become confirmed project work. Continue in Projects for the latest project information and access.',sideLabel:'WHAT HAPPENS NEXT',sideTitle:'Continue in Projects',sideBody:'Your place is confirmed. Continue to Projects for the latest project information and access.'};
+  if(state==='forming')return{body:'Your application has progressed beyond review and Mettelo is forming the delivery team before the project becomes active.',sideLabel:'WHAT HAPPENS NEXT',sideTitle:'Mettelo is forming the team',sideBody:'No action is needed right now. We’ll update this application when the team status changes.'};
   if(state==='paused')return{body:'Your project team is temporarily paused. Mettelo will update you when the delivery plan changes.',sideLabel:'WHAT HAPPENS NEXT',sideTitle:'The team is temporarily paused',sideBody:'There is nothing you need to do while Mettelo reviews the delivery plan.'};
+  if(state==='action')return{body:item.status==='needs_changes'?'Your application needs an update before it can continue. Open the application to review what needs to change.':'Your application needs your attention before it can continue.',sideLabel:'ACTION REQUIRED',sideTitle:item.status==='needs_changes'?'Update your application':'Review the required action',sideBody:'Open this application to see what you need to do next.'};
   if(state==='closed'&&item.projects?.status==='cancelled')return{body:'This project did not move forward. The project was cancelled; this is different from a decision not to select your application.',sideLabel:'HISTORY',sideTitle:'Project cancelled',sideBody:'No further project-participation action is required.'};
   if(state==='closed')return{body:'This application is closed.',sideLabel:'HISTORY',sideTitle:timelineLabel(item.status),sideBody:'Application history remains available here.'};
-  return{body:'Mettelo is reviewing your project application. We’ll update this page when the application changes or if anything is needed from you.',sideLabel:'CURRENT STAGE',sideTitle:'Application review',sideBody:'There is nothing you need to do while review is in progress.'};
+  return{body:'Mettelo is reviewing your project application. We’ll update this page if the status changes or you need to do anything.',sideLabel:'CURRENT STAGE',sideTitle:'Application review',sideBody:'No action is needed while review is in progress.'};
 }
 function timelineFor(item:Application):AppEvent[]{return item.events?.length?item.events:[{id:`submitted-${item.id}`,application_id:item.id,from_status:null,to_status:'submitted',created_at:item.submitted_at}]}
-function needsCopy(count:number){if(count===0)return'No applications are waiting for your response';if(count===1)return'One application is waiting for your response';return`${count} applications are waiting for your response`}
+function needsCopy(count:number){if(count===0)return'No applications need your attention';if(count===1)return'One application needs your attention';return`${count} applications need your attention`}
 
 export default function MemberApplicationTracker({applications}:{applications:Application[]}){
   const [items,setItems]=useState(applications);
@@ -52,7 +55,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
 
   const roles=useMemo(()=>[...new Set(items.map(roleOf).filter((value):value is string=>Boolean(value)))].sort((a,b)=>a.localeCompare(b)),[items]);
   const counts=useMemo(()=>({
-    needs:0,
+    needs:items.filter(needsAction).length,
     review:items.filter(item=>reviewStates.has(item.status)&&!isClosed(item)&&!isConfirmed(item)&&!isForming(item)).length,
     forming:items.filter(item=>isForming(item)&&!isConfirmed(item)&&!isClosed(item)).length,
     closed:items.filter(item=>isClosed(item)).length
@@ -63,7 +66,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
     const haystack=`${item.projects?.title||''} ${itemRole||''} ${statusLabel(item)}`.toLowerCase();
     const matchesQuery=!query.trim()||haystack.includes(query.trim().toLowerCase());
     const matchesRole=role==='all'||itemRole===role;
-    const matchesView=view==='all'||(view==='needs'?false:view==='closed'?isClosed(item):!isClosed(item));
+    const matchesView=view==='all'||(view==='needs'?needsAction(item):view==='closed'?isClosed(item):!isClosed(item));
     return matchesQuery&&matchesRole&&matchesView;
   }),[items,query,role,view]);
 
@@ -109,16 +112,16 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
       <select className="mmaSelect" aria-label="Filter by applied project role" value={role} onChange={event=>setRole(event.target.value)}><option value="all">All roles</option>{roles.map(value=><option value={value} key={value}>{value}</option>)}</select>
     </section>
 
-    {view==='needs'&&<section className="mmaEmpty" aria-live="polite"><h3>Nothing needs your attention</h3><p>There are no project-application actions waiting for you right now.</p></section>}
+    {view==='needs'&&filtered.length===0&&<section className="mmaEmpty" aria-live="polite"><h3>Nothing needs your attention</h3><p>There are no project-application actions waiting for you right now.</p></section>}
     {view!=='needs'&&filtered.length===0&&<section className="mmaEmpty" aria-live="polite"><h3>No applications match these filters</h3><p>Try a different state, applied role or search term.</p><button className="mmaBtn mmaPrimary" type="button" onClick={reset}>Clear filters</button></section>}
 
     {current.length>0&&<section className="mmaSection" aria-labelledby="applications-progress-title">
-      <div className="mmaSectionHead"><div><div className="mmaEyebrow">IN PROGRESS</div><h2 id="applications-progress-title">Applications moving forward</h2><p>Passive states stay calm. When nothing is required from you, the page says so clearly.</p></div><span className="mmaCount">{current.length} {current.length===1?'application':'applications'}</span></div>
+      <div className="mmaSectionHead"><div><div className="mmaEyebrow">IN PROGRESS</div><h2 id="applications-progress-title">Applications moving forward</h2><p>See which applications are progressing, what each status means and whether you need to take action.</p></div><span className="mmaCount">{current.length} {current.length===1?'application':'applications'}</span></div>
       <div className="mmaAppList">{current.map(item=><CurrentCard key={item.id} item={item} onOpen={openApplication}/>)}</div>
     </section>}
 
     {closed.length>0&&<section className="mmaSection" aria-labelledby="application-history-title">
-      <div className="mmaSectionHead"><div><div className="mmaEyebrow">APPLICATION HISTORY</div><h2 id="application-history-title">Closed applications</h2><p>Resolved applications remain available without competing visually with current work.</p></div><span className="mmaCount">{closed.length} {closed.length===1?'application':'applications'}</span></div>
+      <div className="mmaSectionHead"><div><div className="mmaEyebrow">APPLICATION HISTORY</div><h2 id="application-history-title">Closed applications</h2><p>Review applications that have been withdrawn, closed or not progressed.</p></div><span className="mmaCount">{closed.length} {closed.length===1?'application':'applications'}</span></div>
       <div className="mmaAppList">{closed.slice(0,historyLimit).map(item=><HistoryCard key={item.id} item={item} onOpen={openApplication}/>)}</div>
       {closed.length>historyLimit&&<button className="mmaBtn mmaShowMore" type="button" onClick={()=>setHistoryLimit(value=>value+6)}>Show more history</button>}
     </section>}
@@ -131,7 +134,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
         <div className="mmaDialogHead"><div><div className="mmaEyebrow">PROJECT APPLICATION</div><h2 id="mma-dialog-title">{selected.projects?.title||'Application'}</h2></div><button className="mmaDialogClose" type="button" aria-label="Close application detail" onClick={closeDialog}>×</button></div>
         <div className="mmaDialogBody">
           <div className="mmaDetailGrid">
-            <div className="mmaDetail"><small>Current state</small><strong>{statusLabel(selected).replace(/^[✓●◷]\s*/,'')}</strong></div>
+            <div className="mmaDetail"><small>Current state</small><strong>{statusLabel(selected).replace(/^[✓●◷!]\s*/,'')}</strong></div>
             {roleOf(selected)&&<div className="mmaDetail"><small>Applied project role</small><strong>{roleOf(selected)}</strong></div>}
             <div className="mmaDetail"><small>Application date</small><strong>{date(selected.submitted_at)}</strong></div>
             <div className="mmaDetail"><small>What happens next</small><strong>{applicationCopy(selected).sideBody}</strong></div>
@@ -149,9 +152,9 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
 }
 
 function CurrentCard({item,onOpen}:{item:Application;onOpen:(item:Application)=>void}){
-  const state=cardState(item);const copy=applicationCopy(item);const confirmed=state==='confirmed';const forming=state==='forming';const paused=state==='paused';const itemRole=roleOf(item);
+  const state=cardState(item);const copy=applicationCopy(item);const confirmed=state==='confirmed';const forming=state==='forming';const paused=state==='paused';const actionRequired=state==='action';const itemRole=roleOf(item);
   const cardClass=['mmaApplicationCard',forming?'mmaForming':'',confirmed?'mmaConfirmed':'',paused?'mmaPaused':''].filter(Boolean).join(' ');
-  const statusClass=['mmaStatus',state==='review'?'mmaReview':forming?'mmaFormingStatus':confirmed?'mmaConfirmedStatus':'mmaPausedStatus'].join(' ');
+  const statusClass=['mmaStatus',state==='review'||actionRequired?'mmaReview':forming?'mmaFormingStatus':confirmed?'mmaConfirmedStatus':'mmaPausedStatus'].join(' ');
   return <article className={cardClass}>
     <div className="mmaCardMain">
       <span className={statusClass}>{statusLabel(item)}</span>
@@ -162,12 +165,13 @@ function CurrentCard({item,onOpen}:{item:Application;onOpen:(item:Application)=>
         <span>{confirmed?'Confirmed':item.application_kind==='interest'?'Registered':'Applied'} {date(confirmed?item.updated_at:item.submitted_at)}</span>
         {forming&&<span>Team not yet confirmed</span>}
       </div>
-      {!confirmed&&<div className="mmaNoAction"><span aria-hidden="true">✓</span> {paused?'No action needed while the team is paused':forming?'No action needed right now':'No action needed'}</div>}
-      {confirmed&&<div className="mmaHandoff"><span className="mmaHandoffIcon" aria-hidden="true">→</span><div><strong>This application has handed off to Projects</strong><p>Application history remains here. Delivery now belongs in Projects, then Mettelo Lab when ready.</p></div></div>}
+      {!confirmed&&!actionRequired&&<div className="mmaNoAction"><span aria-hidden="true">✓</span> {paused?'No action needed while the team is paused':forming?'No action needed right now':'No action needed'}</div>}
+      {actionRequired&&<div className="mmaNoAction"><span aria-hidden="true">!</span> Action required before this application can continue</div>}
+      {confirmed&&<div className="mmaHandoff"><span className="mmaHandoffIcon" aria-hidden="true">→</span><div><strong>Continue this work in Projects</strong><p>Your application history stays here. Projects now contains the latest project information and access.</p></div></div>}
     </div>
     <aside className="mmaActionbox" aria-label={`Actions for ${item.projects?.title||'project application'}`}>
       <small>{copy.sideLabel}</small><strong>{copy.sideTitle}</strong><p>{copy.sideBody}</p>
-      <div className="mmaActions">{confirmed&&<a className="mmaBtn mmaPrimary" href="/member/projects">Open in Projects →</a>}<button className="mmaBtn" type="button" onClick={()=>onOpen(item)}>{confirmed?'View history':'View application'}</button></div>
+      <div className="mmaActions">{confirmed&&<a className="mmaBtn mmaPrimary" href="/member/projects">Open in Projects →</a>}<button className={`mmaBtn${actionRequired?' mmaPrimary':''}`} type="button" onClick={()=>onOpen(item)}>{confirmed?'View history':actionRequired?'Review action':'View application'}</button></div>
     </aside>
   </article>;
 }

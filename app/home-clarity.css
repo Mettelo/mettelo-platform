@@ -39,11 +39,14 @@
   .homeFinalSection{padding:44px 0 62px}.homeFinalSection .ctaBand{display:block;padding:24px!important;border-radius:16px}.homeFinalSection .ctaBand h2{font-size:2.2rem}.homeFinalSection .actions{display:grid;gap:10px;margin-top:22px}.homeFinalSection .actions .button{width:100%;justify-content:center}.homeFinalSection .actions .linkArrow{text-align:center;padding:8px}
 
   /* Reflow long CMS-managed and emphasis text at 200% without clipping content. */
-  .homeHeroClarity h1,.homeProofSection h2,.homeDataAiSection h2,.homeDataAiSection h3,.homeProofSection p,.homeDataAiSection p,.homeDataAiSection strong,.homeProofSection strong{max-width:100%!important;min-width:0!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
-  .homeProofSection .homeSplit,.homeProofSection .proofStory,.homeDataAiSection .shell,.homeDataAiIntro,.homeDataAiIntro>div{width:100%!important;max-width:100%!important;min-width:0!important}
-  .homeProofSection .homeSplit{grid-template-columns:minmax(0,1fr)!important}
-  .homeProofSection .proofStory h2,.homeDataAiIntro h2{width:100%!important}
-  .homeDataAiIntro>div:last-child p,.homeDataAiIntro>div:last-child strong{overflow-wrap:anywhere!important}
+  .homeHeroClarity h1,.homeProofSection h2,.homeDataAiSection h2,.homeDataAiSection h3,.homeProofSection p,.homeDataAiSection p,.homeDataAiSection strong,.homeProofSection strong,.homeOrganisationSection h2,.homeOrganisationSection h3,.homeOrganisationSection p,.homeOrganisationSection strong,.homeWhySection h2,.homeWhySection p,.homeWhySection strong{max-width:100%!important;min-width:0!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
+  .homeProofSection .homeSplit,.homeProofSection .proofStory,.homeDataAiSection .shell,.homeDataAiIntro,.homeDataAiIntro>div,.homeOrganisationSection .shell,.homeOrganisationGrid,.homeOrganisationStory,.organisationRoutes,.organisationRoutes article,.homeWhySection .shell,.homeWhyGrid,.homeWhyGrid>div,.signalPath,.signalPath li{width:100%!important;max-width:100%!important;min-width:0!important}
+  .homeProofSection .homeSplit,.homeOrganisationGrid,.homeWhyGrid{grid-template-columns:minmax(0,1fr)!important}
+  .homeProofSection .proofStory h2,.homeDataAiIntro h2,.homeOrganisationStory h2,.homeWhyGrid h2{width:100%!important}
+  .homeDataAiIntro>div:last-child p,.homeDataAiIntro>div:last-child strong,.homeOrganisationStory p,.homeOrganisationStory strong,.homeWhyGrid p,.homeWhyGrid strong,.organisationRoutes p,.organisationRoutes strong,.signalPath strong{overflow-wrap:anywhere!important}
+  .homeOrganisationSection,.homeWhySection{max-width:100%!important;overflow-x:clip!important}
+  .organisationRoutes article{grid-template-columns:32px minmax(0,1fr)!important;gap:10px!important}
+  .signalPath li{grid-template-columns:32px minmax(0,1fr)!important;gap:10px!important;padding:10px 12px!important}
 }
 
 @media(max-width:360px){.homeHeroClarity .heroMetrics{grid-template-columns:1fr!important}.proofPrinciples{grid-template-columns:1fr}}

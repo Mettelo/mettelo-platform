@@ -5,14 +5,11 @@
   html,
   body:has(.adminApp),
   body:has(.adminApp) > #main-content {
-    min-width: 0 !important;
-    max-width: 100% !important;
-    overflow-x: clip !important;
-  }
-
-  body:has(.adminApp) > #main-content {
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
     box-sizing: border-box !important;
+    overflow-x: hidden !important;
   }
 
   .adminApp {
@@ -20,7 +17,7 @@
     min-width: 0 !important;
     max-width: 100vw !important;
     box-sizing: border-box !important;
-    overflow-x: clip !important;
+    overflow-x: hidden !important;
   }
 
   .adminTop {
@@ -40,21 +37,26 @@
   .adminBody {
     width: 100% !important;
     min-width: 0 !important;
-    max-width: 100% !important;
+    max-width: 100vw !important;
     grid-template-columns: minmax(0, 210px) minmax(0, 1fr) !important;
-    overflow-x: clip !important;
+    overflow-x: hidden !important;
   }
 
-  .adminBody > *,
+  .adminBody > * {
+    min-width: 0 !important;
+  }
+
+  .adminNav {
+    min-width: 0 !important;
+    max-width: 210px !important;
+  }
+
   .adminContent {
+    width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
-  }
-
-  .adminContent {
-    width: auto !important;
-    overflow-x: clip !important;
-    contain: inline-size;
+    overflow-x: hidden !important;
+    contain: layout paint inline-size;
   }
 
   .adminContent > .section,
@@ -66,7 +68,7 @@
 
   .adminContent > .section {
     width: 100% !important;
-    overflow-x: clip !important;
+    overflow-x: hidden !important;
   }
 
   .adminContent > .section > .shell {
@@ -79,14 +81,15 @@
     max-width: 100% !important;
   }
 
-  /* AdminProjectManager is itself a grid. Inline-size containment prevents
-     its intentionally wide table from becoming the Admin document's intrinsic size. */
+  /* AdminProjectManager is itself a grid. Contain layout and paint here so
+     the intentionally wide operations table cannot become the document's
+     intrinsic width. Horizontal scrolling remains local to adminTableWrap. */
   .adminContent .adminProjectsTable {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
     inline-size: 100% !important;
-    contain: inline-size;
+    contain: layout paint inline-size;
     overflow: hidden !important;
   }
 
@@ -124,8 +127,10 @@
   .adminContent .adminTableWrap {
     display: block !important;
     width: 100% !important;
+    max-width: 100% !important;
     overflow-x: auto !important;
     overflow-y: visible !important;
+    contain: layout paint;
     overscroll-behavior-inline: contain;
     -webkit-overflow-scrolling: touch;
   }

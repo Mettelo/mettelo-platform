@@ -12,15 +12,15 @@ export const SEO_PAGE_ROUTES:Record<WebsiteSeoPageKey,string>={home:'/',about:'/
 export const SEO_PAGE_LABELS:Record<WebsiteSeoPageKey,string>={home:'Homepage',about:'About',contact:'Contact'};
 
 export const DEFAULT_GLOBAL_SEO:GlobalSeoConfig={
- site_name:'Mettelo',title_template:'%s | Mettelo',default_title:'Mettelo — Build experience through real work. Turn it into Proof.',
- default_description:'Mettelo helps Information Technology, Data & AI professionals build experience through real work, make contributions visible and turn reviewed evidence into credible professional Proof.',
- default_og_title:'Mettelo — Real work. Visible contribution. Credible Proof.',default_og_description:'For Information Technology, Data & AI professionals: build through real work, capture contribution and evidence, complete review and strengthen professional credibility with Mettelo Proof.',default_og_image:'/og-image.svg',
- twitter_title:'Mettelo — Real work. Visible contribution. Credible Proof.',twitter_description:'Build experience through real work and turn reviewed contribution evidence into Mettelo Proof.',twitter_image:'/og-image.svg',google_site_verification:'',bing_site_verification:'',
- organisation_name:'Mettelo',organisation_description:'Professional capability infrastructure for Information Technology, Data & AI professionals, connecting real work, contribution evidence, review, Mettelo Proof and opportunity.',organisation_logo_url:'/mettelo-logo-dark.svg'
+ site_name:'Mettelo',title_template:'%s | Mettelo',default_title:'Mettelo — Real work. Visible contribution. Credible Proof.',
+ default_description:'Mettelo helps Information Technology, Data & AI professionals build experience through real work, make contributions visible and build credible Mettelo Proof from reviewed contribution evidence.',
+ default_og_title:'Mettelo — Real work. Visible contribution. Credible Proof.',default_og_description:'For IT, Data & AI professionals: build through real work, record contribution and supporting evidence, complete review and strengthen professional credibility with Mettelo Proof.',default_og_image:'/og-image.svg',
+ twitter_title:'Mettelo — Real work. Visible contribution. Credible Proof.',twitter_description:'Build experience through real work and build Mettelo Proof from reviewed contribution evidence.',twitter_image:'/og-image.svg',google_site_verification:'',bing_site_verification:'',
+ organisation_name:'Mettelo',organisation_description:'Professional capability infrastructure for Information Technology, Data & AI professionals, connecting real work, contribution evidence, review, Mettelo Proof and relevant routes forward.',organisation_logo_url:'/mettelo-logo-dark.svg'
 };
 export const DEFAULT_PAGE_SEO:Record<WebsiteSeoPageKey,PageSeoConfig>={
  home:{title:DEFAULT_GLOBAL_SEO.default_title,description:DEFAULT_GLOBAL_SEO.default_description,canonical:'/',og_title:DEFAULT_GLOBAL_SEO.default_og_title,og_description:DEFAULT_GLOBAL_SEO.default_og_description,og_image:'/og-image.svg',index:true,follow:true},
- about:{title:'About Mettelo',description:'Mettelo is a technology-led organisation building professional capability infrastructure for Information Technology, Data & AI professionals across Africa and beyond.',canonical:'/about',og_title:'About Mettelo',og_description:'Professional capability infrastructure connecting real work, contribution evidence, review and Mettelo Proof for Information Technology, Data & AI professionals.',og_image:'/og-image.svg',index:true,follow:true},
+ about:{title:'About Mettelo',description:'Mettelo is a technology-led organisation building professional capability infrastructure for Information Technology, Data & AI professionals across Africa and beyond.',canonical:'/about',og_title:'About Mettelo',og_description:'Professional capability infrastructure connecting real work, contribution evidence, review and Mettelo Proof for IT, Data & AI professionals.',og_image:'/og-image.svg',index:true,follow:true},
  contact:{title:'Contact us',description:'Contact Mettelo about membership, projects, events, media, support or general enquiries.',canonical:'/contact',og_title:'Contact Mettelo',og_description:'Contact Mettelo about membership, projects, events, media, support or general enquiries.',og_image:'/og-image.svg',index:true,follow:true}
 };
 

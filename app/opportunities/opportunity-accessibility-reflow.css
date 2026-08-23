@@ -1,0 +1,27 @@
+/* Preserve the Opportunities layout while allowing CMS-managed copy to reflow at narrow widths and 200% text sizing. */
+@media (max-width:480px){
+  .opportunityDiscovery .shell,
+  .opportunityDiscoveryIntro,
+  .opportunityDiscoveryIntro>div,
+  .opportunityDiscoveryIntro .eyebrow,
+  .opportunityDiscoveryIntro h2,
+  .opportunityDiscoveryIntro>p{
+    min-width:0!important;
+    max-width:100%!important;
+  }
+
+  .opportunityDiscoveryIntro{
+    width:100%!important;
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+
+  .opportunityDiscoveryIntro>div,
+  .opportunityDiscoveryIntro .eyebrow,
+  .opportunityDiscoveryIntro h2,
+  .opportunityDiscoveryIntro>p{
+    width:auto!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+  }
+}

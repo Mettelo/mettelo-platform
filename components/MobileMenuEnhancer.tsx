@@ -108,7 +108,9 @@ export default function MobileMenuEnhancer({navigation}:{navigation:WebsiteNavig
     backdrop.addEventListener('click',backdropClick);
     document.addEventListener('keydown',key);
     sync();
+    menu.dataset.mobileMenuEnhanced='true';
     return()=>{
+      delete menu.dataset.mobileMenuEnhanced;
       menu.removeEventListener('toggle',sync);
       backdrop?.removeEventListener('click',backdropClick);
       document.removeEventListener('keydown',key);

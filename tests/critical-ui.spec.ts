@@ -169,8 +169,12 @@ test.describe('mobile navigation regression',()=>{
     await expect(toggle).toHaveAttribute('aria-label','Open menu');
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded','true');
-    await expect(toggle).toHaveAttribute('aria-label','Close menu');
-    await expect(page.locator('.mobileMenuPanel')).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-label','Menu');
+    const panel=page.locator('.mobileMenuPanel');
+    await expect(panel).toBeVisible();
+    const close=panel.getByRole('button',{name:'Close menu'});
+    await expect(close).toHaveCount(1);
+    await expect(close).toBeFocused();
     await expect(page.getByRole('navigation',{name:'Primary mobile navigation'}).getByRole('link',{name:'Projects'})).toBeVisible();
 
     const explore=page.getByRole('button',{name:'Explore'});
@@ -183,6 +187,7 @@ test.describe('mobile navigation regression',()=>{
     await page.keyboard.press('Escape');
     await expect(toggle).toHaveAttribute('aria-expanded','false');
     await expect(toggle).toHaveAttribute('aria-label','Open menu');
+    await expect(toggle).toBeFocused();
 
     await toggle.click();
     await page.locator('.mobileMenuBackdrop').click({position:{x:4,y:4}});

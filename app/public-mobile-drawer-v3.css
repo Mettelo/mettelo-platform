@@ -48,5 +48,5 @@
   body.publicMobileNavV3 .mobilePublicNav a:focus-visible,body.publicMobileNavV3 .mobilePublicNav button:focus-visible{outline:3px solid #1e40af!important;outline-offset:2px!important}
 }
 @media(max-width:390px){body.publicMobileNavV3 .mobileMenuPanel{width:min(92vw,360px)!important}}
-@media(max-width:340px){body.publicMobileNavV3 .mobileMenuPanel{width:min(94vw,360px)!important}.mobilePublicMenuHead{padding-left:14px!important}}
+@media(max-width:340px){body.publicMobileNavV3 .mobileMenuPanel{width:min(92vw,360px)!important}.mobilePublicMenuHead{padding-left:14px!important}}
 @media(prefers-reduced-motion:reduce){body.publicMobileNavV3 .mobilePublicChevron,body.publicMobileNavV3 .mobilePublicExploreGrid{transition-duration:.01ms!important}}

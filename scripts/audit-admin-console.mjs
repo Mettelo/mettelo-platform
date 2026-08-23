@@ -10,7 +10,7 @@ const checks=[
   ['components/AdminWebsiteChromeEditors.tsx',['Save draft','Publish','Public navigation','Footer & social','Branding','DRAFT PREVIEW','aria-live','@media(max-width:480px)']],
   ['lib/website-chrome.ts',['DEFAULT_WEBSITE_CHROME','validateWebsiteChromePayload','isSafePublicHref','website_chrome_public','noStore()','https://mettelo.com']],
   ['components/ManagedPublicNavigation.tsx',['ManagedDesktopNavigation','ManagedMobileNavigation','Primary navigation','Primary mobile navigation','noopener noreferrer','@media(max-width:1080px)']],
-  ['app/layout.tsx',['getPublicWebsiteChrome','ManagedDesktopNavigation','ManagedMobileNavigation','FooterManagedLink','branding.logo_dark_url','branding.logo_light_url','footer.sections']],
+  ['app/layout.tsx',['getPublicWebsiteChrome','ManagedDesktopNavigation','MobileMenuEnhancer navigation={chrome.navigation}','FooterManagedLink','branding.logo_dark_url','branding.logo_light_url','footer.sections']],
   ['app/api/admin/website/chrome/route.ts',['website.navigation.manage','website.content.edit','website.content.publish','website.chrome.draft.updated','website.chrome.published','recordAdminAudit','website_chrome_drafts','website_chrome_public']],
   ['supabase/migrations/20260820143000_website_chrome_management.sql',['website_chrome_public','website_chrome_drafts','public website chrome readable','revoke all on public.website_chrome_drafts','grant select on public.website_chrome_public to anon, authenticated','grant select, insert, update on public.website_chrome_public to service_role']],
   ['app/admin/platform/page.tsx',['Platform controls','Platform settings','Admin access','Authentication & SSO','Feature flags']],
@@ -45,6 +45,7 @@ for(const [file,needles] of checks){
   if(!fs.existsSync(file)){console.error(`FAIL missing ${file}`);failed=true;continue;}
   const text=fs.readFileSync(file,'utf8');let ok=true;
   for(const needle of needles){if(!text.includes(needle)){console.error(`FAIL ${file}: missing ${needle}`);failed=true;ok=false;}}
+  if(file==='app/layout.tsx'&&text.includes('<ManagedMobileNavigation')){console.error('FAIL app/layout.tsx: legacy ManagedMobileNavigation must not render alongside MobileMenuEnhancer');failed=true;ok=false;}
   if(file==='components/AdminApplicationQueue.tsx'||file==='components/AdminTeamFormation.tsx'){
     if(text.includes('select multiple')){console.error(`FAIL ${file}: status filters must not use native multi-select controls`);failed=true;ok=false;}
   }

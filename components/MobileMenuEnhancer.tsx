@@ -24,9 +24,10 @@ function NavIcon({name}:{name:string}){
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle {...common} cx="12" cy="12" r="9"/><path {...common} d="M12 10v6M12 7h.01"/></svg>;
 }
 
-function PublicLink({item,onClick,className}:{item:WebsiteNavigationItem;onClick:()=>void;className?:string}){
-  if(isExternalPublicHref(item.href))return <a className={className} href={item.href} target="_blank" rel="noopener noreferrer" onClick={onClick}>{item.label}</a>;
-  return <Link className={className} href={item.href} onClick={onClick}>{item.label}</Link>;
+function PublicLink({item,onClick,className,tabIndex,active=false}:{item:WebsiteNavigationItem;onClick:()=>void;className?:string;tabIndex?:number;active?:boolean}){
+  const common={className,onClick,tabIndex,'aria-current':active?'page':undefined} as const;
+  if(isExternalPublicHref(item.href))return <a {...common} href={item.href} target="_blank" rel="noopener noreferrer">{item.label}</a>;
+  return <Link {...common} href={item.href}>{item.label}</Link>;
 }
 
 export default function MobileMenuEnhancer({navigation}:{navigation:WebsiteNavigationConfig}){
@@ -38,6 +39,7 @@ export default function MobileMenuEnhancer({navigation}:{navigation:WebsiteNavig
   const primary=enabled.filter(item=>item.placement==='primary');
   const secondary=enabled.filter(item=>item.placement==='secondary');
   const explore=enabled.filter(item=>item.placement==='explore');
+  const isCurrent=(href:string)=>!isExternalPublicHref(href)&&(href==='/'?pathname==='/':pathname===href||pathname.startsWith(`${href}/`));
 
   useEffect(()=>{
     document.body.classList.add('publicMobileNavV3');
@@ -80,7 +82,7 @@ export default function MobileMenuEnhancer({navigation}:{navigation:WebsiteNavig
       document.body.style.overflow=menu.open?'hidden':initialBodyOverflow;
       backdrop!.hidden=!menu.open;
       menuToggle.setAttribute('aria-expanded',String(menu.open));
-      menuToggle.setAttribute('aria-label',menu.open?'Close menu':'Open menu');
+      menuToggle.setAttribute('aria-label',menu.open?'Menu':'Open menu');
       if(menu.open){
         returnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:menuToggle;
         requestAnimationFrame(()=>target.querySelector<HTMLElement>('[data-mobile-menu-close]')?.focus());
@@ -131,18 +133,18 @@ export default function MobileMenuEnhancer({navigation}:{navigation:WebsiteNavig
     <div className="mobilePublicScroll">
       <nav className="mobilePublicPrimary" aria-label="Primary mobile navigation">
         <span className="mobilePublicGroupLabel">Main</span>
-        <Link href="/" onClick={closeMenu} className={pathname==='/'?'isActive':undefined}><NavIcon name="home"/><span>Home</span><b aria-hidden="true">›</b></Link>
-        {primary.map(item=><div className={`mobilePublicManagedLink${pathname===item.href?' isActive':''}`} key={item.id}><NavIcon name={item.id}/><PublicLink item={item} onClick={closeMenu}/><b aria-hidden="true">›</b></div>)}
+        <Link href="/" onClick={closeMenu} className={isCurrent('/')?'isActive':undefined} aria-current={isCurrent('/')?'page':undefined}><NavIcon name="home"/><span>Home</span><b aria-hidden="true">›</b></Link>
+        {primary.map(item=>{const active=isCurrent(item.href);return <div className={`mobilePublicManagedLink${active?' isActive':''}`} key={item.id}><NavIcon name={item.id}/><PublicLink item={item} onClick={closeMenu} active={active}/><b aria-hidden="true">›</b></div>})}
       </nav>
 
       {secondary.length>0&&<nav className="mobilePublicSecondary" aria-label="Secondary mobile navigation">
         <span className="mobilePublicGroupLabel">Mettelo</span>
-        {secondary.map(item=><div className={`mobilePublicManagedLink${pathname===item.href?' isActive':''}`} key={item.id}><NavIcon name={item.id}/><PublicLink item={item} onClick={closeMenu}/><b aria-hidden="true">›</b></div>)}
+        {secondary.map(item=>{const active=isCurrent(item.href);return <div className={`mobilePublicManagedLink${active?' isActive':''}`} key={item.id}><NavIcon name={item.id}/><PublicLink item={item} onClick={closeMenu} active={active}/><b aria-hidden="true">›</b></div>})}
       </nav>}
 
       {explore.length>0&&<section className="mobilePublicExplore" aria-labelledby="mobile-public-explore-label">
         <button id="mobile-public-explore-label" type="button" className="mobilePublicDisclosure" aria-expanded={exploreOpen} aria-controls="mobile-public-explore" onClick={()=>toggle('explore')}><NavIcon name="explore"/><span>Explore</span><Chevron open={exploreOpen}/></button>
-        <div id="mobile-public-explore" className={`mobilePublicExploreGrid${exploreOpen?' isOpen':''}`} aria-hidden={!exploreOpen}><div className="mobilePublicExploreInner">{explore.map(item=><PublicLink item={item} key={item.id} onClick={closeMenu}/>)}</div></div>
+        <div id="mobile-public-explore" className={`mobilePublicExploreGrid${exploreOpen?' isOpen':''}`} aria-hidden={!exploreOpen}><div className="mobilePublicExploreInner">{explore.map(item=><PublicLink item={item} key={item.id} onClick={closeMenu} tabIndex={exploreOpen?0:-1} active={isCurrent(item.href)}/>)}</div></div>
       </section>}
     </div>
 

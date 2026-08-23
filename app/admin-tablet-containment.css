@@ -1,0 +1,100 @@
+/* Tablet containment for the authenticated Admin workspace.
+   Preserve the >760px sticky sidebar while making the content grid track,
+   rather than the document, own wide operational tables. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  body:has(.adminApp) {
+    overflow-x: hidden;
+  }
+
+  .adminApp {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: clip !important;
+  }
+
+  .adminBody {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    grid-template-columns: minmax(0, 210px) minmax(0, 1fr) !important;
+    overflow-x: clip !important;
+  }
+
+  .adminContent {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: clip !important;
+  }
+
+  .adminContent > .section,
+  .adminContent > .section > .shell {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .adminContent > .section > .shell {
+    width: calc(100% - 24px) !important;
+  }
+
+  /* AdminProjectManager is itself a grid. Inline-size containment prevents
+     its 980px table minimum from becoming the Admin document's intrinsic size. */
+  .adminContent .adminProjectsTable {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    inline-size: 100% !important;
+    contain: inline-size;
+    overflow: hidden !important;
+  }
+
+  .adminContent .adminFilterToolbar,
+  .adminContent .adminTableWrap,
+  .adminContent .pagination,
+  .adminContent .bulkBar {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    inline-size: 100% !important;
+  }
+
+  /* Filters reflow inside the reduced content track instead of asking the
+     outer grid for their six-column desktop min-content width. */
+  .adminContent .adminFilterToolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .adminContent .adminFilterToolbar .searchField {
+    grid-column: 1 / -1 !important;
+    min-width: 0 !important;
+  }
+
+  .adminContent .adminFilterToolbar label,
+  .adminContent .adminFilterToolbar input,
+  .adminContent .adminFilterToolbar select,
+  .adminContent .adminFilterToolbar button {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Keep the intentionally wide data table, but localise horizontal scrolling
+     to its wrapper. The table may be 980px; the page may not. */
+  .adminContent .adminTableWrap {
+    display: block !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .adminContent .adminDataTable {
+    width: 100% !important;
+    min-width: 980px !important;
+    max-width: none !important;
+  }
+
+  .adminContent .pagination,
+  .adminContent .bulkBar {
+    flex-wrap: wrap;
+  }
+}

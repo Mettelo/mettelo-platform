@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const checks=[
   ['Proof visibility migration','supabase/migrations/20260816100000_phase5_proof_credentials_reputation.sql',['public','mettelo_only','private','consent_status']],
   ['Proof contribution grants','supabase/migrations/20260819232500_member_contribution_grants.sql',['grant select on table public.contributions to anon, authenticated','grant insert, update on table public.contributions to authenticated']],
-  ['Proof verified query','app/member/proof/page.tsx',["from('contributions')","eq('user_id',user.id)","eq('verification_status','verified')","in('verification_status',['pending','needs_changes'])",'MemberProofPortfolio','MY WORK · VERIFIED EVIDENCE']],
+  ['Proof verified query','app/member/proof/page.tsx',["from('contributions')","eq('user_id',user.id)","eq('verification_status','verified')","in('verification_status',['pending','needs_changes'])",'MemberProofPortfolio','MY WORK · CONTRIBUTION & EVIDENCE','title="Mettelo Proof"']],
   ['Proof member portfolio','components/MemberProofPortfolio.tsx',['ProofVisibilityControl','✓ Verified','◷ Pending verification','Evidence you can stand behind','Evidence still in review','Visibility is separate from verification','Spotlight stays separate','Review &amp; resubmit','No Proof matches these filters']],
   ['Public Proof gate','app/proof/[id]/page.tsx',[".eq('visibility','public')",'verified_at','VERIFIED BY METTELO']],
   ['Credential actions','components/CredentialActions.tsx',['Download / print credential','Copy LinkedIn details','Share credential']],
@@ -29,8 +29,8 @@ for(const forbidden of ["'request_consent'","action==='publish'"]){
 }
 
 const proofPage=fs.readFileSync('app/member/proof/page.tsx','utf8');
-for(const forbidden of ["from('project_tasks')","from('project_milestones')","from('profiles')",'ContributionForm']){
-  if(proofPage.includes(forbidden)){console.error(`FAIL Proof truth: My Mettelo Proof must not infer verified evidence from unrelated sources (${forbidden}).`);failed=true;}
+for(const forbidden of ["from('project_tasks')","from('project_milestones')","from('profiles')",'ContributionForm','MY WORK · VERIFIED EVIDENCE']){
+  if(proofPage.includes(forbidden)){console.error(`FAIL Proof truth: My Mettelo Proof must not infer or globally overstate verified evidence (${forbidden}).`);failed=true;}
 }
 if(!proofPage.includes("row.verification_status==='needs_changes'?row.review_notes:null")){
   console.error('FAIL Proof privacy: review feedback must only cross into the member portfolio for an actionable needs_changes state.');failed=true;

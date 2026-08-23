@@ -35,6 +35,7 @@ export default function MobileMenuEnhancer({navigation}:{navigation:WebsiteNavig
   const [account,setAccount]=useState<AccountState>(null);
   const [openSection,setOpenSection]=useState<OpenSection>(null);
   const returnFocus=useRef<HTMLElement|null>(null);
+  const previousPathname=useRef(pathname);
   const enabled=navigation.items.filter(item=>item.enabled&&item.mobile_visible);
   const primary=enabled.filter(item=>item.placement==='primary');
   const secondary=enabled.filter(item=>item.placement==='secondary');
@@ -119,7 +120,13 @@ export default function MobileMenuEnhancer({navigation}:{navigation:WebsiteNavig
     };
   },[]);
 
-  useEffect(()=>{const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');if(menu?.open)menu.open=false;setOpenSection(null)},[pathname]);
+  useEffect(()=>{
+    if(previousPathname.current===pathname)return;
+    previousPathname.current=pathname;
+    const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');
+    if(menu?.open)menu.open=false;
+    setOpenSection(null);
+  },[pathname]);
 
   function closeMenu(){const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');if(menu)menu.open=false;setOpenSection(null)}
   function toggle(section:Exclude<OpenSection,null>){setOpenSection(current=>current===section?null:section)}

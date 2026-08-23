@@ -5,13 +5,10 @@ import {usePathname} from 'next/navigation';
 import {useEffect,useRef,useState} from 'react';
 import type {User} from '@supabase/supabase-js';
 import {createClient} from '@/lib/supabase/client';
+import {isExternalPublicHref,type WebsiteNavigationConfig,type WebsiteNavigationItem} from '@/lib/website-chrome';
 
 type AccountState={email:string;name:string;isAdmin:boolean;avatarUrl:string|null}|null;
 type OpenSection='account'|'explore'|null;
-
-const primaryLinks=[['Home','/','home'],['Projects','/projects','projects'],['Opportunities','/opportunities','opportunities'],['Proof','/showcase','proof'],['Events','/events','events']] as const;
-const secondaryLinks=[['For organisations','/organisations','organisations'],['About Mettelo','/about','about']] as const;
-const exploreLinks=[['Community','/community'],['Insights','/blog'],['Spotlight','/spotlight'],['Careers','/careers'],['FAQ','/faq'],['Contact','/contact'],['Feedback','/feedback']] as const;
 
 function Chevron({open=false}:{open?:boolean}){return <span className={`mobilePublicChevron${open?' isOpen':''}`} aria-hidden="true">⌄</span>}
 
@@ -23,17 +20,27 @@ function NavIcon({name}:{name:string}){
   if(name==='proof')return <svg viewBox="0 0 24 24" aria-hidden="true"><path {...common} d="M12 3 20 6v5c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V6z"/><path {...common} d="m8.5 12 2.2 2.2 4.8-5"/></svg>;
   if(name==='events')return <svg viewBox="0 0 24 24" aria-hidden="true"><rect {...common} x="3" y="5" width="18" height="16" rx="2"/><path {...common} d="M7 3v4M17 3v4M3 10h18"/></svg>;
   if(name==='organisations')return <svg viewBox="0 0 24 24" aria-hidden="true"><path {...common} d="M3 21V5l7-2v18M10 8h11v13M6 8h1M6 12h1M6 16h1M14 12h1M18 12h1M14 16h1M18 16h1"/></svg>;
+  if(name==='explore')return <svg viewBox="0 0 24 24" aria-hidden="true"><circle {...common} cx="11" cy="11" r="6.5"/><path {...common} d="m16 16 4 4"/></svg>;
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle {...common} cx="12" cy="12" r="9"/><path {...common} d="M12 10v6M12 7h.01"/></svg>;
 }
 
-export default function MobileMenuEnhancer(){
+function PublicLink({item,onClick,className}:{item:WebsiteNavigationItem;onClick:()=>void;className?:string}){
+  if(isExternalPublicHref(item.href))return <a className={className} href={item.href} target="_blank" rel="noopener noreferrer" onClick={onClick}>{item.label}</a>;
+  return <Link className={className} href={item.href} onClick={onClick}>{item.label}</Link>;
+}
+
+export default function MobileMenuEnhancer({navigation}:{navigation:WebsiteNavigationConfig}){
   const pathname=usePathname();
   const [account,setAccount]=useState<AccountState>(null);
   const [openSection,setOpenSection]=useState<OpenSection>(null);
   const returnFocus=useRef<HTMLElement|null>(null);
+  const enabled=navigation.items.filter(item=>item.enabled&&item.mobile_visible);
+  const primary=enabled.filter(item=>item.placement==='primary');
+  const secondary=enabled.filter(item=>item.placement==='secondary');
+  const explore=enabled.filter(item=>item.placement==='explore');
 
   useEffect(()=>{
-    document.body.classList.add('publicMobileNavV2');
+    document.body.classList.add('publicMobileNavV3');
     const supabase=createClient();
     let active=true;
     async function applyUser(user:User|null){
@@ -49,7 +56,7 @@ export default function MobileMenuEnhancer(){
     }
     void supabase.auth.getSession().then(({data})=>applyUser(data.session?.user||null));
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>void applyUser(session?.user||null));
-    return()=>{active=false;subscription.unsubscribe();document.body.classList.remove('publicMobileNavV2','mobileNavOpen')};
+    return()=>{active=false;subscription.unsubscribe();document.body.classList.remove('publicMobileNavV3','mobileNavOpen')};
   },[]);
 
   useEffect(()=>{
@@ -57,6 +64,7 @@ export default function MobileMenuEnhancer(){
     const target=menu?.querySelector<HTMLElement>('.mobileMenuPanel');
     const menuToggle=menu?.querySelector<HTMLElement>('summary');
     if(!menu||!target||!menuToggle)return;
+    const initialBodyOverflow=document.body.style.overflow;
     let backdrop=document.querySelector<HTMLButtonElement>('.mobileMenuBackdrop');
     if(!backdrop){
       backdrop=document.createElement('button');
@@ -64,27 +72,25 @@ export default function MobileMenuEnhancer(){
       backdrop.className='mobileMenuBackdrop';
       backdrop.setAttribute('aria-label','Close navigation menu');
       backdrop.hidden=true;
-      // The panel is inside the header. Keeping the backdrop in that same
-      // stacking context prevents it from painting over every drawer control.
       menu.insertBefore(backdrop,target);
     }
-    const focusable=()=>[menuToggle,...Array.from(target.querySelectorAll<HTMLElement>('a[href],button:not([disabled])'))].filter(element=>element.tabIndex!==-1&&!element.hidden);
+    const focusable=()=>Array.from(target.querySelectorAll<HTMLElement>('a[href],button:not([disabled])')).filter(element=>element.tabIndex!==-1&&!element.hidden&&getComputedStyle(element).visibility!=='hidden');
     const sync=()=>{
       document.body.classList.toggle('mobileNavOpen',menu.open);
+      document.body.style.overflow=menu.open?'hidden':initialBodyOverflow;
       backdrop!.hidden=!menu.open;
       menuToggle.setAttribute('aria-expanded',String(menu.open));
       menuToggle.setAttribute('aria-label',menu.open?'Close menu':'Open menu');
       if(menu.open){
-        returnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
-        requestAnimationFrame(()=>menuToggle.focus());
+        returnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:menuToggle;
+        requestAnimationFrame(()=>target.querySelector<HTMLElement>('[data-mobile-menu-close]')?.focus());
       }else{
         setOpenSection(null);
-        const opener=returnFocus.current||menu.querySelector<HTMLElement>('summary');
+        const opener=returnFocus.current||menuToggle;
         requestAnimationFrame(()=>opener?.focus());
       }
     };
     const close=()=>{menu.open=false};
-    const outside=(event:PointerEvent)=>{if(menu.open&&!menu.contains(event.target as Node)&&event.target!==backdrop)close()};
     const key=(event:KeyboardEvent)=>{
       if(!menu.open)return;
       if(event.key==='Escape'){event.preventDefault();close();return}
@@ -96,32 +102,48 @@ export default function MobileMenuEnhancer(){
       else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
     };
     const backdropClick=()=>close();
-    menu.addEventListener('toggle',sync);backdrop.addEventListener('click',backdropClick);document.addEventListener('pointerdown',outside);document.addEventListener('keydown',key);sync();
-    return()=>{menu.removeEventListener('toggle',sync);backdrop?.removeEventListener('click',backdropClick);document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',key);backdrop?.remove()};
+    menu.addEventListener('toggle',sync);
+    backdrop.addEventListener('click',backdropClick);
+    document.addEventListener('keydown',key);
+    sync();
+    return()=>{
+      menu.removeEventListener('toggle',sync);
+      backdrop?.removeEventListener('click',backdropClick);
+      document.removeEventListener('keydown',key);
+      document.body.style.overflow=initialBodyOverflow;
+      backdrop?.remove();
+    };
   },[]);
+
+  useEffect(()=>{const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');if(menu?.open)menu.open=false;setOpenSection(null)},[pathname]);
 
   function closeMenu(){const menu=document.querySelector<HTMLDetailsElement>('.mobileMenu');if(menu)menu.open=false;setOpenSection(null)}
   function toggle(section:Exclude<OpenSection,null>){setOpenSection(current=>current===section?null:section)}
   async function signOut(){const supabase=createClient();await supabase.auth.signOut();setAccount(null);closeMenu();window.location.assign('/')}
 
   const exploreOpen=openSection==='explore';
-  const nav=<div className="mobilePublicNav" aria-label="Mobile website navigation">
+  return <div className="mobilePublicNav" aria-label="Mobile website navigation">
     <header className="mobilePublicMenuHead">
-      <strong>Menu</strong>
+      <span><small>METTELO</small><strong>Menu</strong></span>
+      <button data-mobile-menu-close type="button" aria-label="Close menu" onClick={closeMenu}>×</button>
     </header>
+
     <div className="mobilePublicScroll">
       <nav className="mobilePublicPrimary" aria-label="Primary mobile navigation">
-        {primaryLinks.map(([label,href,icon])=><Link href={href} key={href} onClick={closeMenu} className={pathname===href?'isActive':undefined}><NavIcon name={icon}/><span>{label}</span></Link>)}
+        <span className="mobilePublicGroupLabel">Main</span>
+        <Link href="/" onClick={closeMenu} className={pathname==='/'?'isActive':undefined}><NavIcon name="home"/><span>Home</span><b aria-hidden="true">›</b></Link>
+        {primary.map(item=><div className={`mobilePublicManagedLink${pathname===item.href?' isActive':''}`} key={item.id}><NavIcon name={item.id}/><PublicLink item={item} onClick={closeMenu}/><b aria-hidden="true">›</b></div>)}
       </nav>
 
-      <nav className="mobilePublicSecondary" aria-label="Secondary mobile navigation">
-        {secondaryLinks.map(([label,href,icon])=><Link href={href} key={href} onClick={closeMenu} className={pathname===href?'isActive':undefined}><NavIcon name={icon}/><span>{label}</span></Link>)}
-      </nav>
+      {secondary.length>0&&<nav className="mobilePublicSecondary" aria-label="Secondary mobile navigation">
+        <span className="mobilePublicGroupLabel">Mettelo</span>
+        {secondary.map(item=><div className={`mobilePublicManagedLink${pathname===item.href?' isActive':''}`} key={item.id}><NavIcon name={item.id}/><PublicLink item={item} onClick={closeMenu}/><b aria-hidden="true">›</b></div>)}
+      </nav>}
 
-      <section className="mobilePublicExplore" aria-labelledby="mobile-public-explore-label">
+      {explore.length>0&&<section className="mobilePublicExplore" aria-labelledby="mobile-public-explore-label">
         <button id="mobile-public-explore-label" type="button" className="mobilePublicDisclosure" aria-expanded={exploreOpen} aria-controls="mobile-public-explore" onClick={()=>toggle('explore')}><NavIcon name="explore"/><span>Explore</span><Chevron open={exploreOpen}/></button>
-        <div id="mobile-public-explore" className={`mobilePublicExploreGrid${exploreOpen?' isOpen':''}`} aria-hidden={!exploreOpen}><div className="mobilePublicExploreInner">{exploreLinks.map(([label,href])=><Link href={href} key={href} tabIndex={exploreOpen?0:-1} onClick={closeMenu}>{label}</Link>)}</div></div>
-      </section>
+        <div id="mobile-public-explore" className={`mobilePublicExploreGrid${exploreOpen?' isOpen':''}`} aria-hidden={!exploreOpen}><div className="mobilePublicExploreInner">{explore.map(item=><PublicLink item={item} key={item.id} onClick={closeMenu}/>)}</div></div>
+      </section>}
     </div>
 
     <div className="mobilePublicFooter">
@@ -130,7 +152,7 @@ export default function MobileMenuEnhancer(){
       {account&&<section className="mobilePublicAccount" aria-label="Account shortcuts">
         <button className="mobilePublicAccountTrigger" type="button" aria-expanded={openSection==='account'} aria-controls="mobile-public-account-panel" onClick={()=>toggle('account')}>
           <span className="mobilePublicAvatar" style={account.avatarUrl?{backgroundImage:`url(${account.avatarUrl})`,backgroundSize:'cover',backgroundPosition:'center'}:undefined}>{account.avatarUrl?'':account.name.slice(0,1).toUpperCase()}</span>
-          <span className="mobilePublicIdentity"><strong>{account.name}</strong><small>{account.isAdmin?'Admin access':'Member account'}</small></span>
+          <span className="mobilePublicIdentity"><strong>{account.name}</strong><small>{account.isAdmin?'Admin access':'Member workspace'}</small></span>
           <Chevron open={openSection==='account'}/>
         </button>
         <div id="mobile-public-account-panel" className="mobilePublicAccountLinks" hidden={openSection!=='account'}>
@@ -142,6 +164,4 @@ export default function MobileMenuEnhancer(){
       </section>}
     </div>
   </div>;
-
-  return nav;
 }

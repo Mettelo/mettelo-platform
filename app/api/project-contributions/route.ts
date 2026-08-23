@@ -39,8 +39,8 @@ export async function PATCH(request:Request){
     }
 
     const [{data:project},{data:recipient}]=await Promise.all([db.from('projects').select('title').eq('id',contribution.project_id).maybeSingle(),db.auth.admin.getUserById(contribution.user_id)]);
-    const outcome=status==='verified'?'approved':status==='needs_changes'?'needs changes':'not approved';
-    await notifyUser(db,{userId:contribution.user_id,email:recipient.user?.email||null,projectId:contribution.project_id,type:'proof_status_changed',eventKey:'proof_status_changed',title:`Contribution ${outcome}`,body:`Your contribution “${contribution.title}” on ${project?.title||'a Mettelo project'} is ${outcome}.${notes?` Reviewer note: ${notes}`:''}`,actionUrl:`/member/projects/${contribution.project_id}?run=${contribution.project_run_id}#phase4-contributions`,subject:`Contribution review — ${project?.title||'Mettelo'}`,dedupeKey:`contribution:${id}:${status}:${now}`});
-    return NextResponse.json({ok:true,contribution:data});
+    const outcome=status==='verified'?{title:'Contribution verified',body:'has been verified'}:status==='needs_changes'?{title:'Changes requested',body:'needs changes before it can be verified'}:{title:'Contribution not verified',body:'was not verified'};
+    await notifyUser(db,{userId:contribution.user_id,email:recipient.user?.email||null,projectId:contribution.project_id,type:'proof_status_changed',eventKey:'proof_status_changed',title:outcome.title,body:`Your contribution “${contribution.title}” on ${project?.title||'a Mettelo project'} ${outcome.body}.${notes?` Reviewer note: ${notes}`:''}`,actionUrl:`/member/projects/${contribution.project_id}?run=${contribution.project_run_id}#phase4-contributions`,subject:`Contribution review — ${project?.title||'Mettelo'}`,dedupeKey:`contribution:${id}:${status}:${now}`});
+    return NextResponse.json({ok:true,contribution:data,task_updated:Boolean(contribution.task_id)});
   }catch(error){console.error('project contribution review error',error);return NextResponse.json({error:'Unable to review this contribution.'},{status:500});}
 }

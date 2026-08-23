@@ -1,10 +1,10 @@
 # Design system: Ink and Value
 
-Last audited: 22 August 2026
+Last audited: 23 August 2026
 
 Mettelo's visual system pairs dark “ink” surfaces with warm bronze/value signals and quiet paper/sand backgrounds. The design should feel credible, practical, and evidence-led: hierarchy comes from contrast, spacing, typography, and state—not decorative noise.
 
-The implemented tokens live primarily in `app/globals.css` and `app/page-system.css`. Responsive public-shell/mobile-navigation overrides live in `app/public-chrome.css`.
+The implemented tokens live primarily in `app/globals.css` and `app/page-system.css`. Responsive public-shell/mobile-navigation overrides live in `app/public-chrome.css`, with the approved full-height public/member mobile drawer contract in `app/public-mobile-drawer-v3.css`.
 
 ## Colour
 
@@ -120,21 +120,27 @@ Eyebrows and data labels use the mono face, compact sizing, and limited letter s
 
 ### Navigation drawers and disclosures
 
-The public mobile menu is a right-anchored, opaque contained drawer. On phones (`<=480px`) it begins below the mobile header, uses a responsive width up to a bounded maximum, sizes naturally to its content, and uses `max-height` only as a viewport safety boundary. It must never force `height:100dvh`, `height:100%`, or a flex spacer that pushes the account area away from the navigation. When its content exceeds the available screen height, the drawer itself scrolls without widening or shifting the underlying page. A dim backdrop covers only the remaining viewport behind the drawer.
+The approved public/member mobile navigation is a single opaque right-side application drawer owned by `MobileMenuEnhancer`. It receives the same Admin-managed `chrome.navigation` configuration as the desktop navigation; a second rendered `ManagedMobileNavigation` path must not be introduced.
+
+On mobile/tablet navigation widths (`<=1080px`) the drawer is fixed to the right viewport edge, uses `height:100dvh`, and is bounded to a maximum width of 360px. Phones use approximately 88–92vw so part of the obscured page remains visible behind a strong full-viewport backdrop. The document is locked while the drawer is open. The drawer itself is a flex column: its header and account/auth footer remain reachable while the middle navigation region scrolls independently.
 
 Required behavior:
 
-- the three-bar trigger morphs to an X while open;
-- `aria-label` changes between “Open menu” and “Close menu”;
-- `aria-expanded` mirrors the native `<details>` state;
-- Escape, outside tap/backdrop, link selection, and the X all close it;
-- focus remains within the open drawer and returns to the opener;
-- Explore rotates its chevron and animates a distinguished sub-item group;
-- the account/guest section follows the navigation naturally with no artificial blank spacer;
-- the underlying document remains viewport width with no horizontal overflow or page shift;
-- reduced-motion removes non-essential transitions.
+- one explicit in-drawer close control is at least 44×44px;
+- the native Menu trigger exposes `aria-expanded`, and opening the drawer moves focus to the in-drawer close control;
+- Escape, backdrop activation, destination selection, and the close control all close the drawer;
+- focus remains contained while open and returns to the opener after close;
+- primary managed navigation rows use a consistent 48px interactive target, including the actual link rather than only a wrapper;
+- managed primary, secondary, and Explore links are sourced from the same governed navigation configuration used by desktop;
+- Explore expands in place without closing the drawer and its chevron communicates state;
+- guest users see separate full-width `Join Mettelo` and `Sign in` actions;
+- authenticated users see the member/account block, with Admin access only when the authenticated role permits it;
+- the footer remains reachable while long navigation content scrolls internally;
+- the underlying document remains locked and does not gain horizontal overflow or viewport shift;
+- active states work for nested routes, including real public project-detail destinations;
+- 200% text scaling, safe-area insets, phone landscape, and reduced-motion preferences remain usable.
 
-Do not add a second phone geometry contract later in the cascade. The phone drawer must have one authoritative `@media(max-width:480px)` sizing/positioning rule, with narrower breakpoints only refining width where necessary. Do not reintroduce a second close button inside the panel unless a tested design decision replaces the stateful trigger. Do not portal the menu in a way that leaves its first render empty or moves the backdrop above the controls.
+The authoritative geometry lives in `app/public-mobile-drawer-v3.css`. Do not add a competing phone drawer geometry later in the cascade, restore the retired floating/natural-height panel contract, or reintroduce a duplicate mobile-navigation rendering path. Narrower breakpoints may refine width only where needed; they must preserve the full-height, right-anchored, internally scrolling contract.
 
 ## Node-and-connection language
 

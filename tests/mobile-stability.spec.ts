@@ -135,11 +135,11 @@ test.describe('mobile stability contract',()=>{
 
       const geometry=await page.evaluate(()=>{
         const panel=document.querySelector<HTMLElement>('.mobileMenuPanel');
-        const account=document.querySelector<HTMLElement>('.mobilePublicFooter');
-        const navigation=document.querySelector<HTMLElement>('.managedMobileNavigation');
-        if(!panel||!account||!navigation)throw new Error('Visible mobile navigation geometry targets are missing');
+        const footer=document.querySelector<HTMLElement>('.mobilePublicFooter');
+        const navigation=document.querySelector<HTMLElement>('.mobilePublicScroll');
+        if(!panel||!footer||!navigation)throw new Error('Visible approved mobile drawer geometry targets are missing');
         const box=panel.getBoundingClientRect();
-        const accountBox=account.getBoundingClientRect();
+        const footerBox=footer.getBoundingClientRect();
         const navigationBox=navigation.getBoundingClientRect();
         return {
           viewportWidth:window.innerWidth,
@@ -150,19 +150,26 @@ test.describe('mobile stability contract',()=>{
           panelTop:box.top,
           panelBottom:box.bottom,
           panelHeight:box.height,
-          accountGap:accountBox.top-navigationBox.bottom,
-          bodyOverflowX:getComputedStyle(document.body).overflowX
+          navigationTop:navigationBox.top,
+          navigationBottom:navigationBox.bottom,
+          footerTop:footerBox.top,
+          footerBottom:footerBox.bottom,
+          bodyOverflow:getComputedStyle(document.body).overflow
         };
       });
 
       expect(geometry.documentWidth,'opening navigation must not widen the document').toBeLessThanOrEqual(geometry.viewportWidth+1);
       expect(geometry.panelLeft,'drawer must remain inside the viewport').toBeGreaterThanOrEqual(-1);
       expect(geometry.panelRight,'drawer must remain anchored to the right edge').toBeLessThanOrEqual(geometry.viewportWidth+1);
-      expect(geometry.viewportWidth-geometry.panelRight,'drawer right gap should stay small and intentional').toBeLessThanOrEqual(9);
-      expect(geometry.panelTop,'drawer should start below the mobile header').toBeGreaterThanOrEqual(64);
+      expect(geometry.viewportWidth-geometry.panelRight,'drawer should sit flush to the right edge').toBeLessThanOrEqual(1);
+      expect(geometry.panelTop,'approved drawer must begin at the viewport top').toBeGreaterThanOrEqual(-1);
+      expect(geometry.panelTop,'approved drawer must begin at the viewport top').toBeLessThanOrEqual(1);
       expect(geometry.panelBottom,'drawer must remain inside the viewport').toBeLessThanOrEqual(geometry.viewportHeight+1);
-      expect(geometry.panelHeight,'drawer must not be forced to full viewport height').toBeLessThan(geometry.viewportHeight-64);
-      expect(geometry.accountGap,'account section should follow the visible navigation naturally without a flex spacer').toBeLessThanOrEqual(20);
+      expect(Math.abs(geometry.panelHeight-geometry.viewportHeight),'drawer must adapt to the full device height').toBeLessThanOrEqual(1);
+      expect(geometry.navigationTop,'scrollable navigation must begin inside the drawer').toBeGreaterThanOrEqual(geometry.panelTop);
+      expect(geometry.navigationBottom,'scrollable navigation must end before the fixed footer').toBeLessThanOrEqual(geometry.footerTop+1);
+      expect(geometry.footerBottom,'footer actions must remain inside the drawer').toBeLessThanOrEqual(geometry.viewportHeight+1);
+      expect(geometry.bodyOverflow,'underlying document must be locked while drawer is open').toBe('hidden');
 
       await page.keyboard.press('Escape');
       await expect(panel).not.toBeVisible();

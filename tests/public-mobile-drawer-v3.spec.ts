@@ -26,8 +26,8 @@ test.describe('approved public mobile drawer v3',()=>{
   state=await openMenu(page);await state.panel.locator('a[href="/projects"]').first().click();await page.waitForURL(url=>url.pathname==='/projects');await expect(state.trigger).toHaveAttribute('aria-expanded','false');
  });
 
- test('nested routes preserve the current top-level destination',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await page.goto('/projects/example-project',{waitUntil:'domcontentloaded'});const responsePath=new URL(page.url()).pathname;if(responsePath.startsWith('/projects/')){const {panel}=await openMenu(page);const projects=panel.locator('a[href="/projects"]').first();await expect(projects).toHaveAttribute('aria-current','page');await expect(projects.locator('..')).toHaveClass(/isActive/)}
+ test('nested project routes preserve the current Projects destination',async({page})=>{
+  await page.setViewportSize({width:390,height:844});await page.goto('/projects',{waitUntil:'networkidle'});const projectLink=page.locator('#main-content a[href^="/projects/"]').first();await expect(projectLink).toBeVisible();const href=await projectLink.getAttribute('href');if(!href)throw new Error('Public project catalogue must expose a detail route for nested navigation QA.');await page.goto(href,{waitUntil:'networkidle'});await expect(page.locator('.siteHeader')).toBeVisible();const {panel}=await openMenu(page);const projects=panel.locator('a[href="/projects"]').first();await expect(projects).toHaveAttribute('aria-current','page');await expect(projects.locator('..')).toHaveClass(/isActive/);
  });
 
  test('200 percent text sizing keeps controls readable and bounded',async({page})=>{

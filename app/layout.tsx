@@ -25,6 +25,8 @@ import './public-responsive-reflow.css';
 import './mobile-stability.css';
 import './public-mobile-menu-restore.css';
 import './public-mobile-drawer-v3.css';
+import './admin-mobile-shell.css';
+import './admin-tablet-containment.css';
 
 const inter=Inter({subsets:['latin'],variable:'--font-inter',display:'swap'});const space=Space_Grotesk({subsets:['latin'],variable:'--font-space',display:'swap'});const mono=IBM_Plex_Mono({subsets:['latin'],weight:['500'],variable:'--font-mono',display:'swap'});
 export async function generateMetadata():Promise<Metadata>{return buildGlobalMetadata()}

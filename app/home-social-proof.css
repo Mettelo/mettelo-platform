@@ -72,4 +72,18 @@
   .homeHeroOverhaul .homeHeroCopy h1{font-size:clamp(2.05rem,10.8vw,2.45rem)}
   .heroCommunityProof{grid-template-columns:1fr;gap:8px}
 }
+
+/* 320px + 200% text zoom containment. Loaded before home-clarity.css, so critical overrides are explicit. */
+@media(max-width:480px){
+  .homeHeroClarity,.homeHeroClarity .homeHeroShell,.homeHeroClarity .homeHeroGrid,.homeHeroClarity .homeHeroCopy,.homeHeroClarity .homeHeroCopy h1,.homeHeroClarity .homeHeroCopy h1 span{min-width:0!important;max-width:100%!important}
+  .homeHeroClarity .homeHeroCopy h1,.homeHeroClarity .homeHeroCopy h1 span{overflow-wrap:anywhere!important;word-break:normal!important;white-space:normal!important}
+  .homeHeroClarity .heroLead,.homeHeroClarity .heroSupport,.homeHeroClarity .heroCommunityProof,.homeHeroClarity .heroCommunityProof p,.homeHeroClarity .heroCommunityProof p strong,.homeHeroClarity .heroCommunityProof p span{min-width:0!important;max-width:100%!important;white-space:normal!important;overflow-wrap:anywhere!important}
+  .homeProofSection{max-width:100%!important;overflow-x:clip!important}
+  .homeProofSection .homeSplit,.homeProofSection .proofStory,.homeProofSection .proofPreview,.homeProofSection .proofGrid,.homeProofSection .proofField{min-width:0!important;max-width:100%!important}
+  .homeProofSection .homeSplit{grid-template-columns:minmax(0,1fr)!important;width:100%!important}
+  .homeProofSection .proofPreviewHeader{flex-wrap:wrap!important}
+  .homeProofSection .proofGrid{grid-template-columns:minmax(0,1fr)!important}
+  .homeProofSection .proofField dt,.homeProofSection .proofField dd,.homeProofSection .proofPrinciples span{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important}
+  .homeProofSection .proofField dd{margin:4px 0 0!important}
+}
 @media(prefers-reduced-motion:reduce){.heroCommunityAvatar{transition:none!important}}

@@ -24,7 +24,8 @@ forbid('components/MemberProjectDetailClient.tsx',['career','Careers role','Open
 // The member form owns role/review/submit and uses the same canonical application readiness result.
 expect('app/member/discover/[id]/apply/page.tsx',['calculateMemberReadiness','applicationReadiness.ready','resolveMemberProjectState',"state!=='open_eligible'",'MemberProjectApplicationFlow']);
 forbid('app/member/discover/[id]/apply/page.tsx',['PROFILE_APPLICATION_READY']);
-expect('components/MemberProjectApplicationFlow.tsx',['Role & fit','Availability','Your response','Review','terms_accepted:true','/api/project-applications','Application submitted','View application','Back to project','localStorage']);
+expect('components/MemberProjectApplicationFlow.tsx',['Role & fit','Availability','How you could contribute','Review','Tell us how you could contribute','Relevant professional link','Professional link','terms_accepted:true','/api/project-applications','Application submitted','View application','Back to project','localStorage']);
+forbid('components/MemberProjectApplicationFlow.tsx',['Your response','Relevant evidence URL']);
 expect('components/ProjectApplicationForm.tsx',['Continue this project application inside My Mettelo.',"/member/discover/${selected.id}/apply"]);
 forbid('components/ProjectApplicationForm.tsx',["fetch('/api/project-applications'",'project_role_catalogue']);
 

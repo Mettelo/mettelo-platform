@@ -31,7 +31,8 @@ if(/#[0-9a-f]{3,8}\b/i.test(proofCss))failures.push('Phase 12 token usage: hard-
 forbidText('Phase 12 viewport safety',proofCss,'position:fixed');
 forbidText('Phase 12 wrapping',proofCss,'overflow-wrap:anywhere');
 
-for(const contract of ["fetch('/api/contributions'",'evidence_links','Submit for verification','is_public'])requireText('Proof submission preservation',submit,contract);
+for(const contract of ["fetch('/api/contributions'",'evidence_links','FOR REVIEW','Submit contribution for review','is_public'])requireText('Proof submission preservation',submit,contract);
+forbidText('Proof submission terminology',submit,'Submit for verification');
 for(const contract of ["fetch('/api/project-contributions'",'needs_changes','verified','rejected','Reviewer notes','Linked workspace evidence'])requireText('Proof review preservation',review,contract);
 
 if(failures.length){console.error('Mettelo Lab Proof audit failed:\n'+failures.map(item=>`- ${item}`).join('\n'));process.exit(1)}

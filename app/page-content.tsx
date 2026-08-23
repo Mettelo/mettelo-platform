@@ -12,10 +12,10 @@ const LIVE_THRESHOLD=500;
 const ESTABLISHED_COMMUNITY_REACH=5689;
 
 const steps=[
-  {number:'01',title:'Discover',body:'Find a Data & AI project, opportunity or activity that matches what you want to build next.'},
-  {number:'02',title:'Contribute',body:'Work with a team, take ownership of real tasks and produce useful outcomes.'},
-  {number:'03',title:'Get verified',body:'Submit evidence of your contribution and move it through Mettelo’s review process.'},
-  {number:'04',title:'Get discovered',body:'Use verified Proof and a stronger professional profile to make your capability easier to understand.'}
+  {number:'01',title:'Discover real work',body:'Explore projects where your skills, interests and experience could be useful.'},
+  {number:'02',title:'Contribute',body:'Work with a team, take responsibility for real tasks and deliver useful outcomes.'},
+  {number:'03',title:'Evidence & review',body:'Record what you contributed, link supporting evidence and submit the contribution for review.'},
+  {number:'04',title:'Mettelo Proof',body:'Verified contributions can form Mettelo Proof that gives others clearer context about demonstrated work.'}
 ];
 
 const dataAiAreas=[
@@ -28,17 +28,17 @@ const dataAiAreas=[
 ];
 
 const organisationRoutes=[
-  {title:'Bring a project brief',body:'Turn a real business or social problem into structured Data & AI project work.'},
-  {title:'Discover demonstrated talent',body:'Look beyond self-reported skills and explore evidence-backed contribution.'},
+  {title:'Bring a project brief',body:'Turn a real business or social problem into structured technology, Data & AI project work.'},
+  {title:'Understand demonstrated contribution',body:'Look beyond self-reported skills and explore reviewed contribution evidence in context.'},
   {title:'Create opportunities',body:'Connect professionals to jobs, projects, research, events and other routes forward.'},
-  {title:'Collaborate with the ecosystem',body:'Work with Mettelo on Data & AI initiatives, research, workshops and partnerships.'}
+  {title:'Collaborate with the ecosystem',body:'Work with Mettelo on technology, Data & AI initiatives, research, workshops and partnerships.'}
 ];
 
 const signalSteps=[
-  'Learning to practice',
-  'Practice to contribution',
-  'Contribution to evidence',
-  'Evidence to opportunity'
+  'Real work',
+  'Contribution',
+  'Evidence and review',
+  'Mettelo Proof'
 ];
 
 async function getHeroMetrics(){
@@ -85,8 +85,8 @@ export default async function HomePage(){
               <p><strong>{communityValue.toLocaleString('en-GB')}+</strong><span>{communityLabel}</span></p>
             </div>
             <div className="heroPositioningLine" aria-label="Mettelo positioning">
-              <strong>Data &amp; AI capability, backed by evidence</strong>
-              <span>Real projects · reviewed contribution · current opportunities</span>
+              <strong>IT, Data &amp; AI experience, backed by real work</strong>
+              <span>Visible contribution · supporting evidence · reviewed Proof</span>
             </div>
           </div>
           <HomeHeroShowcase metrics={{projects:metrics.projects,opportunities:metrics.opportunities,proofs:metrics.proofs}}/>
@@ -97,15 +97,15 @@ export default async function HomePage(){
     <section className="homeActionSection" aria-labelledby="home-actions-title">
       <div className="shell">
         <div className="homeActionIntro">
-          <div><div className="eyebrow">WHAT YOU CAN DO</div><h2 id="home-actions-title">Turn capability into something people can see.</h2></div>
-          <p>Mettelo connects real work, evidence and opportunity in one professional platform.</p>
+          <div><div className="eyebrow">WHAT YOU CAN DO</div><h2 id="home-actions-title">Make real contribution easier to understand.</h2></div>
+          <p>Mettelo connects real work, contribution evidence, review and professional opportunity in one system.</p>
         </div>
         <nav className="homeValueStrip" aria-label="Explore the main ways to use Mettelo">
           <div className="homeValueGrid">
-            <a href="/projects"><span className="valueIcon" aria-hidden="true">01</span><p><strong>Join real Data &amp; AI projects</strong><small>Build capability through structured delivery.</small></p><b aria-hidden="true">→</b></a>
-            <a href="/showcase"><span className="valueIcon" aria-hidden="true">02</span><p><strong>Build verified Proof</strong><small>Show what you actually contributed.</small></p><b aria-hidden="true">→</b></a>
-            <a href="/opportunities"><span className="valueIcon" aria-hidden="true">03</span><p><strong>Find opportunities</strong><small>Use stronger evidence for your next move.</small></p><b aria-hidden="true">→</b></a>
-            <a href="/organisations"><span className="valueIcon" aria-hidden="true">04</span><p><strong>Bring a real problem</strong><small>Work with Mettelo on Data &amp; AI challenges.</small></p><b aria-hidden="true">→</b></a>
+            <a href="/projects"><span className="valueIcon" aria-hidden="true">01</span><p><strong>Join real project work</strong><small>Build experience through structured delivery with a team.</small></p><b aria-hidden="true">→</b></a>
+            <a href="/showcase"><span className="valueIcon" aria-hidden="true">02</span><p><strong>Explore Mettelo Proof</strong><small>See reviewed contribution evidence with the work context preserved.</small></p><b aria-hidden="true">→</b></a>
+            <a href="/opportunities"><span className="valueIcon" aria-hidden="true">03</span><p><strong>Find opportunities</strong><small>Explore current routes forward alongside stronger professional evidence.</small></p><b aria-hidden="true">→</b></a>
+            <a href="/organisations"><span className="valueIcon" aria-hidden="true">04</span><p><strong>Bring a real problem</strong><small>Work with Mettelo on technology, Data &amp; AI challenges.</small></p><b aria-hidden="true">→</b></a>
           </div>
         </nav>
       </div>
@@ -131,7 +131,7 @@ export default async function HomePage(){
 
     <section className="section homeDataAiSection" aria-labelledby="home-data-ai-title">
       <div className="shell">
-        <div className="homeDataAiIntro"><div><div className="eyebrow">DATA &amp; AI</div><h2 id="home-data-ai-title">Build capability where the work is changing fastest.</h2></div><div><p>Knowing the terminology is not enough. Professionals need opportunities to practise, build, collaborate and demonstrate what they can actually do.</p><p><strong>The goal is not to collect more skill labels. It is to build evidence behind them.</strong></p></div></div>
+        <div className="homeDataAiIntro"><div><div className="eyebrow">DATA &amp; AI FOCUS</div><h2 id="home-data-ai-title">Start where practical technology work is moving fast.</h2></div><div><p>Data &amp; AI remain a major focus within Mettelo. Professionals need opportunities to practise, build, collaborate and demonstrate what they can actually do in context.</p><p><strong>The goal is not to collect more skill labels. It is to build credible evidence through real contribution.</strong></p></div></div>
         <div className="dataAiGrid">{dataAiAreas.map((area,index)=><article key={area.title}><span aria-hidden="true">0{index+1}</span><h3>{area.title}</h3><p>{area.body}</p></article>)}</div>
       </div>
     </section>
@@ -146,7 +146,7 @@ export default async function HomePage(){
     <section className="section homeWhySection" aria-labelledby="home-why-title">
       <div className="shell homeWhyGrid">
         <div><div className="eyebrow">{copy.why_eyebrow}</div><h2 id="home-why-title">{copy.why_title}</h2><p className="lead">{copy.why_lead}</p><p>{copy.why_body}</p><p>{copy.why_scope}</p></div>
-        <ol className="signalPath" aria-label="How Mettelo connects capability to opportunity">{signalSteps.map((step,index)=><li key={step}><span aria-hidden="true">0{index+1}</span><strong>{step}</strong></li>)}</ol>
+        <ol className="signalPath" aria-label="How Mettelo turns real work into stronger professional evidence">{signalSteps.map((step,index)=><li key={step}><span aria-hidden="true">0{index+1}</span><strong>{step}</strong></li>)}</ol>
       </div>
     </section>
 

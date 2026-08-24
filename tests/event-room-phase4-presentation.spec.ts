@@ -62,8 +62,8 @@ async function exitPresentation(page:Page,participants=6){
 async function injectPresentationControls(page:Page){
  await page.evaluate(()=>{
   const conference=document.querySelector('.lk-video-conference');if(!(conference instanceof HTMLElement))throw new Error('LiveKit conference surface not found.');
-  let bar=document.querySelector('.lk-control-bar');
-  if(!(bar instanceof HTMLElement)){bar=document.createElement('div');bar.className='lk-control-bar';bar.dataset.phase4Fixture='control-bar';conference.appendChild(bar);}
+  let bar=conference.querySelector<HTMLElement>('.lk-control-bar');
+  if(!(bar instanceof HTMLElement)){bar=document.createElement('div');bar.className='lk-control-bar';bar.setAttribute('role','toolbar');bar.dataset.phase4Fixture='control-bar';conference.appendChild(bar);}
   bar.innerHTML='';
   for(const label of ['Microphone','Camera','Share screen','People','Chat','More','Leave']){const button=document.createElement('button');button.type='button';button.className='lk-button';button.dataset.phase4Fixture='control';button.textContent=label;bar.appendChild(button);}
  });

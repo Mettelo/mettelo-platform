@@ -80,6 +80,7 @@ jobs:
         shell: bash
         run: |
           kill "$(cat /tmp/mettelo-livekit.pid)" || true
+          pkill -f "next dev --hostname 127.0.0.1" || true
           for attempt in {1..20}; do
             if ! curl --silent http://127.0.0.1:3000/signin > /dev/null; then break; fi
             sleep 1
@@ -111,4 +112,5 @@ jobs:
         shell: bash
         run: |
           if [ -f /tmp/mettelo-livekit.pid ]; then kill "$(cat /tmp/mettelo-livekit.pid)" || true; fi
+          pkill -f "next dev --hostname 127.0.0.1" || true
           supabase stop --workdir .supabase-ci --no-backup

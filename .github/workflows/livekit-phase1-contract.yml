@@ -1,4 +1,4 @@
-name: Event Room Phase 1-9 Contract
+name: Event Room Phase 1-10 Contract
 
 on:
   pull_request:
@@ -15,6 +15,7 @@ on:
       - 'tests/event-room-phase7-*.spec.ts'
       - 'tests/event-room-phase8-*.spec.ts'
       - 'tests/event-room-phase9-*.spec.ts'
+      - 'tests/event-room-phase10-*.spec.ts'
       - '.github/workflows/livekit-phase1-contract.yml'
   workflow_dispatch:
 
@@ -23,9 +24,9 @@ permissions:
 
 jobs:
   event-room-contract:
-    name: Event Room Phase 1-9 contract
+    name: Event Room Phase 1-10 contract
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 60
     env:
       CI_LOCAL_SUPABASE: '1'
       E2E_BASE_URL: http://127.0.0.1:3000
@@ -101,6 +102,8 @@ jobs:
         run: npx playwright test tests/event-room-phase8-context-panel.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Blocking Phase 9 mobile, orientation and safe-area acceptance
         run: npx playwright test tests/event-room-phase9-mobile-safe-area.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 10 join lifecycle and backend authority acceptance
+        run: npx playwright test tests/event-room-phase10-join-lifecycle.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Blocking configured token, permission, timing and structured diagnostic contracts
         run: npx playwright test tests/livekit-phase1-contract.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Restart Mettelo without LiveKit provider configuration
@@ -126,7 +129,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: event-room-phase1-9-contract-evidence
+          name: event-room-phase1-10-contract-evidence
           path: |
             playwright-report/
             test-results/

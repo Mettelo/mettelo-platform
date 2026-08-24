@@ -63,10 +63,10 @@ async function injectIdentityGrid(page:Page){
 test('participant identity remains clear, accessible and contained on mobile',async({page})=>{
  await openRoom(page,320,568);await injectIdentityGrid(page);
  const tiles=page.locator('[data-phase6-fixture="tile"]');await expect(tiles).toHaveCount(4);
- for(let index=0;index<4;index+=1){const tile=tiles.nth(index);await expect(tile).toHaveAttribute('aria-label',/.+/);const box=await tile.boundingBox();expect(box).not.toBeNull();if(!box)continue;expect(box.left).toBeGreaterThanOrEqual(-1);expect(box.right).toBeLessThanOrEqual(321);}
+ for(let index=0;index<4;index+=1){const tile=tiles.nth(index);await expect(tile).toHaveAttribute('aria-label',/.+/);const box=await tile.boundingBox();expect(box).not.toBeNull();if(!box)continue;expect(box.x).toBeGreaterThanOrEqual(-1);expect(box.x+box.width).toBeLessThanOrEqual(321);}
  await expect(page.getByLabel(/Maya Chen, Facilitator, microphone muted/)).toBeVisible();
  await expect(page.getByLabel(/Daniel Okafor, Participant, camera off/)).toBeVisible();
- const longName=page.locator('[data-phase6-fixture="name"]').filter({hasText:pathologicalName});const nameBox=await longName.boundingBox();const tileBox=await longName.locator('xpath=ancestor::*[@data-phase6-fixture="tile"]').boundingBox();expect(nameBox&&tileBox).toBeTruthy();if(nameBox&&tileBox)expect(nameBox.right).toBeLessThanOrEqual(tileBox.right+1);
+ const longName=page.locator('[data-phase6-fixture="name"]').filter({hasText:pathologicalName});const nameBox=await longName.boundingBox();const tileBox=await longName.locator('xpath=ancestor::*[@data-phase6-fixture="tile"]').boundingBox();expect(nameBox&&tileBox).toBeTruthy();if(nameBox&&tileBox)expect(nameBox.x+nameBox.width).toBeLessThanOrEqual(tileBox.x+tileBox.width+1);
  const root=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));expect(root.scroll).toBeLessThanOrEqual(root.client+1);
 });
 

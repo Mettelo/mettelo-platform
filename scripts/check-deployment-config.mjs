@@ -1,4 +1,4 @@
-const required=['NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY'];
+const required=['NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY','LIVEKIT_URL','LIVEKIT_API_KEY','LIVEKIT_API_SECRET'];
 const missing=required.filter(name=>!process.env[name]?.trim());
 if(missing.length){
   console.error('Deployment configuration is incomplete. Set the following server environment variables before building: '+missing.join(', '));

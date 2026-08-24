@@ -38,23 +38,17 @@ jobs:
             after="${{ github.sha }}"
             target_branch="${GITHUB_REF_NAME}"
 
-            # A missing/all-zero predecessor cannot be scoped safely. Main
-            # therefore fails closed to the full release gate. Release-train
-            # branches remain integration-only and can use the deterministic
-            # fast lane because they cannot deploy directly to Production.
             if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
               if [[ "$target_branch" == release/* ]]; then
                 echo "requires_staging=false" >> "$GITHUB_OUTPUT"
                 echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
                 echo "classification=release-train-integration-fast" >> "$GITHUB_OUTPUT"
-                echo "Release-train branch push: deterministic integration checks are mandatory; full E2E remains deferred to the final PR into main."
                 exit 0
               fi
 
               echo "requires_staging=true" >> "$GITHUB_OUTPUT"
               echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
               echo "classification=unscoped-main-push-full-release" >> "$GITHUB_OUTPUT"
-              echo "Main push has no trustworthy predecessor: authenticated backend E2E is mandatory."
               exit 0
             fi
 
@@ -69,11 +63,6 @@ jobs:
           echo "Changed files:"
           cat /tmp/changed-files.txt
 
-          # Release-train PRs and release-branch pushes preserve the complete
-          # deterministic quality gate (lint, typecheck, audits, focused flow
-          # tests and production build) while avoiding repeated expensive
-          # browser/Supabase runs. A release-train PR targeting main does NOT
-          # match this branch rule and therefore receives the normal full gate.
           if [[ "$target_branch" == release/* ]]; then
             echo "requires_staging=false" >> "$GITHUB_OUTPUT"
             echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
@@ -82,7 +71,6 @@ jobs:
             else
               echo "classification=release-train-pr-fast" >> "$GITHUB_OUTPUT"
             fi
-            echo "Release-train integration change: deterministic audits/build are mandatory; browser/authenticated/persistence validation is deferred to the final PR into main."
             exit 0
           fi
 
@@ -103,12 +91,10 @@ jobs:
             echo "requires_staging=true" >> "$GITHUB_OUTPUT"
             echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
             echo "classification=runtime-or-backend-impact" >> "$GITHUB_OUTPUT"
-            echo "Runtime/backend-impacting change: authenticated backend E2E is mandatory."
           else
             echo "requires_staging=false" >> "$GITHUB_OUTPUT"
             echo "run_fast_browser=true" >> "$GITHUB_OUTPUT"
             echo "classification=docs-or-ci-policy-only" >> "$GITHUB_OUTPUT"
-            echo "Documentation/CI-policy-only change: destructive backend E2E is explicitly not required by scope."
           fi
 
   verify:
@@ -126,6 +112,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
@@ -146,7 +133,6 @@ jobs:
       - run: npm run audit:mettelo-lab
       - run: npm run build
       - name: Restore Playwright Chromium cache for fast regression
-        id: playwright-cache-fast
         if: needs.scope.outputs.run_fast_browser == 'true'
         uses: actions/cache@v4
         with:
@@ -171,11 +157,19 @@ jobs:
           retention-days: 3
 
   staging-e2e:
-    name: Staging submission journeys
+    name: Staging E2E - ${{ matrix.suite }}
     needs: scope
     if: needs.scope.outputs.requires_staging == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - public-regression
+          - authenticated-qa
+          - persistence
+          - informational-journeys
     env:
       CI_LOCAL_SUPABASE: '1'
       E2E_BASE_URL: http://127.0.0.1:3000
@@ -194,8 +188,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Restore Playwright Chromium cache for staging
-        id: playwright-cache-staging
+      - name: Restore Playwright Chromium cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
@@ -245,34 +238,35 @@ jobs:
           exit 1
       - name: Verify E2E production guard
         run: npm run check:e2e-config
-      - name: Blocking Mettelo Lab Chat permission preflight
+      - name: Chat permission preflight
+        if: matrix.suite == 'public-regression'
         run: npx playwright test tests/mettelo-lab-chat-permissions.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Blocking public browser regression suite
+        if: matrix.suite == 'public-regression'
         run: npm run test:regression
       - name: Blocking authenticated smoke and Mettelo Lab Chromium visual QA
+        if: matrix.suite == 'authenticated-qa'
         run: npm run test:e2e:smoke -- --workers=1
-      - name: Upload Mettelo Lab Chromium screenshots
-        if: always()
+      - name: Upload authenticated Chromium visuals
+        if: always() && matrix.suite == 'authenticated-qa'
         uses: actions/upload-artifact@v4
         with:
-          name: mettelo-lab-chromium-visuals
+          name: mettelo-lab-chromium-visuals-${{ github.run_attempt }}
           path: artifacts/mettelo-lab-visual/
           if-no-files-found: ignore
           retention-days: 7
       - name: Blocking representative persisted submission
+        if: matrix.suite == 'persistence'
         run: npx playwright test tests/staging-submission-journeys.spec.ts --project=chromium --workers=1 --timeout=120000 --grep "contact, partnership, feedback and newsletter persist and reach admin operations"
       - name: Informational full submission suite
-        id: full_e2e
+        if: matrix.suite == 'informational-journeys'
         continue-on-error: true
         run: npx playwright test tests/staging-submission-journeys.spec.ts --project=chromium --workers=1
-      - name: Report informational journey failures
-        if: steps.full_e2e.outcome == 'failure'
-        run: echo "::warning::One or more non-blocking submission journeys failed. Review uploaded Playwright evidence and track the affected area separately."
-      - name: Upload Playwright evidence on failure
-        if: failure() || steps.full_e2e.outcome == 'failure'
+      - name: Upload shard evidence
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: staging-e2e-evidence
+          name: staging-e2e-${{ matrix.suite }}-evidence-${{ github.run_attempt }}
           path: |
             playwright-report/
             test-results/
@@ -313,18 +307,18 @@ jobs:
 
           if [ "$REQUIRES_STAGING" = "true" ]; then
             if [ "$STAGING_RESULT" != "success" ]; then
-              echo "Release blocked: classification=$CLASSIFICATION requires the scoped authenticated backend gate, staging=$STAGING_RESULT."
+              echo "Release blocked: classification=$CLASSIFICATION requires all staging matrix shards; staging=$STAGING_RESULT."
               exit 1
             fi
-            echo "Release gate passed: deterministic audits/build plus scoped browser regression/authenticated smoke/persistence checks are green."
+            echo "Release gate passed: deterministic audits/build plus parallel public, authenticated and persistence staging gates are green."
           else
             if [ "$STAGING_RESULT" != "skipped" ] && [ "$STAGING_RESULT" != "success" ]; then
-              echo "Release blocked: optional staging job ended unexpectedly ($STAGING_RESULT)."
+              echo "Release blocked: optional staging matrix ended unexpectedly ($STAGING_RESULT)."
               exit 1
             fi
 
             if [[ "$CLASSIFICATION" == release-train-* ]]; then
-              echo "Release-train integration gate passed: lint, typecheck, deterministic audits, focused flow checks and production build are green. Full browser/authenticated/persistence validation remains mandatory on the final PR into main."
+              echo "Release-train integration gate passed. Full browser/authenticated/persistence validation remains mandatory on the final PR into main."
             else
               echo "Release gate passed: classification=$CLASSIFICATION; fast browser regression is green and backend E2E is explicitly not required by scope."
             fi

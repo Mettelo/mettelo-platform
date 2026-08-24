@@ -1,7 +1,10 @@
-import {expect,test,type Page} from '@playwright/test';
+import {expect,test,type Locator,type Page} from '@playwright/test';
 
 const eventId='00000000-0000-4000-8000-00000000e299';
 const joinUrl=`/member/events/${eventId}/join`;
+const longParticipantName='Participant-With-An-Extremely-Long-Identity-That-Must-Stay-In-The-Presentation-Rail';
+
+type PresentationOwner='local'|'remote';
 
 function required(name:string){
  const value=process.env[name]?.trim();
@@ -42,8 +45,8 @@ async function openRoom(page:Page,width:number,height:number){
  await expect(page.locator('.lk-video-conference-inner')).toBeVisible({timeout:10_000});
 }
 
-async function injectPresentation(page:Page,participants=6){
- await page.evaluate(count=>{
+async function injectPresentation(page:Page,participants=6,owner:PresentationOwner='remote'){
+ await page.evaluate(({count,presentationOwner,longName})=>{
   const inner=document.querySelector('.lk-video-conference-inner');
   if(!(inner instanceof HTMLElement))throw new Error('LiveKit conference inner surface not found.');
   inner.innerHTML='';
@@ -51,6 +54,7 @@ async function injectPresentation(page:Page,participants=6){
   const focus=document.createElement('div');
   focus.className='lk-focus-layout';
   focus.dataset.phase4Fixture='presentation';
+  focus.dataset.presentationOwner=presentationOwner;
 
   const rail=document.createElement('div');
   rail.className='lk-carousel';
@@ -60,7 +64,7 @@ async function injectPresentation(page:Page,participants=6){
    tile.className='lk-participant-tile';
    const name=document.createElement('span');
    name.className='lk-participant-name';
-   name.textContent=index===count-1?'Participant-With-An-Extremely-Long-Identity-That-Must-Stay-In-The-Presentation-Rail':`Participant ${index+1}`;
+   name.textContent=index===count-1?longName:`Participant ${index+1}`;
    tile.appendChild(name);
    rail.appendChild(tile);
   }
@@ -70,17 +74,76 @@ async function injectPresentation(page:Page,participants=6){
   stage.dataset.phase4Fixture='stage';
   const sharedTile=document.createElement('div');
   sharedTile.className='lk-participant-tile';
+  sharedTile.dataset.source='screen_share';
+  sharedTile.dataset.owner=presentationOwner;
   const video=document.createElement('video');
   video.dataset.phase4Fixture='screen-share';
-  video.setAttribute('aria-label','Shared screen');
+  video.setAttribute('aria-label',presentationOwner==='local'?'Your shared screen':'Shared screen from another participant');
   sharedTile.appendChild(video);
   stage.appendChild(sharedTile);
 
   focus.appendChild(rail);
   focus.appendChild(stage);
   inner.appendChild(focus);
- },participants);
+ },{count:participants,presentationOwner:owner,longName:longParticipantName});
  await expect(page.locator('[data-phase4-fixture="presentation"]')).toBeVisible();
+}
+
+async function exitPresentation(page:Page,participants=6){
+ await page.evaluate(({count,longName})=>{
+  const inner=document.querySelector('.lk-video-conference-inner');
+  if(!(inner instanceof HTMLElement))throw new Error('LiveKit conference inner surface not found.');
+  inner.innerHTML='';
+  const grid=document.createElement('div');
+  grid.className='lk-grid-layout';
+  grid.dataset.phase4Fixture='normal-grid';
+  for(let index=0;index<count;index+=1){
+   const tile=document.createElement('div');
+   tile.className='lk-participant-tile';
+   const name=document.createElement('span');
+   name.className='lk-participant-name';
+   name.textContent=index===count-1?longName:`Participant ${index+1}`;
+   tile.appendChild(name);
+   grid.appendChild(tile);
+  }
+  inner.appendChild(grid);
+ },{count:participants,longName:longParticipantName});
+ await expect(page.locator('[data-phase4-fixture="normal-grid"]')).toBeVisible();
+}
+
+async function injectPresentationControls(page:Page){
+ await page.evaluate(()=>{
+  const bar=document.querySelector('.lk-control-bar');
+  if(!(bar instanceof HTMLElement))throw new Error('LiveKit control bar not found.');
+  bar.innerHTML='';
+  for(const label of ['Microphone','Camera','Share screen','People','Chat','More','Leave']){
+   const button=document.createElement('button');
+   button.type='button';
+   button.className='lk-button';
+   button.dataset.phase4Fixture='control';
+   button.textContent=label;
+   bar.appendChild(button);
+  }
+ });
+}
+
+async function expectControlsReachable(page:Page,controlBar:Locator){
+ const buttons=controlBar.locator('[data-phase4-fixture="control"]');
+ await expect(buttons).toHaveCount(7);
+ for(let index=0;index<7;index+=1){
+  const button=buttons.nth(index);
+  const box=await button.boundingBox();
+  expect(box).not.toBeNull();
+  if(!box)continue;
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+ }
+ await buttons.first().scrollIntoViewIfNeeded();
+ await expect(buttons.first()).toBeVisible();
+ await buttons.last().scrollIntoViewIfNeeded();
+ await expect(buttons.last()).toBeVisible();
+ const report=await page.evaluate(()=>({rootClient:document.documentElement.clientWidth,rootScroll:document.documentElement.scrollWidth}));
+ expect(report.rootScroll).toBeLessThanOrEqual(report.rootClient+1);
 }
 
 async function geometry(page:Page){
@@ -103,10 +166,10 @@ async function geometry(page:Page){
  });
 }
 
-test('desktop presentation gives the shared screen roughly 80 percent of the content width',async({page})=>{
+test('desktop presentation gives the shared screen roughly 80 percent of the content width and meaningful usable area',async({page})=>{
  test.slow();
  await openRoom(page,1440,900);
- await injectPresentation(page,6);
+ await injectPresentation(page,6,'remote');
  const report=await geometry(page);
  expect(report.focus&&report.stage&&report.rail).toBeTruthy();
  if(!report.focus||!report.stage||!report.rail)return;
@@ -114,6 +177,8 @@ test('desktop presentation gives the shared screen roughly 80 percent of the con
  expect(stageShare).toBeGreaterThanOrEqual(.76);
  expect(stageShare).toBeLessThanOrEqual(.82);
  expect(report.stage.left).toBeGreaterThan(report.rail.left);
+ expect(report.stage.width).toBeGreaterThan(800);
+ expect(report.stage.height).toBeGreaterThan(450);
  expect(report.objectFit).toBe('contain');
  expect(report.rootScroll).toBeLessThanOrEqual(report.rootClient+1);
 });
@@ -121,7 +186,7 @@ test('desktop presentation gives the shared screen roughly 80 percent of the con
 test('phone presentation stacks the shared screen above a contained horizontal participant rail',async({page})=>{
  test.slow();
  await openRoom(page,320,568);
- await injectPresentation(page,10);
+ await injectPresentation(page,10,'remote');
  const report=await geometry(page);
  expect(report.focus&&report.stage&&report.rail).toBeTruthy();
  if(!report.focus||!report.stage||!report.rail)return;
@@ -137,7 +202,7 @@ test('phone presentation stacks the shared screen above a contained horizontal p
 test('short mobile landscape keeps the shared screen dominant with a vertical participant rail',async({page})=>{
  test.slow();
  await openRoom(page,844,390);
- await injectPresentation(page,8);
+ await injectPresentation(page,8,'remote');
  const report=await geometry(page);
  expect(report.focus&&report.stage&&report.rail).toBeTruthy();
  if(!report.focus||!report.stage||!report.rail)return;
@@ -151,7 +216,7 @@ test('short mobile landscape keeps the shared screen dominant with a vertical pa
 test('presentation rail contains dense participant content without expanding the Event Room',async({page})=>{
  test.slow();
  await openRoom(page,390,844);
- await injectPresentation(page,14);
+ await injectPresentation(page,14,'remote');
  const shell=page.locator('[data-event-room-shell]');
  const rail=page.locator('[data-phase4-fixture="rail"]');
  await expect(shell).toBeVisible();
@@ -166,5 +231,47 @@ test('presentation rail contains dense participant content without expanding the
  expect(metrics.rootScroll).toBeLessThanOrEqual(metrics.rootClient+1);
  expect(metrics.rail.left).toBeGreaterThanOrEqual(metrics.shell.left-1);
  expect(metrics.rail.right).toBeLessThanOrEqual(metrics.shell.right+1);
+ expect(metrics.longName.left).toBeGreaterThanOrEqual(metrics.rail.left-1);
  expect(metrics.longName.right).toBeLessThanOrEqual(metrics.rail.right+1);
+});
+
+test('both remote and local share states use the same safe dominant presentation contract',async({page})=>{
+ test.slow();
+ await openRoom(page,1280,800);
+ for(const owner of ['remote','local'] as const){
+  await injectPresentation(page,6,owner);
+  await expect(page.locator(`[data-presentation-owner="${owner}"]`)).toBeVisible();
+  const report=await geometry(page);
+  expect(report.stage&&report.rail).toBeTruthy();
+  if(!report.stage||!report.rail)continue;
+  expect(report.stage.width/(report.stage.width+report.rail.width)).toBeGreaterThanOrEqual(.75);
+  expect(report.rootScroll).toBeLessThanOrEqual(report.rootClient+1);
+ }
+});
+
+test('presentation lifecycle returns to the normal participant grid when sharing stops',async({page})=>{
+ test.slow();
+ await openRoom(page,390,844);
+ await injectPresentation(page,8,'remote');
+ await expect(page.locator('[data-phase4-fixture="presentation"]')).toBeVisible();
+ await exitPresentation(page,8);
+ await expect(page.locator('[data-phase4-fixture="presentation"]')).toHaveCount(0);
+ await expect(page.locator('[data-phase4-fixture="normal-grid"]')).toBeVisible();
+ const report=await page.evaluate(()=>({rootClient:document.documentElement.clientWidth,rootScroll:document.documentElement.scrollWidth,shell:(document.querySelector('[data-event-room-shell]') as HTMLElement).getBoundingClientRect(),viewportWidth:window.innerWidth,viewportHeight:window.innerHeight}));
+ expect(report.rootScroll).toBeLessThanOrEqual(report.rootClient+1);
+ expect(report.shell.right).toBeLessThanOrEqual(report.viewportWidth+1);
+ expect(report.shell.bottom).toBeLessThanOrEqual(report.viewportHeight+1);
+});
+
+test('all critical Event Room controls remain reachable while presentation is active at 320px',async({page})=>{
+ test.slow();
+ await openRoom(page,320,568);
+ await injectPresentation(page,10,'local');
+ const controlBar=page.locator('.lk-control-bar');
+ await expect(controlBar).toBeVisible({timeout:10_000});
+ await injectPresentationControls(page);
+ await expectControlsReachable(page,controlBar);
+ const overflow=await controlBar.evaluate(el=>({client:el.clientWidth,scroll:el.scrollWidth,bottom:el.getBoundingClientRect().bottom,viewportHeight:window.innerHeight}));
+ expect(overflow.scroll).toBeGreaterThanOrEqual(overflow.client);
+ expect(overflow.bottom).toBeLessThanOrEqual(overflow.viewportHeight+1);
 });

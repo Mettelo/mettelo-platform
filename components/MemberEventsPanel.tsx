@@ -192,9 +192,9 @@ export default function MemberEventsPanel({ events, nowIso }: { events: EventIte
                       </a>
                     )}
                     {roomUpcoming && (
-                      <button className="button dark" type="button" disabled aria-disabled="true">
-                        Join session
-                      </button>
+                      <span className="joinPending" aria-label="Join session unavailable until 15 minutes before the event">
+                        Join session · opens 15 min before
+                      </span>
                     )}
                     {item.registrationStatus === "offered" && (
                       <button

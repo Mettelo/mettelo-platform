@@ -34,10 +34,12 @@ test('unknown token failure uses a safe retryable fallback',()=>{
  expect(failure).toMatchObject({category:'unknown',stage:'token',retryable:true,heading:'Something went wrong while joining'});
 });
 
-test('safe diagnostics never contain messages, tokens, keys, secrets or provider URLs',()=>{
- const failure=classifyTokenFailure({eventId,status:502,code:'TOKEN_ISSUE_FAILED',message:'sensitive provider detail'});
+test('safe diagnostics contain only the approved non-sensitive fields',()=>{
+ const secretMarker='phase2-provider-secret-value';
+ const tokenMarker='eyJhbGciOiJIUzI1NiJ9.phase2.payload';
+ const failure=classifyTokenFailure({eventId,status:502,code:'TOKEN_ISSUE_FAILED',message:`${secretMarker} ${tokenMarker} wss://private-provider.invalid`});
  const diagnostic=safeEventRoomDiagnostic(failure);
  expect(diagnostic).toEqual({eventId,category:'token_failure',stage:'token',status:502,retryable:true});
- const serialized=JSON.stringify(diagnostic).toLowerCase();
- for(const forbidden of ['token','secret','api_key','apikey','wss://','sensitive provider detail'])expect(serialized).not.toContain(forbidden);
+ const serialized=JSON.stringify(diagnostic);
+ for(const forbidden of [secretMarker,tokenMarker,'wss://private-provider.invalid','LIVEKIT_API_SECRET','LIVEKIT_API_KEY'])expect(serialized).not.toContain(forbidden);
 });

@@ -33,7 +33,7 @@ async function injectGrid(page:Page,count:number){
   inner.innerHTML='';
   const grid=document.createElement('div');grid.className='lk-grid-layout';grid.dataset.phase5Fixture='grid';
   for(let i=0;i<participantCount;i+=1){
-   const tile=document.createElement('div');tile.className='lk-participant-tile';tile.dataset.phase5Fixture='tile';
+   const tile=document.createElement('div');tile.className='lk-participant-tile';tile.dataset.phase5Fixture='tile';tile.dataset.participantId=`participant-${i+1}`;
    const video=document.createElement('video');video.setAttribute('aria-label',`Participant ${i+1} video`);tile.appendChild(video);
    const name=document.createElement('span');name.className='lk-participant-name';name.textContent=i===participantCount-1?pathologicalName:`Participant ${i+1}`;tile.appendChild(name);
    grid.appendChild(tile);
@@ -41,6 +41,19 @@ async function injectGrid(page:Page,count:number){
   inner.appendChild(grid);
  },{participantCount:count,pathologicalName:longName});
  await expect(page.locator('[data-phase5-fixture="tile"]')).toHaveCount(count);
+}
+
+async function injectPresentation(page:Page,count:number){
+ await page.evaluate(({participantCount,pathologicalName})=>{
+  const inner=document.querySelector('.lk-video-conference-inner');
+  if(!(inner instanceof HTMLElement))throw new Error('LiveKit conference inner surface not found.');
+  inner.innerHTML='';
+  const focus=document.createElement('div');focus.className='lk-focus-layout';focus.dataset.phase5Fixture='presentation';
+  const rail=document.createElement('div');rail.className='lk-carousel';
+  for(let i=0;i<participantCount;i+=1){const tile=document.createElement('div');tile.className='lk-participant-tile';tile.dataset.participantId=`participant-${i+1}`;const name=document.createElement('span');name.className='lk-participant-name';name.textContent=i===participantCount-1?pathologicalName:`Participant ${i+1}`;tile.appendChild(name);rail.appendChild(tile);}
+  const stage=document.createElement('div');stage.className='lk-focus-layout-wrapper';const shared=document.createElement('div');shared.className='lk-participant-tile';shared.dataset.source='screen_share';const video=document.createElement('video');video.setAttribute('aria-label','Shared screen');shared.appendChild(video);stage.appendChild(shared);focus.appendChild(rail);focus.appendChild(stage);inner.appendChild(focus);
+ },{participantCount:count,pathologicalName:longName});
+ await expect(page.locator('[data-phase5-fixture="presentation"]')).toBeVisible();
 }
 
 async function metrics(page:Page){
@@ -95,4 +108,16 @@ test('short landscape increases useful horizontal density without escaping the r
 test('10 plus participant layouts scroll inside the grid instead of growing the page',async({page})=>{
  test.slow();await openRoom(page,1024,768);await injectGrid(page,16);const report=await metrics(page);
  expect(report.columns).toBe(4);expect(report.scrollHeight).toBeGreaterThanOrEqual(report.clientHeight);expect(report.scrollWidth).toBeLessThanOrEqual(report.clientWidth+1);expect(report.rootScroll).toBeLessThanOrEqual(report.rootClient+1);expect(report.namesInside).toBe(true);expect(report.grid.bottom).toBeLessThanOrEqual(report.shell.bottom+1);
+});
+
+test('25 participant room remains bounded and internally scrollable',async({page})=>{
+ test.slow();await openRoom(page,1280,800);await injectGrid(page,25);const report=await metrics(page);
+ expect(report.columns).toBe(4);expect(report.scrollHeight).toBeGreaterThan(report.clientHeight);expect(report.scrollWidth).toBeLessThanOrEqual(report.clientWidth+1);expect(report.rootScroll).toBeLessThanOrEqual(report.rootClient+1);expect(report.tilesInside).toBe(true);expect(report.namesInside).toBe(true);expect(report.grid.bottom).toBeLessThanOrEqual(report.shell.bottom+1);
+});
+
+test('dense grid returns safely after presentation without losing participant identity',async({page})=>{
+ test.slow();await openRoom(page,1024,768);await injectGrid(page,12);const before=await page.locator('[data-phase5-fixture="tile"]').evaluateAll(nodes=>nodes.map(node=>(node as HTMLElement).dataset.participantId));
+ await injectPresentation(page,12);await expect(page.locator('.lk-carousel .lk-participant-tile')).toHaveCount(12);
+ await injectGrid(page,12);const after=await page.locator('[data-phase5-fixture="tile"]').evaluateAll(nodes=>nodes.map(node=>(node as HTMLElement).dataset.participantId));
+ expect(after).toEqual(before);const report=await metrics(page);expect(report.columns).toBe(4);expect(report.rootScroll).toBeLessThanOrEqual(report.rootClient+1);expect(report.namesInside).toBe(true);
 });

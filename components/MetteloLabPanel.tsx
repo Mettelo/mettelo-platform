@@ -37,12 +37,12 @@ export default async function MetteloLabPanel(props:Props){
  const taskProgress=progress(props.completedTasks,props.totalTasks);
  return <section className={styles.metteloLab} id="mettelo-lab" aria-labelledby="mettelo-lab-title">
   <header className={styles.labHeader} data-lab-home-section>
-   <div className={styles.headerMain}><span className={styles.labEyebrow}>METTELO LAB / HOME</span><h2 id="mettelo-lab-title">{props.projectTitle}</h2><p>{props.projectSummary||'Your project workspace for planning, delivery, collaboration, data, events and proof.'}</p></div>
+   <div className={styles.headerMain}><span className={styles.labEyebrow}>METTELO LAB / HOME</span><h2 id="mettelo-lab-title">{props.projectTitle}</h2><p>{props.projectSummary||'Your workspace for contributing to this project, working with your team and building evidence around the work you deliver.'}</p></div>
    <aside className={styles.headerContext} aria-label="Your project context"><span className={styles.contextLabel}>YOUR CONTEXT</span><strong>{humanise(props.workspaceRole)}</strong><small>{current?`Team ${current.run_number}`:'Team forming'} · {humanise(props.runStatus)}</small></aside>
   </header>
   <section className={styles.nextAction} data-lab-home-section aria-labelledby="lab-next-action"><div className={styles.nextActionCopy}><span className={styles.labLabel}>UP NEXT</span><h3 id="lab-next-action">{actionTitle}</h3><p>{actionCopy}</p></div><a className={styles.labButton} href={actionHref}>{actionLabel}<span aria-hidden="true">→</span></a></section>
   <section className={styles.summary} data-lab-home-section aria-labelledby="lab-summary-title">
-   <div className={styles.sectionTitle}><span className={styles.labLabel}>PROJECT PROGRESS</span><h3 id="lab-summary-title">Where things stand</h3><p>Focus on delivery progress first, then the people and working state around it.</p></div>
+   <div className={styles.sectionTitle}><span className={styles.labLabel}>PROJECT PROGRESS</span><h3 id="lab-summary-title">Where things stand</h3><p>Track completed work and see what your team still needs to deliver.</p></div>
    <div className={styles.progressGrid}>
     <ProgressCard label="Milestones" completed={props.completedMilestones} total={props.totalMilestones} percent={milestoneProgress}/>
     <ProgressCard label="Tasks" completed={props.completedTasks} total={props.totalTasks} percent={taskProgress}/>
@@ -51,15 +51,15 @@ export default async function MetteloLabPanel(props:Props){
   </section>
   <section className={styles.teamRoster} data-lab-team-section id="team" aria-labelledby="team-roster-title">
    <div className={styles.teamHero}>
-    <div><span className={styles.cardNumber}>YOUR TEAM · METTELO LAB</span><h3 id="team-roster-title">{current?`Team ${current.run_number}`:'Your team'}</h3><p className={styles.teamIntro}>The people working with you on this project, their responsibilities and the current team state. Other cohorts are intentionally not shown.</p></div>
+    <div><span className={styles.cardNumber}>YOUR TEAM · METTELO LAB</span><h3 id="team-roster-title">{current?`Team ${current.run_number}`:'Your team'}</h3><p className={styles.teamIntro}>See the people working with you on this project, their responsibilities and the current team status.</p></div>
     <div className={styles.teamSnapshot} aria-label="Team status"><span>{current?humanise(current.status):'Forming'}</span><strong>{current?`${current.members.length}/${current.required_team_size??current.members.length}`:'—'}</strong><small>{current?'members':'team placement'}</small></div>
    </div>
    {current?<>
     <div className={styles.teamMeta}><span><strong>Your role</strong><b>{humanise(props.workspaceRole)}</b></span><span><strong>Project Lead</strong><b>{lead?.name||'Not assigned yet'}</b></span><span><strong>Project Architect</strong><b>{architect||'Not assigned yet'}</b></span></div>
     <div className={styles.teamGrid}>{current.members.length?current.members.map(member=><RosterMember key={member.id} member={member} currentUserId={props.currentUserId} canManageSubmissionPermissions={props.canManageSubmissionPermissions} completionHref={viewHref('proof')}/>):<div className={styles.labEmpty}><strong>You’re the first member of this team.</strong><p>Other approved members will appear here as the team fills.</p></div>}</div>
-   </>:<div className={styles.labEmpty}><strong>Your team is still being formed.</strong><p>Your working team will appear here once placement is complete. You will not see members from other cohorts.</p></div>}
+   </>:<div className={styles.labEmpty}><strong>Your team is still being formed.</strong><p>Your working team will appear here once placement is complete.</p></div>}
   </section>
-  <section className={styles.activity} data-lab-home-section aria-labelledby="lab-activity-title"><div className={styles.sectionTitle}><span className={styles.labLabel}>PROJECT PULSE</span><h3 id="lab-activity-title">Latest from Chat</h3><p>Recent team context without turning Home into another message feed.</p></div>{props.recentDiscussions.length?<div className={styles.activityList}>{props.recentDiscussions.slice(0,3).map(item=><article key={item.id}><div className={styles.activityMeta}><strong>{names.get(item.author_user_id)||'Mettelo member'}</strong><small>{formatDate(item.created_at)}</small></div><p>{item.body}</p></article>)}</div>:<div className={styles.labEmpty}><strong>Start your team’s project discussion.</strong><p>Messages, decisions and blockers will appear here once your team starts collaborating.</p></div>}<a className={styles.labLink} href={viewHref('chat')}>Go to Chat →</a></section>
+  <section className={styles.activity} data-lab-home-section aria-labelledby="lab-activity-title"><div className={styles.sectionTitle}><span className={styles.labLabel}>PROJECT PULSE</span><h3 id="lab-activity-title">Latest from Chat</h3><p>See recent project discussions, decisions and blockers from your team.</p></div>{props.recentDiscussions.length?<div className={styles.activityList}>{props.recentDiscussions.slice(0,3).map(item=><article key={item.id}><div className={styles.activityMeta}><strong>{names.get(item.author_user_id)||'Mettelo member'}</strong><small>{formatDate(item.created_at)}</small></div><p>{item.body}</p></article>)}</div>:<div className={styles.labEmpty}><strong>Start your team’s project discussion.</strong><p>Messages, decisions and blockers will appear here once your team starts collaborating.</p></div>}<a className={styles.labLink} href={viewHref('chat')}>Go to Chat →</a></section>
   {props.reviewSlot?<div data-lab-home-section>{props.reviewSlot}</div>:null}
  </section>;
 }
@@ -72,7 +72,7 @@ function RosterMember({member,currentUserId,canManageSubmissionPermissions,compl
   <div className={styles.memberContent}>
    <div className={styles.memberHeading}><div><strong>{member.name}</strong>{isCurrent&&<span className={styles.youLabel}>You</span>}</div><span className={styles.rolePill}>{roleLabel(member.role)}</span></div>
    {member.headline&&<p className={styles.memberHeadline}>{member.headline}</p>}
-   <div className={styles.memberMeta}><span>Status · {humanise(member.status)}</span>{member.can_submit_final_proof&&<span>Final Proof delegate</span>}</div>
+   <div className={styles.memberMeta}><span>Status · {humanise(member.status)}</span>{member.can_submit_final_proof&&<span>Can submit final Proof</span>}</div>
    {canManageSubmissionPermissions&&!isCurrent&&<a className={styles.permissionLink} href={completionHref}>Manage submission permissions →</a>}
   </div>
  </article>

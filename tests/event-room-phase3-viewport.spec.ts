@@ -106,7 +106,7 @@ async function injectRepresentativeParticipants(page:Page,count=6){
    tile.appendChild(name);
    grid.appendChild(tile);
   }
- },{participantCount:count,longName});
+ },{participantCount:count,longName:longParticipantName});
 }
 
 const matrix=[

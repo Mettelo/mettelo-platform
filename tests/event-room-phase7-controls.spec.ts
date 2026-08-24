@@ -58,9 +58,12 @@ test('seven critical controls are reachable and keyboard-sized at 320px',async({
 
 test('mic camera and share expose explicit state changes instead of colour-only state',async({page})=>{
  await openRoom(page);await injectControlAcceptanceFixture(page);
- const mic=page.getByRole('button',{name:'Microphone on'});await mic.click();await expect(mic).toHaveAttribute('aria-label','Microphone muted');await expect(mic).toHaveAttribute('aria-pressed','false');
- const camera=page.getByRole('button',{name:'Camera on'});await camera.click();await expect(camera).toHaveAttribute('aria-label','Camera off');
- const share=page.getByRole('button',{name:'Share screen'});await share.click();await expect(share).toHaveAttribute('aria-label','Stop sharing screen');
+ const mic=page.locator('[data-phase7-fixture="control"][data-control="microphone"]');
+ await expect(mic).toHaveAttribute('aria-label','Microphone on');await mic.click();await expect(mic).toHaveAttribute('aria-label','Microphone muted');await expect(mic).toHaveAttribute('aria-pressed','false');await expect(page.getByRole('button',{name:'Microphone muted'})).toHaveCount(1);
+ const camera=page.locator('[data-phase7-fixture="control"][data-control="camera"]');
+ await expect(camera).toHaveAttribute('aria-label','Camera on');await camera.click();await expect(camera).toHaveAttribute('aria-label','Camera off');await expect(page.getByRole('button',{name:'Camera off'})).toHaveCount(1);
+ const share=page.locator('[data-phase7-fixture="control"][data-control="share"]');
+ await expect(share).toHaveAttribute('aria-label','Share screen');await share.click();await expect(share).toHaveAttribute('aria-label','Stop sharing screen');await expect(page.getByRole('button',{name:'Stop sharing screen'})).toHaveCount(1);
 });
 
 test('People Chat and More open an explicit accessible side surface',async({page})=>{

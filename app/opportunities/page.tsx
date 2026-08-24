@@ -12,9 +12,16 @@ export const dynamic='force-dynamic';
 type Opportunity={id:string;title:string;organisation:string|null;opportunity_type:string;summary:string|null;location:string|null;eligibility:string|null;source_url:string|null;official_application_url:string|null;closes_at:string|null;published_at:string|null;data_ai_relevance_score:number|null;remote_scope:string|null;source_organisation:string|null;country_code:string|null;region_code:string|null;applicant_scope:string;work_arrangement:string|null;sponsorship_status:string};
 
 export default async function OpportunitiesPage(){
-  const supabase=createPublicSupabaseClient();let opportunities:Opportunity[]=[];let loadError=false;
-  if(supabase){const result=await supabase.from('opportunities').select('id,title,organisation,opportunity_type,summary,location,eligibility,source_url,official_application_url,closes_at,published_at,data_ai_relevance_score,remote_scope,source_organisation,country_code,region_code,applicant_scope,work_arrangement,sponsorship_status').eq('status','published').eq('access_level','public').eq('data_ai_relevance_status','high').order('published_at',{ascending:false}).limit(500);if(result.error)loadError=true;else{const now=Date.now();opportunities=((result.data||[]) as Opportunity[]).filter(item=>!item.closes_at||new Date(item.closes_at).getTime()>now)}}else loadError=true;
-  const copy=(await getPublicWebsiteCmsPage('opportunities')).values;
+  const supabase=createPublicSupabaseClient();
+  const copyPromise=getPublicWebsiteCmsPage('opportunities');
+  const nowIso=new Date().toISOString();
+  const opportunitiesPromise=supabase
+    ?supabase.from('opportunities').select('id,title,organisation,opportunity_type,summary,location,eligibility,source_url,official_application_url,closes_at,published_at,data_ai_relevance_score,remote_scope,source_organisation,country_code,region_code,applicant_scope,work_arrangement,sponsorship_status').eq('status','published').eq('access_level','public').eq('data_ai_relevance_status','high').or(`closes_at.is.null,closes_at.gt.${nowIso}`).order('published_at',{ascending:false}).limit(500)
+    :Promise.resolve({data:null,error:new Error('Public Supabase client unavailable.')});
+  const [copyResult,opportunityResult]=await Promise.all([copyPromise,opportunitiesPromise]);
+  const copy=copyResult.values;
+  const loadError=Boolean(opportunityResult.error);
+  const opportunities=loadError?[]:((opportunityResult.data||[]) as Opportunity[]);
   return <>
     <section className="opportunityHero" aria-labelledby="opportunity-page-title"><div className="shell opportunityHeroInner"><div className="opportunityHeroCopy"><div className="eyebrow">{copy.hero_eyebrow}</div><h1 id="opportunity-page-title">{copy.hero_title}</h1><p className="opportunityHeroLead">{copy.hero_lead}</p></div><div className="opportunityHeroProof" aria-label="Opportunity feed summary"><div><strong>{opportunities.length}</strong><span>live Data &amp; AI opportunit{opportunities.length===1?'y':'ies'}</span></div><ul><li>Focused on current Data &amp; AI relevance</li><li>Expired listings are removed</li><li>Eligibility context shown when available</li></ul></div></div></section>
     <section id="opportunity-feed" className="opportunityDiscovery" aria-labelledby="opportunity-feed-heading"><div className="shell"><div className="opportunityDiscoveryIntro"><div><div className="eyebrow">DISCOVER</div><h2 id="opportunity-feed-heading">{copy.section_title}</h2></div><p>{copy.section_body}</p></div>{loadError?<div className="panel emptyState" role="status"><h3>Opportunity data is temporarily unavailable.</h3><p>Please try again shortly.</p></div>:opportunities.length?<OpportunityBoard items={opportunities}/>:<div className="panel emptyState"><h3>{copy.empty_title}</h3><p>{copy.empty_body}</p><div className="actions"><a className="button dark" href={copy.final_cta_href}>{copy.final_cta_label}</a></div></div>}</div></section>

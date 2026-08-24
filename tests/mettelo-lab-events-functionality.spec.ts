@@ -1,4 +1,5 @@
 import {expect,test,type Browser,type Page} from '@playwright/test';
+import {createClient} from '@supabase/supabase-js';
 
 type Credentials={email:string;password:string};
 const labProjectId='00000000-0000-4000-8000-00000000e2e1';
@@ -10,6 +11,13 @@ function credentials(prefix:'MEMBER'|'ADMIN'):Credentials{
   const password=process.env[`E2E_${prefix}_PASSWORD`];
   if(!email||!password)throw new Error(`Missing E2E_${prefix}_EMAIL or E2E_${prefix}_PASSWORD.`);
   return{email,password};
+}
+
+function serviceDb(){
+  const url=process.env.E2E_SUPABASE_URL?.trim();
+  const key=process.env.E2E_SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if(!url||!key)throw new Error('Missing isolated E2E Supabase service configuration.');
+  return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 }
 
 async function signIn(page:Page,account:Credentials,next:string){
@@ -51,6 +59,13 @@ async function createEvent(page:Page,{title,visibility}:{title:string;visibility
   expect(body.ok).toBe(true);
   expect(typeof body.event_id).toBe('string');
   return body.event_id as string;
+}
+
+async function moveIntoJoinWindow(eventId:string){
+  const start=new Date(Date.now()+5*60*1000);
+  const end=new Date(start.getTime()+60*60*1000);
+  const {error}=await serviceDb().from('project_meetings').update({starts_at:start.toISOString(),ends_at:end.toISOString()}).eq('id',eventId);
+  if(error)throw error;
 }
 
 async function anonymousPage(browser:Browser,origin:string){
@@ -103,14 +118,23 @@ test.describe('Mettelo Lab governed event lifecycle',()=>{
       expect(registrationResponse.status()).toBe(200);
       const registrationBody=await registrationResponse.json();
       expect(registrationBody.status).toBe('reserved');
-      await memberPage.goto('/member/events',{waitUntil:'networkidle'});
-      const memberCard=memberPage.getByText(publicTitle,{exact:true}).locator('xpath=ancestor::article[1]');
-      await expect(memberCard.getByRole('link',{name:'Join room →'})).toHaveAttribute('href',`/member/events/${publicEventId}/join`);
 
-      // The room remains protected by the established opening window even after
-      // registration; publishing an event does not publish a usable room token.
+      // Reservation alone must not surface an active Join action before the
+      // established 15-minute opening window.
+      await memberPage.goto('/member/events',{waitUntil:'networkidle'});
+      let memberCard=memberPage.getByText(publicTitle,{exact:true}).locator('xpath=ancestor::article[1]');
+      await expect(memberCard.getByRole('link',{name:'Join room →'})).toHaveCount(0);
+      await expect(memberCard).toContainText('Join available soon');
       const tokenResponse=await memberPage.context().request.post(`/api/project-events/${publicEventId}/token`);
       expect(tokenResponse.status()).toBe(425);
+
+      // Once the same event moves inside the authorised join window, the member
+      // workspace must surface the Join action without changing entitlement.
+      await moveIntoJoinWindow(publicEventId);
+      await memberPage.reload({waitUntil:'networkidle'});
+      memberCard=memberPage.getByText(publicTitle,{exact:true}).locator('xpath=ancestor::article[1]');
+      await expect(memberCard.getByRole('link',{name:'Join room →'})).toHaveAttribute('href',`/member/events/${publicEventId}/join`);
+      await expect(memberCard).toContainText('Session is open');
     }finally{await memberContext.close();}
   });
 });

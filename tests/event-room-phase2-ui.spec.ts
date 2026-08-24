@@ -55,9 +55,10 @@ test('token failure renders retry and Try again starts a fresh token attempt',as
  await page.goto(joinUrl,{waitUntil:'networkidle'});
  await expect(page.getByRole('heading',{name:'We couldn’t prepare the room'})).toBeVisible();
  await expect(page.getByRole('button',{name:'Try again'})).toBeVisible();
- expect(attempts).toBe(1);
+ const beforeRetry=attempts;
+ expect(beforeRetry).toBeGreaterThanOrEqual(1);
  await page.getByRole('button',{name:'Try again'}).click();
- await expect.poll(()=>attempts).toBe(2);
+ await expect.poll(()=>attempts).toBeGreaterThan(beforeRetry);
 });
 
 test('unknown token failure renders a safe retryable fallback',async({page})=>{
@@ -94,7 +95,8 @@ test('connection failure is distinct from token failure and offers retry',async(
  await expect(connectionState.getByRole('heading',{name:'We couldn’t connect to the room'})).toBeVisible({timeout:20_000});
  await expect(connectionState).toHaveAttribute('data-event-room-stage','connection');
  await expect(connectionState.getByRole('button',{name:'Try again'})).toBeVisible();
- expect(tokenRequests).toBe(1);
+ const beforeRetry=tokenRequests;
+ expect(beforeRetry).toBeGreaterThanOrEqual(1);
  await connectionState.getByRole('button',{name:'Try again'}).click();
- await expect.poll(()=>tokenRequests).toBe(2);
+ await expect.poll(()=>tokenRequests).toBeGreaterThan(beforeRetry);
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import {LiveKitRoom,RoomAudioRenderer,VideoConference} from '@livekit/components-react';
 import '@livekit/components-styles';
 import {classifyConnectionFailure,classifyTokenFailure,safeEventRoomDiagnostic,type EventRoomFailureView} from '@/lib/event-room-errors';
@@ -16,6 +16,7 @@ type RoomState={
 export default function ProjectVideoRoom({eventId}:{eventId:string}){
  const [state,setState]=useState<RoomState>({});
  const [attempt,setAttempt]=useState(0);
+ const failureRef=useRef<HTMLDivElement>(null);
 
  const retry=useCallback(()=>{
   setState({});
@@ -43,9 +44,13 @@ export default function ProjectVideoRoom({eventId}:{eventId:string}){
   return()=>{active=false};
  },[eventId,attempt]);
 
+ useEffect(()=>{
+  if(state.failure&&attempt>0)failureRef.current?.focus();
+ },[state.failure,attempt]);
+
  if(state.failure){
   const {failure}=state;
-  return <div className={`${styles.videoState} emptyState`} role={failure.category==='too_early'?'status':'alert'} data-event-room-surface="failure" data-event-room-category={failure.category} data-event-room-stage={failure.stage} data-event-room-status={failure.status??''}>
+  return <div ref={failureRef} tabIndex={-1} className={`${styles.videoState} emptyState`} role={failure.category==='too_early'?'status':'alert'} data-event-room-surface="failure" data-event-room-category={failure.category} data-event-room-stage={failure.stage} data-event-room-status={failure.status??''}>
    <h2>{failure.heading}</h2>
    <p>{failure.message}</p>
    <div className="actions">

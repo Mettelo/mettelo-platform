@@ -38,15 +38,15 @@ const TOKEN_CODE_CATEGORY:Record<string,EventRoomErrorCategory>={
  TOKEN_ISSUE_FAILED:'token_failure'
 };
 
-function viewFor(diagnostic:EventRoomDiagnostic,serverMessage?:string):EventRoomFailureView{
+function viewFor(diagnostic:EventRoomDiagnostic):EventRoomFailureView{
  const base={...diagnostic};
  switch(diagnostic.category){
-  case 'auth_required':return {...base,heading:'Sign in to join',message:serverMessage||'Please sign in before joining this session.'};
-  case 'not_found':return {...base,heading:'Session not found',message:serverMessage||'This session could not be found.'};
-  case 'cancelled':return {...base,heading:'This session has been cancelled',message:serverMessage||'This event is no longer taking place.'};
-  case 'no_permission':return {...base,heading:'You don’t have access to this session',message:serverMessage||'Your account is not permitted to join this event.'};
-  case 'too_early':return {...base,heading:'Session not open yet',message:serverMessage||'The room opens 15 minutes before the event starts.'};
-  case 'session_ended':return {...base,heading:'This session has ended',message:serverMessage||'The room is now closed.'};
+  case 'auth_required':return {...base,heading:'Sign in to join',message:'Please sign in before joining this session.'};
+  case 'not_found':return {...base,heading:'Session not found',message:'This session could not be found.'};
+  case 'cancelled':return {...base,heading:'This session has been cancelled',message:'This event is no longer taking place.'};
+  case 'no_permission':return {...base,heading:'You don’t have access to this session',message:'Your account is not permitted to join this event.'};
+  case 'too_early':return {...base,heading:'Session not open yet',message:'The room opens 15 minutes before the event starts.'};
+  case 'session_ended':return {...base,heading:'This session has ended',message:'The room is now closed.'};
   case 'provider_not_configured':return {...base,heading:'Live video is currently unavailable',message:'The live-room provider is not configured for this session.'};
   case 'service_unavailable':return {...base,heading:'Live video is currently unavailable',message:'Mettelo could not prepare the secure room. Please try again later.'};
   case 'token_failure':return {...base,heading:'We couldn’t prepare the room',message:'Mettelo could not create your secure room access. Please try again.'};
@@ -59,7 +59,7 @@ export function classifyTokenFailure(input:{eventId:string;status?:number;code?:
  const category=(input.code&&TOKEN_CODE_CATEGORY[input.code])||
   (input.status===401?'auth_required':input.status===403?'no_permission':input.status===404?'not_found':input.status===425?'too_early':'unknown');
  const retryable=category==='service_unavailable'||category==='token_failure'||category==='unknown';
- return viewFor({eventId:input.eventId,category,stage:'token',status:input.status,retryable},input.message);
+ return viewFor({eventId:input.eventId,category,stage:'token',status:input.status,retryable});
 }
 
 export function classifyConnectionFailure(eventId:string):EventRoomFailureView{

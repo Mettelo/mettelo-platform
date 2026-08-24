@@ -19,6 +19,7 @@ type EventItem = {
   registration_deadline: string | null;
   status: string;
   registrationStatus: string | null;
+  joinEntitled: boolean;
 };
 
 const filters: Array<[EventFilter, string]> = [
@@ -28,6 +29,20 @@ const filters: Array<[EventFilter, string]> = [
   ["action", "Needs action"],
   ["past", "Past"],
 ];
+
+function eventLabel(item: EventItem) {
+  if (item.event_type === "learning_session") return "LEARNING SESSION";
+  if (item.event_type.includes("review")) return "PROJECT REVIEW";
+  return "PROJECT SESSION";
+}
+
+function formatDay(value: string) {
+  return new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short" }).format(new Date(value));
+}
+
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
 
 export default function MemberEventsPanel({ events, nowIso }: { events: EventItem[]; nowIso: string }) {
   const [working, setWorking] = useState(""),
@@ -108,107 +123,122 @@ export default function MemberEventsPanel({ events, nowIso }: { events: EventIte
       </div>
       <div className="memberEventGrid">
         {visibleEvents.length ? (
-          visibleEvents.map((item) => (
-            <article className="memberEventCard" key={item.id}>
-              <div className="projectEventMeta">
-                <span className="eventOrigin">
-                  {isLearning(item) ? "LEARNING EVENT" : "PROJECT EVENT"}
-                </span>
-                <span className="chip">
-                  {item.event_type.replaceAll("_", " ").toUpperCase()}
-                </span>
-                {item.registrationStatus && (
-                  <span
-                    className={`chip ${item.registrationStatus === "reserved" ? "green" : ""}`}
-                  >
-                    {item.registrationStatus.replaceAll("_", " ").toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <h2>{item.title}</h2>
-              <p>{item.purpose}</p>
-              {item.learning_objectives && (
-                <p>
-                  <strong>You will learn:</strong> {item.learning_objectives}
-                </p>
-              )}
-              <dl>
-                <div>
-                  <dt>Your local time</dt>
-                  <dd suppressHydrationWarning>
-                    {new Date(item.starts_at).toLocaleString(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </dd>
+          visibleEvents.map((item) => {
+            const start = new Date(item.starts_at).getTime();
+            const end = item.ends_at ? new Date(item.ends_at).getTime() : start + 2 * 60 * 60 * 1000;
+            const joinOpen = start - 15 * 60 * 1000;
+            const joinClose = end + 30 * 60 * 1000;
+            const roomOpen = item.joinEntitled && item.status !== "cancelled" && now >= joinOpen && now <= joinClose;
+            const roomUpcoming = item.joinEntitled && item.status !== "cancelled" && now < joinOpen && !isPast(item);
+            const roomClosed = item.joinEntitled && now > joinClose;
+            const timingLabel = item.status === "cancelled"
+              ? "CANCELLED"
+              : isPast(item) || roomClosed
+                ? "PAST"
+                : now >= joinOpen
+                  ? "STARTING SOON"
+                  : "UPCOMING";
+            return (
+              <article className="memberEventCard" key={item.id}>
+                <div className="eventCardTop">
+                  <div className="projectEventMeta">
+                    <span className="eventOrigin">{eventLabel(item)}</span>
+                    <span className="eventTypeLabel">{item.event_type.replaceAll("_", " ")}</span>
+                  </div>
+                  <span className={`eventTiming ${timingLabel === "STARTING SOON" ? "isSoon" : ""}`}>{timingLabel}</span>
                 </div>
-                <div>
-                  <dt>Source timezone</dt>
-                  <dd>{item.timezone}</dd>
+
+                <div className="eventCardBody">
+                  <h2>{item.title}</h2>
+                  {item.purpose && <p className="eventPurpose">{item.purpose}</p>}
+                  {item.learning_objectives && (
+                    <div className="learningBlock">
+                      <span>You will learn</span>
+                      <p>{item.learning_objectives}</p>
+                    </div>
+                  )}
                 </div>
-              </dl>
-              <div className="projectEventActions">
-                {item.registrationStatus === "reserved" && (
-                  <a
-                    className="button dark"
-                    href={`/member/events/${item.id}/join`}
-                  >
-                    Join room →
-                  </a>
-                )}
-                {item.registrationStatus === "offered" && (
-                  <button
-                    className="button dark"
-                    disabled={working === item.id}
-                    onClick={() => void action(item, "accept_offer")}
-                  >
-                    Accept offered place
-                  </button>
-                )}
-                {["community_learning", "approval_required"].includes(
-                  item.visibility,
-                ) &&
-                  (!item.registrationStatus ||
-                    ["cancelled", "declined"].includes(
-                      item.registrationStatus,
-                    )) && (
-                    <button
-                      className="button dark"
-                      disabled={working === item.id}
-                      onClick={() => void action(item, "register")}
-                    >
-                      {working === item.id
-                        ? "Saving…"
-                        : item.visibility === "approval_required"
-                          ? "Request a place"
-                          : "Reserve a place"}
-                    </button>
-                  )}
-                {item.registrationStatus &&
-                  [
-                    "reserved",
-                    "pending_approval",
-                    "waitlisted",
-                    "offered",
-                  ].includes(item.registrationStatus) && (
-                    <button
-                      className="button ghost"
-                      disabled={working === item.id}
-                      onClick={() => void action(item, "cancel_registration")}
-                    >
-                      Cancel
-                    </button>
-                  )}
-              </div>
-            </article>
-          ))
+
+                <dl className="eventSchedule">
+                  <div>
+                    <dt>Date</dt>
+                    <dd suppressHydrationWarning>{formatDay(item.starts_at)}</dd>
+                  </div>
+                  <div>
+                    <dt>Your local time</dt>
+                    <dd suppressHydrationWarning>{formatTime(item.starts_at)}{item.ends_at ? `–${formatTime(item.ends_at)}` : ""}</dd>
+                  </div>
+                  <div>
+                    <dt>Source timezone</dt>
+                    <dd>{item.timezone}</dd>
+                  </div>
+                </dl>
+
+                <div className="eventActionFooter">
+                  <div className="eventActionState" aria-live="polite">
+                    {item.status === "cancelled" ? <><strong>Session cancelled</strong><span>This session is no longer available.</span></> :
+                      roomOpen ? <><strong>Session is open</strong><span>You can join now.</span></> :
+                      roomUpcoming ? <><strong>Join available soon</strong><span>Room opens 15 minutes before the session.</span></> :
+                      item.registrationStatus === "pending_approval" ? <><strong>Request pending</strong><span>We will update this event when your place is confirmed.</span></> :
+                      item.registrationStatus === "waitlisted" ? <><strong>Waitlisted</strong><span>You will be notified if a place becomes available.</span></> :
+                      item.registrationStatus === "offered" ? <><strong>Place offered</strong><span>Accept the place to confirm attendance.</span></> :
+                      isPast(item) ? <><strong>Session ended</strong><span>This event is now in your history.</span></> :
+                      <><strong>{isLearning(item) ? "Attendance required" : "Project session"}</strong><span>{isLearning(item) ? "Reserve or request a place to attend." : "Your project access controls attendance."}</span></>}
+                  </div>
+                  <div className="projectEventActions">
+                    {roomOpen && (
+                      <a className="button dark" href={`/member/events/${item.id}/join`}>
+                        Join session →
+                      </a>
+                    )}
+                    {roomUpcoming && (
+                      <span className="joinPending" aria-label="Join session unavailable until 15 minutes before the event">
+                        Join session · opens 15 min before
+                      </span>
+                    )}
+                    {item.registrationStatus === "offered" && (
+                      <button
+                        className="button dark"
+                        disabled={working === item.id}
+                        onClick={() => void action(item, "accept_offer")}
+                      >
+                        Accept offered place
+                      </button>
+                    )}
+                    {["community_learning", "approval_required"].includes(item.visibility) &&
+                      !item.joinEntitled &&
+                      (!item.registrationStatus || ["cancelled", "declined"].includes(item.registrationStatus)) && (
+                        <button
+                          className="button dark"
+                          disabled={working === item.id}
+                          onClick={() => void action(item, "register")}
+                        >
+                          {working === item.id
+                            ? "Saving…"
+                            : item.visibility === "approval_required"
+                              ? "Request a place"
+                              : "Reserve a place"}
+                        </button>
+                      )}
+                    {item.registrationStatus &&
+                      ["reserved", "pending_approval", "waitlisted", "offered"].includes(item.registrationStatus) && (
+                        <button
+                          className="button ghost"
+                          disabled={working === item.id}
+                          onClick={() => void action(item, "cancel_registration")}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                  </div>
+                </div>
+              </article>
+            );
+          })
         ) : (
-          <div className="emptyState">
+          <div className="emptyState eventEmptyState">
             <h2>No events in this view.</h2>
-            <p>
-              Choose another filter to see project sessions, learning events or
-              your event history.
-            </p>
+            <p>Choose another filter to see project sessions, learning events or your event history.</p>
           </div>
         )}
       </div>

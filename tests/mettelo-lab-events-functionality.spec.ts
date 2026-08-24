@@ -123,7 +123,7 @@ test.describe('Mettelo Lab governed event lifecycle',()=>{
       // established 15-minute opening window.
       await memberPage.goto('/member/events',{waitUntil:'networkidle'});
       let memberCard=memberPage.getByText(publicTitle,{exact:true}).locator('xpath=ancestor::article[1]');
-      await expect(memberCard.getByRole('link',{name:'Join room →'})).toHaveCount(0);
+      await expect(memberCard.getByRole('link',{name:'Join session →'})).toHaveCount(0);
       await expect(memberCard).toContainText('Join available soon');
       const tokenResponse=await memberPage.context().request.post(`/api/project-events/${publicEventId}/token`);
       expect(tokenResponse.status()).toBe(425);
@@ -133,7 +133,7 @@ test.describe('Mettelo Lab governed event lifecycle',()=>{
       await moveIntoJoinWindow(publicEventId);
       await memberPage.reload({waitUntil:'networkidle'});
       memberCard=memberPage.getByText(publicTitle,{exact:true}).locator('xpath=ancestor::article[1]');
-      await expect(memberCard.getByRole('link',{name:'Join room →'})).toHaveAttribute('href',`/member/events/${publicEventId}/join`);
+      await expect(memberCard.getByRole('link',{name:'Join session →'})).toHaveAttribute('href',`/member/events/${publicEventId}/join`);
       await expect(memberCard).toContainText('Session is open');
     }finally{await memberContext.close();}
   });

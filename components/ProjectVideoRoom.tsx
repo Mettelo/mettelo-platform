@@ -58,6 +58,7 @@ export default function ProjectVideoRoom({eventId}:{eventId:string}){
  if(!state.token||!state.url)return <div className={`${styles.videoState} emptyState`} aria-live="polite" data-event-room-surface="loading"><h2>Preparing your secure room…</h2><p>Mettelo is checking your event permission.</p></div>;
 
  return <div className={styles.videoRoom} data-lk-theme="default" data-event-room-surface="room" data-event-room-shell>
+  <style>{`[data-event-room-shell] .lk-control-bar button{min-width:44px!important;min-height:44px!important;height:44px!important;flex:0 0 auto!important;box-sizing:border-box!important}`}</style>
   <div className={styles.videoNotice}><strong>{state.title}</strong><span>Recording and transcription are disabled for this phase.</span></div>
   <LiveKitRoom
    key={attempt}

@@ -78,6 +78,8 @@ jobs:
           done
           cat /tmp/mettelo-livekit-configured.log
           exit 1
+      - name: Blocking Phase 2 rendered UI and retry acceptance
+        run: npx playwright test tests/event-room-phase2-ui.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Blocking configured token, permission, timing and structured diagnostic contracts
         run: npx playwright test tests/livekit-phase1-contract.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Restart Mettelo without LiveKit provider configuration

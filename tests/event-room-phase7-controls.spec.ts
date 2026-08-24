@@ -41,7 +41,7 @@ async function injectControlAcceptanceFixture(page:Page){
   for(const [label,aria] of definitions){const button=document.createElement('button');button.type='button';button.dataset.phase7Fixture='control';button.dataset.control=label.toLowerCase();button.setAttribute('aria-label',aria);button.style.minWidth='44px';button.style.minHeight='44px';button.textContent=label;toolbar.appendChild(button);}
   const panel=document.createElement('aside');panel.dataset.phase7Fixture='panel';panel.hidden=true;panel.setAttribute('aria-label','Event Room side panel');conference.append(toolbar,panel);
   const setToggle=(name:string,onLabel:string,offLabel:string)=>{const button=toolbar.querySelector<HTMLButtonElement>(`[data-control="${name}"]`);if(!button)return;button.dataset.active='true';button.addEventListener('click',()=>{const active=button.dataset.active==='true';button.dataset.active=String(!active);button.setAttribute('aria-pressed',String(!active));button.setAttribute('aria-label',active?offLabel:onLabel);});};
-  setToggle('microphone','Microphone on','Microphone muted');setToggle('camera','Camera on','Camera off');setToggle('share','Stop sharing screen','Share screen');
+  setToggle('microphone','Microphone on','Microphone muted');setToggle('camera','Camera on','Camera off');setToggle('share','Share screen','Stop sharing screen');
   for(const name of ['people','chat','more']){toolbar.querySelector<HTMLButtonElement>(`[data-control="${name}"]`)?.addEventListener('click',()=>{panel.hidden=false;panel.dataset.open=name;panel.textContent=name==='people'?'People':name==='chat'?'Chat':'More options';});}
   toolbar.querySelector<HTMLButtonElement>('[data-control="leave"]')?.addEventListener('click',()=>{conference.dataset.phase7Leave='requested';});
  });

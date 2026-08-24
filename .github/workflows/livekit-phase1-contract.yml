@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   event-room-contract:
-    name: Event Room Phase 1-12 contract
+    name: Event Room Phase 1-12 consolidated contract
     runs-on: ubuntu-latest
     timeout-minutes: 70
     env:
@@ -100,8 +100,8 @@ jobs:
         run: npx playwright test tests/event-room-phase6-participant-identity.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Blocking Phase 7 Event Room controls acceptance
         run: npx playwright test tests/event-room-phase7-controls.spec.ts --project=chromium --workers=1 --timeout=60000
-      - name: Blocking Phase 8 context header and side-panel acceptance
-        run: npx playwright test tests/event-room-phase8-context-panel.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 8 context and Director acceptance
+        run: npx playwright test tests/event-room-phase8-context-panel.spec.ts tests/event-room-phase8-director-acceptance.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Blocking Phase 9 mobile, orientation and safe-area acceptance
         run: npx playwright test tests/event-room-phase9-mobile-safe-area.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Blocking Phase 10 join lifecycle and backend authority acceptance
@@ -135,7 +135,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: event-room-phase1-12-contract-evidence
+          name: event-room-phase1-12-consolidated-evidence
           path: |
             playwright-report/
             test-results/

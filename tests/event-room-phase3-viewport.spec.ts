@@ -38,9 +38,9 @@ async function expectViewportSafe(page:Page,selector:string){
  const report=await page.evaluate((targetSelector)=>{
   const root=document.documentElement;
   const target=document.querySelector(targetSelector);
-  if(!(target instanceof HTMLElement))return {found:false,rootClient:root.clientWidth,rootScroll:root.scrollWidth};
+  if(!(target instanceof HTMLElement))return {found:false as const,rootClient:root.clientWidth,rootScroll:root.scrollWidth};
   const rect=target.getBoundingClientRect();
-  return {found:true,rootClient:root.clientWidth,rootScroll:root.scrollWidth,left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height,viewportWidth:window.innerWidth,viewportHeight:window.innerHeight};
+  return {found:true as const,rootClient:root.clientWidth,rootScroll:root.scrollWidth,left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height,viewportWidth:window.innerWidth,viewportHeight:window.innerHeight};
  },selector);
  expect(report.found).toBe(true);
  if(!report.found)return;

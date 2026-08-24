@@ -45,7 +45,7 @@ export default function ProjectVideoRoom({eventId}:{eventId:string}){
 
  if(state.failure){
   const {failure}=state;
-  return <div className={`${styles.videoState} emptyState`} role={failure.category==='too_early'?'status':'alert'} data-event-room-category={failure.category} data-event-room-stage={failure.stage} data-event-room-status={failure.status??''}>
+  return <div className={`${styles.videoState} emptyState`} role={failure.category==='too_early'?'status':'alert'} data-event-room-surface="failure" data-event-room-category={failure.category} data-event-room-stage={failure.stage} data-event-room-status={failure.status??''}>
    <h2>{failure.heading}</h2>
    <p>{failure.message}</p>
    <div className="actions">
@@ -55,9 +55,9 @@ export default function ProjectVideoRoom({eventId}:{eventId:string}){
   </div>;
  }
 
- if(!state.token||!state.url)return <div className={`${styles.videoState} emptyState`} aria-live="polite"><h2>Preparing your secure room…</h2><p>Mettelo is checking your event permission.</p></div>;
+ if(!state.token||!state.url)return <div className={`${styles.videoState} emptyState`} aria-live="polite" data-event-room-surface="loading"><h2>Preparing your secure room…</h2><p>Mettelo is checking your event permission.</p></div>;
 
- return <div className={styles.videoRoom} data-lk-theme="default">
+ return <div className={styles.videoRoom} data-lk-theme="default" data-event-room-surface="room" data-event-room-shell>
   <div className={styles.videoNotice}><strong>{state.title}</strong><span>Recording and transcription are disabled for this phase.</span></div>
   <LiveKitRoom
    key={attempt}

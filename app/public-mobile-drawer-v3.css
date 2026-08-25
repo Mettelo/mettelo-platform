@@ -3,6 +3,7 @@
 @media (max-width:1080px){
   body.publicMobileNavV3.mobileNavOpen{overflow:hidden!important}
   body.publicMobileNavV3 .mobileMenu[open]{position:relative!important;z-index:1500!important}
+  body.publicMobileNavV3.mobileNavOpen .mobileMenu>summary{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
   body.publicMobileNavV3 .mobileMenuBackdrop{position:fixed!important;inset:0!important;z-index:1500!important;width:100vw!important;height:100dvh!important;border:0!important;background:rgba(16,19,29,.58)!important;backdrop-filter:blur(1.5px)!important;cursor:default!important}
   body.publicMobileNavV3 .mobileMenuPanel{position:fixed!important;top:0!important;right:0!important;bottom:auto!important;left:auto!important;z-index:1501!important;width:min(88vw,360px)!important;max-width:360px!important;height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;margin:0!important;padding:0!important;border:0!important;border-radius:16px 0 0 16px!important;background:#fff!important;box-shadow:-18px 0 46px rgba(16,19,29,.26)!important;overflow:hidden!important;transform:none!important}
   body.publicMobileNavV3 .mobilePublicNav{height:100%!important;min-height:0!important;display:flex!important;flex-direction:column!important;background:#fff!important;color:#10131d!important}
@@ -29,9 +30,9 @@
   body.publicMobileNavV3 .mobilePublicChevron.isOpen{transform:rotate(180deg)!important}
   body.publicMobileNavV3 .mobilePublicExploreGrid{display:grid!important;grid-template-rows:0fr!important;overflow:hidden!important;transition:grid-template-rows .18s ease!important}
   body.publicMobileNavV3 .mobilePublicExploreGrid.isOpen{grid-template-rows:1fr!important}
-  body.publicMobileNavV3 .mobilePublicExploreInner{min-height:0!important;overflow:hidden!important;display:grid!important;gap:2px!important;padding:0 0 0 32px!important}
-  body.publicMobileNavV3 .mobilePublicExploreGrid.isOpen .mobilePublicExploreInner{padding-top:2px!important;padding-bottom:4px!important}
-  body.publicMobileNavV3 .mobilePublicExploreInner>a{min-height:44px!important;display:flex!important;align-items:center!important;padding:8px 10px!important;border-radius:8px!important;color:#48515e!important;font-size:14px!important;font-weight:650!important;text-decoration:none!important}
+  body.publicMobileNavV3 .mobilePublicExploreInner{min-width:0!important;min-height:0!important;overflow:hidden!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:0!important;padding:0 0 0 36px!important}
+  body.publicMobileNavV3 .mobilePublicExploreGrid.isOpen .mobilePublicExploreInner{padding-top:4px!important;padding-bottom:12px!important}
+  body.publicMobileNavV3 .mobilePublicExploreInner>a{width:100%!important;min-width:0!important;min-height:44px!important;display:flex!important;align-items:center!important;box-sizing:border-box!important;padding:8px 10px!important;border-radius:8px!important;color:#48515e!important;font-size:14px!important;line-height:1.35!important;font-weight:650!important;text-decoration:none!important;overflow-wrap:anywhere!important;word-break:normal!important}
   body.publicMobileNavV3 .mobilePublicExploreInner>a:hover{background:#f7f8fa!important;color:#10131d!important}
   body.publicMobileNavV3 .mobilePublicFooter{flex:none!important;border-top:1px solid #e7e9ee!important;padding:12px 12px max(12px,env(safe-area-inset-bottom))!important;background:#fff!important}
   body.publicMobileNavV3 .mobilePublicGuestActions{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important;width:100%!important}

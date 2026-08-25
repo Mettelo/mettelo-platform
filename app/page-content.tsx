@@ -96,7 +96,7 @@ export default async function HomePage(){
       </div>
     </section>
 
-    <main className="homeDirectorV2">
+    <div className="homeDirectorV2">
       <section className="homeDirectorStatement" aria-labelledby="home-director-problem-title">
         <div className="shell homeDirectorStatementInner">
           <div className="eyebrow">{copy.why_eyebrow}</div>
@@ -191,6 +191,6 @@ export default async function HomePage(){
           <div><p>{copy.final_body}</p><div className="actions"><a className="button dark" href={copy.final_primary_href}>{copy.final_primary_label}</a><a className="button ghost" href={copy.final_secondary_href}>{copy.final_secondary_label}</a></div></div>
         </div>
       </section>
-    </main>
+    </div>
   </>;
 }

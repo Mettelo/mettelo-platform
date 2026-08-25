@@ -160,13 +160,19 @@ test.describe('recursive public responsive coverage',()=>{
       await page.setViewportSize({width,height:844});
       for(const path of ['/','/projects','/opportunities']){
         await page.goto(path,{waitUntil:'domcontentloaded'});
-        const summary=page.locator('.mobileMenu > summary');
+        const menu=page.locator('.mobileMenu');
+        const summary=menu.locator(':scope > summary');
         await expect(summary).toBeVisible();
         await summary.click();
-        await expect(page.locator('#mobile-navigation-panel')).toBeVisible();
+        await expect(menu).toHaveAttribute('open','');
+        const panel=page.locator('#mobile-navigation-panel');
+        await expect(panel).toBeVisible();
         await expectNoHorizontalOverflow(page,path);
         await expectNoUnexpectedViewportEscape(page,path);
-        await summary.click();
+        const close=panel.locator('[data-mobile-menu-close]');
+        await expect(close).toBeVisible();
+        await close.click();
+        await expect(menu).not.toHaveAttribute('open','');
       }
     }
   });

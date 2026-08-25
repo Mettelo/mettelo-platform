@@ -17,6 +17,7 @@ export default function ProjectVideoRoom({eventId}:{eventId:string}){
  const [state,setState]=useState<RoomState>({});
  const [attempt,setAttempt]=useState(0);
  const failureRef=useRef<HTMLDivElement>(null);
+ const roomShellRef=useRef<HTMLDivElement>(null);
 
  const retry=useCallback(()=>{
   setState({});
@@ -48,6 +49,21 @@ export default function ProjectVideoRoom({eventId}:{eventId:string}){
   if(state.failure&&attempt>0)failureRef.current?.focus();
  },[state.failure,attempt]);
 
+ useEffect(()=>{
+  if(!state.token||!state.url||state.failure)return;
+  const shell=roomShellRef.current;
+  if(!shell)return;
+  const labelLiveKitControls=()=>{
+   shell.querySelectorAll<HTMLButtonElement>('.lk-focus-toggle-button').forEach(button=>{
+    if(!button.getAttribute('aria-label')?.trim())button.setAttribute('aria-label','Toggle focus layout');
+   });
+  };
+  labelLiveKitControls();
+  const observer=new MutationObserver(labelLiveKitControls);
+  observer.observe(shell,{childList:true,subtree:true});
+  return()=>observer.disconnect();
+ },[state.token,state.url,state.failure,attempt]);
+
  if(state.failure){
   const {failure}=state;
   return <div ref={failureRef} tabIndex={-1} className={`${styles.videoState} emptyState`} role={failure.category==='too_early'?'status':'alert'} data-event-room-surface="failure" data-event-room-category={failure.category} data-event-room-stage={failure.stage} data-event-room-status={failure.status??''}>
@@ -62,7 +78,7 @@ export default function ProjectVideoRoom({eventId}:{eventId:string}){
 
  if(!state.token||!state.url)return <div className={`${styles.videoState} emptyState`} aria-live="polite" data-event-room-surface="loading"><h2>Preparing your secure room…</h2><p>Mettelo is checking your event permission.</p></div>;
 
- return <div className={styles.videoRoom} data-lk-theme="default" data-event-room-surface="room" data-event-room-shell>
+ return <div ref={roomShellRef} className={styles.videoRoom} data-lk-theme="default" data-event-room-surface="room" data-event-room-shell>
   <style>{`[data-event-room-shell] .lk-control-bar button{min-width:44px!important;min-height:44px!important;height:44px!important;flex:0 0 auto!important;box-sizing:border-box!important}`}</style>
   <div className={styles.videoNotice}><strong>{state.title}</strong><span>Recording and transcription are disabled for this phase.</span></div>
   <LiveKitRoom

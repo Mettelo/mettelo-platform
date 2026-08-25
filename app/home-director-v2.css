@@ -1,7 +1,7 @@
 /* Director-level homepage redesign. Intentionally scopes below the existing hero. */
 .homeDirectorV2{--director-ink:#10131d;--director-ink-deep:#0b1320;--director-bronze:#c6892a;--director-gold:#efbd63;--director-sand:#f3eadb;--director-paper:#fbfaf6;--director-line:#e5dfd4;--director-slate:#687282;background:#fff;color:var(--director-ink)}
 .homeDirectorV2 *{min-width:0}
-.homeDirectorV2 h2,.homeDirectorV2 h3{letter-spacing:-.045em}
+.homeDirectorV2 h2,.homeDirectorV2 h3{letter-spacing:-.045em;max-width:100%;overflow-wrap:anywhere;word-break:normal}
 .homeDirectorV2 h2{font-size:clamp(2.65rem,4.8vw,4.4rem);line-height:1.02}
 .homeDirectorV2 .lead{font-size:1.05rem;line-height:1.72}
 .homeDirectorV2 .button,.homeDirectorV2 .linkArrow{min-height:44px}

@@ -57,7 +57,7 @@ test.describe('public form contracts',()=>{
 
   test('career application presents the required CV and review step before submission',async({page})=>{
     await page.goto('/careers',{waitUntil:'networkidle'});
-    const links=page.locator('a[href*="/careers/"]');
+    const links=page.locator('.careerCard a[href^="/careers/"]');
     const count=await links.count();
     test.skip(count===0,'No published career role is available for this environment.');
     await links.first().click();
@@ -68,7 +68,7 @@ test.describe('public form contracts',()=>{
   for(const width of [375,390,414])test(`career role detail has no horizontal overflow at ${width}px`,async({page})=>{
     await page.setViewportSize({width,height:844});
     await page.goto('/careers',{waitUntil:'networkidle'});
-    const links=page.locator('a[href*="/careers/"]');
+    const links=page.locator('.careerCard a[href^="/careers/"]');
     const count=await links.count();
     test.skip(count===0,'No published career role is available for this environment.');
     await links.first().click();
@@ -87,7 +87,7 @@ test.describe('public form contracts',()=>{
 
   test('career application keeps reviewed values in the final request payload',async({page})=>{
     await page.goto('/careers',{waitUntil:'networkidle'});
-    const links=page.locator('a[href*="/careers/"]');
+    const links=page.locator('.careerCard a[href^="/careers/"]');
     const count=await links.count();
     test.skip(count===0,'No published career role is available for this environment.');
     await links.first().click();
@@ -120,7 +120,7 @@ test.describe('public form contracts',()=>{
   for(const width of [375,390,414])test(`career review has no horizontal overflow at ${width}px`,async({page})=>{
       await page.setViewportSize({width,height:844});
       await page.goto('/careers',{waitUntil:'networkidle'});
-      const links=page.locator('a[href*="/careers/"]');
+      const links=page.locator('.careerCard a[href^="/careers/"]');
       const count=await links.count();
       test.skip(count===0,'No published career role is available for this environment.');
       await links.first().click();

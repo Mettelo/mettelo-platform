@@ -54,9 +54,9 @@ export default async function HomeLiveContent(){
             {project&&<span className="homeLiveBadge">{projectStatus}</span>}
           </div>
           {project?<>
-            <h3>{safeText(project.title,110)}</h3>
+            <h3 className="liveCardTitle">{safeText(project.title,110)}</h3>
             <p className="homeLiveMeta">{[primary?.name,project.difficulty_level&&humanStatus(project.difficulty_level),'Team project'].filter(Boolean).join(' · ')}</p>
-            <p className="homeLiveDescription">{safeText(project.summary,235)}</p>
+            <p className="homeLiveDescription liveCardSummary">{safeText(project.summary,235)}</p>
             {projectTools.length>0&&<div className="homeLiveTags" aria-label="Project tools">{projectTools.slice(0,3).map(item=><span key={item.slug}>{safeText(item.name,28)}</span>)}</div>}
             <div className="homeLiveEvidence"><span>What you can build evidence of</span><strong>Applied skills, collaboration, problem-solving and practical delivery.</strong></div>
             <div className="homeLiveFeaturedFooter"><p>A practical way to apply skills with others.</p><a className="linkArrow" href="/projects">View project →</a></div>
@@ -70,14 +70,14 @@ export default async function HomeLiveContent(){
           <article className="homeLiveSideCard homeLiveOpportunityV4">
             <div className="homeLiveCardTop"><span className="homeLiveLabel">Current opportunity</span>{opportunity&&<span className="homeLiveBadge">External</span>}</div>
             {opportunity?<>
-              <h3>{safeText(opportunity.title,88)}</h3>
+              <h3 className="liveCardTitle">{safeText(opportunity.title,88)}</h3>
               {opportunity.organisation&&<p className="homeLiveOrganisation">{safeText(opportunity.organisation,52)}</p>}
               <div className="homeLiveOpportunityFacts">
                 {opportunity.location&&<p><span>Location</span><strong>{safeText(opportunity.location,70)}</strong></p>}
                 <p><span>Type</span><strong>{humanStatus(opportunity.opportunity_type)}</strong></p>
                 {opportunity.closes_at&&<p><span>Closes</span><strong>{fmtDate(opportunity.closes_at)}</strong></p>}
               </div>
-              <p className="homeLiveSideDescription">{safeText(opportunity.summary||'Explore the full listing to understand the role, requirements and application process.',150)}</p>
+              <p className="homeLiveSideDescription liveCardSummary">{safeText(opportunity.summary||'Explore the full listing to understand the role, requirements and application process.',150)}</p>
               <a className="linkArrow" href="/opportunities">View opportunity →</a>
             </>:<>
               <h3>No public opportunity right now.</h3><p className="homeLiveSideDescription">Relevant jobs, referrals, volunteering and fellowships will appear here when published.</p><a className="linkArrow" href="/opportunities">Explore opportunities →</a>
@@ -87,9 +87,9 @@ export default async function HomeLiveContent(){
           <article className="homeLiveSideCard homeLiveEventV4">
             <div className="homeLiveCardTop"><span className="homeLiveLabel">Upcoming events</span></div>
             {event?<>
-              <h3>{safeText(event.title,88)}</h3>
+              <h3 className="liveCardTitle">{safeText(event.title,88)}</h3>
               <p className="homeLiveMeta">{fmtDate(event.starts_at)}{event.location_label?` · ${safeText(event.location_label,50)}`:''}</p>
-              <p className="homeLiveSideDescription">{safeText(event.summary||'Join the next Mettelo community session.',145)}</p>
+              <p className="homeLiveSideDescription liveCardSummary">{safeText(event.summary||'Join the next Mettelo community session.',145)}</p>
               <a className="linkArrow" href="/events">View event →</a>
             </>:<>
               <h3>No session scheduled yet.</h3><p className="homeLiveSideDescription">Workshops, showcases and community sessions will appear here when they are confirmed.</p><a className="linkArrow" href="/events">Explore events →</a>
@@ -107,8 +107,8 @@ export default async function HomeLiveContent(){
         </div>
         {proof?<div className="homeLiveProofExample">
           <span className="homeLiveProofVerified">Verified contribution</span>
-          <strong>{safeText(proof.title,88)}</strong>
-          <p>{safeText(`${proof.projects?.title||'Mettelo project'} · ${humanStatus(proof.contribution_type)}`,130)}</p>
+          <strong className="liveCardTitle">{safeText(proof.title,88)}</strong>
+          <p className="liveCardSummary">{safeText(`${proof.projects?.title||'Mettelo project'} · ${humanStatus(proof.contribution_type)}`,130)}</p>
           {proof.verified_at&&<small>Verified {fmtDate(proof.verified_at)}</small>}
         </div>:<div className="homeLiveProofSignals" aria-label="Examples of what Mettelo Proof can evidence">
           {['Applied skills','Collaboration','Leadership','Delivery'].map(item=><div key={item}><span>Evidence</span><strong>{item}</strong></div>)}

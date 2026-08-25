@@ -7,6 +7,7 @@ import './home-refinement.css';
 import './home-overhaul.css';
 import './home-social-proof.css';
 import './home-clarity.css';
+import './home-live-v4.css';
 
 const LIVE_THRESHOLD=500;
 const ESTABLISHED_COMMUNITY_REACH=5689;

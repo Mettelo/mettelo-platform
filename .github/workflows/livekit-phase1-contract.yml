@@ -6,6 +6,8 @@ on:
       - 'app/api/project-events/**'
       - 'components/**'
       - 'lib/event-room-errors.ts'
+      - 'lib/event-time.ts'
+      - 'tests/event-time-regression.spec.ts'
       - 'tests/livekit-phase1-*.spec.ts'
       - 'tests/event-room-phase2-*.spec.ts'
       - 'tests/event-room-phase3-*.spec.ts'
@@ -49,6 +51,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Install Playwright Chromium
         run: npx playwright install chromium
+      - name: Blocking event source-timezone regression contract
+        run: npx playwright test tests/event-time-regression.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Blocking Phase 2 error taxonomy, retry and safe-diagnostic contracts
         run: npx playwright test tests/event-room-phase2-diagnostics.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Setup Supabase CLI

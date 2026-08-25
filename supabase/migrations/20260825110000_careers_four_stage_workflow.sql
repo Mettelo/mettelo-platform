@@ -5,63 +5,61 @@
 
 do $$
 begin
-  if to_regclass('public.career_applications') is null then
-    return;
-  end if;
-
-  alter table public.career_applications
-    add column if not exists final_outcome text not null default 'pending',
-    add column if not exists final_outcome_updated_at timestamptz,
-    add column if not exists final_outcome_updated_by uuid references auth.users(id) on delete set null,
-    add column if not exists offer_status text not null default 'not_prepared',
-    add column if not exists offer_sent_at timestamptz;
-
-  update public.career_applications
-  set final_outcome = case
-      when status = 'hired' then 'hired'
-      when status = 'rejected' then 'rejected'
-      else coalesce(nullif(final_outcome,''),'pending')
-    end,
-    final_outcome_updated_at = case
-      when status in ('hired','rejected') then coalesce(final_outcome_updated_at,updated_at,now())
-      else final_outcome_updated_at
-    end,
-    offer_status = case
-      when status in ('offer','hired') then case when offer_status='not_prepared' then 'ready' else offer_status end
-      else offer_status
-    end;
-
-  -- Offer, hired and rejected are no longer primary pipeline stages. Existing
-  -- records retain their outcome/offer facts while joining the fourth stage.
-  update public.career_applications
-  set status='interview'
-  where status in ('offer','hired','rejected');
-
-  if not exists (
-    select 1 from pg_constraint
-    where conname='career_applications_final_outcome_check'
-      and conrelid='public.career_applications'::regclass
-  ) then
+  if to_regclass('public.career_applications') is not null then
     alter table public.career_applications
-      add constraint career_applications_final_outcome_check
-      check (final_outcome in ('pending','hired','rejected'));
-  end if;
+      add column if not exists final_outcome text not null default 'pending',
+      add column if not exists final_outcome_updated_at timestamptz,
+      add column if not exists final_outcome_updated_by uuid references auth.users(id) on delete set null,
+      add column if not exists offer_status text not null default 'not_prepared',
+      add column if not exists offer_sent_at timestamptz;
 
-  if not exists (
-    select 1 from pg_constraint
-    where conname='career_applications_offer_status_check'
-      and conrelid='public.career_applications'::regclass
-  ) then
-    alter table public.career_applications
-      add constraint career_applications_offer_status_check
-      check (offer_status in ('not_prepared','ready','sent','send_failed'));
+    update public.career_applications
+    set final_outcome = case
+        when status = 'hired' then 'hired'
+        when status = 'rejected' then 'rejected'
+        else coalesce(nullif(final_outcome,''),'pending')
+      end,
+      final_outcome_updated_at = case
+        when status in ('hired','rejected') then coalesce(final_outcome_updated_at,updated_at,now())
+        else final_outcome_updated_at
+      end,
+      offer_status = case
+        when status in ('offer','hired') then case when offer_status='not_prepared' then 'ready' else offer_status end
+        else offer_status
+      end;
+
+    -- Offer, hired and rejected are no longer primary pipeline stages. Existing
+    -- records retain their outcome/offer facts while joining the fourth stage.
+    update public.career_applications
+    set status='interview'
+    where status in ('offer','hired','rejected');
+
+    if not exists (
+      select 1 from pg_constraint
+      where conname='career_applications_final_outcome_check'
+        and conrelid='public.career_applications'::regclass
+    ) then
+      alter table public.career_applications
+        add constraint career_applications_final_outcome_check
+        check (final_outcome in ('pending','hired','rejected'));
+    end if;
+
+    if not exists (
+      select 1 from pg_constraint
+      where conname='career_applications_offer_status_check'
+        and conrelid='public.career_applications'::regclass
+    ) then
+      alter table public.career_applications
+        add constraint career_applications_offer_status_check
+        check (offer_status in ('not_prepared','ready','sent','send_failed'));
+    end if;
+
+    create index if not exists idx_career_applications_final_outcome
+      on public.career_applications(final_outcome,updated_at desc);
+    create index if not exists idx_career_applications_offer_status
+      on public.career_applications(offer_status,updated_at desc);
   end if;
 end $$;
-
-create index if not exists idx_career_applications_final_outcome
-  on public.career_applications(final_outcome,updated_at desc);
-create index if not exists idx_career_applications_offer_status
-  on public.career_applications(offer_status,updated_at desc);
 
 -- Early-stage communication may remain automatic; final-stage communications
 -- are always deliberate Admin sends.

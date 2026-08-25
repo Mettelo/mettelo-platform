@@ -123,13 +123,6 @@ export default async function HomePage(){
       </div>
     </section>
 
-    <section className="section dark homeProofSection" aria-labelledby="home-proof-title">
-      <div className="shell homeSplit">
-        <div className="proofStory"><div className="eyebrow">{copy.proof_eyebrow}</div><h2 id="home-proof-title">{copy.proof_title}</h2><p className="lead">{copy.proof_lead}</p><div className="proofPrinciples" aria-label="What a Mettelo Proof record can show"><span>Project context</span><span>Your contribution</span><span>Supporting evidence</span><span>Review status</span></div><p className="proofNote">{copy.proof_note}</p><div className="actions"><a className="button primary" href={copy.proof_cta_href}>{copy.proof_cta_label}</a></div></div>
-        <aside className="proofPreview" aria-label="Illustrative verified Proof record"><div className="proofPreviewHeader"><div><h3>Verified contribution</h3><p>Illustrative Proof record</p></div><span className="chip green">VERIFIED</span></div><dl className="proofGrid"><div className="proofField"><dt>Project</dt><dd>Data &amp; AI delivery</dd></div><div className="proofField"><dt>Role</dt><dd>Data Analyst</dd></div><div className="proofField"><dt>Contribution</dt><dd>Analysis · dashboard · recommendations</dd></div><div className="proofField"><dt>Evidence</dt><dd>Repository · report · dashboard</dd></div><div className="proofField"><dt>Review</dt><dd>Contribution verified</dd></div></dl></aside>
-      </div>
-    </section>
-
     <section className="section homeDataAiSection" aria-labelledby="home-data-ai-title">
       <div className="shell">
         <div className="homeDataAiIntro"><div><div className="eyebrow">DATA &amp; AI FOCUS</div><h2 id="home-data-ai-title">Start where practical technology work is moving fast.</h2></div><div><p>Data &amp; AI remain a major focus within Mettelo. Professionals need opportunities to practise, build, collaborate and demonstrate what they can actually do in context.</p><p><strong>The goal is not to collect more skill labels. It is to build credible evidence through real contribution.</strong></p></div></div>

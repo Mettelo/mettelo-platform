@@ -1,7 +1,7 @@
 /* Director-level homepage redesign. Intentionally scopes below the existing hero. */
-.homeDirectorV2{--director-ink:#10131d;--director-ink-deep:#0b1320;--director-bronze:#c6892a;--director-gold:#efbd63;--director-sand:#f3eadb;--director-paper:#fbfaf6;--director-line:#e5dfd4;--director-slate:#687282;background:#fff;color:var(--director-ink)}
-.homeDirectorV2 *{min-width:0}
-.homeDirectorV2 h2,.homeDirectorV2 h3{letter-spacing:-.045em;max-width:100%;overflow-wrap:anywhere;word-break:normal}
+.homeDirectorV2{--director-ink:#10131d;--director-ink-deep:#0b1320;--director-bronze:#c6892a;--director-gold:#efbd63;--director-sand:#f3eadb;--director-paper:#fbfaf6;--director-line:#e5dfd4;--director-slate:#687282;width:100%;max-width:100%;background:#fff;color:var(--director-ink)}
+.homeDirectorV2 *{min-width:0;box-sizing:border-box}
+.homeDirectorV2 h2,.homeDirectorV2 h3{letter-spacing:-.045em;max-width:100%;max-inline-size:100%;overflow-wrap:anywhere!important;word-break:break-word!important;hyphens:auto}
 .homeDirectorV2 h2{font-size:clamp(2.65rem,4.8vw,4.4rem);line-height:1.02}
 .homeDirectorV2 .lead{font-size:1.05rem;line-height:1.72}
 .homeDirectorV2 .button,.homeDirectorV2 .linkArrow{min-height:44px}
@@ -114,7 +114,7 @@
 .homeDirectorFinalGrid .ghost{border-color:#afa595;color:var(--director-ink);background:rgba(255,255,255,.3)}
 
 .homeDirectorV2 a:focus-visible,.homeDirectorV2 button:focus-visible{outline:3px solid var(--director-bronze);outline-offset:3px}
-.homeDirectorV2 .liveCardTitle,.homeDirectorV2 .liveCardSummary{overflow-wrap:anywhere;word-break:normal}
+.homeDirectorV2 .liveCardTitle,.homeDirectorV2 .liveCardSummary{max-width:100%;overflow-wrap:anywhere!important;word-break:break-word!important}
 
 @media(max-width:1024px){
  .homeDirectorWorkGrid,.homeDirectorProofGrid{grid-template-columns:1fr;gap:54px}
@@ -137,8 +137,8 @@
  .homeDirectorFinalGrid{grid-template-columns:1fr}
 }
 @media(max-width:480px){
- .homeDirectorV2 h2{font-size:clamp(2.3rem,11vw,3.2rem)}
- .homeDirectorStatement h2{font-size:clamp(2.65rem,12vw,3.55rem)}
+ .homeDirectorV2 h2{font-size:clamp(2rem,10vw,2.85rem)}
+ .homeDirectorStatement h2{font-size:clamp(2.2rem,11vw,3rem)}
  .homeDirectorWorkSteps li{grid-template-columns:42px 1fr}
  .homeDirectorJourneyTrack{grid-template-columns:1fr;row-gap:28px}
  .homeDirectorFeaturedProject{padding:21px;min-height:0}
@@ -148,7 +148,7 @@
  .homeDirectorProofRecord,.homeDirectorRouteGrid article{padding:22px}
  .homeDirectorProofHeader{display:grid}
  .homeDirectorFinal{padding:70px 0}
- .homeDirectorFinalGrid h2{font-size:clamp(2.65rem,12vw,3.5rem)}
+ .homeDirectorFinalGrid h2{font-size:clamp(2.2rem,11vw,3rem)}
 }
 @media(max-width:340px){
  .homeDirectorWorkSteps li{grid-template-columns:1fr;gap:9px}

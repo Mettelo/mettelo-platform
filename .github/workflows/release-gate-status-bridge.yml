@@ -10,6 +10,7 @@ permissions:
   actions: read
   checks: write
   contents: read
+  pull-requests: read
 
 concurrency:
   group: release-gate-status-${{ github.event.pull_request.number || github.ref }}
@@ -64,20 +65,32 @@ jobs:
                 return;
               }
 
-              await github.rest.checks.create({
-                owner,
-                repo,
-                name: 'Release gate',
-                head_sha: headSha,
-                status: 'completed',
-                conclusion: 'success',
-                details_url: run.html_url,
-                output: {
-                  title: 'Release gate passed',
-                  summary: `Exact-head Mettelo CI #${run.run_number} completed successfully.`,
-                },
-              });
-              core.info(`Published protected Release gate check run for ${headSha} from Mettelo CI #${run.run_number}.`);
+              const targetShas = new Set([headSha]);
+              if (isPullRequest) {
+                const { data: pull } = await github.rest.pulls.get({
+                  owner,
+                  repo,
+                  pull_number: context.payload.pull_request.number,
+                });
+                if (pull.merge_commit_sha) targetShas.add(pull.merge_commit_sha);
+              }
+
+              for (const targetSha of targetShas) {
+                await github.rest.checks.create({
+                  owner,
+                  repo,
+                  name: 'Release gate',
+                  head_sha: targetSha,
+                  status: 'completed',
+                  conclusion: 'success',
+                  details_url: run.html_url,
+                  output: {
+                    title: 'Release gate passed',
+                    summary: `Exact-head Mettelo CI #${run.run_number} completed successfully for PR head ${headSha}.`,
+                  },
+                });
+                core.info(`Published protected Release gate check run for ${targetSha} from Mettelo CI #${run.run_number}.`);
+              }
               return;
             }
 

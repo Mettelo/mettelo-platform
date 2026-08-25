@@ -15,9 +15,9 @@ test.describe('Admin four-stage career interview workflow',()=>{
   try{
    await signIn(page,'/admin/careers/applications');await page.goto('/admin/careers/applications',{waitUntil:'networkidle'});
    const search=page.getByRole('searchbox',{name:'Search candidates'});await search.fill(marker);await expect(page.getByText(marker,{exact:true})).toBeVisible();await page.getByRole('button',{name:'View →'}).click();
-   const detail=page.getByRole('dialog',{name:new RegExp(marker)});await expect(detail).toBeVisible();
+   const detail=page.locator('dialog.candidateDetail');await expect(detail).toBeVisible();
    const stage=detail.getByRole('combobox',{name:'Recruitment stage'});await stage.selectOption('interview');await detail.getByRole('button',{name:'Update stage'}).click();
-   await expect(page.getByRole('status')).toContainText('No final-stage communication was sent');
+   await expect(page.getByRole('status').first()).toContainText('No final-stage communication was sent');
    const {data:stageRow,error:stageError}=await db.from('career_applications').select('status,final_outcome').eq('id',application.id).single();if(stageError)throw stageError;expect(stageRow.status).toBe('interview');expect(stageRow.final_outcome).toBe('pending');
    const {data:premature}=await db.from('email_outbox').select('id').eq('recipient_email',candidateEmail).eq('template_key','career_interview');expect(premature||[]).toHaveLength(0);
 

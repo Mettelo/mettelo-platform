@@ -5,7 +5,7 @@
 @media (max-width:767px){
   .mobileMenuBackdrop{inset:64px 0 0!important;z-index:30!important;background:rgba(8,14,23,.46)!important}
   body.mobileNavOpen .mobileMenu{z-index:122!important}
-  body.mobileNavOpen .mobileMenu>summary{position:relative;z-index:123!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+  body.mobileNavOpen .mobileMenu>summary{position:relative;z-index:123!important;opacity:0!important;pointer-events:none!important}
 
   body.publicMobileNavV2 .mobileMenuPanel{
     display:block!important;

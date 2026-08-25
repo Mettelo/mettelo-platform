@@ -1,6 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useRef,useState} from 'react';
+import {useRouter} from 'next/navigation';
 import {LiveKitRoom,RoomAudioRenderer,VideoConference} from '@livekit/components-react';
 import '@livekit/components-styles';
 import {classifyConnectionFailure,classifyTokenFailure,safeEventRoomDiagnostic,type EventRoomFailureView} from '@/lib/event-room-errors';
@@ -14,6 +15,7 @@ type RoomState={
 };
 
 export default function ProjectVideoRoom({eventId}:{eventId:string}){
+ const router=useRouter();
  const [state,setState]=useState<RoomState>({});
  const [attempt,setAttempt]=useState(0);
  const failureRef=useRef<HTMLDivElement>(null);
@@ -23,6 +25,10 @@ export default function ProjectVideoRoom({eventId}:{eventId:string}){
   setState({});
   setAttempt(value=>value+1);
  },[]);
+
+ const leaveRoom=useCallback(()=>{
+  router.replace('/member/events');
+ },[router]);
 
  useEffect(()=>{
   let active=true;
@@ -79,8 +85,17 @@ export default function ProjectVideoRoom({eventId}:{eventId:string}){
  if(!state.token||!state.url)return <div className={`${styles.videoState} emptyState`} aria-live="polite" data-event-room-surface="loading"><h2>Preparing your secure room…</h2><p>Mettelo is checking your event permission.</p></div>;
 
  return <div ref={roomShellRef} className={styles.videoRoom} data-lk-theme="default" data-event-room-surface="room" data-event-room-shell>
-  <style>{`[data-event-room-shell] .lk-control-bar button{min-width:44px!important;min-height:44px!important;height:44px!important;flex:0 0 auto!important;box-sizing:border-box!important}`}</style>
-  <div className={styles.videoNotice}><strong>{state.title}</strong><span>Recording and transcription are disabled for this phase.</span></div>
+  <style>{`
+   [data-event-room-shell] .lk-control-bar button{min-width:44px!important;min-height:44px!important;height:44px!important;flex:0 0 auto!important;box-sizing:border-box!important}
+   [data-event-room-shell] .lk-room-container,
+   [data-event-room-shell] .lk-video-conference,
+   [data-event-room-shell] .lk-video-conference-inner{overflow:visible!important}
+   [data-event-room-shell] .lk-control-bar{position:relative!important;z-index:30!important;overflow:visible!important}
+   [data-event-room-shell] .lk-button-group,
+   [data-event-room-shell] .lk-button-group-menu{position:relative!important;overflow:visible!important}
+   [data-event-room-shell] .lk-device-menu{z-index:3000!important;max-width:min(22rem,calc(100vw - 24px))!important;max-height:min(22rem,60vh)!important;overflow:auto!important}
+  `}</style>
+  <div className={styles.videoNotice}><strong>{state.title}</strong><span>Recording and transcription are not currently available in Mettelo Video.</span></div>
   <LiveKitRoom
    key={attempt}
    token={state.token}
@@ -88,6 +103,7 @@ export default function ProjectVideoRoom({eventId}:{eventId:string}){
    connect
    audio
    video
+   onDisconnected={leaveRoom}
    onError={()=>{
     const failure=classifyConnectionFailure(eventId);
     console.error('[event-room]',safeEventRoomDiagnostic(failure));

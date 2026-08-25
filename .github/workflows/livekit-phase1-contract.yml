@@ -1,11 +1,23 @@
-name: LiveKit Phase 1 Contract
+name: Event Room Phase 1-12 Contract
 
 on:
   pull_request:
     paths:
       - 'app/api/project-events/**'
       - 'components/**'
+      - 'lib/event-room-errors.ts'
       - 'tests/livekit-phase1-*.spec.ts'
+      - 'tests/event-room-phase2-*.spec.ts'
+      - 'tests/event-room-phase3-*.spec.ts'
+      - 'tests/event-room-phase4-*.spec.ts'
+      - 'tests/event-room-phase5-*.spec.ts'
+      - 'tests/event-room-phase6-*.spec.ts'
+      - 'tests/event-room-phase7-*.spec.ts'
+      - 'tests/event-room-phase8-*.spec.ts'
+      - 'tests/event-room-phase9-*.spec.ts'
+      - 'tests/event-room-phase10-*.spec.ts'
+      - 'tests/event-room-phase11-*.spec.ts'
+      - 'tests/event-room-phase12-*.spec.ts'
       - '.github/workflows/livekit-phase1-contract.yml'
   workflow_dispatch:
 
@@ -13,10 +25,10 @@ permissions:
   contents: read
 
 jobs:
-  phase1-contract:
-    name: LiveKit Phase 1 contract
+  event-room-contract:
+    name: Event Room Phase 1-12 consolidated contract
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 70
     env:
       CI_LOCAL_SUPABASE: '1'
       E2E_BASE_URL: http://127.0.0.1:3000
@@ -37,6 +49,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Install Playwright Chromium
         run: npx playwright install chromium
+      - name: Blocking Phase 2 error taxonomy, retry and safe-diagnostic contracts
+        run: npx playwright test tests/event-room-phase2-diagnostics.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
@@ -74,7 +88,29 @@ jobs:
           done
           cat /tmp/mettelo-livekit-configured.log
           exit 1
-      - name: Blocking configured LiveKit token, permission and timing contracts
+      - name: Blocking Phase 2 rendered UI and retry acceptance
+        run: npx playwright test tests/event-room-phase2-ui.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 3 viewport, landscape and 200 percent acceptance
+        run: npx playwright test tests/event-room-phase3-viewport.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 4 presentation and screen-share layout acceptance
+        run: npx playwright test tests/event-room-phase4-presentation.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 5 participant layout and density acceptance
+        run: npx playwright test tests/event-room-phase5-participant-layouts.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 6 participant identity, state and privacy acceptance
+        run: npx playwright test tests/event-room-phase6-participant-identity.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 7 Event Room controls acceptance
+        run: npx playwright test tests/event-room-phase7-controls.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 8 context and Director acceptance
+        run: npx playwright test tests/event-room-phase8-context-panel.spec.ts tests/event-room-phase8-director-acceptance.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 9 mobile, orientation and safe-area acceptance
+        run: npx playwright test tests/event-room-phase9-mobile-safe-area.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 10 join lifecycle and backend authority acceptance
+        run: npx playwright test tests/event-room-phase10-join-lifecycle.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 11 reliability, recovery and multi-user acceptance
+        run: npx playwright test tests/event-room-phase11-reliability.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking Phase 12 accessibility and final experience acceptance
+        run: npx playwright test tests/event-room-phase12-accessibility.spec.ts --project=chromium --workers=1 --timeout=60000
+      - name: Blocking configured token, permission, timing and structured diagnostic contracts
         run: npx playwright test tests/livekit-phase1-contract.spec.ts --project=chromium --workers=1 --timeout=60000
       - name: Restart Mettelo without LiveKit provider configuration
         shell: bash
@@ -99,7 +135,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: livekit-phase1-contract-evidence
+          name: event-room-phase1-12-consolidated-evidence
           path: |
             playwright-report/
             test-results/

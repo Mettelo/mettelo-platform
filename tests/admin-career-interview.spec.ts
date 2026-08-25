@@ -14,9 +14,9 @@ test.describe('Admin four-stage career interview workflow',()=>{
   const {data:application,error:createError}=await db.from('career_applications').insert({role_id:role.id,full_name:marker,email:candidateEmail,motivation:'Deterministic motivation for the isolated Admin interview workflow regression test.',relevant_experience:'Deterministic relevant experience for the isolated Admin interview workflow regression test.',answers:{},status:'shortlisted',final_outcome:'pending',offer_status:'not_prepared'}).select('id').single();if(createError||!application)throw createError||new Error('Unable to seed career application.');
   try{
    await signIn(page,'/admin/careers/applications');await page.goto('/admin/careers/applications',{waitUntil:'networkidle'});
-   const search=page.getByRole('searchbox',{name:'Search candidates'});await search.fill(marker);await expect(page.getByText(marker,{exact:true})).toBeVisible();await page.getByRole('button',{name:'View →'}).click();
+   const search=page.getByRole('searchbox',{name:'Search candidates'});await search.fill(marker);await expect(page.getByText(marker,{exact:true})).toBeVisible();await page.getByRole('button',{name:'Open candidate →'}).click();
    const detail=page.locator('dialog.candidateDetail');await expect(detail).toBeVisible();
-   const stage=detail.getByRole('combobox',{name:'Recruitment stage'});await stage.selectOption('interview');await detail.getByRole('button',{name:'Update stage'}).click();
+   const stage=detail.getByRole('combobox',{name:'Recruitment stage'});await stage.selectOption('interview');await detail.getByRole('button',{name:'Confirm stage change'}).click();
    await expect(page.getByRole('status').first()).toContainText('No final-stage communication was sent');
    const {data:stageRow,error:stageError}=await db.from('career_applications').select('status,final_outcome').eq('id',application.id).single();if(stageError)throw stageError;expect(stageRow.status).toBe('interview');expect(stageRow.final_outcome).toBe('pending');
    const {data:premature}=await db.from('email_outbox').select('id').eq('recipient_email',candidateEmail).eq('template_key','career_interview');expect(premature||[]).toHaveLength(0);

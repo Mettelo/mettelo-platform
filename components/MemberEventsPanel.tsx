@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./Phase6Events.module.css";
 type EventFilter = "upcoming" | "project" | "learning" | "action" | "past";
 type EventItem = {
@@ -47,8 +47,20 @@ function formatTime(value: string) {
 export default function MemberEventsPanel({ events, nowIso }: { events: EventItem[]; nowIso: string }) {
   const [working, setWorking] = useState(""),
     [message, setMessage] = useState(""),
-    [filter, setFilter] = useState<EventFilter>("upcoming");
-  const now = new Date(nowIso).getTime();
+    [filter, setFilter] = useState<EventFilter>("upcoming"),
+    [now, setNow] = useState(() => new Date(nowIso).getTime());
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    tick();
+    const interval = window.setInterval(tick, 15_000);
+    window.addEventListener("focus", tick);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", tick);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
   const isPast = (item: EventItem) =>
     ["completed", "cancelled"].includes(item.status) ||
     new Date(item.ends_at || item.starts_at).getTime() < now;

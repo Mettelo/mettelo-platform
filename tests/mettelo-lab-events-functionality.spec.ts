@@ -61,11 +61,15 @@ async function createEvent(page:Page,{title,visibility}:{title:string;visibility
   return body.event_id as string;
 }
 
+async function setEventSchedule(eventId:string,start:Date,end:Date){
+  const {error}=await serviceDb().from('project_meetings').update({starts_at:start.toISOString(),ends_at:end.toISOString()}).eq('id',eventId);
+  if(error)throw error;
+}
+
 async function moveIntoJoinWindow(eventId:string){
   const start=new Date(Date.now()+5*60*1000);
   const end=new Date(start.getTime()+60*60*1000);
-  const {error}=await serviceDb().from('project_meetings').update({starts_at:start.toISOString(),ends_at:end.toISOString()}).eq('id',eventId);
-  if(error)throw error;
+  await setEventSchedule(eventId,start,end);
 }
 
 async function anonymousPage(browser:Browser,origin:string){
@@ -75,22 +79,34 @@ async function anonymousPage(browser:Browser,origin:string){
 }
 
 test.describe('Mettelo Lab governed event lifecycle',()=>{
-  test('created events refetch into Lab, public opt-in is sanitised, and registration stays governed',async({page,browser})=>{
+  test('created events refetch without duplicate next-event cards and management remains governed',async({page,browser})=>{
     test.slow();
     await signIn(page,credentials('ADMIN'),labEventsUrl);
     const suffix=Date.now().toString(36);
     const publicTitle=`E2E public learning ${suffix}`;
     const privateTitle=`E2E private session ${suffix}`;
     const publicEventId=await createEvent(page,{title:publicTitle,visibility:'community_learning'});
-    await createEvent(page,{title:privateTitle,visibility:'project_team'});
+    const privateEventId=await createEvent(page,{title:privateTitle,visibility:'project_team'});
+
+    const {data:beforeExtend,error:beforeExtendError}=await serviceDb().from('project_meetings').select('ends_at').eq('id',privateEventId).single();
+    if(beforeExtendError)throw beforeExtendError;
+    const extendResponse=await page.context().request.post('/api/project-events',{
+      data:{action:'extend',project_id:labProjectId,project_run_id:labRunId,event_id:privateEventId,minutes:30}
+    });
+    expect(extendResponse.status()).toBe(200);
+    const extendBody=await extendResponse.json();
+    expect(extendBody.message).toBe('Session extended by 30 minutes.');
+    expect(new Date(extendBody.ends_at).getTime()-new Date(beforeExtend.ends_at).getTime()).toBe(30*60*1000);
 
     // The same authenticated PostgREST read used by the Lab page must be able to
-    // refetch the service-created rows. This is the regression that previously
-    // produced “created” followed by Upcoming · 0.
+    // refetch the service-created rows. The featured next event must not also be
+    // repeated in the detail list below it.
     await page.goto(labEventsUrl,{waitUntil:'networkidle'});
     await expect(page.getByText(publicTitle,{exact:true}).first()).toBeVisible();
     await expect(page.getByText(privateTitle,{exact:true}).first()).toBeVisible();
     await expect(page.locator(`a[href="/member/events/${publicEventId}/join"]`).first()).toBeVisible();
+    const nextEventTitle=await page.locator('.nextEventCard h3').innerText();
+    await expect(page.locator('.projectEventCard h3').filter({hasText:nextEventTitle})).toHaveCount(0);
 
     // Public listing is deliberately checked from an anonymous browser context so
     // an admin session cannot accidentally satisfy the public.events RLS policy.
@@ -119,22 +135,27 @@ test.describe('Mettelo Lab governed event lifecycle',()=>{
       const registrationBody=await registrationResponse.json();
       expect(registrationBody.status).toBe('reserved');
 
-      // Reservation alone must not surface an active Join action before the
-      // established 15-minute opening window.
+      // Load just outside the 15-minute window, then advance only the browser
+      // clock. The Join action must appear without navigation or a page reload.
+      const clientNow=new Date();
+      const outsideStart=new Date(clientNow.getTime()+16*60*1000);
+      await setEventSchedule(publicEventId,outsideStart,new Date(outsideStart.getTime()+60*60*1000));
+      await memberPage.clock.install({time:clientNow});
       await memberPage.goto('/member/events',{waitUntil:'networkidle'});
-      let memberCard=memberPage.getByText(publicTitle,{exact:true}).locator('xpath=ancestor::article[1]');
+      const memberCard=memberPage.getByText(publicTitle,{exact:true}).locator('xpath=ancestor::article[1]');
       await expect(memberCard.getByRole('link',{name:'Join session →'})).toHaveCount(0);
       await expect(memberCard).toContainText('Join available soon');
       const tokenResponse=await memberPage.context().request.post(`/api/project-events/${publicEventId}/token`);
       expect(tokenResponse.status()).toBe(425);
 
-      // Once the same event moves inside the authorised join window, the member
-      // workspace must surface the Join action without changing entitlement.
-      await moveIntoJoinWindow(publicEventId);
-      await memberPage.reload({waitUntil:'networkidle'});
-      memberCard=memberPage.getByText(publicTitle,{exact:true}).locator('xpath=ancestor::article[1]');
+      await memberPage.clock.fastForward(2*60*1000);
       await expect(memberCard.getByRole('link',{name:'Join session →'})).toHaveAttribute('href',`/member/events/${publicEventId}/join`);
       await expect(memberCard).toContainText('Session is open');
+
+      // Backend timing authority is still independent from the client clock.
+      // Move the persisted event into the real join window for the remaining
+      // integration path rather than weakening token validation.
+      await moveIntoJoinWindow(publicEventId);
     }finally{await memberContext.close();}
   });
 });

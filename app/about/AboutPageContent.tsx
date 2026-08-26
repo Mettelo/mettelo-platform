@@ -5,44 +5,86 @@ import './about.css';
 
 export const metadata:Metadata={
   title:'About Mettelo',
-  description:'Mettelo is a technology-led organisation building professional capability infrastructure for Information Technology, Data & AI professionals across Africa and beyond.'
+  description:'Mettelo is building a connected professional capability ecosystem for Information Technology, Data and AI.'
 };
 
-const problems=[
-  ['01','Knowledge is abundant. Meaningful experience is not.','Professionals can complete courses, certifications and tool training yet still struggle to access the real environments where judgement, collaboration and delivery are developed.'],
-  ['02','Capability is difficult to prove from a CV alone.','Titles and keywords say little about how someone handles ambiguity, works with others, communicates with stakeholders or creates measurable value.'],
-  ['03','Professional growth is fragmented across separate systems.','Learning platforms teach. Communities converse. Networks connect. Recruiters match CVs. Projects, Proof and opportunity rarely form one continuous journey.'],
-  ['04','Opportunity still depends too heavily on signalling and access.','Capable people can remain invisible because they lack the right title, geography, network or prior opportunity to demonstrate what they can actually do.']
+const beliefs=[
+  'Meaningful work develops technical and professional capability together.',
+  'Contribution is more useful when the context behind it can be understood.',
+  'Opportunity should respond to what people have demonstrated, not only what they claim.'
 ];
 
-const pillars=[
-  ['Mettelo Community','The front door','Where Information Technology, Data & AI professionals connect, form teams, share knowledge, attend events, join open source and discover routes into real work.'],
-  ['Mettelo Labs','The innovation engine','Where people build technology together: open-source tools, AI applications, APIs, data products, datasets, frameworks and prototypes.'],
-  ['Mettelo Proof','Professional credibility','Where reviewed contribution and supporting evidence become structured professional Proof with the context behind the work preserved.'],
-  ['Mettelo Talent','Capability meets opportunity','Where demonstrated work can strengthen discovery for jobs, projects, referrals and other professional opportunities.'],
-  ['Mettelo Research','Practical intelligence','Reports, benchmarks, surveys and practitioner insight on Information Technology, Data, AI and the future of work.'],
-  ['Mettelo AI','Intelligent products','AI products designed to improve how professionals work, collaborate, demonstrate contribution and understand relevant opportunities.'],
-  ['Mettelo Summit','The flagship gathering','Talks, launches, hackathons, networking and showcases that bring the wider ecosystem together.']
+const audiences=[
+  {label:'Professionals',title:'Build, contribute and progress.',body:'From early-career professionals and career changers to experienced practitioners, mentors and leaders — build experience and make capability easier to understand.'},
+  {label:'Organisations',title:'Bring meaningful problems and see capability in action.',body:'Work with professionals around practical challenges and gain richer context on how people think, collaborate and deliver.'},
+  {label:'Partners',title:'Help create stronger routes into meaningful work.',body:'Communities, institutions, mentors and learning partners can help connect knowledge, application and professional opportunity.'}
 ];
 
-export default async function AboutPage(){const copy=(await getPublicWebsitePage('about')).values;return <>
-  <section className="hero" aria-labelledby="about-title"><div className="shell heroGrid"><div><div className="eyebrow">{copy.hero_eyebrow}</div><h1 id="about-title">{copy.hero_title}</h1><p className="heroLead">{copy.hero_lead}</p><div className="actions"><a className="button dark" href={copy.hero_primary_href}>{copy.hero_primary_label}</a><a className="button ghost" href={copy.hero_secondary_href}>{copy.hero_secondary_label}</a></div></div><aside className="heroPanel aboutHeroNote" aria-label="Mettelo thesis"><span className="chip">OUR THESIS</span><h3>{copy.thesis_title}</h3><p>{copy.thesis_body}</p><div className="listRow"><strong>Real problems</strong><span>→ Capability</span></div><div className="listRow"><strong>Contribution</strong><span>→ Evidence</span></div><div className="listRow"><strong>Evidence + review</strong><span>→ Mettelo Proof</span></div><div className="listRow"><strong>Proof</strong><span>→ Credibility</span></div></aside></div></section>
+export default async function AboutPage(){
+  const copy=(await getPublicWebsitePage('about')).values;
+  return <div className="aboutEditorial">
+    <section className="aboutMasthead" aria-labelledby="about-title">
+      <div className="shell aboutMastheadGrid">
+        <div className="eyebrow">ABOUT METTELO</div>
+        <div>
+          <h1 id="about-title">We are building a more connected way for professional capability to grow and be understood.</h1>
+          <p className="aboutMastheadLead">Mettelo is a professional ecosystem for Information Technology, Data and AI — bringing people, practical work, evidence, insight and opportunity into a more connected journey.</p>
+          <div className="aboutMastheadBelief"><strong>OUR SIMPLE BELIEF</strong><p>People should have meaningful opportunities to show what they can do.</p></div>
+        </div>
+      </div>
+    </section>
 
-  <section className="section" aria-labelledby="story-title"><div className="shell aboutSplit"><div><div className="eyebrow">{copy.story_eyebrow}</div><h2 id="story-title" style={{fontSize:'clamp(2.5rem,5vw,4.7rem)',margin:0}}>{copy.story_title}</h2></div><div className="aboutCopy"><p>Technology evolves daily. Artificial intelligence is reshaping industries, changing how work is done and creating roles that barely existed a few years ago. Organisations increasingly need people who can think critically, adapt quickly, collaborate across disciplines and solve problems that do not come with a ready-made answer.</p><p>Yet professionals are still told that the path forward is another certificate, another tool or another course. Those things can help, but they do not answer the questions that matter most in real work: <strong>Can you solve an ambiguous problem? Can you turn information into a decision? Can you work with others, communicate clearly and create measurable value?</strong></p><p>Those questions are answered by capability. Capability becomes more credible when it is demonstrated in context and supported by evidence.</p><p><strong>That is where Mettelo begins.</strong></p></div></div></section>
+    <section className="aboutSection aboutWhy" aria-labelledby="about-why-title">
+      <div className="shell aboutSplit">
+        <div><div className="eyebrow">WHY METTELO EXISTS</div><h2 id="about-why-title">Learning became easier to access. Meaningful application did not.</h2></div>
+        <div className="aboutCopy"><p>People can build knowledge from almost anywhere. But professional capability develops through work that involves responsibility, judgement, collaboration and real outcomes.</p><blockquote>The gap is not only what people know. It is whether they get the opportunity to apply it and make that capability visible.</blockquote><p>Mettelo is being built around that gap.</p></div>
+      </div>
+    </section>
 
-  <section className="section softSection" aria-labelledby="gap-title"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">{copy.gap_eyebrow}</div><h2 id="gap-title">{copy.gap_title}</h2></div><p>{copy.gap_body}</p></div><div className="problemList">{problems.map(([n,t,c])=><article className="problemItem" key={t}><div className="problemIndex" aria-hidden="true">{n}</div><div><h3 style={{margin:'0 0 6px'}}>{t}</h3><p style={{margin:0,color:'var(--slate)'}}>{c}</p></div></article>)}</div></div></section>
+    <section className="aboutSection aboutBelief" aria-labelledby="about-belief-title">
+      <div className="shell aboutBeliefGrid">
+        <div><div className="eyebrow">WHAT WE BELIEVE</div><h2 id="about-belief-title">People are more than the titles, tools and qualifications on their profile.</h2></div>
+        <ol className="aboutBeliefList">{beliefs.map((belief,index)=><li key={belief}><span>{String(index+1).padStart(2,'0')}</span><p>{belief}</p></li>)}</ol>
+      </div>
+    </section>
 
-  <section className="section" aria-labelledby="what-title"><div className="shell aboutSplit"><div><div className="eyebrow">What Mettelo is</div><h2 id="what-title" style={{fontSize:'clamp(2.5rem,5vw,4.7rem)',margin:0}}>Not another learning platform. Not another community. Not another job board.</h2></div><div className="aboutCopy"><p>Each of those products solves a useful fragment. Mettelo is being built as the <strong>connective infrastructure between them</strong>.</p><p>Professionals should be able to move from a real problem to collaborative work, from work to contribution and evidence, from evidence through review to Mettelo Proof, and from stronger professional credibility toward relevant opportunities without losing the context that makes the work meaningful.</p><p>For professionals, that creates a clearer route from potential to demonstrated capability. For organisations, it creates a stronger way to understand people through evidence of contribution, judgement and collaboration — not only titles and CV keywords.</p></div></div></section>
+    <section className="aboutSection aboutJourney" aria-labelledby="about-journey-title">
+      <div className="shell">
+        <div className="aboutSectionHead"><div><div className="eyebrow">OUR JOURNEY</div><h2 id="about-journey-title">We started with community. The problem led us further.</h2></div><p>Mettelo was not born as a finished product. It evolved from what we learned by bringing people together.</p></div>
+        <div className="aboutJourneyList">
+          <article><span>OUR BEGINNING</span><h3>A simple IT, Data &amp; AI community.</h3><p>A place for people to connect, exchange knowledge and support professional growth.</p></article>
+          <article><span>THE TURNING POINT</span><h3>We realised community alone could not solve the problem.</h3><p>People also needed somewhere to apply what they knew, work with others and build credible evidence of that contribution.</p></article>
+          <article><span>TODAY</span><h3>A broader professional capability ecosystem.</h3><p>Community now sits alongside practical work, Proof, talent, research, AI and shared professional experiences.</p></article>
+        </div>
+      </div>
+    </section>
 
-  <section className="section dark" aria-labelledby="ecosystem-title"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">{copy.ecosystem_eyebrow}</div><h2 id="ecosystem-title">{copy.ecosystem_title}</h2></div><p>{copy.ecosystem_body}</p></div><div className="principleGrid">{pillars.map(([name,role,body])=><article className="principle" key={name}><span className="chip">{role}</span><strong>{name}</strong><span>{body}</span></article>)}</div></div></section>
+    <section className="aboutSection aboutAudience" aria-labelledby="about-audience-title">
+      <div className="shell">
+        <div className="aboutSectionHead"><div><div className="eyebrow">WHO WE SERVE</div><h2 id="about-audience-title">One ecosystem. Different reasons to be part of it.</h2></div><p>Mettelo is built for the people developing and demonstrating capability, the organisations engaging it, and partners helping create stronger professional pathways.</p></div>
+        <div className="aboutAudienceGrid">{audiences.map(item=><article key={item.label}><span>{item.label}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
+      </div>
+    </section>
 
-  <section className="section" aria-labelledby="system-title"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">How the system works</div><h2 id="system-title">Build experience. Make contribution visible. Turn evidence into Proof.</h2></div><p>Each stage preserves more context about what a professional actually did.</p></div><div className="principleGrid"><article className="principle"><strong>01 · Real problems</strong><span>Professionals work through genuine organisational challenges and messy, realistic situations — not idealised exercises.</span></article><article className="principle"><strong>02 · Build together</strong><span>Multidisciplinary teams collaborate on projects, open source, data products, tools and prototypes.</span></article><article className="principle"><strong>03 · Contribution and evidence</strong><span>Professionals record what they contributed and link supporting evidence that gives the work useful context.</span></article><article className="principle"><strong>04 · Review and Mettelo Proof</strong><span>Authorised reviewers assess contribution records. Verified contributions can form structured Mettelo Proof without turning the professional into a certified or verified person.</span></article><article className="principle"><strong>05 · Stronger professional signals</strong><span>Mettelo Proof can help other people understand demonstrated work alongside the professional profile and wider experience.</span></article><article className="principle"><strong>06 · Relevant routes forward</strong><span>Projects, roles, collaboration, research and other opportunities can connect to those stronger signals without guaranteeing an outcome.</span></article></div></div></section>
+    <section className="aboutSection aboutMissionVision" aria-labelledby="about-guides-title">
+      <div className="shell">
+        <div className="aboutGuideIntro"><div className="eyebrow">WHAT GUIDES US</div><h2 id="about-guides-title">What we do now. The future we want to help create.</h2></div>
+        <div className="aboutGuideGrid">
+          <article className="isMission"><span>OUR MISSION</span><h3>Help people turn knowledge into demonstrated capability through meaningful work.</h3></article>
+          <article className="isVision"><span>OUR VISION</span><h3>A world where anyone building a career in technology, Data and AI can access the people, work, evidence and opportunities needed to progress.</h3></article>
+        </div>
+      </div>
+    </section>
 
-  <section className="section softSection" aria-labelledby="future-title"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">{copy.future_eyebrow}</div><h2 id="future-title">{copy.future_title}</h2></div><p>{copy.future_body}</p></div><div className="statementGrid"><article className="statementCard"><span className="chip">NOW</span><h3>Build the working capability loop.</h3><p>Community, projects, contribution records, Mettelo Proof, Spotlight, people discovery, Opportunities, Events and Careers create the first connected operating layers.</p></article><article className="statementCard"><span className="chip">NEXT</span><h3>Make capability signals more useful.</h3><p>Develop stronger recommendations, richer contribution context, organisational workflows, research, talent intelligence and AI-assisted discovery.</p></article></div><div className="statementGrid" style={{marginTop:18}}><article className="statementCard"><span className="chip">THEN</span><h3>Build products from the ecosystem.</h3><p>Open-source tools, AI applications, APIs, datasets, frameworks and Mettelo-built intelligent products can solve real professional and organisational problems while creating new opportunities for meaningful contribution.</p></article><article className="statementCard"><span className="chip">LONG TERM</span><h3>Become global infrastructure for professional capability.</h3><p>Our ambition is a system through which capability can be developed, demonstrated, understood and connected to routes forward across borders, industries and professions.</p></article></div></div></section>
+    <section className="aboutSection aboutFounder" aria-labelledby="founder-title">
+      <div className="shell aboutFounderGrid">
+        <figure className="founderMedia"><Image src="/api/founder-image" alt="O. Johnson Taiwo, Founder of Mettelo" width={640} height={640} sizes="(max-width: 820px) 90vw, 34vw" priority={false}/><figcaption className="founderCaption"><small>FOUNDER</small><strong>O. Johnson Taiwo</strong><span>Data &amp; AI Professional · Founder, Mettelo</span></figcaption></figure>
+        <div className="founderBio"><div className="eyebrow">THE FOUNDER STORY</div><h2 id="founder-title">The idea came from seeing the same disconnect from both sides.</h2><p>Technical knowledge matters, but organisations ultimately need people who can apply it with judgement, communicate clearly, collaborate well and produce useful outcomes.</p><p>At the same time, capable people can invest heavily in learning and still struggle to access the situations where those skills become trusted experience.</p><blockquote>“The goal is not to tell people what they are capable of. It is to create better opportunities for them to show it.”</blockquote></div>
+      </div>
+    </section>
 
-  <section className="section" aria-labelledby="mission-title"><div className="shell"><div className="statementGrid"><article className="statementCard"><span className="chip">MISSION</span><h2 id="mission-title">{copy.mission_title}</h2><p>{copy.mission_body}</p></article><article className="statementCard"><span className="chip">VISION</span><h2>{copy.vision_title}</h2><p>{copy.vision_body}</p></article></div></div></section>
-
-  <section className="section" aria-labelledby="founder-title"><div className="shell founderGrid"><figure className="founderMedia"><Image src="/api/founder-image" alt="O. Johnson Taiwo, Founder of Mettelo" width={640} height={640} sizes="(max-width: 1080px) 90vw, 38vw"/><figcaption className="founderCaption"><small>FOUNDER</small><strong>O. Johnson Taiwo</strong><span>Data & AI Professional · Founder, Mettelo</span></figcaption></figure><div className="founderBio"><div className="eyebrow">{copy.founder_eyebrow}</div><h2 id="founder-title" style={{fontSize:'clamp(2.5rem,5vw,4.6rem)',margin:'0 0 20px'}}>{copy.founder_title}</h2><p><strong>O. Johnson Taiwo</strong> has worked across analytics, data science, digital transformation and commercial decision-making in public- and private-sector environments. Across those roles, one lesson kept repeating: technical knowledge matters, but organisations ultimately need people who can apply it with judgement, communicate clearly, collaborate well and produce useful outcomes.</p><p>At the same time, he saw capable people invest heavily in courses and tools while still struggling to access the situations where their skills could become trusted experience. The missing layer was between <strong>knowledge and application, application and evidence, evidence and opportunity</strong>.</p><p>Mettelo was created to build that missing layer for Information Technology, Data & AI professionals, starting with the areas where practical evidence and applied experience are especially valuable.</p><div className="quotePanel"><p>“{copy.founder_quote}”</p></div></div></div></section>
-
-  <section className="section compact" aria-labelledby="about-cta-title"><div className="shell"><div className="ctaBand"><div><div className="cardNumber">{copy.cta_eyebrow}</div><h2 id="about-cta-title">{copy.cta_title}</h2><p>{copy.cta_body}</p></div><div className="actions"><a className="button dark" href={copy.cta_primary_href}>{copy.cta_primary_label}</a><a className="button ghost" href={copy.cta_secondary_href}>{copy.cta_secondary_label}</a></div></div></div></section>
-</>}
+    <section className="aboutClose" aria-labelledby="about-close-title">
+      <div className="shell aboutCloseGrid"><div><div className="eyebrow">THE NEXT CHAPTER</div><h2 id="about-close-title">The next chapter is being built together.</h2></div><div><p>Mettelo started with community. Professionals, organisations and partners will shape what it becomes next.</p><div className="actions"><a className="button light" href={copy.cta_primary_href}>{copy.cta_primary_label}</a><a className="button ghost" href={copy.cta_secondary_href}>{copy.cta_secondary_label}</a></div></div></div>
+    </section>
+  </div>;
+}

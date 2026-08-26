@@ -2,8 +2,10 @@
    This file intentionally overrides presentation only. CMS content, live data and page structure remain unchanged. */
 
 .homeDirectorV3{
-  /* Use the established Mettelo acid-lime consistently for every V3 accent text/state already wired to this token. */
-  --v3-lime:#E0FE5F;
+  /* Mettelo brand system: use the established light bronze accent on dark V3 surfaces.
+     Existing V3 selectors still reference --v3-lime, so override that legacy token here
+     without introducing a new non-brand colour. */
+  --v3-lime:var(--bronze-2);
 }
 
 /* Keep the hero dominant. Section headings should read as section titles, not competing heroes. */

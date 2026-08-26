@@ -34,7 +34,7 @@ export default async function HomeLiveContent(){
   return <section className="homeDirectorLive" aria-labelledby="home-live-title">
     <div className="shell">
       <div className="homeDirectorLiveHead">
-        <div><div className="eyebrow">LIVE WORK ON METTELO</div><h2 id="home-live-title">Find where your contribution can matter.</h2></div>
+        <div><div className="eyebrow">LIVE ON METTELO</div><h2 id="home-live-title">Find where your contribution can matter.</h2></div>
         <div><p>Explore practical projects, relevant opportunities and live sessions designed to help you contribute, build experience and move forward.</p><a className="linkArrow" href="/search">Explore what is live on Mettelo →</a></div>
       </div>
 

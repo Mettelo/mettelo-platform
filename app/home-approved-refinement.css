@@ -1,0 +1,116 @@
+/* Approved homepage refinement: brand accent, hierarchy, ecosystem balance and footer social alignment.
+   This file intentionally overrides presentation only. CMS content, live data and page structure remain unchanged. */
+
+.homeDirectorV3{
+  /* Use the established Mettelo acid-lime consistently for every V3 accent text/state already wired to this token. */
+  --v3-lime:#E0FE5F;
+}
+
+/* Keep the hero dominant. Section headings should read as section titles, not competing heroes. */
+.homeDirectorV3 h2{
+  font-size:clamp(1.95rem,2.8vw,3rem);
+  line-height:1.04;
+}
+.homeDirectorV3 .homeV3SectionHeadMajor h2,
+.homeDirectorV3 .homeV3RealityCopy h2,
+.homeDirectorV3 .homeV3ProofStory h2,
+.homeDirectorV3 .homeV3Final h2{
+  font-size:clamp(2.25rem,3.6vw,3.75rem);
+  line-height:1;
+}
+.homeDirectorV3 .homeDirectorLiveHead h2{
+  font-size:clamp(1.95rem,2.8vw,3rem);
+  line-height:1.04;
+}
+
+/* Seven ecosystem capabilities: 4 across, then 3 balanced across the full width,
+   followed by one deliberate full-width connected-system conclusion. */
+.homeV3EcosystemGrid{
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  grid-auto-flow:row;
+}
+.homeV3EcosystemGrid article{
+  grid-column:span 3;
+  min-height:200px;
+}
+.homeV3EcosystemGrid article.is-primary{
+  min-height:220px;
+}
+.homeV3EcosystemGrid article:nth-child(n+5):nth-child(-n+7){
+  grid-column:span 4;
+}
+.homeV3EcosystemGrid article.is-anchor{
+  grid-column:1 / -1;
+  min-height:190px;
+}
+
+/* The social channels should behave as one centred unit, with every glyph optically
+   centred inside an accessible minimum 44px target. */
+.footerSocial{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.footerSocial .socialIconButton{
+  width:44px;
+  height:44px;
+  min-width:44px;
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  line-height:1;
+  text-align:center;
+}
+.footerSocial .socialIconButton>span{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+  text-align:center;
+}
+
+@media(max-width:900px){
+  .homeV3EcosystemGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .homeV3EcosystemGrid article,
+  .homeV3EcosystemGrid article:nth-child(n+5):nth-child(-n+7){
+    grid-column:span 1;
+    min-height:190px;
+  }
+  .homeV3EcosystemGrid article.is-anchor{
+    grid-column:1 / -1;
+  }
+}
+
+@media(max-width:600px){
+  .homeDirectorV3 h2,
+  .homeDirectorV3 .homeV3SectionHeadMajor h2,
+  .homeDirectorV3 .homeV3RealityCopy h2,
+  .homeDirectorV3 .homeV3ProofStory h2,
+  .homeDirectorV3 .homeV3Final h2,
+  .homeDirectorV3 .homeDirectorLiveHead h2{
+    font-size:clamp(1.9rem,9vw,2.55rem);
+    line-height:1.05;
+  }
+  .homeV3EcosystemGrid{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .homeV3EcosystemGrid article,
+  .homeV3EcosystemGrid article:nth-child(n+5):nth-child(-n+7),
+  .homeV3EcosystemGrid article.is-anchor{
+    grid-column:1;
+    min-height:auto;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .footerSocial .socialIconButton{transition:none;}
+}

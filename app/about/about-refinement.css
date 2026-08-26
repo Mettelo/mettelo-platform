@@ -1,0 +1,158 @@
+/* About page refinement: community masthead media + closing CTA visibility. */
+
+.aboutMastheadGrid.hasCommunityImage{
+  grid-template-columns:minmax(0,1.06fr) minmax(420px,.94fr);
+  gap:56px;
+  align-items:center;
+}
+.aboutMastheadGrid.hasCommunityImage>.aboutMastheadCopy{
+  min-width:0;
+}
+.aboutMastheadGrid.hasCommunityImage .aboutMasthead h1,
+.aboutMastheadGrid.hasCommunityImage h1{
+  max-width:720px;
+  font-size:clamp(2.75rem,3.45vw,3.75rem);
+  line-height:1.01;
+}
+.aboutMastheadGrid.hasCommunityImage .aboutMastheadLead{
+  max-width:660px;
+}
+.aboutMastheadGrid.hasCommunityImage .aboutMastheadBelief{
+  grid-template-columns:160px minmax(0,1fr);
+  max-width:690px;
+  gap:24px;
+}
+.aboutMastheadMedia{min-width:0}
+.aboutMastheadFigure{margin:0}
+.aboutMastheadImageWrap{
+  position:relative;
+  overflow:hidden;
+  border-radius:18px;
+  background:#151a22;
+  border:1px solid rgba(16,19,29,.12);
+  box-shadow:0 18px 50px rgba(16,19,29,.08);
+}
+.aboutMastheadImageWrap::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.aboutMastheadImageWrap img{
+  display:block;
+  width:100%;
+  aspect-ratio:1.32 / 1;
+  object-fit:cover;
+  object-position:center 49%;
+}
+.aboutMastheadCaption{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:11px;
+  color:#68727d;
+  font-size:.73rem;
+  line-height:1.45;
+}
+.aboutMastheadCaption strong{
+  color:#8a5514;
+  font-family:var(--font-mono);
+  font-size:.56rem;
+  letter-spacing:.085em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.aboutMastheadCaption::before{
+  content:"";
+  order:2;
+  width:28px;
+  height:1px;
+  background:#cfc7bb;
+  flex:none;
+}
+.aboutMastheadCaption span{order:3;max-width:420px}
+.aboutMastheadCaption strong{order:1}
+
+.aboutClose{padding:70px 0}
+.aboutCloseGrid{
+  grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);
+  gap:72px;
+  align-items:end;
+}
+.aboutClose h2{
+  max-width:650px;
+  font-size:clamp(2rem,3vw,3.15rem);
+  line-height:1.03;
+}
+.aboutCloseGrid>div:last-child{
+  width:100%;
+  max-width:520px;
+  justify-self:end;
+}
+.aboutClose p{
+  max-width:520px;
+  margin:0;
+  color:#b8c0ca;
+  font-size:.88rem;
+  line-height:1.66;
+}
+.aboutClose .actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:22px;
+}
+.aboutClose .button.light{
+  min-width:150px;
+  min-height:46px;
+  background:#fff;
+  color:#0d1218;
+  border:1px solid #fff;
+  box-shadow:none;
+  font-weight:750;
+}
+.aboutClose .button.light:hover{
+  background:#e0ad59;
+  color:#0d1218;
+  border-color:#e0ad59;
+}
+.aboutClose .button.light:focus-visible{
+  outline:3px solid #e0ad59;
+  outline-offset:3px;
+}
+.aboutClose .button.ghost{
+  min-height:46px;
+  border-color:#5b6672;
+  color:#fff;
+  background:transparent;
+}
+
+@media(max-width:900px){
+  .aboutMastheadGrid.hasCommunityImage{
+    grid-template-columns:1fr;
+    gap:32px;
+  }
+  .aboutMastheadGrid.hasCommunityImage .aboutMastheadBelief{
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+  .aboutMastheadImageWrap img{aspect-ratio:16 / 9}
+  .aboutCloseGrid{grid-template-columns:1fr;gap:28px}
+  .aboutCloseGrid>div:last-child{max-width:620px;justify-self:start}
+}
+
+@media(max-width:680px){
+  .aboutMastheadGrid.hasCommunityImage h1{
+    font-size:clamp(2.25rem,10vw,3.1rem);
+    text-wrap:wrap;
+  }
+  .aboutMastheadImageWrap{border-radius:14px}
+  .aboutMastheadImageWrap img{aspect-ratio:4 / 3;object-position:center center}
+  .aboutMastheadCaption{align-items:flex-start;flex-wrap:wrap;gap:5px 8px}
+  .aboutMastheadCaption::before{display:none}
+  .aboutMastheadCaption span{width:100%}
+  .aboutClose{padding:54px 0}
+  .aboutClose .actions{display:grid;grid-template-columns:1fr}
+  .aboutClose .button{width:100%}
+}

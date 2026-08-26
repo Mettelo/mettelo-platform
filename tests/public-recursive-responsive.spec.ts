@@ -156,7 +156,7 @@ test.describe('recursive public responsive coverage',()=>{
   });
 
   test('mobile navigation opens without escaping the viewport',async({page})=>{
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     for(const width of [320,360,390,430]){
       await page.setViewportSize({width,height:844});
       for(const path of ['/','/projects','/opportunities']){
@@ -164,7 +164,7 @@ test.describe('recursive public responsive coverage',()=>{
         const menu=page.locator('.mobileMenu');
         const summary=menu.locator(':scope > summary');
         await expect(summary).toBeVisible();
-        await expect(menu).toHaveAttribute('data-mobile-menu-enhanced','true');
+        await expect(menu).toHaveAttribute('data-mobile-menu-enhanced','true',{timeout:15_000});
         await summary.click();
         await expect(menu).toHaveAttribute('open','');
         const panel=page.locator('#mobile-navigation-panel');

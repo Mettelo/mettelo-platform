@@ -15,9 +15,9 @@ const beliefs=[
 ];
 
 const audiences=[
-  {label:'Professionals',title:'Build, contribute and progress.',body:'For early-career professionals, career changers and experienced practitioners who want meaningful work and stronger evidence of how they operate.'},
-  {label:'Organisations',title:'Engage capability through meaningful work.',body:'Bring meaningful problems, understand contribution in context and create stronger routes into projects, collaboration and opportunity.'},
-  {label:'Partners',title:'Help strengthen the professional ecosystem.',body:'Communities, institutions, mentors, learning partners and collaborators can help create better pathways from knowledge into application.'}
+  {label:'Professionals',title:'Build, contribute and progress.',body:'From early-career professionals and career changers to experienced practitioners, mentors and leaders — build experience and make capability easier to understand.'},
+  {label:'Organisations',title:'Bring meaningful problems and see capability in action.',body:'Work with professionals around practical challenges and gain richer context on how people think, collaborate and deliver.'},
+  {label:'Partners',title:'Help create stronger routes into meaningful work.',body:'Communities, institutions, mentors and learning partners can help connect knowledge, application and professional opportunity.'}
 ];
 
 export default async function AboutPage(){
@@ -27,7 +27,7 @@ export default async function AboutPage(){
       <div className="shell aboutMastheadGrid">
         <div className="eyebrow">ABOUT METTELO</div>
         <div>
-          <h1 id="about-title">Building better ways for professional capability to grow, become visible and move forward.</h1>
+          <h1 id="about-title">We are building a more connected way for professional capability to grow and be understood.</h1>
           <p className="aboutMastheadLead">Mettelo is a professional ecosystem for Information Technology, Data and AI — bringing people, practical work, evidence, insight and opportunity into a more connected journey.</p>
           <div className="aboutMastheadBelief"><strong>OUR SIMPLE BELIEF</strong><p>People should have meaningful opportunities to show what they can do.</p></div>
         </div>
@@ -43,7 +43,7 @@ export default async function AboutPage(){
 
     <section className="aboutSection aboutBelief" aria-labelledby="about-belief-title">
       <div className="shell aboutBeliefGrid">
-        <div><div className="eyebrow">WHAT WE BELIEVE</div><h2 id="about-belief-title">Professional capability is bigger than a list of tools, titles or qualifications.</h2></div>
+        <div><div className="eyebrow">WHAT WE BELIEVE</div><h2 id="about-belief-title">People are more than the titles, tools and qualifications on their profile.</h2></div>
         <ol className="aboutBeliefList">{beliefs.map((belief,index)=><li key={belief}><span>{String(index+1).padStart(2,'0')}</span><p>{belief}</p></li>)}</ol>
       </div>
     </section>
@@ -53,7 +53,7 @@ export default async function AboutPage(){
         <div className="aboutSectionHead"><div><div className="eyebrow">OUR JOURNEY</div><h2 id="about-journey-title">We started with community. The problem led us further.</h2></div><p>Mettelo was not born as a finished product. It evolved from what we learned by bringing people together.</p></div>
         <div className="aboutJourneyList">
           <article><span>OUR BEGINNING</span><h3>A simple IT, Data &amp; AI community.</h3><p>A place for people to connect, exchange knowledge and support professional growth.</p></article>
-          <article><span>WE LEARNED</span><h3>Connection and learning were only part of the journey.</h3><p>People also needed opportunities to apply what they knew and build credible experience.</p></article>
+          <article><span>THE TURNING POINT</span><h3>We realised community alone could not solve the problem.</h3><p>People also needed somewhere to apply what they knew, work with others and build credible evidence of that contribution.</p></article>
           <article><span>TODAY</span><h3>A broader professional capability ecosystem.</h3><p>Community now sits alongside practical work, Proof, talent, research, AI and shared professional experiences.</p></article>
         </div>
       </div>
@@ -68,10 +68,10 @@ export default async function AboutPage(){
 
     <section className="aboutSection aboutMissionVision" aria-labelledby="about-guides-title">
       <div className="shell">
-        <div className="aboutGuideIntro"><div className="eyebrow">WHAT GUIDES US</div><h2 id="about-guides-title">Mission for today. Vision for what Mettelo can become.</h2></div>
+        <div className="aboutGuideIntro"><div className="eyebrow">WHAT GUIDES US</div><h2 id="about-guides-title">What we do now. The future we want to help create.</h2></div>
         <div className="aboutGuideGrid">
-          <article><span>OUR MISSION</span><h3>Help people turn knowledge into demonstrated capability through meaningful work.</h3></article>
-          <article className="isVision"><span>OUR VISION</span><h3>To become the global ecosystem where people connect, build, prove and progress across technology, Data and AI.</h3></article>
+          <article className="isMission"><span>OUR MISSION</span><h3>Help people turn knowledge into demonstrated capability through meaningful work.</h3></article>
+          <article className="isVision"><span>OUR VISION</span><h3>A world where anyone building a career in technology, Data and AI can access the people, work, evidence and opportunities needed to progress.</h3></article>
         </div>
       </div>
     </section>
@@ -84,7 +84,7 @@ export default async function AboutPage(){
     </section>
 
     <section className="aboutClose" aria-labelledby="about-close-title">
-      <div className="shell aboutCloseGrid"><div><div className="eyebrow">THE NEXT CHAPTER</div><h2 id="about-close-title">Mettelo began with community. Its future will be built with people and organisations across the ecosystem.</h2></div><div><p>Build experience, contribute expertise, bring a meaningful problem or help create stronger professional pathways.</p><div className="actions"><a className="button light" href={copy.cta_primary_href}>{copy.cta_primary_label}</a><a className="button ghost" href={copy.cta_secondary_href}>{copy.cta_secondary_label}</a></div></div></div>
+      <div className="shell aboutCloseGrid"><div><div className="eyebrow">THE NEXT CHAPTER</div><h2 id="about-close-title">The next chapter is being built together.</h2></div><div><p>Mettelo started with community. Professionals, organisations and partners will shape what it becomes next.</p><div className="actions"><a className="button light" href={copy.cta_primary_href}>{copy.cta_primary_label}</a><a className="button ghost" href={copy.cta_secondary_href}>{copy.cta_secondary_label}</a></div></div></div>
     </section>
   </div>;
 }

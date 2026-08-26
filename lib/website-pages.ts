@@ -3,112 +3,88 @@ import {createPublicSupabaseClient} from '@/lib/supabase/public';
 import {isSafePublicHref} from '@/lib/website-chrome';
 
 export type WebsitePageKey='home'|'about'|'contact';
-export type WebsitePageFieldKind='text'|'textarea'|'href';
-export type WebsitePageFieldDefinition={key:string;label:string;group:string;kind:WebsitePageFieldKind;maxLength:number;fallback:string};
+export type WebsitePageFieldKind='text'|'textarea'|'href'|'image';
+export type WebsitePageFieldDefinition={key:string;label:string;group:string;kind:WebsitePageFieldKind;maxLength:number;fallback:string;optional?:boolean;help?:string};
 export type WebsitePagePayload={values:Record<string,string>};
 
+const f=(key:string,label:string,group:string,kind:WebsitePageFieldKind,maxLength:number,fallback:string,optional=false,help?:string):WebsitePageFieldDefinition=>({key,label,group,kind,maxLength,fallback,optional,help});
+
 const HOME_FIELDS:WebsitePageFieldDefinition[]=[
- {key:'hero_eyebrow',label:'Eyebrow',group:'Hero',kind:'text',maxLength:100,fallback:'INFORMATION TECHNOLOGY · DATA · AI'},
- {key:'hero_title',label:'Headline',group:'Hero',kind:'text',maxLength:180,fallback:'Build job-ready experience through'},
- {key:'hero_accent',label:'Headline accent',group:'Hero',kind:'text',maxLength:100,fallback:'meaningful projects.'},
- {key:'hero_lead',label:'Lead paragraph',group:'Hero',kind:'textarea',maxLength:500,fallback:'Work on IT, Data & AI projects, collaborate with others and build evidence of what you can do.'},
- {key:'hero_support',label:'Support paragraph',group:'Hero',kind:'textarea',maxLength:600,fallback:'Turn your contributions into credible professional Proof that helps you stand out for relevant roles.'},
- {key:'hero_primary_label',label:'Primary CTA label',group:'Hero',kind:'text',maxLength:80,fallback:'Explore projects →'},
- {key:'hero_primary_href',label:'Primary CTA destination',group:'Hero',kind:'href',maxLength:500,fallback:'/projects'},
- {key:'hero_secondary_label',label:'Secondary CTA label',group:'Hero',kind:'text',maxLength:80,fallback:'Join Mettelo'},
- {key:'hero_secondary_href',label:'Secondary CTA destination',group:'Hero',kind:'href',maxLength:500,fallback:'/signin?mode=signup'},
- {key:'how_eyebrow',label:'Eyebrow',group:'How Mettelo works',kind:'text',maxLength:100,fallback:'HOW METTELO WORKS'},
- {key:'how_title',label:'Heading',group:'How Mettelo works',kind:'text',maxLength:180,fallback:'From real work to credible Proof.'},
- {key:'how_body',label:'Intro copy',group:'How Mettelo works',kind:'textarea',maxLength:600,fallback:'Mettelo connects project work, contribution, supporting evidence and review so professionals can build stronger evidence of demonstrated capability.'},
- {key:'proof_eyebrow',label:'Eyebrow',group:'Proof',kind:'text',maxLength:100,fallback:'METTELO PROOF'},
- {key:'proof_title',label:'Heading',group:'Proof',kind:'text',maxLength:180,fallback:'Show the work behind your contribution.'},
- {key:'proof_lead',label:'Lead copy',group:'Proof',kind:'textarea',maxLength:700,fallback:'Mettelo Proof gives structured context to reviewed project contributions: what you worked on, what you contributed and the evidence that supports it.'},
- {key:'proof_note',label:'Verification note',group:'Proof',kind:'textarea',maxLength:700,fallback:'Verification means an authorised reviewer has reviewed the recorded contribution and supporting evidence. It does not certify the professional, guarantee an outcome or verify employment beyond the record shown.'},
- {key:'proof_cta_label',label:'CTA label',group:'Proof',kind:'text',maxLength:80,fallback:'Explore Mettelo Proof →'},
- {key:'proof_cta_href',label:'CTA destination',group:'Proof',kind:'href',maxLength:500,fallback:'/showcase'},
- {key:'organisations_eyebrow',label:'Eyebrow',group:'Organisations',kind:'text',maxLength:100,fallback:'FOR ORGANISATIONS'},
- {key:'organisations_title',label:'Heading',group:'Organisations',kind:'text',maxLength:180,fallback:'Bring a technology, Data or AI problem worth solving.'},
- {key:'organisations_lead',label:'Lead copy',group:'Organisations',kind:'textarea',maxLength:700,fallback:'Mettelo gives organisations a structured way to engage professionals around real project work and understand contribution through evidence in context.'},
- {key:'organisations_cta_label',label:'CTA label',group:'Organisations',kind:'text',maxLength:80,fallback:'Work with Mettelo →'},
- {key:'organisations_cta_href',label:'CTA destination',group:'Organisations',kind:'href',maxLength:500,fallback:'/organisations'},
- {key:'why_eyebrow',label:'Eyebrow',group:'Why Mettelo',kind:'text',maxLength:100,fallback:'WHY METTELO'},
- {key:'why_title',label:'Heading',group:'Why Mettelo',kind:'text',maxLength:180,fallback:'Real work creates stronger professional signals.'},
- {key:'why_lead',label:'Lead copy',group:'Why Mettelo',kind:'textarea',maxLength:500,fallback:'Capability becomes more credible when people can see the work, contribution and evidence behind it.'},
- {key:'why_body',label:'Main copy',group:'Why Mettelo',kind:'textarea',maxLength:1000,fallback:'Mettelo helps IT, Data & AI professionals build experience through real work, make their contributions visible and build Mettelo Proof from reviewed contribution evidence.'},
- {key:'why_scope',label:'Geographic / ambition copy',group:'Why Mettelo',kind:'textarea',maxLength:900,fallback:'We are building professional capability infrastructure with a focus on Africa and beyond — preserving useful context about demonstrated work across teams, organisations and borders.'},
- {key:'final_eyebrow',label:'Eyebrow',group:'Final CTA',kind:'text',maxLength:100,fallback:'YOUR NEXT STEP'},
- {key:'final_title',label:'Heading',group:'Final CTA',kind:'text',maxLength:180,fallback:'Build evidence through the work you do.'},
- {key:'final_body',label:'Body copy',group:'Final CTA',kind:'textarea',maxLength:700,fallback:'Join Mettelo, explore project work and start building experience that can lead to reviewed contribution evidence and credible Mettelo Proof.'},
- {key:'final_primary_label',label:'Primary CTA label',group:'Final CTA',kind:'text',maxLength:80,fallback:'Explore projects →'},
- {key:'final_primary_href',label:'Primary CTA destination',group:'Final CTA',kind:'href',maxLength:500,fallback:'/projects'},
- {key:'final_secondary_label',label:'Secondary CTA label',group:'Final CTA',kind:'text',maxLength:80,fallback:'Join Mettelo'},
- {key:'final_secondary_href',label:'Secondary CTA destination',group:'Final CTA',kind:'href',maxLength:500,fallback:'/signin?mode=signup'}
+ f('hero_eyebrow','Eyebrow','Hero','text',100,'INFORMATION TECHNOLOGY · DATA · AI'),
+ f('hero_title','Headline','Hero','text',180,'Build job-ready experience through'),
+ f('hero_accent','Headline accent','Hero','text',100,'meaningful projects.'),
+ f('hero_lead','Lead paragraph','Hero','textarea',500,'Work on IT, Data & AI projects, collaborate with others and build evidence of what you can do.'),
+ f('hero_support','Support paragraph','Hero','textarea',600,'Turn your contributions into credible professional Proof that helps you stand out for relevant roles.'),
+ f('hero_primary_label','Primary CTA label','Hero','text',80,'Explore projects →'),f('hero_primary_href','Primary CTA destination','Hero','href',500,'/projects'),
+ f('hero_secondary_label','Secondary CTA label','Hero','text',80,'Join Mettelo'),f('hero_secondary_href','Secondary CTA destination','Hero','href',500,'/signin?mode=signup'),
+
+ f('reality_eyebrow','Eyebrow','Why Mettelo','text',100,'WHY METTELO EXISTS'),
+ f('reality_title','Heading','Why Mettelo','text',220,'A skill claim tells us what you know. Contribution shows how you work.'),
+ f('reality_lead','Lead copy','Why Mettelo','textarea',700,'Capability becomes more credible when people can see the problem, your role, your decisions, how you worked with others and what changed because you contributed.'),
+ f('reality_note','Closing copy','Why Mettelo','textarea',700,'Mettelo connects those signals so useful work can become clearer professional evidence and a stronger foundation for what comes next.'),
+ ...[1,2,3,4].flatMap((n)=>{const defaults=[['“I know SQL.”','The problem you used SQL to investigate — and the decision your analysis supported.'],['“I work well in teams.”','How you collaborated, communicated and helped move shared work forward.'],['“I have leadership skills.”','Where you took ownership, coordinated others or led a meaningful decision.'],['“I delivered a project.”','Your role, the evidence behind the work and the outcome you helped create.']][n-1];return [f(`compare_${n}_claim`,`Claim ${n}`,'Why Mettelo — comparison','text',180,defaults[0]),f(`compare_${n}_evidence`,`Mettelo evidence ${n}`,'Why Mettelo — comparison','textarea',400,defaults[1])]}),
+
+ f('connected_eyebrow','Eyebrow','Connected layer','text',100,'ONE CONNECTED LAYER'),
+ f('connected_title','Heading','Connected layer','text',220,'Your work, evidence and opportunities should build on each other.'),
+ f('connected_body','Intro copy','Connected layer','textarea',600,'Mettelo connects project work, contribution, review, Proof and opportunity so every useful action can strengthen the next.'),
+ ...[1,2,3,4,5].flatMap((n)=>{const d=[['Projects & Labs','Join practical work where your role, responsibility and contribution are clear.','BUILD'],['Contribution','Record the work you owned, the decisions you influenced and how you contributed.','WORK'],['Evidence','Attach the artefacts, decisions and outputs that make your contribution easier to understand.','EVIDENCE'],['Mettelo Proof','Turn reviewed contribution into credible evidence of demonstrated capability in context.','PROVE'],['Opportunity','Use demonstrated experience to discover projects, roles and opportunities where that capability is relevant.','PROGRESS']][n-1];return [f(`layer_${n}_title`,`Stage ${n} title`,'Connected layer — stages','text',120,d[0]),f(`layer_${n}_body`,`Stage ${n} copy`,'Connected layer — stages','textarea',450,d[1]),f(`layer_${n}_state`,`Stage ${n} label`,'Connected layer — stages','text',40,d[2])]}),
+
+ f('journey_eyebrow','Eyebrow','How Mettelo works','text',100,'HOW METTELO WORKS'),
+ f('journey_title','Heading','How Mettelo works','text',220,'Turn useful work into evidence people can trust.'),
+ f('journey_body','Intro copy','How Mettelo works','textarea',600,'Mettelo gives real project activity a structure: the work you take on, how you contribute, the evidence behind it and the outcome you help create.'),
+ ...[1,2,3,4].flatMap((n)=>{const d=[['Find work worth contributing to','Find a project where your skills and perspective can genuinely help move the work forward.'],['Take responsibility for real work','Work with others, own meaningful tasks, communicate clearly and lead where the work needs it.'],['Show the evidence behind your contribution','Connect the artefacts, decisions and outcomes that make your contribution understandable.'],['Build Proof of demonstrated capability','Turn reviewed contribution into a professional record grounded in what you actually did.']][n-1];return [f(`journey_${n}_title`,`Step ${n} title`,'How Mettelo works — steps','text',160,d[0]),f(`journey_${n}_body`,`Step ${n} copy`,'How Mettelo works — steps','textarea',450,d[1])]}),
+
+ f('proof_eyebrow','Eyebrow','Mettelo Proof','text',100,'METTELO PROOF'),f('proof_title','Heading','Mettelo Proof','text',180,'Show the work behind the skill.'),
+ f('proof_lead','Body copy','Mettelo Proof','textarea',700,'Mettelo Proof connects what you did with the evidence, decisions, collaboration and outcomes behind it — so capability is easier to understand and harder to reduce to a badge.'),
+ f('proof_quote','Quote','Mettelo Proof','textarea',350,'Don’t just say you can analyse problems.\nShow where your thinking changed the work.'),
+ f('proof_cta_label','CTA label','Mettelo Proof','text',80,'Explore Mettelo Proof →'),f('proof_cta_href','CTA destination','Mettelo Proof','href',500,'/showcase'),
+
+ f('professionals_label','Label','Professionals route','text',100,'FOR PROFESSIONALS'),f('professionals_title','Heading','Professionals route','text',180,'Build experience that carries weight.'),
+ f('professionals_body','Body copy','Professionals route','textarea',700,'Contribute to practical work, collaborate with others and leave with more than participation — a clearer record of what you were responsible for and what you helped achieve.'),
+ ...['Join practical project work','Take ownership and collaborate with real teams','Build evidence of technical and professional capability','Strengthen your Mettelo Proof'].map((v,i)=>f(`professionals_bullet_${i+1}`,`Bullet ${i+1}`,'Professionals route','text',180,v)),
+ f('professionals_cta_label','CTA label','Professionals route','text',80,'Explore Mettelo →'),f('professionals_cta_href','CTA destination','Professionals route','href',500,'/projects'),
+
+ f('organisations_label','Label','Organisations route','text',100,'FOR ORGANISATIONS'),f('organisations_title','Heading','Organisations route','text',180,'Bring real work. See capability in action.'),
+ f('organisations_body','Body copy','Organisations route','textarea',700,'Engage professionals around meaningful technology, Data and AI problems and gain richer context on how people think, collaborate, take ownership and deliver.'),
+ ...['Bring meaningful business or social problems','See contribution in the context of the work','Understand how people think, collaborate and make decisions','Review evidence of demonstrated capability'].map((v,i)=>f(`organisations_bullet_${i+1}`,`Bullet ${i+1}`,'Organisations route','text',180,v)),
+ f('organisations_cta_label','CTA label','Organisations route','text',80,'Work with Mettelo →'),f('organisations_cta_href','CTA destination','Organisations route','href',500,'/organisations'),
+
+ f('routes_eyebrow','Eyebrow','Routes','text',100,'TWO ROUTES THROUGH METTELO'),f('routes_title','Heading','Routes','text',220,'Build capability. See capability in action.'),f('routes_body','Intro copy','Routes','textarea',600,'Mettelo connects people who want meaningful experience with organisations that want to engage real capability around useful work.'),
+ f('ecosystem_eyebrow','Eyebrow','Ecosystem','text',100,'THE METTELO ECOSYSTEM'),f('ecosystem_title','Heading','Ecosystem','text',240,'One ecosystem built around how professional growth actually happens.'),f('ecosystem_body','Intro copy','Ecosystem','textarea',700,'People learn, contribute, connect, build evidence and discover opportunities in different ways. Mettelo brings those moments into one connected professional system.'),
+ ...[1,2,3,4,5,6,7].flatMap((n)=>{const d=[['Mettelo Community','Connect.','Meet people, exchange practical knowledge and discover where you can contribute.'],['Mettelo Labs','Build.','Work on practical technology projects, collaborate with others and help create useful outcomes.'],['Mettelo Proof','Show what you did.','Turn contribution and evidence into credible Proof of demonstrated capability.'],['Mettelo Talent','Progress.','Discover roles, projects and opportunities where demonstrated experience can carry more weight.'],['Mettelo Research','Understand.','Explore research, surveys and practical insight into how technology, Data and AI work is changing.'],['Mettelo AI','Work smarter.','Use intelligent tools designed around professional work, evidence, capability and opportunity.'],['Mettelo Summit','Come together.','Join events and showcases that bring professionals, organisations, projects and ideas into the same room.']][n-1];return [f(`ecosystem_${n}_name`,`Surface ${n} name`,'Ecosystem — surfaces','text',100,d[0]),f(`ecosystem_${n}_verb`,`Surface ${n} action`,'Ecosystem — surfaces','text',100,d[1]),f(`ecosystem_${n}_body`,`Surface ${n} copy`,'Ecosystem — surfaces','textarea',400,d[2])]}),
+ f('ecosystem_anchor_name','Anchor heading','Ecosystem — connected journey','text',120,'One connected journey'),f('ecosystem_anchor_verb','Anchor action','Ecosystem — connected journey','text',120,'Connect. Build. Prove. Progress.'),f('ecosystem_anchor_body','Anchor copy','Ecosystem — connected journey','textarea',450,'Each part strengthens the same journey: connect, contribute, build evidence and progress.'),
+
+ f('final_eyebrow','Eyebrow','Final CTA','text',100,'START WITH SOMETHING REAL'),f('final_title','Heading','Final CTA','text',200,'Your next opportunity should start with something real.'),f('final_body','Body copy','Final CTA','textarea',600,'Find a project, contribute to meaningful work and start building a professional record grounded in what you actually did.'),
+ f('final_primary_label','Primary CTA label','Final CTA','text',80,'Explore projects →'),f('final_primary_href','Primary CTA destination','Final CTA','href',500,'/projects'),f('final_secondary_label','Secondary CTA label','Final CTA','text',80,'Join Mettelo'),f('final_secondary_href','Secondary CTA destination','Final CTA','href',500,'/signin?mode=signup')
 ];
 
 const ABOUT_FIELDS:WebsitePageFieldDefinition[]=[
- {key:'hero_eyebrow',label:'Eyebrow',group:'Hero',kind:'text',maxLength:100,fallback:'About Mettelo'},
- {key:'hero_title',label:'Headline',group:'Hero',kind:'text',maxLength:180,fallback:'Built for What’s Next.'},
- {key:'hero_lead',label:'Lead paragraph',group:'Hero',kind:'textarea',maxLength:1200,fallback:'Mettelo is a technology-led organisation building professional capability infrastructure for Information Technology, Data & AI professionals. We connect real work, visible contribution, supporting evidence, review and Mettelo Proof so demonstrated experience carries more useful context.'},
- {key:'hero_primary_label',label:'Primary CTA label',group:'Hero',kind:'text',maxLength:80,fallback:'Join Mettelo →'},
- {key:'hero_primary_href',label:'Primary CTA destination',group:'Hero',kind:'href',maxLength:500,fallback:'/signin?mode=signup'},
- {key:'hero_secondary_label',label:'Secondary CTA label',group:'Hero',kind:'text',maxLength:80,fallback:'Build with us'},
- {key:'hero_secondary_href',label:'Secondary CTA destination',group:'Hero',kind:'href',maxLength:500,fallback:'/partnership'},
- {key:'thesis_title',label:'Thesis heading',group:'Hero',kind:'text',maxLength:180,fallback:'Capability becomes more credible when it is demonstrated.'},
- {key:'thesis_body',label:'Thesis copy',group:'Hero',kind:'textarea',maxLength:700,fallback:'The future of work will reward more than what people know. It will reward what they can apply, build, communicate and create with others — and the evidence that gives that work context.'},
- {key:'story_eyebrow',label:'Eyebrow',group:'Story',kind:'text',maxLength:100,fallback:'The Mettelo story'},
- {key:'story_title',label:'Heading',group:'Story',kind:'text',maxLength:220,fallback:'The world of work changed. The systems around capability did not.'},
- {key:'gap_eyebrow',label:'Eyebrow',group:'Capability gap',kind:'text',maxLength:100,fallback:'The gap we are closing'},
- {key:'gap_title',label:'Heading',group:'Capability gap',kind:'text',maxLength:220,fallback:'You need experience to earn opportunity. But you often need opportunity to gain experience.'},
- {key:'gap_body',label:'Intro copy',group:'Capability gap',kind:'textarea',maxLength:800,fallback:'Mettelo is being built to break that loop by connecting meaningful work, contribution, evidence, review, professional credibility and relevant routes forward into one continuous system.'},
- {key:'ecosystem_eyebrow',label:'Eyebrow',group:'Ecosystem',kind:'text',maxLength:100,fallback:'The Mettelo ecosystem'},
- {key:'ecosystem_title',label:'Heading',group:'Ecosystem',kind:'text',maxLength:200,fallback:'One company. Seven connected capability layers.'},
- {key:'ecosystem_body',label:'Intro copy',group:'Ecosystem',kind:'textarea',maxLength:800,fallback:'Mettelo Community is the front door — not the whole company. The wider technology organisation connects how people build experience, demonstrate contribution, create credible professional evidence and pursue relevant opportunities.'},
- {key:'future_eyebrow',label:'Eyebrow',group:'Future',kind:'text',maxLength:100,fallback:'Where we are going'},
- {key:'future_title',label:'Heading',group:'Future',kind:'text',maxLength:240,fallback:'Africa and beyond: IT, Data & AI are the starting point, not the boundary of the ambition.'},
- {key:'future_body',label:'Intro copy',group:'Future',kind:'textarea',maxLength:800,fallback:'We are starting where technology transformation is moving quickly and practical evidence matters, then extending the model as the infrastructure matures.'},
- {key:'mission_title',label:'Mission heading',group:'Mission & vision',kind:'text',maxLength:220,fallback:'Build the infrastructure that enables people to develop and demonstrate real capability.'},
- {key:'mission_body',label:'Mission copy',group:'Mission & vision',kind:'textarea',maxLength:700,fallback:'We do that through meaningful work, open collaboration, intelligent technology and credible contribution evidence.'},
- {key:'vision_title',label:'Vision heading',group:'Mission & vision',kind:'text',maxLength:220,fallback:'Professional capability infrastructure for Africa and beyond.'},
- {key:'vision_body',label:'Vision copy',group:'Mission & vision',kind:'textarea',maxLength:1200,fallback:'We believe professionals across Africa should be able to access serious delivery environments, create credible evidence of what they contribute and carry that context across borders. Mettelo is building infrastructure with African ambition and global usefulness: technology that helps demonstrated capability become easier to understand and connect to relevant opportunities.'},
- {key:'founder_eyebrow',label:'Eyebrow',group:'Founder',kind:'text',maxLength:100,fallback:'Why this company was started'},
- {key:'founder_title',label:'Heading',group:'Founder',kind:'text',maxLength:220,fallback:'The problem was never simply a shortage of learning.'},
- {key:'founder_quote',label:'Founder quote',group:'Founder',kind:'textarea',maxLength:1000,fallback:'People should not have to wait for the perfect title or the perfect opportunity before they can show how they create value. We can build better infrastructure for real contribution to become visible, credible and useful.'},
- {key:'cta_eyebrow',label:'Eyebrow',group:'Final CTA',kind:'text',maxLength:100,fallback:'BUILT THROUGH CONTRIBUTION'},
- {key:'cta_title',label:'Heading',group:'Final CTA',kind:'text',maxLength:220,fallback:'Help build what professional infrastructure should become.'},
- {key:'cta_body',label:'Body copy',group:'Final CTA',kind:'textarea',maxLength:800,fallback:'Join Mettelo, contribute through projects, bring a real problem or partner with us as we develop the next layer of professional capability infrastructure.'},
- {key:'cta_primary_label',label:'Primary CTA label',group:'Final CTA',kind:'text',maxLength:80,fallback:'Join Mettelo →'},
- {key:'cta_primary_href',label:'Primary CTA destination',group:'Final CTA',kind:'href',maxLength:500,fallback:'/signin?mode=signup'},
- {key:'cta_secondary_label',label:'Secondary CTA label',group:'Final CTA',kind:'text',maxLength:80,fallback:'Work with us'},
- {key:'cta_secondary_href',label:'Secondary CTA destination',group:'Final CTA',kind:'href',maxLength:500,fallback:'/partnership'}
+ f('masthead_eyebrow','Eyebrow','Masthead','text',100,'ABOUT METTELO'),f('masthead_title','Heading','Masthead','text',220,'We are building a more connected way for professional capability to grow and be understood.'),f('masthead_lead','Lead copy','Masthead','textarea',700,'Mettelo is a professional ecosystem for Information Technology, Data and AI — bringing people, practical work, evidence, insight and opportunity into a more connected journey.'),f('masthead_belief','Simple belief','Masthead','text',220,'People should have meaningful opportunities to show what they can do.'),
+ f('community_image_url','Community image','Masthead media','image',700,'',true,'Optional. Upload an approved image from the Website media library.'),f('community_image_alt','Community image alt text','Masthead media','text',240,'',true),f('community_image_caption','Community image caption','Masthead media','text',240,'',true),
+ f('why_eyebrow','Eyebrow','Why Mettelo','text',100,'WHY METTELO EXISTS'),f('why_title','Heading','Why Mettelo','text',220,'Learning became easier to access. Meaningful application did not.'),f('why_body','Body copy','Why Mettelo','textarea',800,'People can build knowledge from almost anywhere. But professional capability develops through work that involves responsibility, judgement, collaboration and real outcomes.'),f('why_quote','Pull quote','Why Mettelo','textarea',500,'The gap is not only what people know. It is whether they get the opportunity to apply it and make that capability visible.'),f('why_close','Closing copy','Why Mettelo','textarea',300,'Mettelo is being built around that gap.'),
+ f('belief_eyebrow','Eyebrow','What we believe','text',100,'WHAT WE BELIEVE'),f('belief_title','Heading','What we believe','text',220,'People are more than the titles, tools and qualifications on their profile.'),f('belief_1','Belief 1','What we believe','textarea',350,'Meaningful work develops technical and professional capability together.'),f('belief_2','Belief 2','What we believe','textarea',350,'Contribution is more useful when the context behind it can be understood.'),f('belief_3','Belief 3','What we believe','textarea',350,'Opportunity should respond to what people have demonstrated, not only what they claim.'),
+ f('journey_eyebrow','Eyebrow','Our journey','text',100,'OUR JOURNEY'),f('journey_title','Heading','Our journey','text',220,'We started with community. The problem led us further.'),f('journey_intro','Intro copy','Our journey','textarea',600,'Mettelo was not born as a finished product. It evolved from what we learned by bringing people together.'),f('founding_year','Founding year','Our journey','text',20,'',true,'Leave blank until the founding year is formally confirmed.'),
+ f('journey_1_label','Stage 1 label','Our journey','text',80,'OUR BEGINNING'),f('journey_1_title','Stage 1 heading','Our journey','text',180,'A simple IT, Data & AI community.'),f('journey_1_body','Stage 1 copy','Our journey','textarea',500,'A place for people to connect, exchange knowledge and support professional growth.'),
+ f('journey_2_label','Stage 2 label','Our journey','text',80,'WE LEARNED'),f('journey_2_title','Stage 2 heading','Our journey','text',180,'We realised community alone could not solve the problem.'),f('journey_2_body','Stage 2 copy','Our journey','textarea',500,'People needed somewhere to apply what they knew, work with others and build credible evidence of that contribution.'),
+ f('journey_3_label','Stage 3 label','Our journey','text',80,'TODAY'),f('journey_3_title','Stage 3 heading','Our journey','text',180,'A broader professional capability ecosystem.'),f('journey_3_body','Stage 3 copy','Our journey','textarea',500,'Community now sits alongside practical work, Proof, talent, research, AI and shared professional experiences.'),
+ f('audience_eyebrow','Eyebrow','Who we serve','text',100,'WHO WE SERVE'),f('audience_title','Heading','Who we serve','text',220,'One ecosystem. Different reasons to be part of it.'),f('audience_intro','Intro copy','Who we serve','textarea',600,'Mettelo is built for the people developing and demonstrating capability, the organisations engaging it, and partners helping create stronger professional pathways.'),
+ f('professionals_title','Professionals heading','Who we serve','text',160,'Build, contribute and progress.'),f('professionals_body','Professionals copy','Who we serve','textarea',500,'For early-career professionals, career changers and experienced practitioners who want meaningful work and stronger evidence of how they operate.'),
+ f('organisations_title','Organisations heading','Who we serve','text',160,'Bring meaningful problems and see capability in action.'),f('organisations_body','Organisations copy','Who we serve','textarea',500,'Work with professionals around practical challenges and gain richer context on how people think, collaborate and deliver.'),
+ f('partners_title','Partners heading','Who we serve','text',160,'Help create stronger routes into meaningful work.'),f('partners_body','Partners copy','Who we serve','textarea',500,'Communities, institutions, mentors and learning partners can connect knowledge with practical application.'),
+ f('guides_eyebrow','Eyebrow','Mission & vision','text',100,'WHAT GUIDES US'),f('guides_title','Section heading','Mission & vision','text',180,'Mission for today. Vision for the future we want to help create.'),
+ f('mission','Mission','Mission & vision','textarea',350,'Help people turn knowledge into demonstrated capability through meaningful work.'),
+ f('vision','Vision','Mission & vision','textarea',500,'A world where anyone building a career in technology, Data and AI can access the people, work, evidence and opportunities needed to progress.'),
+ f('founder_image_url','Founder image','Founder','image',700,'/api/founder-image'),f('founder_image_alt','Founder image alt text','Founder','text',240,'O. Johnson Taiwo, Founder of Mettelo'),f('founder_eyebrow','Eyebrow','Founder','text',100,'THE FOUNDER STORY'),f('founder_title','Heading','Founder','text',220,'The idea came from seeing the same disconnect from both sides.'),f('founder_body_1','Paragraph 1','Founder','textarea',800,'Technical knowledge matters, but organisations ultimately need people who can apply it with judgement, communicate clearly, collaborate well and produce useful outcomes.'),f('founder_body_2','Paragraph 2','Founder','textarea',800,'At the same time, capable people can invest heavily in learning and still struggle to access the situations where those skills become trusted experience.'),f('founder_quote','Founder quote','Founder','textarea',600,'“The goal is not to tell people what they are capable of. It is to create better opportunities for them to show it.”'),
+ f('close_eyebrow','Eyebrow','Final CTA','text',100,'THE NEXT CHAPTER'),f('close_title','Heading','Final CTA','text',180,'The next chapter is being built together.'),f('close_body','Body copy','Final CTA','textarea',500,'Mettelo started with community. Professionals, organisations and partners will shape what it becomes next.'),f('cta_primary_label','Primary CTA label','Final CTA','text',80,'Join Mettelo →'),f('cta_primary_href','Primary CTA destination','Final CTA','href',500,'/signin?mode=signup'),f('cta_secondary_label','Secondary CTA label','Final CTA','text',80,'Work with us'),f('cta_secondary_href','Secondary CTA destination','Final CTA','href',500,'/partnership')
 ];
 
 const CONTACT_FIELDS:WebsitePageFieldDefinition[]=[
- {key:'hero_eyebrow',label:'Eyebrow',group:'Hero',kind:'text',maxLength:100,fallback:'Contact Mettelo'},
- {key:'hero_title',label:'Headline',group:'Hero',kind:'text',maxLength:180,fallback:'Start with the right route.'},
- {key:'hero_lead',label:'Lead paragraph',group:'Hero',kind:'textarea',maxLength:900,fallback:'Whether you are a member, contributor, organisation, speaker, employer or simply trying to understand Mettelo, give us enough context to route your enquiry well.'},
- {key:'partner_chip',label:'Partnership label',group:'Partnership panel',kind:'text',maxLength:60,fallback:'ORGANISATIONS'},
- {key:'partner_title',label:'Heading',group:'Partnership panel',kind:'text',maxLength:160,fallback:'Partnership enquiry?'},
- {key:'partner_body',label:'Body copy',group:'Partnership panel',kind:'textarea',maxLength:700,fallback:'Use the dedicated partnership form for projects, hiring, research, events, sponsorship or collaboration.'},
- {key:'partner_cta_label',label:'CTA label',group:'Partnership panel',kind:'text',maxLength:80,fallback:'Partnership form →'},
- {key:'partner_cta_href',label:'CTA destination',group:'Partnership panel',kind:'href',maxLength:500,fallback:'/partnership'},
- {key:'routes_eyebrow',label:'Eyebrow',group:'Contact routes',kind:'text',maxLength:100,fallback:'Choose your route'},
- {key:'routes_title',label:'Heading',group:'Contact routes',kind:'text',maxLength:180,fallback:'What do you need help with?'},
- {key:'form_title',label:'Form heading',group:'Contact form',kind:'text',maxLength:160,fallback:'Send us a message'},
- {key:'form_body',label:'Form intro copy',group:'Contact form',kind:'textarea',maxLength:800,fallback:'Choose the closest route and tell us what you need. We removed the separate subject field because the topic and message already provide the routing context.'},
- {key:'faster_eyebrow',label:'Eyebrow',group:'Faster routes',kind:'text',maxLength:100,fallback:'Faster routes'},
- {key:'faster_title',label:'Heading',group:'Faster routes',kind:'text',maxLength:180,fallback:'You may not need a general enquiry.'},
- {key:'project_card_title',label:'Projects card heading',group:'Faster routes',kind:'text',maxLength:160,fallback:'Want to join a project?'},
- {key:'project_card_body',label:'Projects card copy',group:'Faster routes',kind:'textarea',maxLength:500,fallback:'Browse Labs briefs and use the project application flow.'},
- {key:'project_card_label',label:'Projects card CTA',group:'Faster routes',kind:'text',maxLength:80,fallback:'Browse projects →'},
- {key:'project_card_href',label:'Projects card destination',group:'Faster routes',kind:'href',maxLength:500,fallback:'/projects'},
- {key:'member_card_title',label:'Membership card heading',group:'Faster routes',kind:'text',maxLength:160,fallback:'Want to join Mettelo?'},
- {key:'member_card_body',label:'Membership card copy',group:'Faster routes',kind:'textarea',maxLength:500,fallback:'Create your account through the secure sign-up flow.'},
- {key:'member_card_label',label:'Membership card CTA',group:'Faster routes',kind:'text',maxLength:80,fallback:'Create account →'},
- {key:'member_card_href',label:'Membership card destination',group:'Faster routes',kind:'href',maxLength:500,fallback:'/signin'},
- {key:'partner_card_title',label:'Partners card heading',group:'Faster routes',kind:'text',maxLength:160,fallback:'Representing an organisation?'},
- {key:'partner_card_body',label:'Partners card copy',group:'Faster routes',kind:'textarea',maxLength:500,fallback:'Use the partnership form so we can assess the opportunity properly.'},
- {key:'partner_card_label',label:'Partners card CTA',group:'Faster routes',kind:'text',maxLength:80,fallback:'Partnership form →'},
- {key:'partner_card_href',label:'Partners card destination',group:'Faster routes',kind:'href',maxLength:500,fallback:'/partnership'}
+ f('hero_eyebrow','Eyebrow','Hero','text',100,'Contact Mettelo'),f('hero_title','Headline','Hero','text',180,'Start with the right route.'),f('hero_lead','Lead paragraph','Hero','textarea',900,'Whether you are a member, contributor, organisation, speaker, employer or simply trying to understand Mettelo, give us enough context to route your enquiry well.'),
+ f('partner_chip','Partnership label','Partnership panel','text',60,'ORGANISATIONS'),f('partner_title','Heading','Partnership panel','text',160,'Partnership enquiry?'),f('partner_body','Body copy','Partnership panel','textarea',700,'Use the dedicated partnership form for projects, hiring, research, events, sponsorship or collaboration.'),f('partner_cta_label','CTA label','Partnership panel','text',80,'Partnership form →'),f('partner_cta_href','CTA destination','Partnership panel','href',500,'/partnership'),
+ f('routes_eyebrow','Eyebrow','Contact routes','text',100,'Choose your route'),f('routes_title','Heading','Contact routes','text',180,'What do you need help with?'),f('form_title','Form heading','Contact form','text',160,'Send us a message'),f('form_body','Form intro copy','Contact form','textarea',800,'Choose the closest route and tell us what you need. We removed the separate subject field because the topic and message already provide the routing context.'),f('faster_eyebrow','Eyebrow','Faster routes','text',100,'Faster routes'),f('faster_title','Heading','Faster routes','text',180,'You may not need a general enquiry.'),
+ f('project_card_title','Projects card heading','Faster routes','text',160,'Want to join a project?'),f('project_card_body','Projects card copy','Faster routes','textarea',500,'Browse Labs briefs and use the project application flow.'),f('project_card_label','Projects card CTA','Faster routes','text',80,'Browse projects →'),f('project_card_href','Projects card destination','Faster routes','href',500,'/projects'),
+ f('member_card_title','Membership card heading','Faster routes','text',160,'Want to join Mettelo?'),f('member_card_body','Membership card copy','Faster routes','textarea',500,'Create your account through the secure sign-up flow.'),f('member_card_label','Membership card CTA','Faster routes','text',80,'Create account →'),f('member_card_href','Membership card destination','Faster routes','href',500,'/signin'),
+ f('partner_card_title','Partners card heading','Faster routes','text',160,'Representing an organisation?'),f('partner_card_body','Partners card copy','Faster routes','textarea',500,'Use the partnership form so we can assess the opportunity properly.'),f('partner_card_label','Partners card CTA','Faster routes','text',80,'Partnership form →'),f('partner_card_href','Partners card destination','Faster routes','href',500,'/partnership')
 ];
 
 export const WEBSITE_PAGE_FIELDS:Record<WebsitePageKey,WebsitePageFieldDefinition[]>={home:HOME_FIELDS,about:ABOUT_FIELDS,contact:CONTACT_FIELDS};
@@ -117,23 +93,17 @@ export const WEBSITE_PAGE_LABELS:Record<WebsitePageKey,string>={home:'Homepage',
 function record(value:unknown):Record<string,unknown>|null{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:null}
 export function defaultWebsitePagePayload(page:WebsitePageKey):WebsitePagePayload{return{values:Object.fromEntries(WEBSITE_PAGE_FIELDS[page].map(field=>[field.key,field.fallback]))}}
 export function isWebsitePageKey(value:unknown):value is WebsitePageKey{return typeof value==='string'&&['home','about','contact'].includes(value)}
+function isSafeImage(value:string){if(value.startsWith('/')&&!value.startsWith('//'))return true;try{const url=new URL(value);return url.protocol==='https:'}catch{return false}}
+export function mergeWebsitePagePayload(page:WebsitePageKey,value:unknown):WebsitePagePayload{const fallback=defaultWebsitePagePayload(page);const source=record(value);const values=record(source?.values);if(!values)return fallback;const allowed=new Set(WEBSITE_PAGE_FIELDS[page].map(field=>field.key));const merged={...fallback.values};for(const [key,raw] of Object.entries(values)){if(allowed.has(key)&&typeof raw==='string')merged[key]=raw}return{values:merged}}
 
 export function validateWebsitePagePayload(page:WebsitePageKey,value:unknown){
  const source=record(value);const values=record(source?.values);if(!source||!values)return{ok:false as const,error:'Page content must contain a valid values object.'};
  const definitions=WEBSITE_PAGE_FIELDS[page];const allowed=new Set(definitions.map(field=>field.key));
  for(const key of Object.keys(values))if(!allowed.has(key))return{ok:false as const,error:`Unknown ${WEBSITE_PAGE_LABELS[page]} field: ${key}.`};
  const clean:Record<string,string>={};
- for(const field of definitions){
-  const raw=values[field.key];if(typeof raw!=='string')return{ok:false as const,error:`${field.label} is required.`};
-  const text=raw.trim();if(!text)return{ok:false as const,error:`${field.label} cannot be empty.`};
-  if(text.length>field.maxLength)return{ok:false as const,error:`${field.label} is too long.`};
-  if(field.kind==='href'&&!isSafePublicHref(text))return{ok:false as const,error:`${field.label} must be a safe internal or HTTPS destination.`};
-  clean[field.key]=text;
- }
+ for(const field of definitions){const raw=values[field.key];if(typeof raw!=='string')return{ok:false as const,error:`${field.label} is required.`};const text=raw.trim();if(!text&&!field.optional)return{ok:false as const,error:`${field.label} cannot be empty.`};if(text.length>field.maxLength)return{ok:false as const,error:`${field.label} is too long.`};if(text&&field.kind==='href'&&!isSafePublicHref(text))return{ok:false as const,error:`${field.label} must be a safe internal or HTTPS destination.`};if(text&&field.kind==='image'&&!isSafeImage(text))return{ok:false as const,error:`${field.label} must be a safe internal or HTTPS image URL.`};clean[field.key]=text}
+ if(page==='about'&&clean.community_image_url&&!clean.community_image_alt)return{ok:false as const,error:'Community image alt text is required when a community image is selected.'};
  return{ok:true as const,payload:{values:clean} as WebsitePagePayload};
 }
 
-export async function getPublicWebsitePage(page:WebsitePageKey):Promise<WebsitePagePayload>{
- noStore();const fallback=defaultWebsitePagePayload(page);const db=createPublicSupabaseClient();if(!db)return fallback;
- try{const {data,error}=await db.from('website_page_public').select('payload').eq('page_key',page).maybeSingle();if(error||!data)return fallback;const validated=validateWebsitePagePayload(page,data.payload);return validated.ok?validated.payload:fallback}catch{return fallback}
-}
+export async function getPublicWebsitePage(page:WebsitePageKey):Promise<WebsitePagePayload>{noStore();const fallback=defaultWebsitePagePayload(page);const db=createPublicSupabaseClient();if(!db)return fallback;try{const {data,error}=await db.from('website_page_public').select('payload').eq('page_key',page).maybeSingle();if(error||!data)return fallback;const merged=mergeWebsitePagePayload(page,data.payload);const validated=validateWebsitePagePayload(page,merged);return validated.ok?validated.payload:fallback}catch{return fallback}}

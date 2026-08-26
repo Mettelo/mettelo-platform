@@ -8,7 +8,7 @@ async function noOverflow(page:Page,label:string){const size=await page.evaluate
 
 async function gotoPublicPage(page:Page,path:string){await page.goto(path,{waitUntil:'domcontentloaded'});await expect(page.locator('.siteHeader')).toBeVisible()}
 
-async function openMenu(page:Page){const menu=page.locator('.mobileMenu');const trigger=menu.locator(':scope > summary');await expect(trigger).toBeVisible();await trigger.click();await expect(trigger).toHaveAttribute('aria-expanded','true');await expect(page.locator('.mobileMenuPanel')).toBeVisible();return{menu,trigger,panel:page.locator('.mobileMenuPanel')}}
+async function openMenu(page:Page){const menu=page.locator('.mobileMenu');const trigger=menu.locator(':scope > summary');await expect(trigger).toBeVisible();await expect(menu).toHaveAttribute('data-mobile-menu-enhanced','true',{timeout:15_000});await trigger.click();await expect(trigger).toHaveAttribute('aria-expanded','true');await expect(page.locator('.mobileMenuPanel')).toBeVisible();return{menu,trigger,panel:page.locator('.mobileMenuPanel')}}
 
 async function assertPhoneContract(page:Page,width:number,height:number){
  await page.setViewportSize({width,height});await gotoPublicPage(page,'/');await noOverflow(page,`Public page overflowed at ${width}x${height}`);

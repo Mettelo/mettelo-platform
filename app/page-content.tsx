@@ -9,22 +9,16 @@ import './home-social-proof.css';
 import './home-clarity.css';
 import './home-live-v4.css';
 import './home-director-v2.css';
+import './home-director-v3.css';
 
 const LIVE_THRESHOLD=500;
 const ESTABLISHED_COMMUNITY_REACH=5689;
 
-const workSteps=[
-  {number:'01',title:'Work in a real team',body:'Collaborate with people who bring different skills, perspectives and responsibilities.'},
-  {number:'02',title:'Take ownership',body:'Own a task, lead part of the work, manage dependencies or contribute specialist expertise.'},
-  {number:'03',title:'Think beyond the tool',body:'Analyse problems, make decisions, communicate ideas and understand the wider business context.'},
-  {number:'04',title:'Deliver an outcome',body:'Produce something useful that leaves a clearer record of your contribution and how you worked.'}
-];
-
 const journeySteps=[
-  {number:'01',title:'Discover real work',body:'Explore projects where your skills, interests and experience could be useful.'},
-  {number:'02',title:'Contribute',body:'Work with a team, take responsibility for real tasks and help move the work forward.'},
-  {number:'03',title:'Evidence & review',body:'Record what you contributed, connect supporting evidence and submit the contribution for review.'},
-  {number:'04',title:'Mettelo Proof',body:'Reviewed contributions can become clearer evidence of demonstrated capability in context.'}
+  {number:'01',title:'Find work worth contributing to',body:'Find a project where your skills and perspective can genuinely help move the work forward.'},
+  {number:'02',title:'Take responsibility for real work',body:'Work with others, own meaningful tasks, communicate clearly and lead where the work needs it.'},
+  {number:'03',title:'Show the evidence behind your contribution',body:'Connect the artefacts, decisions and outcomes that make your contribution understandable.'},
+  {number:'04',title:'Build Proof of demonstrated capability',body:'Turn reviewed contribution into a professional record grounded in what you actually did.'}
 ];
 
 const professionalRoutes=[
@@ -36,11 +30,22 @@ const professionalRoutes=[
 ];
 
 const organisationRoutes=[
-  'Bring real business or social problems',
-  'Understand contribution in context',
-  'See how people worked, not only what tools they used',
-  'Explore evidence of demonstrated capability',
-  'Create opportunities and collaborate with the ecosystem'
+  'Bring meaningful business or social problems',
+  'See contribution in the context of the work',
+  'Understand how people think, collaborate and make decisions',
+  'Review evidence of demonstrated capability',
+  'Create opportunities and engage the wider Mettelo ecosystem'
+];
+
+const ecosystem=[
+  {number:'01',name:'Mettelo Community',verb:'Connect.',body:'Meet people, exchange practical knowledge and discover where you can contribute.'},
+  {number:'02',name:'Mettelo Labs',verb:'Build.',body:'Work on practical technology projects, collaborate with others and help create useful outcomes.',dark:true},
+  {number:'03',name:'Mettelo Proof',verb:'Show what you did.',body:'Turn contribution and evidence into credible Proof of demonstrated capability.'},
+  {number:'04',name:'Mettelo Talent',verb:'Connect capability to opportunity.',body:'Discover roles, projects and opportunities where demonstrated experience can carry more weight.'},
+  {number:'05',name:'Mettelo Research',verb:'Understand what is changing.',body:'Explore research, surveys and practical insight into how technology, Data and AI work is changing.'},
+  {number:'06',name:'Mettelo AI',verb:'Work with more intelligence.',body:'Use intelligent tools designed around professional work, evidence, capability and opportunity.'},
+  {number:'07',name:'Mettelo Summit',verb:'Bring the ecosystem together.',body:'Join events and showcases that bring professionals, organisations, projects and ideas into the same room.'},
+  {number:'METTELO',name:'One connected journey',verb:'Connect. Build. Prove. Progress.',body:'Each part strengthens the same journey: connect, contribute, build evidence and progress.',dark:true}
 ];
 
 async function getHeroMetrics(){
@@ -96,100 +101,68 @@ export default async function HomePage(){
       </div>
     </section>
 
-    <div className="homeDirectorV2">
-      <section className="homeDirectorStatement" aria-labelledby="home-director-problem-title">
-        <div className="shell homeDirectorStatementInner">
-          <div className="eyebrow">{copy.why_eyebrow}</div>
-          <h2 id="home-director-problem-title">Skills are easy to claim. Contribution is harder to fake.</h2>
-          <p className="lead">{copy.why_lead}</p>
-          <p className="homeDirectorBody">{copy.why_body}</p>
-          <div className="homeDirectorContrast" aria-label="The shift Mettelo is designed to support">
-            <strong>From “these are the skills I say I have”</strong>
-            <span>to “this is what I actually did, how I applied the skill, how I worked with others, and the outcome I helped create.”</span>
+    <div className="homeDirectorV3">
+      <section className="homeV3Reality" aria-labelledby="home-v3-reality-title">
+        <div className="shell homeV3RealityGrid">
+          <div className="homeV3RealityCopy">
+            <div className="eyebrow">WHY METTELO EXISTS</div>
+            <h2 id="home-v3-reality-title">A skill claim tells us what you know. Contribution shows how you work.</h2>
+            <p className="lead">Capability becomes more credible when people can see the problem, your role, your decisions, how you worked with others and what changed because you contributed.</p>
+            <div className="homeV3RealityFooter"><p>Mettelo connects those signals in one place so useful work can become clearer professional evidence and a stronger foundation for what comes next.</p><a className="button ghost" href="#home-connected-layer">See the connected layer →</a></div>
+          </div>
+          <div className="homeV3Compare" aria-label="What Mettelo adds to a traditional skill claim">
+            <div className="homeV3CompareHead"><span>WHAT A PROFILE CAN CLAIM</span><span>WHAT METTELO CAN SHOW</span></div>
+            {[
+              ['“I know SQL.”','The problem you used SQL to investigate — and the decision your analysis supported.'],
+              ['“I work well in teams.”','How you collaborated, communicated and helped move shared work forward.'],
+              ['“I have leadership skills.”','Where you took ownership, coordinated others or led a meaningful decision.'],
+              ['“I delivered a project.”','Your role, the evidence behind the work and the outcome you helped create.']
+            ].map(([claim,signal],index)=><div className="homeV3CompareRow" key={claim}><div><span>{String(index+1).padStart(2,'0')}</span><strong>{claim}</strong></div><div><span aria-hidden="true">→</span><strong>{signal}</strong></div></div>)}
           </div>
         </div>
       </section>
 
-      <section className="homeDirectorWork" aria-labelledby="home-director-work-title">
-        <div className="shell homeDirectorWorkGrid">
-          <div className="homeDirectorWorkStory">
-            <div className="eyebrow">{copy.how_eyebrow}</div>
-            <h2 id="home-director-work-title">Capability becomes visible when people have something real to contribute to.</h2>
-            <p className="lead">{copy.how_body}</p>
-          </div>
-          <ol className="homeDirectorWorkSteps">
-            {workSteps.map(step=><li key={step.number}><span aria-hidden="true">{step.number}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></li>)}
-          </ol>
-        </div>
-      </section>
-
-      <section className="homeDirectorJourney" aria-labelledby="home-director-journey-title">
+      <section className="homeV3Connected" id="home-connected-layer" aria-labelledby="home-v3-connected-title">
         <div className="shell">
-          <div className="homeDirectorSectionHead">
-            <div><div className="eyebrow">HOW METTELO WORKS</div><h2 id="home-director-journey-title">Real work becomes credible professional evidence.</h2></div>
-            <p>The platform connects the activity itself with contribution, supporting evidence and review so the final record carries useful context.</p>
+          <div className="homeV3SectionHead"><div><div className="eyebrow">ONE CONNECTED LAYER</div><h2 id="home-v3-connected-title">Your work, evidence and opportunities should build on each other.</h2></div><p>Mettelo connects project work, contribution, review, Proof and opportunity so every useful action can strengthen the next.</p></div>
+          <div className="homeV3LayerMap">
+            {[
+              ['01','Projects & Labs','Join practical work where your role, responsibility and contribution are clear.','BUILD'],
+              ['02','Contribution','Record the work you owned, the decisions you influenced and how you contributed.','WORK'],
+              ['03','Evidence','Attach the artefacts, decisions and outputs that make your contribution easier to understand.','EVIDENCE'],
+              ['04','Mettelo Proof','Turn reviewed contribution into credible evidence of demonstrated capability in context.','PROVE'],
+              ['05','Opportunity','Use demonstrated experience to discover projects, roles and opportunities where that capability is relevant.','PROGRESS']
+            ].map(([number,title,body,state],index)=><article className={`homeV3LayerNode ${index===0?'isActive':''}`} key={number}><span className="homeV3LayerNo">{number}</span><h3>{title}</h3><p>{body}</p><strong>{state}</strong>{index<4&&<i aria-hidden="true"/>}</article>)}
           </div>
-          <ol className="homeDirectorJourneyTrack">
-            {journeySteps.map(step=><li key={step.number}><span aria-hidden="true">{step.number}</span><h3>{step.title}</h3><p>{step.body}</p></li>)}
-          </ol>
         </div>
       </section>
 
-      <section className="homeDirectorProof" aria-labelledby="home-director-proof-title">
-        <div className="shell homeDirectorProofGrid">
-          <div className="homeDirectorProofStory">
-            <div className="eyebrow">{copy.proof_eyebrow}</div>
-            <h2 id="home-director-proof-title">Your experience should show more than a list of skills.</h2>
-            <p className="lead">{copy.proof_lead}</p>
-            <p className="homeDirectorProofQuote">Not “I have analytical thinking.”<br/>“Here is where I demonstrated it.”</p>
-            <p className="homeDirectorProofNote">{copy.proof_note}</p>
-            <a className="button primary" href={copy.proof_cta_href}>{copy.proof_cta_label}</a>
-          </div>
-          <aside className="homeDirectorProofRecord" aria-label="Illustrative Mettelo Proof record">
-            <div className="homeDirectorProofHeader"><div><span>VERIFIED CONTRIBUTION</span><h3>GA4 Marketing Analysis</h3><p>Illustrative Mettelo Proof record</p></div><strong>VERIFIED</strong></div>
-            <dl>
-              <div><dt>Project</dt><dd>Marketing automation analysis</dd></div>
-              <div><dt>Role</dt><dd>Data Analyst</dd></div>
-              <div><dt>Contribution</dt><dd>Analysed campaign performance, identified patterns and developed recommendations.</dd></div>
-              <div><dt>Outcome</dt><dd>Recommendations informed the team’s proposed automation strategy.</dd></div>
-              <div><dt>Technical capability</dt><dd className="homeDirectorPills"><span>GA4</span><span>SQL</span><span>Data analysis</span></dd></div>
-              <div><dt>Professional capability</dt><dd className="homeDirectorPills"><span>Analytical thinking</span><span>Collaboration</span><span>Communication</span><span>Business acumen</span></dd></div>
-              <div><dt>Evidence</dt><dd>Dashboard · analysis workbook · recommendation report</dd></div>
-              <div><dt>Review</dt><dd>Contribution reviewed and verified</dd></div>
-            </dl>
-          </aside>
+      <section className="homeV3Journey" aria-labelledby="home-v3-journey-title">
+        <div className="shell">
+          <div className="homeV3JourneyHead"><div><div className="eyebrow">HOW METTELO WORKS</div><h2 id="home-v3-journey-title">Turn useful work into evidence people can trust.</h2></div><p>Mettelo gives real project activity a structure: the work you take on, how you contribute, the evidence behind it and the outcome you help create.</p></div>
+          <ol className="homeV3JourneyTrack">{journeySteps.map((step,index)=><li key={step.number} className={index===3?'isProof':''}><span>{step.number}</span><h3>{step.title}</h3><p>{step.body}</p></li>)}</ol>
         </div>
       </section>
 
       <HomeLiveContent/>
 
-      <section className="homeDirectorRoutes" aria-labelledby="home-director-routes-title">
-        <div className="shell">
-          <div className="eyebrow">TWO ROUTES THROUGH METTELO</div>
-          <h2 id="home-director-routes-title">Build capability. Understand capability.</h2>
-          <div className="homeDirectorRouteGrid">
-            <article>
-              <span className="homeDirectorKicker">FOR PROFESSIONALS</span>
-              <h3>Build experience you can actually show.</h3>
-              <ul>{professionalRoutes.map(route=><li key={route}>{route}</li>)}</ul>
-              <a className="button dark" href="/projects">Explore Mettelo →</a>
-            </article>
-            <article>
-              <span className="homeDirectorKicker">{copy.organisations_eyebrow}</span>
-              <h3>{copy.organisations_title}</h3>
-              <p>{copy.organisations_lead}</p>
-              <ul>{organisationRoutes.map(route=><li key={route}>{route}</li>)}</ul>
-              <a className="button ghost" href={copy.organisations_cta_href}>{copy.organisations_cta_label}</a>
-            </article>
-          </div>
+      <section className="homeV3Proof" aria-labelledby="home-v3-proof-title">
+        <div className="shell homeV3ProofGrid">
+          <div className="homeV3ProofStory"><div className="eyebrow">METTELO PROOF</div><h2 id="home-v3-proof-title">Show the work behind the skill.</h2><p>Mettelo Proof connects what you did with the evidence, decisions, collaboration and outcomes behind it — so capability is easier to understand and harder to reduce to a badge.</p><blockquote>Don’t just say you can analyse problems.<strong>Show where your thinking changed the work.</strong></blockquote><a className="button primary" href={copy.proof_cta_href}>{copy.proof_cta_label}</a></div>
+          <aside className="homeV3ProofRecord" aria-label="Illustrative Mettelo Proof record"><div className="homeV3ProofHeader"><div><span>VERIFIED CONTRIBUTION</span><h3>GA4 Marketing Analysis</h3></div><strong>VERIFIED</strong></div><dl><div><dt>Project</dt><dd>Marketing automation analysis</dd></div><div><dt>Role</dt><dd>Data Analyst</dd></div><div><dt>Contribution</dt><dd>Analysed campaign performance, identified patterns and developed recommendations.</dd></div><div><dt>Professional capability</dt><dd>Analytical thinking · collaboration · communication · business acumen</dd></div><div><dt>Evidence</dt><dd>Dashboard · analysis workbook · recommendation report</dd></div><div><dt>Review</dt><dd>Contribution reviewed and verified</dd></div></dl></aside>
         </div>
       </section>
 
-      <section className="homeDirectorFinal" aria-labelledby="home-final-title">
-        <div className="shell homeDirectorFinalGrid">
-          <div><div className="eyebrow">{copy.final_eyebrow}</div><h2 id="home-final-title">Build experience people can understand.</h2></div>
-          <div><p>{copy.final_body}</p><div className="actions"><a className="button dark" href={copy.final_primary_href}>{copy.final_primary_label}</a><a className="button ghost" href={copy.final_secondary_href}>{copy.final_secondary_label}</a></div></div>
-        </div>
+      <section className="homeV3Routes" aria-labelledby="home-v3-routes-title">
+        <div className="shell"><div className="homeV3SectionHead"><div><div className="eyebrow">TWO ROUTES THROUGH METTELO</div><h2 id="home-v3-routes-title">Build capability. See capability in action.</h2></div><p>Mettelo connects people who want meaningful experience with organisations that want to engage real capability around useful work.</p></div><div className="homeV3RouteGrid"><article><span>FOR PROFESSIONALS</span><h3>Build experience that carries weight.</h3><p>Contribute to practical work, collaborate with others and leave with more than participation — a clearer record of what you were responsible for and what you helped achieve.</p><ul>{professionalRoutes.map(route=><li key={route}>{route}</li>)}</ul><a className="button dark" href="/projects">Explore Mettelo →</a></article><article><span>FOR ORGANISATIONS</span><h3>Bring real work. See capability in action.</h3><p>Engage professionals around meaningful technology, Data and AI problems and gain richer context on how people think, collaborate, take ownership and deliver.</p><ul>{organisationRoutes.map(route=><li key={route}>{route}</li>)}</ul><a className="button dark" href={copy.organisations_cta_href}>Work with Mettelo →</a></article></div></div>
+      </section>
+
+      <section className="homeV3Ecosystem" aria-labelledby="home-v3-ecosystem-title">
+        <div className="shell"><div className="homeV3SectionHead"><div><div className="eyebrow">THE METTELO ECOSYSTEM</div><h2 id="home-v3-ecosystem-title">One ecosystem built around how professional growth actually happens.</h2></div><p>People learn, contribute, connect, build evidence and discover opportunities in different ways. Mettelo brings those moments into one connected professional system.</p></div><div className="homeV3EcosystemGrid">{ecosystem.map(item=><article className={item.dark?'isDark':''} key={item.number}><span>{item.number}</span><i aria-hidden="true"/><h3>{item.name}</h3><strong>{item.verb}</strong><p>{item.body}</p></article>)}</div></div>
+      </section>
+
+      <section className="homeV3Final" aria-labelledby="home-v3-final-title">
+        <div className="shell homeV3FinalGrid"><div><div className="eyebrow">START WITH SOMETHING REAL</div><h2 id="home-v3-final-title">Your next opportunity should start with something real.</h2></div><div><p>Find a project, contribute to meaningful work and start building a professional record grounded in what you actually did.</p><div className="actions"><a className="button light" href="/projects">Explore projects →</a><a className="button ghost" href={copy.final_secondary_href}>Join Mettelo</a></div></div></div>
       </section>
     </div>
   </>;

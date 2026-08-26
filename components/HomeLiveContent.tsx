@@ -29,13 +29,13 @@ export default async function HomeLiveContent(){
 
   const primary=project?.project_domains?.find(item=>item.is_primary)?.domains||project?.project_domains?.[0]?.domains;
   const projectTools=(project?.project_tools||[]).map(item=>item.tools).filter(Boolean) as TaxonomyRef[];
-  const projectStatus=project?.status==='recruiting'?'Applications open':project?humanStatus(project.status):'';
+  const projectStatus=project?.status==='recruiting'?'Recruiting contributors':project?humanStatus(project.status):'';
 
   return <section className="homeDirectorLive" aria-labelledby="home-live-title">
     <div className="shell">
       <div className="homeDirectorLiveHead">
-        <div><div className="eyebrow">THE LIVE METTELO ECOSYSTEM</div><h2 id="home-live-title">Find something worth contributing to.</h2></div>
-        <div><p>Projects are where experience is built. Opportunities and events help people progress, connect and discover what comes next.</p><a className="linkArrow" href="/search">Explore what is live on Mettelo →</a></div>
+        <div><div className="eyebrow">LIVE WORK ON METTELO</div><h2 id="home-live-title">Find where your contribution can matter.</h2></div>
+        <div><p>Explore practical projects, relevant opportunities and live sessions designed to help you contribute, build experience and move forward.</p><a className="linkArrow" href="/search">Explore what is live on Mettelo →</a></div>
       </div>
 
       <div className="homeDirectorLiveGrid">
@@ -45,12 +45,12 @@ export default async function HomeLiveContent(){
             {project?<>
               <h3 className="liveCardTitle">{safeText(project.title,110)}</h3>
               <p className="homeDirectorLiveMeta">{[primary?.name,project.difficulty_level&&humanStatus(project.difficulty_level),'Team project'].filter(Boolean).join(' · ')}</p>
-              <p className="homeDirectorLiveSummary liveCardSummary">{safeText(project.summary,260)}</p>
+              <p className="homeDirectorLiveSummary liveCardSummary">{safeText(project.summary,280)}</p>
               {projectTools.length>0&&<div className="homeDirectorLiveTags" aria-label="Project tools">{projectTools.slice(0,3).map(item=><span key={item.slug}>{safeText(item.name,28)}</span>)}</div>}
-              <div className="homeDirectorLiveEvidence"><span>WHAT YOU CAN BUILD EVIDENCE OF</span><strong>Applied skills · collaboration · communication · problem solving · practical delivery</strong></div>
-            </>:<div className="homeDirectorLiveEmpty"><h3>New practical projects are on the way.</h3><p>Published project briefs will appear here when they are ready for members to explore.</p></div>}
+              <div className="homeDirectorLiveEvidence"><span>BUILD EVIDENCE OF</span><strong>Analytical thinking · collaboration · communication · problem solving · practical delivery</strong></div>
+            </>:<div className="homeDirectorLiveEmpty"><h3>Find a project where your contribution can be useful.</h3><p>New practical project briefs will appear here when they are ready for people to explore and contribute to.</p></div>}
           </div>
-          <div className="homeDirectorLiveFoot"><p>Practical work with real contribution context.</p><a className="linkArrow" href="/projects">{project?'View project →':'Explore projects →'}</a></div>
+          <div className="homeDirectorLiveFoot"><p>Practical work with a clear contribution and evidence trail.</p><a className="linkArrow" href="/projects">{project?'View project →':'Explore projects →'}</a></div>
         </article>
 
         <div className="homeDirectorLiveSide">
@@ -60,9 +60,9 @@ export default async function HomeLiveContent(){
               <h3 className="liveCardTitle">{safeText(opportunity.title,88)}</h3>
               {opportunity.organisation&&<p className="homeDirectorLiveOrg">{safeText(opportunity.organisation,52)}</p>}
               <p className="homeDirectorLiveMeta">{[opportunity.location,humanStatus(opportunity.opportunity_type),opportunity.closes_at&&`Closes ${fmtDate(opportunity.closes_at)}`].filter(Boolean).join(' · ')}</p>
-              <p className="liveCardSummary">{safeText(opportunity.summary||'Explore the full listing to understand the role, requirements and application process.',150)}</p>
+              <p className="liveCardSummary">{safeText(opportunity.summary||'Explore the full listing to understand where your experience could be relevant, what the role requires and how to apply.',165)}</p>
               <a className="linkArrow" href="/opportunities">View opportunity →</a>
-            </>:<><h3>No public opportunity right now.</h3><p>Relevant jobs, referrals, volunteering and fellowships will appear here when published.</p><a className="linkArrow" href="/opportunities">Explore opportunities →</a></>}
+            </>:<><h3>Discover where demonstrated capability is relevant.</h3><p>Jobs, referrals, volunteering and fellowships will appear here as relevant opportunities are published.</p><a className="linkArrow" href="/opportunities">Explore opportunities →</a></>}
           </article>
 
           <article>
@@ -70,9 +70,9 @@ export default async function HomeLiveContent(){
             {event?<>
               <h3 className="liveCardTitle">{safeText(event.title,88)}</h3>
               <p className="homeDirectorLiveMeta">{fmtDate(event.starts_at)}{event.location_label?` · ${safeText(event.location_label,50)}`:''}</p>
-              <p className="liveCardSummary">{safeText(event.summary||'Join the next Mettelo community session.',145)}</p>
+              <p className="liveCardSummary">{safeText(event.summary||'Learn, share and build with the Mettelo community through practical sessions and showcases.',155)}</p>
               <a className="linkArrow" href="/events">View event →</a>
-            </>:<><h3>No session scheduled yet.</h3><p>Workshops, showcases and community sessions will appear here when they are confirmed.</p><a className="linkArrow" href="/events">Explore events →</a></>}
+            </>:<><h3>Learn, share and build with the community.</h3><p>Practical sessions, project showcases and peer learning will appear here as they are confirmed.</p><a className="linkArrow" href="/events">Explore events →</a></>}
           </article>
         </div>
       </div>

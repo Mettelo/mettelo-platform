@@ -23,8 +23,7 @@ const journeySteps=[
 
 const professionalRoutes=[
   'Join practical project work',
-  'Collaborate with real teams',
-  'Take ownership and lead where relevant',
+  'Take ownership and collaborate with real teams',
   'Build evidence of technical and professional capability',
   'Strengthen your Mettelo Proof'
 ];
@@ -33,19 +32,18 @@ const organisationRoutes=[
   'Bring meaningful business or social problems',
   'See contribution in the context of the work',
   'Understand how people think, collaborate and make decisions',
-  'Review evidence of demonstrated capability',
-  'Create opportunities and engage the wider Mettelo ecosystem'
+  'Review evidence of demonstrated capability'
 ];
 
 const ecosystem=[
-  {number:'01',name:'Mettelo Community',verb:'Connect.',body:'Meet people, exchange practical knowledge and discover where you can contribute.'},
-  {number:'02',name:'Mettelo Labs',verb:'Build.',body:'Work on practical technology projects, collaborate with others and help create useful outcomes.',dark:true},
-  {number:'03',name:'Mettelo Proof',verb:'Show what you did.',body:'Turn contribution and evidence into credible Proof of demonstrated capability.'},
-  {number:'04',name:'Mettelo Talent',verb:'Connect capability to opportunity.',body:'Discover roles, projects and opportunities where demonstrated experience can carry more weight.'},
-  {number:'05',name:'Mettelo Research',verb:'Understand what is changing.',body:'Explore research, surveys and practical insight into how technology, Data and AI work is changing.'},
-  {number:'06',name:'Mettelo AI',verb:'Work with more intelligence.',body:'Use intelligent tools designed around professional work, evidence, capability and opportunity.'},
-  {number:'07',name:'Mettelo Summit',verb:'Bring the ecosystem together.',body:'Join events and showcases that bring professionals, organisations, projects and ideas into the same room.'},
-  {number:'METTELO',name:'One connected journey',verb:'Connect. Build. Prove. Progress.',body:'Each part strengthens the same journey: connect, contribute, build evidence and progress.',dark:true}
+  {number:'01',name:'Mettelo Community',verb:'Connect.',body:'Meet people, exchange practical knowledge and discover where you can contribute.',size:'standard'},
+  {number:'02',name:'Mettelo Labs',verb:'Build.',body:'Work on practical technology projects, collaborate with others and help create useful outcomes.',size:'primary',dark:true},
+  {number:'03',name:'Mettelo Proof',verb:'Show what you did.',body:'Turn contribution and evidence into credible Proof of demonstrated capability.',size:'primary',dark:true},
+  {number:'04',name:'Mettelo Talent',verb:'Progress.',body:'Discover roles, projects and opportunities where demonstrated experience can carry more weight.',size:'standard'},
+  {number:'05',name:'Mettelo Research',verb:'Understand.',body:'Explore research, surveys and practical insight into how technology, Data and AI work is changing.',size:'standard'},
+  {number:'06',name:'Mettelo AI',verb:'Work smarter.',body:'Use intelligent tools designed around professional work, evidence, capability and opportunity.',size:'standard'},
+  {number:'07',name:'Mettelo Summit',verb:'Come together.',body:'Join events and showcases that bring professionals, organisations, projects and ideas into the same room.',size:'standard'},
+  {number:'METTELO',name:'One connected journey',verb:'Connect. Build. Prove. Progress.',body:'Each part strengthens the same journey: connect, contribute, build evidence and progress.',size:'anchor',dark:true}
 ];
 
 async function getHeroMetrics(){
@@ -108,7 +106,7 @@ export default async function HomePage(){
             <div className="eyebrow">WHY METTELO EXISTS</div>
             <h2 id="home-v3-reality-title">A skill claim tells us what you know. Contribution shows how you work.</h2>
             <p className="lead">Capability becomes more credible when people can see the problem, your role, your decisions, how you worked with others and what changed because you contributed.</p>
-            <div className="homeV3RealityFooter"><p>Mettelo connects those signals in one place so useful work can become clearer professional evidence and a stronger foundation for what comes next.</p><a className="button ghost" href="#home-connected-layer">See the connected layer →</a></div>
+            <p className="homeV3RealityNote">Mettelo connects those signals so useful work can become clearer professional evidence and a stronger foundation for what comes next.</p>
           </div>
           <div className="homeV3Compare" aria-label="What Mettelo adds to a traditional skill claim">
             <div className="homeV3CompareHead"><span>WHAT A PROFILE CAN CLAIM</span><span>WHAT METTELO CAN SHOW</span></div>
@@ -117,23 +115,23 @@ export default async function HomePage(){
               ['“I work well in teams.”','How you collaborated, communicated and helped move shared work forward.'],
               ['“I have leadership skills.”','Where you took ownership, coordinated others or led a meaningful decision.'],
               ['“I delivered a project.”','Your role, the evidence behind the work and the outcome you helped create.']
-            ].map(([claim,signal],index)=><div className="homeV3CompareRow" key={claim}><div><span>{String(index+1).padStart(2,'0')}</span><strong>{claim}</strong></div><div><span aria-hidden="true">→</span><strong>{signal}</strong></div></div>)}
+            ].map(([claim,signal],index)=><div className="homeV3CompareRow" key={claim}><div data-label="CLAIM"><span>{String(index+1).padStart(2,'0')}</span><strong>{claim}</strong></div><div data-label="METTELO EVIDENCE"><span aria-hidden="true">→</span><strong>{signal}</strong></div></div>)}
           </div>
         </div>
       </section>
 
       <section className="homeV3Connected" id="home-connected-layer" aria-labelledby="home-v3-connected-title">
         <div className="shell">
-          <div className="homeV3SectionHead"><div><div className="eyebrow">ONE CONNECTED LAYER</div><h2 id="home-v3-connected-title">Your work, evidence and opportunities should build on each other.</h2></div><p>Mettelo connects project work, contribution, review, Proof and opportunity so every useful action can strengthen the next.</p></div>
-          <div className="homeV3LayerMap">
+          <div className="homeV3SectionHead homeV3SectionHeadMajor"><div><div className="eyebrow">ONE CONNECTED LAYER</div><h2 id="home-v3-connected-title">Your work, evidence and opportunities should build on each other.</h2></div><p>Mettelo connects project work, contribution, review, Proof and opportunity so every useful action can strengthen the next.</p></div>
+          <ol className="homeV3LayerRail">
             {[
               ['01','Projects & Labs','Join practical work where your role, responsibility and contribution are clear.','BUILD'],
               ['02','Contribution','Record the work you owned, the decisions you influenced and how you contributed.','WORK'],
               ['03','Evidence','Attach the artefacts, decisions and outputs that make your contribution easier to understand.','EVIDENCE'],
               ['04','Mettelo Proof','Turn reviewed contribution into credible evidence of demonstrated capability in context.','PROVE'],
               ['05','Opportunity','Use demonstrated experience to discover projects, roles and opportunities where that capability is relevant.','PROGRESS']
-            ].map(([number,title,body,state],index)=><article className={`homeV3LayerNode ${index===0?'isActive':''}`} key={number}><span className="homeV3LayerNo">{number}</span><h3>{title}</h3><p>{body}</p><strong>{state}</strong>{index<4&&<i aria-hidden="true"/>}</article>)}
-          </div>
+            ].map(([number,title,body,state],index)=><li className={index===3?'isProof':''} key={number}><span className="homeV3LayerNo">{number}</span><div><h3>{title}</h3><p>{body}</p></div><strong>{state}</strong></li>)}
+          </ol>
         </div>
       </section>
 
@@ -149,7 +147,7 @@ export default async function HomePage(){
       <section className="homeV3Proof" aria-labelledby="home-v3-proof-title">
         <div className="shell homeV3ProofGrid">
           <div className="homeV3ProofStory"><div className="eyebrow">METTELO PROOF</div><h2 id="home-v3-proof-title">Show the work behind the skill.</h2><p>Mettelo Proof connects what you did with the evidence, decisions, collaboration and outcomes behind it — so capability is easier to understand and harder to reduce to a badge.</p><blockquote>Don’t just say you can analyse problems.<strong>Show where your thinking changed the work.</strong></blockquote><a className="button primary" href={copy.proof_cta_href}>{copy.proof_cta_label}</a></div>
-          <aside className="homeV3ProofRecord" aria-label="Illustrative Mettelo Proof record"><div className="homeV3ProofHeader"><div><span>VERIFIED CONTRIBUTION</span><h3>GA4 Marketing Analysis</h3></div><strong>VERIFIED</strong></div><dl><div><dt>Project</dt><dd>Marketing automation analysis</dd></div><div><dt>Role</dt><dd>Data Analyst</dd></div><div><dt>Contribution</dt><dd>Analysed campaign performance, identified patterns and developed recommendations.</dd></div><div><dt>Professional capability</dt><dd>Analytical thinking · collaboration · communication · business acumen</dd></div><div><dt>Evidence</dt><dd>Dashboard · analysis workbook · recommendation report</dd></div><div><dt>Review</dt><dd>Contribution reviewed and verified</dd></div></dl></aside>
+          <div className="homeV3ProofStage"><aside className="homeV3ProofRecord" aria-label="Illustrative Mettelo Proof record"><div className="homeV3ProofHeader"><div><span>VERIFIED CONTRIBUTION</span><h3>GA4 Marketing Analysis</h3></div><strong>VERIFIED</strong></div><dl><div><dt>Project</dt><dd>Marketing automation analysis</dd></div><div><dt>Role</dt><dd>Data Analyst</dd></div><div><dt>Contribution</dt><dd>Analysed campaign performance, identified patterns and developed recommendations.</dd></div><div><dt>Professional capability</dt><dd>Analytical thinking · collaboration · communication · business acumen</dd></div><div><dt>Evidence</dt><dd>Dashboard · analysis workbook · recommendation report</dd></div><div><dt>Review</dt><dd>Contribution reviewed and verified</dd></div></dl></aside></div>
         </div>
       </section>
 
@@ -158,7 +156,7 @@ export default async function HomePage(){
       </section>
 
       <section className="homeV3Ecosystem" aria-labelledby="home-v3-ecosystem-title">
-        <div className="shell"><div className="homeV3SectionHead"><div><div className="eyebrow">THE METTELO ECOSYSTEM</div><h2 id="home-v3-ecosystem-title">One ecosystem built around how professional growth actually happens.</h2></div><p>People learn, contribute, connect, build evidence and discover opportunities in different ways. Mettelo brings those moments into one connected professional system.</p></div><div className="homeV3EcosystemGrid">{ecosystem.map(item=><article className={item.dark?'isDark':''} key={item.number}><span>{item.number}</span><i aria-hidden="true"/><h3>{item.name}</h3><strong>{item.verb}</strong><p>{item.body}</p></article>)}</div></div>
+        <div className="shell"><div className="homeV3SectionHead homeV3SectionHeadMajor"><div><div className="eyebrow">THE METTELO ECOSYSTEM</div><h2 id="home-v3-ecosystem-title">One ecosystem built around how professional growth actually happens.</h2></div><p>People learn, contribute, connect, build evidence and discover opportunities in different ways. Mettelo brings those moments into one connected professional system.</p></div><div className="homeV3EcosystemGrid">{ecosystem.map(item=><article className={`is-${item.size}${item.dark?' isDark':''}`} key={item.number}><span>{item.number}</span><i aria-hidden="true"/><h3>{item.name}</h3><strong>{item.verb}</strong><p>{item.body}</p></article>)}</div></div>
       </section>
 
       <section className="homeV3Final" aria-labelledby="home-v3-final-title">

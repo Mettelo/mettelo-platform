@@ -1,5 +1,28 @@
 /* About page refinement: community masthead media + closing CTA visibility. */
 
+/* Safe fallback when no community image is configured. The legacy About masthead used
+   a 210px label column, but the refined component now wraps all masthead copy together.
+   Force the copy to own the full shell so long headlines and belief text never collapse. */
+.aboutMastheadGrid:not(.hasCommunityImage){
+  grid-template-columns:minmax(0,1fr);
+  gap:0;
+  align-items:start;
+}
+.aboutMastheadGrid:not(.hasCommunityImage)>.aboutMastheadCopy{
+  width:100%;
+  max-width:900px;
+  min-width:0;
+}
+.aboutMastheadGrid:not(.hasCommunityImage) h1{
+  max-width:820px;
+}
+.aboutMastheadGrid:not(.hasCommunityImage) .aboutMastheadLead{
+  max-width:720px;
+}
+.aboutMastheadGrid:not(.hasCommunityImage) .aboutMastheadBelief{
+  max-width:800px;
+}
+
 .aboutMastheadGrid.hasCommunityImage{
   grid-template-columns:minmax(0,1.06fr) minmax(420px,.94fr);
   gap:56px;
@@ -146,6 +169,9 @@
   .aboutMastheadGrid.hasCommunityImage h1{
     font-size:clamp(2.25rem,10vw,3.1rem);
     text-wrap:wrap;
+  }
+  .aboutMastheadGrid:not(.hasCommunityImage)>.aboutMastheadCopy{
+    max-width:none;
   }
   .aboutMastheadImageWrap{border-radius:14px}
   .aboutMastheadImageWrap img{aspect-ratio:4 / 3;object-position:center center}

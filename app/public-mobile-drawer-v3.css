@@ -42,7 +42,7 @@
   body.publicMobileNavV3 .mobilePublicSignIn{background:#fff!important;color:#10131d!important;border:1px solid #cfd4dd!important}
   body.publicMobileNavV3 .mobilePublicAccount{display:grid!important;gap:8px!important}
   body.publicMobileNavV3 .mobilePublicAccountTrigger{width:100%!important;min-height:58px!important;display:grid!important;grid-template-columns:40px minmax(0,1fr) 18px!important;gap:10px!important;align-items:center!important;padding:7px 10px!important;border:1px solid #e7e9ee!important;border-radius:12px!important;background:#fff!important;color:#10131d!important;text-align:left!important}
-  body.publicMobileNavV3 .mobilePublicAvatar{width:40px!important;height:40px!important;display:grid!important;place-items:center!important;border-radius:11px!important;background:#2a2f52!important;color:#fff!important;font-weight:850!important;background-size:cover!important;background-position:center!important}
+  body.publicMobileNavV3 .mobilePublicAvatar{width:40px!important;height:40px!important;display:grid!important;place-items:center!important;border-radius:11px!important;background-color:#2a2f52!important;color:#fff!important;font-weight:850!important;background-size:cover!important;background-position:center!important}
   body.publicMobileNavV3 .mobilePublicIdentity{display:grid!important;min-width:0!important;gap:1px!important}
   body.publicMobileNavV3 .mobilePublicIdentity strong{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:14px!important}
   body.publicMobileNavV3 .mobilePublicIdentity small{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:#7a8390!important;font-size:12px!important}

@@ -158,16 +158,20 @@ drop policy if exists "members follow capability paths" on public.member_capabil
 create policy "members follow capability paths" on public.member_capability_paths
 for insert to authenticated with check (
   user_id=(select auth.uid())
+  and status='following'
+  and completed_at is null
   and exists(select 1 from public.capability_paths cp where cp.id=path_id and cp.status='published')
 );
 
 drop policy if exists "members update own capability paths" on public.member_capability_paths;
 create policy "members update own capability paths" on public.member_capability_paths
-for update to authenticated using (user_id=(select auth.uid())) with check (user_id=(select auth.uid()));
+for update to authenticated
+using (user_id=(select auth.uid()) and status in ('following','paused'))
+with check (user_id=(select auth.uid()) and status in ('following','paused') and completed_at is null);
 
 drop policy if exists "members unfollow capability paths" on public.member_capability_paths;
 create policy "members unfollow capability paths" on public.member_capability_paths
-for delete to authenticated using (user_id=(select auth.uid()));
+for delete to authenticated using (user_id=(select auth.uid()) and status in ('following','paused'));
 
 grant select on public.capabilities to anon,authenticated;
 grant select on public.project_capabilities to anon,authenticated;

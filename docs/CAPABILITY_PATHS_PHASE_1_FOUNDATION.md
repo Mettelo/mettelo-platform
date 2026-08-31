@@ -64,7 +64,7 @@ The names are not hard-coded in the schema.
 
 V1 treats prerequisites as **recommended by default**. The data model can represent `required` for future governed exceptions, but Phase 1 does not introduce a hard application blocker.
 
-A prerequisite is path-specific. The same project can have a prerequisite in one path and no prerequisite in another.
+A prerequisite is path-specific. The same project can have a prerequisite in one path and no prerequisite in another. A project cannot be its own prerequisite. Cross-path prerequisite references are rejected by the database relationship.
 
 ## Capability taxonomy
 
@@ -140,10 +140,24 @@ Retain source organisation, source URL, licence, attribution, access date, selec
 
 - Published path metadata may be publicly read.
 - Draft/archived path metadata is available only through privileged Admin/server access.
+- A published path does not make a private/non-public project placement public; existing project visibility/member access still governs placement visibility.
 - Members may read/manage only their own followed-path relationship.
 - Member path completion must not be client-authoritative.
 - Existing project visibility/member access continues to control project capability visibility.
 - Routine public/member reads do not require a service-role key.
+
+## Rollback and recovery contract
+
+Phase 1 is additive and introduces no production workbook data. Before the final five-phase release, rollback means reverting the integration code/migrations before production promotion rather than mutating live path data.
+
+Once Capability Paths contain real member/path history, rollback must be non-destructive:
+
+- disable or archive newly published paths instead of hard-deleting canonical projects;
+- preserve `projects`, applications, memberships, project runs, contributions and Proof;
+- remove or correct path placements only through an audited migration/Admin action;
+- never rewrite existing project IDs to recover from a path import problem;
+- Phase 5 imports must carry a batch/version identifier so a failed batch can be identified and reversed without touching unrelated records;
+- ambiguous or partially failed imports stop before production write or are retried from the same idempotent mapping rather than duplicated.
 
 ## Phase 1 hard acceptance scenario
 
@@ -157,7 +171,9 @@ Before Phase 1 is approved, the isolated database must prove:
 6. Confirm both path placements remain distinct.
 7. Confirm duplicate position inside one path is rejected.
 8. Confirm a stage from a different path cannot be attached to the placement.
-9. Confirm an unrelated/invalid prerequisite cannot silently cross paths.
-10. Confirm existing project applications/memberships/Proof tables require no migration or rewritten foreign key.
+9. Confirm an unrelated/invalid prerequisite cannot silently cross paths and self-prerequisites are rejected.
+10. Confirm existing project memberships and Proof remain attached to the canonical project.
+
+This scenario is executed against the disposable isolated Supabase environment by `tests/capability-paths-phase-1-db.spec.ts`; the static contract audit remains an additional architecture guard, not a substitute for database proof.
 
 No workbook production import is approved until all five Capability Path phases have passed their own gates and the final integration branch passes the exact-head release suite.

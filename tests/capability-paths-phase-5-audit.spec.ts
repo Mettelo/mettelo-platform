@@ -40,7 +40,7 @@ test.describe('Capability Paths Phase 5 import governance contract',()=>{
   hasAll(ui,['Approve override','Reject unmapped term','No unresolved import rows.']);
  });
  test('taxonomy is normalized by mapping, not silently created',()=>{
-  hasAll(api,['UNMAPPED_TAXONOMY','matched_taxonomy_id',"taxonomy_type:'capability'",'Map this taxonomy term before approving it, or reject the term for this import.']);
+  hasAll(api,['UNMAPPED_TAXONOMY','matched_taxonomy_id',"type==='technical'||type==='professional'?'capability':type",'taxonomy_type:taxonomyType','Map this taxonomy term before approving it, or reject the term for this import.']);
   expect(migration).not.toContain('insert into public.capabilities(');
   expect(migration).not.toContain('insert into public.domains(');
   expect(migration).not.toContain('insert into public.tools(');

@@ -1,8 +1,5 @@
-import Link from 'next/link';
-import {createServerSupabaseClient} from '@/lib/supabase/server';
-import {getMemberCapabilityPathProgress} from '@/lib/member-capability-paths';
+import MemberProjectsCapabilityPathStrip from '@/components/MemberProjectsCapabilityPathStrip';
 
-export default async function MemberProjectsLayout({children}:{children:React.ReactNode}){
-  const db=await createServerSupabaseClient();const {data:{user}}=await db.auth.getUser();const progress=user?await getMemberCapabilityPathProgress(db,user.id):[];const primary=progress.find(item=>item.isPrimary)||null;
-  return <>{primary&&<aside className="mppStrip" aria-label="Primary Capability Path"><div><span>PRIMARY CAPABILITY PATH</span><strong>{primary.name}</strong><p>{primary.completedProjects} of {primary.totalProjects} projects completed · {primary.verifiedProjects} with Verified Proof{primary.currentStage?` · ${primary.currentStage}`:''}</p></div><div>{primary.pathStatus==='archived'?<small>Historical Path</small>:primary.nextProject?<small>Next: Project {primary.nextProject.position} · {primary.nextProject.projectTitle}</small>:<small>Visible Path projects complete</small>}<Link href={`/projects/paths/${primary.slug}`}>View Path →</Link></div><style>{`.mppStrip{width:min(calc(100% - 32px),1240px);margin:0 auto 14px;padding:12px 15px;border:1px solid #d8dde3;border-left:3px solid #c6892a;border-radius:11px;background:#fbf7ee;color:#111318;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;min-width:0}.mppStrip span{display:block;font:800 9px var(--font-plex-mono),monospace;letter-spacing:.09em;color:#8b5a17}.mppStrip strong{display:block;margin-top:3px;font-size:13px}.mppStrip p{margin:2px 0 0;color:#59636f;font-size:11px}.mppStrip>div:last-of-type{display:grid;justify-items:end;gap:4px;text-align:right}.mppStrip small{color:#59636f}.mppStrip a{color:#8b5a17;font-size:11px;font-weight:800}@media(max-width:680px){.mppStrip{grid-template-columns:1fr}.mppStrip>div:last-of-type{justify-items:start;text-align:left}}`}</style></aside>}{children}</>;
+export default function MemberProjectsLayout({children}:{children:React.ReactNode}){
+  return <><MemberProjectsCapabilityPathStrip/>{children}</>;
 }

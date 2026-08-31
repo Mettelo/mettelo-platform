@@ -1,0 +1,63 @@
+import {createPublicSupabaseClient} from '@/lib/supabase/public';
+
+export type PublicCapabilityPath={id:string;slug:string;name:string;target_role:string;short_description:string|null;description:string|null;progression_summary:string|null;target_outcome:string;sort_order:number;published_at:string|null;stage_count:number;project_count:number};
+export type PublicCapabilityPathStage={id:string;slug:string;name:string;description:string|null;position:number};
+export type PublicCapabilityPathProject={path_id:string;project_id:string;stage_id:string;position:number;competency_focus:string;capability_built:string;prerequisite_project_id:string|null;prerequisite_mode:'recommended'|'required';path_outcome:string|null;placement_type:'recommended'|'required'|'optional';project:{id:string;slug:string;title:string;summary:string;status:string;project_type:string;location:string|null;location_type:string|null;difficulty_level:string|null;application_deadline:string|null}|null};
+export type PublicCapabilityPathDetail=PublicCapabilityPath & {stages:PublicCapabilityPathStage[];placements:PublicCapabilityPathProject[]};
+
+function publicClient(){return createPublicSupabaseClient()}
+
+export function projectAvailability(status:string,deadline:string|null){
+ const deadlinePassed=deadline?new Date(deadline).getTime()<Date.now():false;
+ if(deadlinePassed)return{label:'Applications closed',available:false};
+ if(['recruiting','open','forming'].includes(status))return{label:status==='forming'?'Team forming':'Open',available:true};
+ if(status==='pilot')return{label:'Registering interest',available:false};
+ if(status==='active')return{label:'Active',available:false};
+ if(status==='review')return{label:'In review',available:false};
+ if(status==='completed')return{label:'Completed',available:false};
+ return{label:'Not currently available',available:false};
+}
+
+export async function getPublishedCapabilityPaths(limit?:number):Promise<PublicCapabilityPath[]>{
+ const db=publicClient();if(!db)return[];
+ let pathQuery=db.from('capability_paths').select('id,slug,name,target_role,short_description,description,progression_summary,target_outcome,sort_order,published_at').eq('status','published').order('sort_order').order('name');
+ if(limit)pathQuery=pathQuery.limit(limit);
+ const {data:paths,error}=await pathQuery;if(error||!paths?.length)return[];
+ const ids=paths.map(path=>path.id);
+ const [{data:stages},{data:placements}]=await Promise.all([
+  db.from('capability_path_stages').select('path_id,id').in('path_id',ids),
+  db.from('capability_path_projects').select('path_id,project_id').in('path_id',ids)
+ ]);
+ return paths.map(path=>({...path,stage_count:(stages||[]).filter(stage=>stage.path_id===path.id).length,project_count:(placements||[]).filter(item=>item.path_id===path.id).length})) as PublicCapabilityPath[];
+}
+
+export async function getPublishedCapabilityPath(slug:string):Promise<PublicCapabilityPathDetail|null>{
+ const db=publicClient();if(!db)return null;
+ const {data:path,error}=await db.from('capability_paths').select('id,slug,name,target_role,short_description,description,progression_summary,target_outcome,sort_order,published_at').eq('slug',slug).eq('status','published').maybeSingle();
+ if(error||!path)return null;
+ const [{data:stages,error:stageError},{data:placements,error:placementError}]=await Promise.all([
+  db.from('capability_path_stages').select('id,slug,name,description,position').eq('path_id',path.id).order('position'),
+  db.from('capability_path_projects').select('path_id,project_id,stage_id,position,competency_focus,capability_built,prerequisite_project_id,prerequisite_mode,path_outcome,placement_type').eq('path_id',path.id).order('position')
+ ]);
+ if(stageError||placementError)return null;
+ const projectIds=[...new Set((placements||[]).map(item=>item.project_id))];
+ const {data:projects}=projectIds.length?await db.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,difficulty_level,application_deadline').in('id',projectIds).eq('visibility','public'):{data:[]};
+ const enriched=(placements||[]).map(item=>({...item,project:(projects||[]).find(project=>project.id===item.project_id)||null})) as PublicCapabilityPathProject[];
+ return {...path,stage_count:(stages||[]).length,project_count:enriched.length,stages:(stages||[]) as PublicCapabilityPathStage[],placements:enriched} as PublicCapabilityPathDetail;
+}
+
+export async function getPublishedPathProjectPositions(slug:string):Promise<Map<string,number>>{
+ const path=await getPublishedCapabilityPath(slug);return new Map((path?.placements||[]).map(item=>[item.project_id,item.position]));
+}
+
+export async function getProjectCapabilityPathPlacements(projectId:string){
+ const db=publicClient();if(!db)return[];
+ const {data:placements,error}=await db.from('capability_path_projects').select('path_id,project_id,stage_id,position,competency_focus,capability_built,path_outcome').eq('project_id',projectId).order('position');
+ if(error||!placements?.length)return[];
+ const pathIds=[...new Set(placements.map(item=>item.path_id))],stageIds=[...new Set(placements.map(item=>item.stage_id))];
+ const [{data:paths},{data:stages}]=await Promise.all([
+  db.from('capability_paths').select('id,slug,name,target_role,status').in('id',pathIds).eq('status','published'),
+  db.from('capability_path_stages').select('id,name,position').in('id',stageIds)
+ ]);
+ return placements.flatMap(item=>{const path=(paths||[]).find(candidate=>candidate.id===item.path_id);if(!path)return[];const stage=(stages||[]).find(candidate=>candidate.id===item.stage_id);return[{...item,path,stage:stage||null}]});
+}

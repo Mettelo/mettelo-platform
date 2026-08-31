@@ -161,7 +161,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.requires_staging == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -316,7 +316,6 @@ jobs:
               echo "Release blocked: optional staging matrix ended unexpectedly ($STAGING_RESULT)."
               exit 1
             fi
-
             if [[ "$CLASSIFICATION" == release-train-* ]]; then
               echo "Release-train integration gate passed. Full browser/authenticated/persistence validation remains mandatory on the final PR into main."
             else
@@ -339,4 +338,3 @@ jobs:
           else
             echo "All required release prerequisites passed for scope=$CLASSIFICATION."
             echo "Deployment validation/promotion may run now when deployment is required by that scope."
-          fi

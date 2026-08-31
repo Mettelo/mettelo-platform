@@ -1,22 +1,16 @@
 import {createPublicSupabaseClient} from '@/lib/supabase/public';
+import {resolveProjectPublicAvailability} from '@/lib/project-public-availability';
 
 export type PublicCapabilityPath={id:string;slug:string;name:string;target_role:string;short_description:string|null;description:string|null;progression_summary:string|null;target_outcome:string;sort_order:number;published_at:string|null;stage_count:number;project_count:number;public_project_count:number};
 export type PublicCapabilityPathStage={id:string;slug:string;name:string;description:string|null;position:number};
-export type PublicCapabilityPathProject={path_id:string;project_id:string;stage_id:string;position:number;competency_focus:string;capability_built:string;prerequisite_project_id:string|null;prerequisite_mode:'recommended'|'required';path_outcome:string|null;placement_type:'recommended'|'required'|'optional';project:{id:string;slug:string;title:string;summary:string;status:string;project_type:string;location:string|null;location_type:string|null;difficulty_level:string|null;application_deadline:string|null}|null};
+export type PublicCapabilityPathProject={path_id:string;project_id:string;stage_id:string;position:number;competency_focus:string;capability_built:string;prerequisite_project_id:string|null;prerequisite_mode:'recommended'|'required';path_outcome:string|null;placement_type:'recommended'|'required'|'optional';project:{id:string;slug:string;title:string;summary:string;status:string;project_type:string;location:string|null;location_type:string|null;difficulty_level:string|null;application_deadline:string|null;project_roles?:{id:string;openings:number}[]}|null};
 export type PublicCapabilityPathDetail=PublicCapabilityPath & {stages:PublicCapabilityPathStage[];placements:PublicCapabilityPathProject[]};
 type PublicPathStat={path_id:string;stage_count:number;total_project_count:number;public_project_count:number};
 
 function publicClient(){return createPublicSupabaseClient()}
 
-export function projectAvailability(status:string,deadline:string|null){
- const deadlinePassed=deadline?new Date(deadline).getTime()<Date.now():false;
- if(deadlinePassed)return{label:'Applications closed',available:false};
- if(['recruiting','open','forming'].includes(status))return{label:status==='forming'?'Team forming':'Open',available:true};
- if(status==='pilot')return{label:'Registering interest',available:false};
- if(status==='active')return{label:'Active',available:false};
- if(status==='review')return{label:'In review',available:false};
- if(status==='completed')return{label:'Completed',available:false};
- return{label:'Not currently available',available:false};
+export function projectAvailability(project:NonNullable<PublicCapabilityPathProject['project']>){
+ return resolveProjectPublicAvailability({status:project.status,project_type:project.project_type,application_deadline:project.application_deadline,role_count:(project.project_roles||[]).length});
 }
 
 async function publicStats(db:NonNullable<ReturnType<typeof createPublicSupabaseClient>>):Promise<Map<string,PublicPathStat>>{
@@ -41,7 +35,7 @@ export async function getPublishedCapabilityPath(slug:string):Promise<PublicCapa
  ]);
  if(stageError||placementError)return null;
  const projectIds=[...new Set((placements||[]).map(item=>item.project_id))];
- const {data:projects}=projectIds.length?await db.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,difficulty_level,application_deadline').in('id',projectIds).eq('visibility','public'):{data:[]};
+ const {data:projects}=projectIds.length?await db.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,difficulty_level,application_deadline,project_roles(id,openings)').in('id',projectIds).eq('visibility','public'):{data:[]};
  const enriched=(placements||[]).map(item=>({...item,project:(projects||[]).find(project=>project.id===item.project_id)||null})) as PublicCapabilityPathProject[];const stat=stats.get(path.id);
  return {...path,stage_count:Number(stat?.stage_count||(stages||[]).length),project_count:Number(stat?.total_project_count||enriched.length),public_project_count:Number(stat?.public_project_count||enriched.length),stages:(stages||[]) as PublicCapabilityPathStage[],placements:enriched} as PublicCapabilityPathDetail;
 }

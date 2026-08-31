@@ -36,7 +36,9 @@ async function readZip(buffer:ArrayBuffer){
   const bytes=new Uint8Array(buffer),view=new DataView(buffer);let eocd=-1;
   for(let i=Math.max(0,bytes.length-65557);i<=bytes.length-22;i++){if(u32(view,i)===0x06054b50)eocd=i}
   if(eocd<0)throw new Error('The selected file is not a readable XLSX workbook.');
-  const entries:ZipEntry[]=[];let cursor=u32(view,eocd+16),count=u16(view,eocd+10);
+  const entries:ZipEntry[]=[];
+  let cursor=u32(view,eocd+16);
+  const count=u16(view,eocd+10);
   for(let i=0;i<count;i++){
     if(u32(view,cursor)!==0x02014b50)throw new Error('Workbook ZIP directory is invalid.');
     const compression=u16(view,cursor+10),compressedSize=u32(view,cursor+20),nameLen=u16(view,cursor+28),extraLen=u16(view,cursor+30),commentLen=u16(view,cursor+32),localOffset=u32(view,cursor+42);

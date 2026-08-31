@@ -10,6 +10,7 @@ export const memberNavGroups:MemberNavGroup[]=[
     {label:'Profile',href:'/member/profile',description:'Your professional identity'}
   ]},
   {label:'Explore',items:[
+    {label:'Capability Paths',href:'/member/paths',description:'Professional directions'},
     {label:'Discover',href:'/member/discover',description:'Browse projects'},
     {label:'Recommended',href:'/member/recommended',description:'Relevant to you'},
     {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},
@@ -30,6 +31,7 @@ export const mobilePersistentNav:MemberNavItem[]=[
 ];
 
 export const mobileMoreNav:MemberNavItem[]=[
+  {label:'Capability Paths',href:'/member/paths',description:'Professional directions'},
   {label:'Applications',href:'/member/applications',description:'Status and formation'},
   {label:'Recommended',href:'/member/recommended',description:'Relevant to you'},
   {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},

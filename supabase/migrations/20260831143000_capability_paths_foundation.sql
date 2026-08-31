@@ -85,7 +85,7 @@ alter table public.capability_path_projects
   add constraint capability_path_projects_prerequisite_fk
   foreign key(path_id,prerequisite_project_id)
   references public.capability_path_projects(path_id,project_id)
-  on delete set null
+  on delete no action
   deferrable initially deferred;
 
 create table if not exists public.member_capability_paths (

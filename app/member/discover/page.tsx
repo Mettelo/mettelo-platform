@@ -7,6 +7,7 @@ import MemberCapabilityPathsPanel from '@/components/MemberCapabilityPathsPanel'
 import MemberCapabilityPathFilters from '@/components/MemberCapabilityPathFilters';
 import MemberPageHeader from '@/components/MemberPageHeader';
 import {memberProjectCatalogueAction,memberProjectStateLabel,projectAcceptsApplications,resolveMemberProjectState} from '@/lib/member-project-journey';
+import {resolveProjectPublicAvailability} from '@/lib/project-public-availability';
 import {getMemberCapabilityPathProgress,getMemberProjectPathContexts} from '@/lib/member-capability-paths';
 
 export const dynamic='force-dynamic';
@@ -51,9 +52,9 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
   const pathContexts=await getMemberProjectPathContexts(supabase,user.id,projects.map(item=>item.id));
   const items=projects.flatMap(project=>{
     const contexts=pathContexts.get(project.id)||[];if(selectedPath&&!contexts.some(context=>context.pathSlug===selectedPath&&(!selectedStage||context.stageName===selectedStage)))return [];
-    const roles=project.project_roles||[];const availableRoles=roles.filter(role=>availabilityKnown?((filledByRole.get(role.id)||0)<role.openings):true);
+    const roles=project.project_roles||[];const availableRoles=roles.filter(role=>availabilityKnown?((filledByRole.get(role.id)||0)<role.openings):true);const roleCount=roles.reduce((sum,role)=>sum+Math.max(0,Number(role.openings)||0),0);const occupiedRoleCount=roles.reduce((sum,role)=>sum+Math.min(Math.max(0,Number(role.openings)||0),filledByRole.get(role.id)||0),0);const sharedAvailability=resolveProjectPublicAvailability({status:project.status,project_type:project.project_type||'open',application_deadline:project.application_deadline,applications_open:project.applications_open,role_count:roleCount,occupied_role_count:occupiedRoleCount,capacity_known:availabilityKnown});
     const application=latestApplication.get(project.id)||null;const membership=membershipByProject.get(project.id)||null;const run=membership?.project_runs||null;
-    const state=resolveMemberProjectState({project,application,membership,run,applicationReady,hasAvailableRole:availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
+    const state=resolveMemberProjectState({project,application,membership,run,applicationReady,hasAvailableRole:sharedAvailability.available&&availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
     const relationship=Boolean(application&&!['declined','withdrawn'].includes(application.status)||membership);
     if(!relationship&&!projectAcceptsApplications(project))return [];
     const displayRoles=projectAcceptsApplications(project)&&availabilityKnown?availableRoles:roles;

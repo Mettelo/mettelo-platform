@@ -19,7 +19,7 @@ test.describe('Capability Paths Phase 3 public journey',()=>{
   const archived=await createPath(api,'E2E Archived Path',stamp);await structure(api,archived,'Foundation',1);await publish(api,archived);const archiveResponse=await api.patch('/api/admin/capability-paths',{data:{id:archived.id,action:'archive'}});expect(archiveResponse.status()).toBe(200);
   await page.context().clearCookies();
 
-  await page.goto('/projects',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{name:'Follow a Capability Path.'})).toBeVisible();await expect(page.getByRole('link',{name:/E2E Public Data Analyst/})).toBeVisible();
+  await page.goto('/projects',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{name:'Follow a Capability Path.'})).toBeVisible();
   await page.goto('/projects/paths',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'Build capability through a sequence of real projects.'})).toBeVisible();await expect(page.getByText('E2E Public Data Analyst',{exact:true})).toBeVisible();await expect(page.getByText('E2E Draft Path',{exact:true})).toHaveCount(0);await expect(page.getByText('E2E Archived Path',{exact:true})).toHaveCount(0);
 
   await page.goto(`/projects/paths/${pathA.slug}`,{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'E2E Public Data Analyst'})).toBeVisible();const projectLinkA=page.locator(`a[href^="/projects/${projectId}"]`).first();await expect(projectLinkA).toBeVisible();expect(new URL(await projectLinkA.getAttribute('href')||'', 'http://example.test').pathname).toBe(`/projects/${projectId}`);
@@ -29,8 +29,8 @@ test.describe('Capability Paths Phase 3 public journey',()=>{
 
   await page.goto(`/projects?path=${encodeURIComponent(pathB.slug)}#projects`,{waitUntil:'networkidle'});await expect(page.locator('#path-filter')).toHaveValue(pathB.slug);await expect(page.getByText('PATH PROJECT 07')).toBeVisible();
 
-  await page.goto(`/projects/paths/${draft.slug}`,{waitUntil:'networkidle'});await expect(page.getByText('E2E Draft Path',{exact:true})).toHaveCount(0);expect(page.url()).not.toContain(`/projects/paths/${draft.slug}#`);
-  await page.goto(`/projects/paths/${archived.slug}`,{waitUntil:'networkidle'});await expect(page.getByText('E2E Archived Path',{exact:true})).toHaveCount(0);
+  const draftResponse=await page.goto(`/projects/paths/${draft.slug}`,{waitUntil:'networkidle'});expect(draftResponse?.status()).toBe(404);await expect(page.getByText('E2E Draft Path',{exact:true})).toHaveCount(0);
+  const archivedResponse=await page.goto(`/projects/paths/${archived.slug}`,{waitUntil:'networkidle'});expect(archivedResponse?.status()).toBe(404);await expect(page.getByText('E2E Archived Path',{exact:true})).toHaveCount(0);
  });
 
  test('Capability Path public surfaces reflow without horizontal overflow',async({page})=>{

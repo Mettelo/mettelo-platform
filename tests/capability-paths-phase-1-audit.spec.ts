@@ -5,6 +5,7 @@ import path from 'node:path';
 const root=process.cwd();
 const migration=fs.readFileSync(path.join(root,'supabase/migrations/20260831143000_capability_paths_foundation.sql'),'utf8');
 const foundation=fs.readFileSync(path.join(root,'docs/CAPABILITY_PATHS_PHASE_1_FOUNDATION.md'),'utf8');
+const dbAcceptance=fs.readFileSync(path.join(root,'tests/capability-paths-phase-1-db.spec.ts'),'utf8');
 
 function expectContainsAll(source:string,values:string[]){for(const value of values)expect(source,`missing ${value}`).toContain(value)}
 
@@ -35,7 +36,8 @@ test.describe('Capability Paths Phase 1 foundation contract',()=>{
    'foreign key(path_id,prerequisite_project_id)',
    'references public.capability_path_projects(path_id,project_id)',
    'deferrable initially deferred',
-   "prerequisite_mode text not null default 'recommended'"
+   "prerequisite_mode text not null default 'recommended'",
+   'capability_path_projects_no_self_prerequisite_check'
   ]);
  });
 
@@ -59,10 +61,11 @@ test.describe('Capability Paths Phase 1 foundation contract',()=>{
   expect(foundation).toContain('must never count as project completion');
  });
 
- test('protects public draft and archived paths through RLS',()=>{
+ test('protects draft, archived and non-public project placement data through RLS',()=>{
   expectContainsAll(migration,[
    'alter table public.capability_paths enable row level security',
    "for select to public using (status='published' or public.is_admin())",
+   "p.id=capability_path_projects.project_id and p.visibility='public'",
    'for select to authenticated using (user_id=(select auth.uid()) or public.is_admin())'
   ]);
  });
@@ -83,9 +86,22 @@ test.describe('Capability Paths Phase 1 foundation contract',()=>{
   ]);
  });
 
- test('defines idempotent import and governance gates but performs no workbook import',()=>{
-  expectContainsAll(foundation,['`reuse_existing`','`create_new`','`enrich_existing`','`ambiguous`','`reject`','**GREEN**','**AMBER**','**RED**']);
+ test('defines idempotent import, governance and rollback gates but performs no workbook import',()=>{
+  expectContainsAll(foundation,['`reuse_existing`','`create_new`','`enrich_existing`','`ambiguous`','`reject`','**GREEN**','**AMBER**','**RED**','## Rollback and recovery contract']);
   expect(foundation).toContain('Phase 1 does not upload workbook documents or datasets.');
   expect(migration).not.toMatch(/insert\s+into\s+public\.capability_paths/i);
+ });
+
+ test('requires a real isolated-database acceptance test in addition to static source assertions',()=>{
+  expectContainsAll(dbAcceptance,[
+   "test.skip(!canRun,'Runs only against the disposable isolated Supabase release-gate database.')",
+   'place canonical project in two paths',
+   'duplicate path position must be rejected',
+   'stage from another path must be rejected',
+   'prerequisite from another path must be rejected',
+   'project cannot be its own prerequisite',
+   'expect(membershipAfter).toBe(membershipBefore)',
+   'expect(proofAfter).toBe(proofBefore)'
+  ]);
  });
 });

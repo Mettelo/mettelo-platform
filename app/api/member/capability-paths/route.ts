@@ -1,11 +1,13 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
-import {getMemberCapabilityPathProgress} from '@/lib/member-capability-paths';
+import {getMemberCapabilityPathOverview,getMemberCapabilityPathProgress} from '@/lib/member-capability-paths';
 
 const text=(value:unknown)=>String(value??'').trim();
 
-export async function GET(){
+export async function GET(request:Request){
   const db=await createServerSupabaseClient();const {data:{user}}=await db.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});
+  const mode=new URL(request.url).searchParams.get('mode');
+  if(mode==='overview')return NextResponse.json({overview:await getMemberCapabilityPathOverview(db,user.id)});
   return NextResponse.json({items:await getMemberCapabilityPathProgress(db,user.id)});
 }
 

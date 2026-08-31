@@ -6,8 +6,8 @@ async function noOverflow(page:Page,label:string){const size=await page.evaluate
 
 const projectId='00000000-0000-4000-8000-00000000e2e1';
 
-type CreatedPath={id:string;slug:string};
-async function createPath(api:APIRequestContext,name:string,stamp:string):Promise<CreatedPath>{const response=await api.post('/api/admin/capability-paths',{data:{name,slug:`${name.toLowerCase().replaceAll(' ','-')}-${stamp}`,target_role:name,target_outcome:`Build toward advanced ${name} capability.`}});expect(response.status()).toBe(201);return(await response.json()).item as CreatedPath}
+type CreatedPath={id:string;slug:string;name:string};
+async function createPath(api:APIRequestContext,name:string,stamp:string):Promise<CreatedPath>{const displayName=`${name} ${stamp}`;const response=await api.post('/api/admin/capability-paths',{data:{name:displayName,slug:`${name.toLowerCase().replaceAll(' ','-')}-${stamp}`,target_role:name,target_outcome:`Build toward advanced ${name} capability.`}});expect(response.status()).toBe(201);const item=(await response.json()).item as CreatedPath;return{...item,name:displayName}}
 async function structure(api:APIRequestContext,path:CreatedPath,stage:string,position:number){const response=await api.put('/api/admin/capability-paths',{data:{id:path.id,stages:[{slug:stage.toLowerCase(),name:stage,position:1}],placements:[{project_id:projectId,stage_slug:stage.toLowerCase(),position,competency_focus:'Evidence-backed analysis',capability_built:'Translate project evidence into a professional decision',prerequisite_project_id:'',prerequisite_mode:'recommended',path_outcome:'Demonstrate practical analytical judgement',placement_type:'recommended'}]}});expect(response.status()).toBe(200)}
 async function publish(api:APIRequestContext,path:CreatedPath){const response=await api.patch('/api/admin/capability-paths',{data:{id:path.id,action:'publish'}});expect(response.status()).toBe(200)}
 
@@ -20,17 +20,17 @@ test.describe('Capability Paths Phase 3 public journey',()=>{
   await page.context().clearCookies();
 
   await page.goto('/projects',{waitUntil:'networkidle'});expect(new URL(page.url()).pathname).toBe('/projects');await expect(page.getByRole('heading',{name:'Follow a Capability Path.'})).toBeVisible({timeout:15_000});await expect(page.getByRole('link',{name:'View all Capability Paths →'})).toHaveAttribute('href','/projects/paths');
-  await page.goto('/projects/paths',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'Build capability through a sequence of real projects.'})).toBeVisible();await expect(page.getByText('E2E Public Data Analyst',{exact:true})).toBeVisible();await expect(page.getByText('E2E Draft Path',{exact:true})).toHaveCount(0);await expect(page.getByText('E2E Archived Path',{exact:true})).toHaveCount(0);
+  await page.goto('/projects/paths',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'Build capability through a sequence of real projects.'})).toBeVisible();await expect(page.getByText(pathA.name,{exact:true})).toBeVisible();await expect(page.getByText(draft.name,{exact:true})).toHaveCount(0);await expect(page.getByText(archived.name,{exact:true})).toHaveCount(0);
 
-  await page.goto(`/projects/paths/${pathA.slug}`,{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'E2E Public Data Analyst'})).toBeVisible();const projectLinkA=page.locator(`a[href^="/projects/${projectId}"]`).first();await expect(projectLinkA).toBeVisible();expect(new URL(await projectLinkA.getAttribute('href')||'', 'http://example.test').pathname).toBe(`/projects/${projectId}`);
+  await page.goto(`/projects/paths/${pathA.slug}`,{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:pathA.name})).toBeVisible();const projectLinkA=page.locator(`a[href^="/projects/${projectId}"]`).first();await expect(projectLinkA).toBeVisible();expect(new URL(await projectLinkA.getAttribute('href')||'', 'http://example.test').pathname).toBe(`/projects/${projectId}`);
   await page.goto(`/projects/paths/${pathB.slug}`,{waitUntil:'networkidle'});const projectLinkB=page.locator(`a[href^="/projects/${projectId}"]`).first();await expect(projectLinkB).toBeVisible();expect(new URL(await projectLinkB.getAttribute('href')||'', 'http://example.test').pathname).toBe(`/projects/${projectId}`);
 
-  await page.goto(`/projects/${projectId}?path=${encodeURIComponent(pathA.slug)}`,{waitUntil:'networkidle'});await expect(page.getByRole('heading',{name:'Where this project fits.'})).toBeVisible();await expect(page.getByText('E2E Public Data Analyst',{exact:true})).toBeVisible();await expect(page.getByText('E2E Public BI Analyst',{exact:true})).toBeVisible();await expect(page.getByRole('link',{name:`← Back to E2E Public Data Analyst Capability Path`})).toBeVisible();
+  await page.goto(`/projects/${projectId}?path=${encodeURIComponent(pathA.slug)}`,{waitUntil:'networkidle'});await expect(page.getByRole('heading',{name:'Where this project fits.'})).toBeVisible();await expect(page.getByText(pathA.name,{exact:true})).toBeVisible();await expect(page.getByText(pathB.name,{exact:true})).toBeVisible();await expect(page.getByRole('link',{name:`← Back to ${pathA.name} Capability Path`})).toBeVisible();
 
   await page.goto(`/projects?path=${encodeURIComponent(pathB.slug)}#projects`,{waitUntil:'networkidle'});await expect(page.locator('#path-filter')).toHaveValue(pathB.slug);await expect(page.getByText('PATH PROJECT 07')).toBeVisible();
 
-  const draftResponse=await page.goto(`/projects/paths/${draft.slug}`,{waitUntil:'networkidle'});expect(draftResponse?.status()).toBe(404);await expect(page.getByText('E2E Draft Path',{exact:true})).toHaveCount(0);
-  const archivedResponse=await page.goto(`/projects/paths/${archived.slug}`,{waitUntil:'networkidle'});expect(archivedResponse?.status()).toBe(404);await expect(page.getByText('E2E Archived Path',{exact:true})).toHaveCount(0);
+  const draftResponse=await page.goto(`/projects/paths/${draft.slug}`,{waitUntil:'networkidle'});expect(draftResponse?.status()).toBe(404);await expect(page.getByText(draft.name,{exact:true})).toHaveCount(0);
+  const archivedResponse=await page.goto(`/projects/paths/${archived.slug}`,{waitUntil:'networkidle'});expect(archivedResponse?.status()).toBe(404);await expect(page.getByText(archived.name,{exact:true})).toHaveCount(0);
  });
 
  test('Capability Path public surfaces reflow without horizontal overflow',async({page})=>{

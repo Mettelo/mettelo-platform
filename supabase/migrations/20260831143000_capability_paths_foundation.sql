@@ -72,6 +72,7 @@ create table if not exists public.capability_path_projects (
   updated_at timestamptz not null default now(),
   primary key(path_id,project_id),
   constraint capability_path_projects_position_check check (position > 0),
+  constraint capability_path_projects_no_self_prerequisite_check check (prerequisite_project_id is null or prerequisite_project_id <> project_id),
   constraint capability_path_projects_path_position_key unique(path_id,position),
   constraint capability_path_projects_stage_fk foreign key(path_id,stage_id)
     references public.capability_path_stages(path_id,id) on delete restrict,
@@ -146,7 +147,13 @@ for select to public using (
 drop policy if exists "published capability path placements are readable" on public.capability_path_projects;
 create policy "published capability path placements are readable" on public.capability_path_projects
 for select to public using (
-  exists(select 1 from public.capability_paths cp where cp.id=capability_path_projects.path_id and cp.status='published')
+  (
+    exists(select 1 from public.capability_paths cp where cp.id=capability_path_projects.path_id and cp.status='published')
+    and (
+      exists(select 1 from public.projects p where p.id=capability_path_projects.project_id and p.visibility='public')
+      or exists(select 1 from public.project_members pm where pm.project_id=capability_path_projects.project_id and pm.user_id=(select auth.uid()))
+    )
+  )
   or public.is_admin()
 );
 

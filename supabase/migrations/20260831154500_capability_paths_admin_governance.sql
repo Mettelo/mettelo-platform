@@ -5,7 +5,9 @@ alter table public.capability_paths
   add column if not exists created_by uuid references public.profiles(id) on delete set null,
   add column if not exists updated_by uuid references public.profiles(id) on delete set null,
   add column if not exists published_by uuid references public.profiles(id) on delete set null,
-  add column if not exists archived_by uuid references public.profiles(id) on delete set null;
+  add column if not exists archived_by uuid references public.profiles(id) on delete set null,
+  add column if not exists restored_at timestamptz,
+  add column if not exists restored_by uuid references public.profiles(id) on delete set null;
 
 create index if not exists capability_paths_updated_at_idx
   on public.capability_paths(updated_at desc);
@@ -13,11 +15,27 @@ create index if not exists capability_paths_updated_at_idx
 comment on column public.capability_paths.created_by is 'Admin user who created the path.';
 comment on column public.capability_paths.updated_by is 'Admin user who most recently changed path authoring data.';
 comment on column public.capability_paths.published_by is 'Admin user who most recently published the path.';
-comment on column public.capability_paths.archived_by is 'Admin user who most recently archived the path.';
+comment on column public.capability_paths.archived_by is 'Admin user who most recently archived the path. Preserved after restore.';
+comment on column public.capability_paths.restored_at is 'Most recent restore-to-draft time. Archive history remains preserved.';
+comment on column public.capability_paths.restored_by is 'Admin user who most recently restored an archived path to draft.';
+
+create table if not exists public.capability_path_lifecycle_events(
+  id uuid primary key default gen_random_uuid(),
+  path_id uuid not null references public.capability_paths(id) on delete cascade,
+  event_type text not null check(event_type in ('created','published','archived','restored','moved_to_draft')),
+  actor_user_id uuid references public.profiles(id) on delete set null,
+  occurred_at timestamptz not null default now(),
+  metadata jsonb not null default '{}'::jsonb
+);
+create index if not exists capability_path_lifecycle_events_path_time_idx
+  on public.capability_path_lifecycle_events(path_id,occurred_at desc);
+alter table public.capability_path_lifecycle_events enable row level security;
+revoke all on table public.capability_path_lifecycle_events from anon,authenticated;
+grant all on table public.capability_path_lifecycle_events to service_role;
+comment on table public.capability_path_lifecycle_events is 'Append-only Capability Path lifecycle history. Routine authoring never deletes these events.';
 
 -- These privileged replace functions are executable only by service_role.
 -- The calling server route authenticates the human Admin before invoking them.
--- This avoids relying on auth.uid() inside a service-role database request.
 create or replace function public.admin_replace_capability_path_structure(
   p_path_id uuid,
   p_stages jsonb,
@@ -88,7 +106,8 @@ create or replace function public.admin_replace_project_capabilities(
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $$;
+
 declare
   capability_id uuid;
 begin

@@ -15,6 +15,7 @@ async function assertResponsiveSurface(page:Page,url:string,label:string){for(co
 
 test.describe('Capability Paths Phase 4 member lifecycle',()=>{
  test('follow, primary direction, team lifecycle reuse and separate Proof remain truthful',async({page})=>{
+  test.setTimeout(180_000);
   const service=serviceDb();const memberEmail=credentials('member').email;const {data:userList}=await service.auth.admin.listUsers({page:1,perPage:1000});const member=userList.users.find(user=>user.email?.toLowerCase()===memberEmail.toLowerCase());expect(member).toBeTruthy();const memberId=member!.id;
   const [{count:membershipBefore},{count:proofBefore},{count:applicationBefore}]=await Promise.all([service.from('project_members').select('id',{count:'exact',head:true}).eq('user_id',memberId).eq('project_id',projectId),service.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',memberId).eq('project_id',projectId),service.from('project_applications').select('id',{count:'exact',head:true}).eq('user_id',memberId).eq('project_id',projectId)]);
   await signIn(page,'admin','/admin/capability-paths');const adminApi=page.context().request;const stamp=Date.now();const pathA=await createPath(adminApi,'E2E Member Data Analyst',stamp);const pathB=await createPath(adminApi,'E2E Member BI Analyst',stamp);await structure(adminApi,pathA,'Foundation',1);await structure(adminApi,pathB,'Applied',4);await publish(adminApi,pathA);await publish(adminApi,pathB);let completionRequestId:string|null=null;

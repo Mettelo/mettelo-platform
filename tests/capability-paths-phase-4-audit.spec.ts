@@ -9,7 +9,10 @@ const discover=fs.readFileSync('app/member/discover/page.tsx','utf8');
 const panel=fs.readFileSync('components/MemberCapabilityPathsPanel.tsx','utf8');
 const filters=fs.readFileSync('components/MemberCapabilityPathFilters.tsx','utf8');
 const recommended=fs.readFileSync('app/member/recommended/layout.tsx','utf8');
+const portfolioStrip=fs.readFileSync('components/MemberProjectsCapabilityPathStrip.tsx','utf8');
 const projectsLayout=fs.readFileSync('app/member/projects/layout.tsx','utf8');
+const labContext=fs.readFileSync('components/MetteloLabCapabilityPathContext.tsx','utf8');
+const labSurface=fs.readFileSync('components/MetteloLabViewSurface.tsx','utf8');
 
 function hasAll(source:string,values:string[]){for(const value of values)expect(source,`missing ${value}`).toContain(value)}
 
@@ -29,8 +32,8 @@ test.describe('Capability Paths Phase 4 member contract',()=>{
   expect(foundation).toContain('member_capability_paths_one_primary_idx');
   expect(api).not.toContain('completed_at:');
  });
- test('archived followed Paths retain historical read context but cannot be resumed as active direction',()=>{
-  hasAll(migration,['published or followed capability paths are readable','published or followed capability path stages are readable','published or followed visible capability path placements are readable']);
+ test('archived followed Paths retain historical read context without leaking members-only work publicly',()=>{
+  hasAll(migration,['published or followed capability paths are readable','published or followed capability path stages are readable','published or followed visible capability path placements are readable',"p.visibility='members' and (select auth.uid()) is not null"]);
   hasAll(api,[".eq('status','published')",'Archived or draft Paths cannot be resumed.']);
   expect(panel).toContain('Historical Path');
  });
@@ -39,8 +42,11 @@ test.describe('Capability Paths Phase 4 member contract',()=>{
   hasAll(filters,['All followed Paths','All stages','Clear Path filters']);
   expect(discover).toContain('if(selectedPath&&!contexts.some');
  });
- test('recommendations and portfolio surfaces show compact explainable Path context',()=>{
+ test('recommendations, portfolio and Lab show compact explainable Path context',()=>{
   hasAll(recommended,['PRIMARY CAPABILITY PATH','next.available','nearest currently available project','Verified Proof remains a separate evidence count']);
-  hasAll(projectsLayout,['PRIMARY CAPABILITY PATH','projects completed','with Verified Proof','Next: Project']);
+  hasAll(portfolioStrip,['PRIMARY CAPABILITY PATH','projects completed','with Verified Proof','Next: Project',"pathname!=='/member/projects'"]);
+  expect(projectsLayout).toContain('MemberProjectsCapabilityPathStrip');
+  hasAll(labContext,['WHY THIS PROJECT MATTERS','capabilityBuilt','competencyFocus','Verified Proof exists']);
+  expect(labSurface).toContain('MetteloLabCapabilityPathContext');
  });
 });

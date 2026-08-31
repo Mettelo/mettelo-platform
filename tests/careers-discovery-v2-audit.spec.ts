@@ -39,3 +39,9 @@ test('career discovery has responsive mobile filtering and candidate journey cla
   expect(page).toContain('@media(max-width:760px)');
   expect(page).toContain('.careersFilters.isOpen{display:grid}');
 });
+
+test('mobile section navigation reflows inside the viewport instead of horizontal overflow',()=>{
+  expect(page).toContain('.careersJump .shell{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}');
+  expect(page).toContain('.careersJump a{min-width:0;white-space:normal;overflow-wrap:anywhere}');
+  expect(page).toContain('@media(max-width:480px)');
+});

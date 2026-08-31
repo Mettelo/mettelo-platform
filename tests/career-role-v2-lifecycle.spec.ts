@@ -29,7 +29,7 @@ test.describe('Career role V2 lifecycle',()=>{
   await adminContext.close();
 
   for(const viewport of [{width:1440,height:900},{width:768,height:900},{width:390,height:844}]){
-   const context=await browser.newContext({baseURL:baseURL(),viewport});const page=await context.newPage();await page.goto(`/careers/${slug}`,{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:roleDraft.title})).toBeVisible();await expect(page.locator('.careerApplyForm')).toBeVisible();const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);expect(overflow).toBeLessThanOrEqual(1);await context.close();
+   const context=await browser.newContext({baseURL:baseURL(),viewport});const page=await context.newPage();await page.goto(`/careers/${slug}`,{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:roleDraft.title})).toBeVisible();await expect(page.locator('.careerApplyForm')).toBeVisible();let overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);expect(overflow).toBeLessThanOrEqual(1);await page.evaluate(()=>{document.documentElement.style.fontSize='200%';});await page.waitForTimeout(50);overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);expect(overflow).toBeLessThanOrEqual(1);await context.close();
   }
 
   const admin2Context=await browser.newContext({baseURL:baseURL()});const admin2=await admin2Context.newPage();await signIn(admin2);

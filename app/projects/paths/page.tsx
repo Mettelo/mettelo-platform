@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import {getPublishedCapabilityPaths} from '@/lib/capability-paths-public';
 import '../capability-paths-public.css';
+import './reflow.css';
 
 export const metadata:Metadata={title:'Capability Paths',description:'Explore structured professional progression through real Mettelo projects. Capability Paths give direction without restricting how you discover or contribute to projects.'};
 export const dynamic='force-dynamic';

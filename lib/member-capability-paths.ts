@@ -5,6 +5,7 @@ import {resolveProjectPublicAvailability} from '@/lib/project-public-availabilit
 export type MemberPathPlacement={projectId:string;position:number;stageId:string;stageName:string;capabilityBuilt:string;competencyFocus:string;pathOutcome:string|null;projectTitle:string|null;projectStatus:string|null;projectType:string|null;applicationDeadline:string|null;roleCount:number;completed:boolean;verified:boolean;available:boolean;availabilityLabel:string};
 export type MemberCapabilityPathProgress={pathId:string;slug:string;name:string;targetRole:string;targetOutcome:string;pathStatus:string;followStatus:string;isPrimary:boolean;totalProjects:number;completedProjects:number;verifiedProjects:number;completionRatio:number;currentStage:string|null;nextProject:MemberPathPlacement|null;nextAvailableProject:MemberPathPlacement|null;placements:MemberPathPlacement[]};
 export type MemberProjectPathContext={pathId:string;pathSlug:string;pathName:string;pathStatus:string;position:number;stageName:string;isPrimary:boolean;completed:boolean;verified:boolean};
+export type MemberCapabilityPathOverview={followedCount:number;primary:{pathId:string;slug:string;name:string;targetRole:string;pathStatus:string;followStatus:string}|null};
 
 type Db=SupabaseClient;
 type FollowRow={path_id:string;status:string;is_primary:boolean};
@@ -14,6 +15,15 @@ type PlacementRow={path_id:string;project_id:string;stage_id:string;position:num
 type ProjectRole={id:string;openings:number};
 type ProjectRow={id:string;title:string;status:string;project_type:string;application_deadline:string|null;applications_open:boolean|null;project_roles:ProjectRole[]|null};
 type CapacityRow={project_id:string;project_role_id:string|null};
+
+export async function getMemberCapabilityPathOverview(db:Db,userId:string):Promise<MemberCapabilityPathOverview>{
+  const {data:followData,error}=await db.from('member_capability_paths').select('path_id,status,is_primary').eq('user_id',userId).in('status',['following','paused','completed']).order('is_primary',{ascending:false});
+  if(error||!followData?.length)return{followedCount:0,primary:null};
+  const follows=followData as FollowRow[];const primaryFollow=follows.find(item=>item.is_primary)||follows[0]||null;if(!primaryFollow)return{followedCount:follows.length,primary:null};
+  const {data:pathData}=await db.from('capability_paths').select('id,slug,name,target_role,status').eq('id',primaryFollow.path_id).maybeSingle();
+  if(!pathData)return{followedCount:follows.length,primary:null};
+  return{followedCount:follows.length,primary:{pathId:String(pathData.id),slug:String(pathData.slug),name:String(pathData.name),targetRole:String(pathData.target_role),pathStatus:String(pathData.status),followStatus:primaryFollow.status}};
+}
 
 export async function getMemberCapabilityPathProgress(db:Db,userId:string):Promise<MemberCapabilityPathProgress[]>{
   const {data:followData,error:followError}=await db.from('member_capability_paths').select('path_id,status,is_primary').eq('user_id',userId).in('status',['following','paused','completed']);

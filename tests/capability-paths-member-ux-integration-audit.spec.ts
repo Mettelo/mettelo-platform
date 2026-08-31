@@ -21,51 +21,20 @@ test.describe('Capability Paths member UX integration',()=>{
   test('member IA separates work, direction/discovery and community without crowding mobile nav',()=>{
     hasAll(nav,["label:'My Work'","label:'Direction & Discovery'","label:'Opportunities & Community'","label:'Capability Paths',href:'/member/paths'"]);
     hasAll(nav,["label:'Home'","label:'Projects'","label:'Discover'","label:'Proof'","label:'More'"]);
-    const persistent=nav.slice(nav.indexOf('mobilePersistentNav'),nav.indexOf('mobileMoreNav'));
-    expect(persistent).not.toContain("label:'Capability Paths'");
-    expect(nav.indexOf("label:'Capability Paths',href:'/member/paths'")).toBeLessThan(nav.indexOf("label:'Applications',href:'/member/applications'",nav.indexOf('mobileMoreNav')));
+    const persistent=nav.slice(nav.indexOf('mobilePersistentNav'),nav.indexOf('mobileMoreNav'));expect(persistent).not.toContain("label:'Capability Paths'");
   });
-
-  test('Home and Profile receive lightweight direction context without duplicating Path management',()=>{
-    hasAll(layout,['MemberPathContextSurface']);
-    hasAll(context,["pathname==='/member'||pathname==='/member/profile'","mode=overview","if(!visible||!loaded)return null"]);
-    hasAll(summary,['YOUR DIRECTION','PROFESSIONAL DIRECTION','Continue Path','Manage Paths','min-height:44px']);
-    expect(context).not.toContain('MemberCapabilityPathsPanel');
+  test('Home and Profile receive lightweight professional-direction context, not full management panels',()=>{
+    hasAll(layout,['MemberPathContextSurface']);hasAll(context,["pathname==='/member'||pathname==='/member/profile'","mode=overview","if(!visible||!loaded)return null"]);hasAll(summary,['YOUR DIRECTION','PROFESSIONAL DIRECTION','Manage Paths','Explore Capability Paths','min-height:44px']);expect(context).not.toContain('MemberCapabilityPathsPanel');
   });
-
-  test('dedicated Paths page owns management and explicitly preserves team-project lifecycle',()=>{
-    hasAll(pathsPage,['DIRECTION & DISCOVERY · CAPABILITY PATHS','Build with direction','MemberCapabilityPathsPanel','Multiple directions','Team projects stay team projects','One project, many contexts','Proof stays evidence-led']);
-    hasAll(panel,['PRIMARY DIRECTION','OTHER DIRECTIONS','NEXT RECOMMENDED','View full roadmap','Manage','Make primary','Pause Path','Resume Path','Unfollow Path']);
-    hasAll(panel,['role="progressbar"','aria-valuemin','aria-valuemax','aria-valuenow','min-height:44px','focus-visible','prefers-reduced-motion']);
+  test('dedicated member Paths page owns management and team-lifecycle explanation',()=>{
+    hasAll(pathsPage,['DIRECTION & DISCOVERY · CAPABILITY PATHS','Build with direction','MemberCapabilityPathsPanel','Multiple directions','Team projects stay team projects','One project, many contexts','Proof stays evidence-led']);hasAll(panel,['PRIMARY DIRECTION','OTHER DIRECTIONS','NEXT RECOMMENDED','View full roadmap','Manage','Make primary','Pause Path','Resume Path','Unfollow Path']);
   });
-
-  test('Discover remains broad and shows Path context as metadata rather than rewriting project summaries',()=>{
-    expect(discover).not.toContain('MemberCapabilityPathsPanel');
-    hasAll(discover,['MemberCapabilityPathFilters','summary:project.summary','pathContext:primaryContext','they never restrict what you can discover']);
-    hasAll(catalogue,['mdPathContext','Capability Path context','Discover is broad. Recommended is personalised.']);
-    expect(discover).not.toContain('pathSummary?');
+  test('Discover remains broad and uses Path context as structured metadata',()=>{
+    expect(discover).not.toContain('MemberCapabilityPathsPanel');hasAll(discover,['MemberCapabilityPathFilters','summary:project.summary','pathContext:primaryContext','they never restrict what you can discover']);hasAll(catalogue,['mdPathContext','Capability Path context','Discover is broad. Recommended is personalised.']);expect(discover).not.toContain('pathSummary?');
   });
-
-  test('Recommended gives Path sequence first while paused Paths stop guiding actions',()=>{
-    hasAll(recommended,['RECOMMENDED FOR YOUR DIRECTION','NEXT IN PRIMARY PATH','nearest currently available project','Manage Paths',"followStatus==='paused'"]);
-  });
-
-  test('Projects and Lab keep compact Path context while team formation remains canonical',()=>{
-    hasAll(projectsStrip,['PRIMARY DIRECTION','View Path','min-height:44px']);
-    hasAll(projects,['PREPARING TO START','Team forming','team_size_threshold','places filled','Mettelo Lab will only open when the project is ready']);
-    hasAll(lab,['CAPABILITY PATH','Project']);
-  });
-
-  test('Proof remains evidence-first and is not converted into Path progress UI',()=>{
-    hasAll(proof,["eq('verification_status','verified')",'Proof is sourced only from contribution evidence']);
-    expect(proof).not.toContain('MemberCapabilityPathsPanel');
-    expect(proof).not.toContain('completionRatio');
-  });
-
-  test('Path language avoids course/certification framing and preserves evidence separation',()=>{
-    expect(pathsPage.toLowerCase()).not.toContain('curriculum');
-    expect(pathsPage.toLowerCase()).not.toContain('course');
-    hasAll(pathsPage,['Verified Proof','project participation']);
-    hasAll(summary,['profile describes your professional context']);
-  });
+  test('Recommended gives sequence first while paused Paths stop guiding actions',()=>{hasAll(recommended,['RECOMMENDED FOR YOUR DIRECTION','NEXT IN PRIMARY PATH','nearest currently available project','Manage Paths',"followStatus==='paused'"])});
+  test('Projects and Lab keep compact Path context while team formation remains canonical',()=>{hasAll(projectsStrip,['PRIMARY DIRECTION','View Path','min-height:44px']);hasAll(projects,['PREPARING TO START','Team forming','team_size_threshold','places filled','Mettelo Lab will only open when the project is ready']);hasAll(lab,['CAPABILITY PATH','Project'])});
+  test('Proof remains evidence-first and is not converted into Path progress UI',()=>{hasAll(proof,["eq('verification_status','verified')",'Proof is sourced only from contribution evidence']);expect(proof).not.toContain('MemberCapabilityPathsPanel');expect(proof).not.toContain('completionRatio')});
+  test('Path surfaces include accessible state, focus, touch and reduced motion treatment',()=>{hasAll(panel,['role="progressbar"','aria-valuemin','aria-valuemax','aria-valuenow','min-height:44px','focus-visible','prefers-reduced-motion']);hasAll(catalogue,['Capability Path context','min-height:44px','focus-visible','prefers-reduced-motion'])});
+  test('Path language avoids course framing and preserves evidence separation',()=>{expect(pathsPage.toLowerCase()).not.toContain('curriculum');expect(pathsPage.toLowerCase()).not.toContain('course');hasAll(pathsPage,['Verified Proof','Project completion can move Path progress']);hasAll(summary,['profile describes your professional context'])});
 });

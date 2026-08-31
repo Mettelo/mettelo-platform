@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useState} from 'react';
 import CapabilityPathPreview,{type CapabilityPathPreviewModel} from './CapabilityPathPreview';
 
 type PathList={id:string;slug:string;name:string;target_role:string;target_outcome:string;status:string;sort_order:number;stage_count:number;project_count:number;updated_at:string};

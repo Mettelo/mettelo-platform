@@ -13,6 +13,7 @@ test('career role v2 keeps one reusable data-driven public template and existing
   for(const field of ['role_proposition','time_commitment','candidate_value','success_looks_like','application_stages'])expect(rolePage).toContain(field);
   expect(rolePage).toContain('CareerApplicationForm roleId={role.id}');
   expect(applicationForm).toContain("data.set('role_id',roleId)");
+  expect(applyApi).toContain("form.get('role_id')");
   expect(applyApi).toContain(".eq('id',roleId)");
   expect(rolePage).not.toContain('Volunteer Data Analyst');
 });

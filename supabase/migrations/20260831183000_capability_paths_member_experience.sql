@@ -39,8 +39,19 @@ for select to public using (
       )
     )
     and (
-      exists(select 1 from public.projects p where p.id=capability_path_projects.project_id and p.visibility in ('public','members'))
-      or exists(select 1 from public.project_members pm where pm.project_id=capability_path_projects.project_id and pm.user_id=(select auth.uid()))
+      exists(
+        select 1 from public.projects p
+        where p.id=capability_path_projects.project_id
+          and (
+            p.visibility='public'
+            or (p.visibility='members' and (select auth.uid()) is not null)
+          )
+      )
+      or exists(
+        select 1 from public.project_members pm
+        where pm.project_id=capability_path_projects.project_id
+          and pm.user_id=(select auth.uid())
+      )
     )
   )
   or public.is_admin()

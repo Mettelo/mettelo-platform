@@ -6,46 +6,66 @@ const layout=fs.readFileSync('app/member/layout.tsx','utf8');
 const context=fs.readFileSync('components/MemberPathContextSurface.tsx','utf8');
 const summary=fs.readFileSync('components/MemberCapabilityPathSummary.tsx','utf8');
 const pathsPage=fs.readFileSync('app/member/paths/page.tsx','utf8');
+const panel=fs.readFileSync('components/MemberCapabilityPathsPanel.tsx','utf8');
 const discover=fs.readFileSync('app/member/discover/page.tsx','utf8');
+const catalogue=fs.readFileSync('components/MemberDiscoverCatalogue.tsx','utf8');
 const projectsStrip=fs.readFileSync('components/MemberProjectsCapabilityPathStrip.tsx','utf8');
 const recommended=fs.readFileSync('app/member/recommended/layout.tsx','utf8');
+const projects=fs.readFileSync('app/member/projects/page.tsx','utf8');
+const proof=fs.readFileSync('app/member/proof/page.tsx','utf8');
 const lab=fs.readFileSync('components/MetteloLabCapabilityPathContext.tsx','utf8');
 
 function hasAll(source:string,values:string[]){for(const value of values)expect(source,`missing ${value}`).toContain(value)}
 
 test.describe('Capability Paths member UX integration',()=>{
-  test('Capability Paths has a dedicated member IA destination without displacing core mobile actions',()=>{
-    hasAll(nav,["label:'Capability Paths',href:'/member/paths'","description:'Professional directions'"]);
+  test('member IA separates work, direction/discovery and community without crowding mobile nav',()=>{
+    hasAll(nav,["label:'My Work'","label:'Direction & Discovery'","label:'Opportunities & Community'","label:'Capability Paths',href:'/member/paths'"]);
     hasAll(nav,["label:'Home'","label:'Projects'","label:'Discover'","label:'Proof'","label:'More'"]);
-    expect(nav).not.toContain("{label:'Capability Paths',href:'/member/paths',description:'Professional directions'},\n  {label:'Proof'");
+    const persistent=nav.slice(nav.indexOf('mobilePersistentNav'),nav.indexOf('mobileMoreNav'));
+    expect(persistent).not.toContain("label:'Capability Paths'");
+    expect(nav.indexOf("label:'Capability Paths',href:'/member/paths'")).toBeLessThan(nav.indexOf("label:'Applications',href:'/member/applications'",nav.indexOf('mobileMoreNav')));
   });
 
-  test('Home and Profile receive lightweight professional-direction context, not full management panels',()=>{
+  test('Home and Profile receive lightweight direction context without duplicating Path management',()=>{
     hasAll(layout,['MemberPathContextSurface']);
-    hasAll(context,["pathname==='/member'||pathname==='/member/profile'","mode=overview","context={pathname==='/member'?'home':'profile'}"]);
-    hasAll(summary,['YOUR DIRECTION','PROFESSIONAL DIRECTION','Manage Paths','Explore Capability Paths']);
+    hasAll(context,["pathname==='/member'||pathname==='/member/profile'","mode=overview","if(!visible||!loaded)return null"]);
+    hasAll(summary,['YOUR DIRECTION','PROFESSIONAL DIRECTION','Continue Path','Manage Paths','min-height:44px']);
     expect(context).not.toContain('MemberCapabilityPathsPanel');
   });
 
-  test('dedicated member Paths page owns follow, pause, primary and roadmap management',()=>{
-    hasAll(pathsPage,['MY METTELO · CAPABILITY PATHS','Build with direction','MemberCapabilityPathsPanel','Direction, not restriction','One project, many contexts','Progress from work']);
+  test('dedicated Paths page owns management and explicitly preserves team-project lifecycle',()=>{
+    hasAll(pathsPage,['DIRECTION & DISCOVERY · CAPABILITY PATHS','Build with direction','MemberCapabilityPathsPanel','Multiple directions','Team projects stay team projects','One project, many contexts','Proof stays evidence-led']);
+    hasAll(panel,['PRIMARY DIRECTION','OTHER DIRECTIONS','NEXT RECOMMENDED','View full roadmap','Manage','Make primary','Pause Path','Resume Path','Unfollow Path']);
+    hasAll(panel,['role="progressbar"','aria-valuemin','aria-valuemax','aria-valuenow','min-height:44px','focus-visible','prefers-reduced-motion']);
   });
 
-  test('Discover remains a broad catalogue and uses Paths only as optional context/filtering',()=>{
+  test('Discover remains broad and shows Path context as metadata rather than rewriting project summaries',()=>{
     expect(discover).not.toContain('MemberCapabilityPathsPanel');
-    hasAll(discover,['MemberCapabilityPathFilters','Manage Capability Paths','Explore Capability Paths','they never restrict what you can discover','Want a clearer route through the catalogue?']);
+    hasAll(discover,['MemberCapabilityPathFilters','summary:project.summary','pathContext:primaryContext','they never restrict what you can discover']);
+    hasAll(catalogue,['mdPathContext','Capability Path context','Discover is broad. Recommended is personalised.']);
+    expect(discover).not.toContain('pathSummary?');
   });
 
-  test('existing project execution surfaces keep compact contextual Path treatment',()=>{
-    hasAll(projectsStrip,['PRIMARY CAPABILITY PATH','nextProject','View Path']);
-    hasAll(recommended,['PRIMARY CAPABILITY PATH','Continue','nextAvailableProject']);
+  test('Recommended gives Path sequence first while paused Paths stop guiding actions',()=>{
+    hasAll(recommended,['RECOMMENDED FOR YOUR DIRECTION','NEXT IN PRIMARY PATH','nearest currently available project','Manage Paths',"followStatus==='paused'"]);
+  });
+
+  test('Projects and Lab keep compact Path context while team formation remains canonical',()=>{
+    hasAll(projectsStrip,['PRIMARY DIRECTION','View Path','min-height:44px']);
+    hasAll(projects,['PREPARING TO START','Team forming','team_size_threshold','places filled','Mettelo Lab will only open when the project is ready']);
     hasAll(lab,['CAPABILITY PATH','Project']);
   });
 
-  test('Path language preserves Proof and canonical-project separation',()=>{
-    hasAll(pathsPage,['Verified Proof stays a distinct evidence signal']);
-    hasAll(summary,['Capability Paths describe professional directions']);
-    expect(pathsPage).not.toContain('course');
-    expect(pathsPage).not.toContain('curriculum');
+  test('Proof remains evidence-first and is not converted into Path progress UI',()=>{
+    hasAll(proof,["eq('verification_status','verified')",'Proof is sourced only from contribution evidence']);
+    expect(proof).not.toContain('MemberCapabilityPathsPanel');
+    expect(proof).not.toContain('completionRatio');
+  });
+
+  test('Path language avoids course/certification framing and preserves evidence separation',()=>{
+    expect(pathsPage.toLowerCase()).not.toContain('curriculum');
+    expect(pathsPage.toLowerCase()).not.toContain('course');
+    hasAll(pathsPage,['Verified Proof','project participation']);
+    hasAll(summary,['profile describes your professional context']);
   });
 });

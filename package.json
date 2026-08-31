@@ -22,7 +22,7 @@
     "test:project-interest-flow": "node scripts/audit-project-interest-flow.mjs",
     "audit:phase0": "node scripts/audit-phase-0-communications.mjs",
     "audit:phase1": "node scripts/audit-phase-1-identity.mjs",
-    "audit:phase2": "node scripts/audit-phase-2-member-projects.mjs",
+    "audit:phase2": "node scripts/audit-phase-2-member-projects-v2.mjs",
     "audit:phase3": "node scripts/audit-phase-3-careers.mjs",
     "audit:admin": "node scripts/audit-admin-console.mjs && node scripts/audit-admin-website-pages.mjs && node scripts/audit-admin-page-history.mjs && node scripts/audit-admin-website-seo.mjs && node scripts/audit-admin-website-media.mjs && node scripts/audit-admin-access-capabilities.mjs && node scripts/audit-admin-platform-configuration.mjs && node scripts/audit-admin-system-health.mjs",
     "audit:admin2": "node scripts/audit-admin-part-2.mjs",

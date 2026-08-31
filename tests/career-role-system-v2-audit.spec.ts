@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const rolePage=fs.readFileSync('app/careers/[slug]/page.tsx','utf8');
 const adminEditor=fs.readFileSync('components/AdminCareerRolesTable.tsx','utf8');
+const applicationForm=fs.readFileSync('components/CareerApplicationForm.tsx','utf8');
 const roleApi=fs.readFileSync('app/api/admin/careers/roles/route.ts','utf8');
 const applyApi=fs.readFileSync('app/api/careers/apply/route.ts','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260831113000_career_role_editor_v2.sql','utf8');
@@ -11,7 +12,7 @@ test('career role v2 keeps one reusable data-driven public template and existing
   expect(rolePage).toContain('const roleFields=');
   for(const field of ['role_proposition','time_commitment','candidate_value','success_looks_like','application_stages'])expect(rolePage).toContain(field);
   expect(rolePage).toContain('CareerApplicationForm roleId={role.id}');
-  expect(applyApi).toContain("data.set('role_id',roleId)");
+  expect(applicationForm).toContain("data.set('role_id',roleId)");
   expect(applyApi).toContain(".eq('id',roleId)");
   expect(rolePage).not.toContain('Volunteer Data Analyst');
 });

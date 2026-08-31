@@ -106,8 +106,7 @@ create or replace function public.admin_replace_project_capabilities(
 language plpgsql
 security definer
 set search_path = public
-as $$;
-
+as $$
 declare
   capability_id uuid;
 begin

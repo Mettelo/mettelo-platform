@@ -138,7 +138,7 @@ test.describe('recursive public responsive coverage',()=>{
 
   test('public project detail stays single-column across phone portrait and landscape widths',async({page})=>{
     test.setTimeout(120_000);
-    const projectPath=publicPaths.find(path=>/^\/projects\/[^/]+$/.test(path));
+    const projectPath=publicPaths.find(path=>/^\/projects\/(?!paths$)[^/]+$/.test(path));
     test.skip(!projectPath,'No public project detail is currently discoverable.');
     for(const viewport of [{width:320,height:740},{width:360,height:800},{width:375,height:812},{width:390,height:844},{width:412,height:915},{width:414,height:896},{width:430,height:932},{width:667,height:375},{width:844,height:390}]){
       await page.setViewportSize(viewport);

@@ -15,9 +15,9 @@ comment on column public.capability_paths.updated_by is 'Admin user who most rec
 comment on column public.capability_paths.published_by is 'Admin user who most recently published the path.';
 comment on column public.capability_paths.archived_by is 'Admin user who most recently archived the path.';
 
--- Replaces one path's authoring structure in a single database transaction.
--- The function only mutates path stages/placements. Canonical project rows and
--- all applications, memberships, project runs, contributions and Proof remain untouched.
+-- These privileged replace functions are executable only by service_role.
+-- The calling server route authenticates the human Admin before invoking them.
+-- This avoids relying on auth.uid() inside a service-role database request.
 create or replace function public.admin_replace_capability_path_structure(
   p_path_id uuid,
   p_stages jsonb,
@@ -32,10 +32,6 @@ declare
   placement_row jsonb;
   resolved_stage uuid;
 begin
-  if not public.is_admin() then
-    raise exception 'Admin access required';
-  end if;
-
   if not exists(select 1 from public.capability_paths where id=p_path_id) then
     raise exception 'Capability path not found';
   end if;
@@ -84,3 +80,38 @@ $$;
 
 revoke all on function public.admin_replace_capability_path_structure(uuid,jsonb,jsonb) from public,anon,authenticated;
 grant execute on function public.admin_replace_capability_path_structure(uuid,jsonb,jsonb) to service_role;
+
+create or replace function public.admin_replace_project_capabilities(
+  p_project_id uuid,
+  p_capability_ids uuid[]
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  capability_id uuid;
+begin
+  if not exists(select 1 from public.projects where id=p_project_id) then
+    raise exception 'Project not found';
+  end if;
+
+  if exists(
+    select 1 from unnest(coalesce(p_capability_ids,array[]::uuid[])) requested(id)
+    left join public.capabilities c on c.id=requested.id and c.is_active=true
+    where c.id is null
+  ) then
+    raise exception 'One or more capabilities are invalid or inactive';
+  end if;
+
+  delete from public.project_capabilities where project_id=p_project_id;
+  foreach capability_id in array coalesce(p_capability_ids,array[]::uuid[]) loop
+    insert into public.project_capabilities(project_id,capability_id)
+    values(p_project_id,capability_id)
+    on conflict(project_id,capability_id) do nothing;
+  end loop;
+end;
+$$;
+
+revoke all on function public.admin_replace_project_capabilities(uuid,uuid[]) from public,anon,authenticated;
+grant execute on function public.admin_replace_project_capabilities(uuid,uuid[]) to service_role;

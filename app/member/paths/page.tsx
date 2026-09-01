@@ -21,7 +21,7 @@ export default async function MemberPathsPage(){
     <header className="memberPathsHero">
       <div className="memberPathsHeroCopy">
         <div className="memberPathsEyebrow">DIRECTION &amp; DISCOVERY · CAPABILITY PATHS</div>
-        <h1>Your direction through real work</h1>
+        <h1>Build with direction through real work</h1>
         <p>Choose where you want to develop, then use real Mettelo projects to build toward that capability. Follow more than one Path, keep one primary for guidance, and move through projects as teams become available.</p>
       </div>
       <div className="memberPathsHeroActions">

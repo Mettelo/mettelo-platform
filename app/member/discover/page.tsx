@@ -24,8 +24,12 @@ function workingModel(project:Project){return project.location_type?titleCase(pr
 function one(value:string|string[]|undefined){return Array.isArray(value)?value[0]||'':value||''}
 
 export default async function MemberDiscoverPage({searchParams}:{searchParams?:Promise<Search>}){
-  const params=await searchParams||{};const selectedPath=one(params.path),selectedStage=one(params.stage);
-  const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/signin?next=%2Fmember%2Fdiscover');
+  const params=await searchParams||{};
+  const selectedPath=one(params.path),selectedStage=one(params.stage);
+  const supabase=await createServerSupabaseClient();
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)redirect('/signin?next=%2Fmember%2Fdiscover');
+
   const [profileResult,domainPrefs,toolPrefs,projectsResult,applicationsResult,membershipsResult,savedResult,pathProgress]=await Promise.all([
     supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).maybeSingle(),
     supabase.from('profile_domain_preferences').select('domain_id').eq('user_id',user.id),
@@ -36,27 +40,55 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     supabase.from('saved_projects').select('project_id').eq('user_id',user.id),
     getMemberCapabilityPathProgress(supabase,user.id)
   ]);
+
   if(projectsResult.error)console.error('member Discover project query failed',projectsResult.error);
   const profile=profileResult.data as Record<string,unknown>|null;
   const memberReadiness=calculateMemberReadiness({profile:profile||{},domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0});
   const applicationReady=memberReadiness.applicationReadiness.ready;
-  const projects=(projectsResult.data||[]) as unknown as Project[];const applications=(applicationsResult.data||[]) as unknown as Application[];const memberships=(membershipsResult.data||[]) as unknown as Membership[];const saved=new Set(((savedResult.data||[]) as Saved[]).map(row=>row.project_id));
-  const latestApplication=new Map<string,Application>();for(const item of applications){if(!latestApplication.has(item.project_id))latestApplication.set(item.project_id,item)}
+  const projects=(projectsResult.data||[]) as unknown as Project[];
+  const applications=(applicationsResult.data||[]) as unknown as Application[];
+  const memberships=(membershipsResult.data||[]) as unknown as Membership[];
+  const saved=new Set(((savedResult.data||[]) as Saved[]).map(row=>row.project_id));
+  const latestApplication=new Map<string,Application>();
+  for(const item of applications){if(!latestApplication.has(item.project_id))latestApplication.set(item.project_id,item)}
   const membershipByProject=new Map(memberships.map(item=>[item.project_id,item]));
-  const db=serviceDb();let capacityRows:CapacityRow[]=[];let availabilityKnown=false;
-  if(db&&projects.length){const result=await db.from('project_members').select('project_id,project_role_id').in('project_id',projects.map(item=>item.id)).in('membership_status',['waiting','active']);if(!result.error){capacityRows=(result.data||[]) as CapacityRow[];availabilityKnown=true}else console.error('member Discover capacity lookup failed',result.error)}
-  const filledByRole=new Map<string,number>();for(const row of capacityRows){if(row.project_role_id)filledByRole.set(row.project_role_id,(filledByRole.get(row.project_role_id)||0)+1)}
+  const db=serviceDb();
+  let capacityRows:CapacityRow[]=[];
+  let availabilityKnown=false;
+  if(db&&projects.length){
+    const result=await db.from('project_members').select('project_id,project_role_id').in('project_id',projects.map(item=>item.id)).in('membership_status',['waiting','active']);
+    if(!result.error){capacityRows=(result.data||[]) as CapacityRow[];availabilityKnown=true}else console.error('member Discover capacity lookup failed',result.error);
+  }
+  const filledByRole=new Map<string,number>();
+  for(const row of capacityRows){if(row.project_role_id)filledByRole.set(row.project_role_id,(filledByRole.get(row.project_role_id)||0)+1)}
   const pathContexts=await getMemberProjectPathContexts(supabase,user.id,projects.map(item=>item.id));
   const items=projects.flatMap(project=>{
-    const contexts=pathContexts.get(project.id)||[];if(selectedPath&&!contexts.some(context=>context.pathSlug===selectedPath&&(!selectedStage||context.stageName===selectedStage)))return [];
-    const roles=project.project_roles||[];const availableRoles=roles.filter(role=>availabilityKnown?((filledByRole.get(role.id)||0)<role.openings):true);const roleCount=roles.reduce((sum,role)=>sum+Math.max(0,Number(role.openings)||0),0);const occupiedRoleCount=roles.reduce((sum,role)=>sum+Math.min(Math.max(0,Number(role.openings)||0),filledByRole.get(role.id)||0),0);const sharedAvailability=resolveProjectPublicAvailability({status:project.status,project_type:project.project_type||'open',application_deadline:project.application_deadline,applications_open:project.applications_open,role_count:roleCount,occupied_role_count:occupiedRoleCount,capacity_known:availabilityKnown});
-    const application=latestApplication.get(project.id)||null;const membership=membershipByProject.get(project.id)||null;const run=membership?.project_runs||null;
+    const contexts=pathContexts.get(project.id)||[];
+    if(selectedPath&&!contexts.some(context=>context.pathSlug===selectedPath&&(!selectedStage||context.stageName===selectedStage)))return [];
+    const roles=project.project_roles||[];
+    const availableRoles=roles.filter(role=>availabilityKnown?((filledByRole.get(role.id)||0)<role.openings):true);
+    const roleCount=roles.reduce((sum,role)=>sum+Math.max(0,Number(role.openings)||0),0);
+    const occupiedRoleCount=roles.reduce((sum,role)=>sum+Math.min(Math.max(0,Number(role.openings)||0),filledByRole.get(role.id)||0),0);
+    const sharedAvailability=resolveProjectPublicAvailability({status:project.status,project_type:project.project_type||'open',application_deadline:project.application_deadline,applications_open:project.applications_open,role_count:roleCount,occupied_role_count:occupiedRoleCount,capacity_known:availabilityKnown});
+    const application=latestApplication.get(project.id)||null;
+    const membership=membershipByProject.get(project.id)||null;
+    const run=membership?.project_runs||null;
     const state=resolveMemberProjectState({project,application,membership,run,applicationReady,hasAvailableRole:sharedAvailability.available&&availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
     const displayRoles=projectAcceptsApplications(project)&&availabilityKnown?availableRoles:roles;
     const skills=[...new Set(displayRoles.flatMap(role=>role.skills||[]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
     const primaryContext=contexts.find(context=>context.isPrimary)||contexts[0]||null;
     return [{id:project.id,title:project.title,summary:project.summary,state,stateLabel:memberProjectStateLabel(state),action:memberProjectCatalogueAction(state,project.id),saved:saved.has(project.id),workingModel:workingModel(project),durationWeeks:project.duration_weeks,commitment:project.weekly_commitment,deadline:project.application_deadline,createdAt:project.created_at,roles:displayRoles.map(role=>role.title),skills,pathContext:primaryContext?{name:primaryContext.pathName,position:primaryContext.position,stage:primaryContext.stageName,isPrimary:primaryContext.isPrimary}:null}];
   });
-  const pathAction=<a className="mdButton" href="/member/paths">{pathProgress.length?'Manage Capability Paths':'Explore Capability Paths'}</a>;
-  return <div className="mdDiscoverPage"><MemberPageHeader eyebrow="DIRECTION & DISCOVERY · PROJECTS" title="Discover projects" description="Explore the full project catalogue. Capability Paths can narrow this view when you want direction, but they never restrict what you can discover." actions={<>{pathAction}<a className="mdButton" href="/member/recommended">View recommended projects</a></>}/>{pathProgress.length?<MemberCapabilityPathFilters paths={pathProgress} selectedPath={selectedPath} selectedStage={selectedStage}/>:<aside className="mdPathPrompt"><div><strong>Want a clearer route through the catalogue?</strong><span>Follow a Capability Path to see sequence and stage context while keeping this full catalogue available.</span></div><a href="/member/paths">Explore Paths →</a></aside>}{projectsResult.error?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Nothing has been changed. Refresh this page to try the member catalogue again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<MemberDiscoverCatalogue projects={items}/>}<style>{`.mdDiscoverPage{width:min(100%,1240px);margin:0;min-width:0;color:#111318}.mdDiscoverError{margin-top:20px;padding:22px;border:1px solid #d8dde3;border-radius:14px;background:#fff}.mdDiscoverError h2{margin:0 0 6px}.mdDiscoverError p{margin:0 0 14px;color:#59636f}.mdPathPrompt{margin:0 0 16px;padding:13px 15px;border:1px solid #d8dde3;border-left:3px solid #c6892a;border-radius:11px;background:#fbf7ee;display:flex;justify-content:space-between;gap:18px;align-items:center}.mdPathPrompt>div{display:grid;gap:3px}.mdPathPrompt strong{font-size:12px}.mdPathPrompt span{color:#59636f;font-size:11px;line-height:1.45}.mdPathPrompt a{color:#8b5a17;font-size:11px;font-weight:800;white-space:nowrap}.mdPathPrompt a:focus-visible{outline:3px solid #173f8f;outline-offset:3px}@media(max-width:680px){.mdPathPrompt{display:grid}.mdPathPrompt a{white-space:normal}}`}</style></div>;
+
+  const pathAction=<a className="mdButton mdDiscoverTopAction" href="/member/paths">{pathProgress.length?'Manage Paths':'Explore Paths'}</a>;
+  return <div className="mdDiscoverPage">
+    <MemberPageHeader eyebrow="DIRECTION & DISCOVERY · PROJECTS" title="Discover projects" description="Explore the full project catalogue. Use a Capability Path when you want direction, without limiting what you can discover." actions={<>{pathAction}<a className="mdButton mdDiscoverTopAction" href="/member/recommended">Recommended for you</a></>}/>
+    <div className="mdDiscoverControlStack">
+      {pathProgress.length?<MemberCapabilityPathFilters paths={pathProgress} selectedPath={selectedPath} selectedStage={selectedStage}/>:<aside className="mdPathPrompt"><div><strong>Want a clearer route through the catalogue?</strong><span>Follow a Capability Path to add sequence and stage context while keeping Discover broad.</span></div><a href="/member/paths">Explore Paths →</a></aside>}
+      {projectsResult.error?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Nothing has been changed. Refresh this page to try the member catalogue again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<MemberDiscoverCatalogue projects={items}/>} 
+    </div>
+    <style>{`
+      .mdDiscoverPage{width:min(100%,1240px);margin:0;min-width:0;color:#111318}.mdDiscoverControlStack{margin-top:18px}.mdDiscoverTopAction{white-space:nowrap}.mdDiscoverError{margin-top:20px;padding:22px;border:1px solid #d8dde3;border-radius:14px;background:#fff}.mdDiscoverError h2{margin:0 0 6px}.mdDiscoverError p{margin:0 0 14px;color:#59636f}.mdPathPrompt{margin:0 0 14px;padding:13px 15px;border:1px solid #ded6c8;border-radius:14px;background:#fbf7ee;display:flex;justify-content:space-between;gap:18px;align-items:center}.mdPathPrompt>div{display:grid;gap:3px}.mdPathPrompt strong{font-size:12px}.mdPathPrompt span{color:#59636f;font-size:11px;line-height:1.45}.mdPathPrompt a{min-height:44px;display:inline-flex;align-items:center;color:#8b5a17;font-size:11px;font-weight:800;white-space:nowrap}.mdPathPrompt a:focus-visible{outline:3px solid #173f8f;outline-offset:3px}@media(max-width:680px){.mdDiscoverControlStack{margin-top:14px}.mdDiscoverTopAction{white-space:normal;text-align:center}.mdPathPrompt{display:grid}.mdPathPrompt a{white-space:normal}.mdDiscoverPage :global(.mdPageHeaderActions){gap:8px}}
+    `}</style>
+  </div>;
 }

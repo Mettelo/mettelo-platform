@@ -27,7 +27,7 @@ test.describe('Capability Paths Phase 3 public journey',()=>{
 
   await page.goto(`/projects/${projectId}?path=${encodeURIComponent(pathA.slug)}`,{waitUntil:'networkidle'});await expect(page.getByRole('heading',{name:'Where this project fits.'})).toBeVisible();await expect(page.getByText(pathA.name,{exact:true})).toBeVisible();await expect(page.getByText(pathB.name,{exact:true})).toBeVisible();await expect(page.getByRole('link',{name:`← Back to ${pathA.name} Capability Path`})).toBeVisible();
 
-  await page.goto(`/projects?path=${encodeURIComponent(pathB.slug)}#projects`,{waitUntil:'networkidle'});await expect(page.locator('#path-filter')).toHaveValue(pathB.slug);await expect(page.getByRole('heading',{name:'E2E Local Release Project'})).toBeVisible();
+  await page.goto(`/projects?path=${encodeURIComponent(pathB.slug)}#projects`,{waitUntil:'networkidle'});await expect(page.locator('#path-filter')).toHaveValue(pathB.slug);await expect(page.getByText('PATH PROJECT 07',{exact:true})).toBeVisible();const filteredProjectLink=page.locator(`a[href^="/projects/${projectId}"]`).first();await expect(filteredProjectLink).toBeVisible();expect(new URL(await filteredProjectLink.getAttribute('href')||'', 'http://example.test').pathname).toBe(`/projects/${projectId}`);
 
   const draftResponse=await page.goto(`/projects/paths/${draft.slug}`,{waitUntil:'networkidle'});expect(draftResponse?.status()).toBe(404);await expect(page.getByText(draft.name,{exact:true})).toHaveCount(0);
   const archivedResponse=await page.goto(`/projects/paths/${archived.slug}`,{waitUntil:'networkidle'});expect(archivedResponse?.status()).toBe(404);await expect(page.getByText(archived.name,{exact:true})).toHaveCount(0);

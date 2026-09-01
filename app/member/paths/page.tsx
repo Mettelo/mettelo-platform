@@ -36,7 +36,7 @@ export default async function MemberPathsPage(){
       <summary>How Capability Paths work</summary>
       <div className="memberPathsPrinciples">
         <article><span>01</span><strong>Choose direction</strong><p>Follow several Paths if they are useful. One primary Path guides recommendations only.</p></article>
-        <article><span>02</span><strong>Join real work</strong><p>A Path recommends projects, but applications and team formation still use Mettelo&apos;s existing lifecycle.</p></article>
+        <article><span>02</span><strong>Join real work</strong><p>Team projects stay team projects. A Path recommends projects, but applications and team formation still use Mettelo&apos;s existing lifecycle.</p></article>
         <article><span>03</span><strong>Complete canonical projects</strong><p>Complete a project once and it can contribute wherever that same canonical project legitimately appears.</p></article>
         <article><span>04</span><strong>Build credible Proof</strong><p>Path progress and Verified Proof remain separate. Verified Proof still requires reviewed contribution evidence.</p></article>
       </div>

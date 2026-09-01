@@ -9,14 +9,15 @@ export const memberNavGroups:MemberNavGroup[]=[
     {label:'Proof',href:'/member/proof',description:'Verified evidence'},
     {label:'Profile',href:'/member/profile',description:'Your professional identity'}
   ]},
-  {label:'Explore',items:[
-    {label:'Discover',href:'/member/discover',description:'Browse projects'},
-    {label:'Recommended',href:'/member/recommended',description:'Relevant to you'},
-    {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},
-    {label:'Saved',href:'/member/saved',description:'Projects and opportunities'},
-    {label:'Events',href:'/member/events',description:'Mettelo-wide events'}
+  {label:'Direction & Discovery',items:[
+    {label:'Capability Paths',href:'/member/paths',description:'Professional directions'},
+    {label:'Discover',href:'/member/discover',description:'Browse all eligible projects'},
+    {label:'Recommended',href:'/member/recommended',description:'Relevant next work'},
+    {label:'Saved',href:'/member/saved',description:'Projects and opportunities'}
   ]},
-  {label:'Reputation',items:[
+  {label:'Opportunities & Community',items:[
+    {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},
+    {label:'Events',href:'/member/events',description:'Mettelo-wide events'},
     {label:'Spotlight',href:'/member/spotlight',description:'Recognition and sharing'}
   ]}
 ];
@@ -30,11 +31,12 @@ export const mobilePersistentNav:MemberNavItem[]=[
 ];
 
 export const mobileMoreNav:MemberNavItem[]=[
-  {label:'Applications',href:'/member/applications',description:'Status and formation'},
-  {label:'Recommended',href:'/member/recommended',description:'Relevant to you'},
-  {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},
+  {label:'Capability Paths',href:'/member/paths',description:'Professional directions'},
+  {label:'Recommended',href:'/member/recommended',description:'Relevant next work'},
+  {label:'Applications',href:'/member/applications',description:'Status and team formation'},
+  {label:'Profile',href:'/member/profile',description:'Your professional identity'},
   {label:'Saved',href:'/member/saved',description:'Projects and opportunities'},
+  {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},
   {label:'Events',href:'/member/events',description:'Mettelo-wide events'},
-  {label:'Spotlight',href:'/member/spotlight',description:'Recognition and sharing'},
-  {label:'Profile',href:'/member/profile',description:'Your professional identity'}
+  {label:'Spotlight',href:'/member/spotlight',description:'Recognition and sharing'}
 ];

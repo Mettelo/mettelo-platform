@@ -66,7 +66,7 @@ for(const needle of [
   "aria-current={isActive(item.href)?'page':undefined}"
 ])requireNeedle(shell,needle,'Member shell');
 
-requireNeedle(nav,"{label:'Recommended',href:'/member/recommended',description:'Relevant to you'}",'Member navigation');
+requireNeedle(nav,"{label:'Recommended',href:'/member/recommended',description:'Relevant next work'}",'Member navigation');
 
 for(const needle of ['@media(max-width:1024px)','@media(max-width:480px)','@media(prefers-reduced-motion:reduce)','outline:3px solid #173f8f','min-height:44px'])requireNeedle(css,needle,'Recommended responsive CSS');
 

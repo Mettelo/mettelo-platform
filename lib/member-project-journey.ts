@@ -1,5 +1,6 @@
 export type MemberProjectState=
   |'open_eligible'
+  |'register_interest'
   |'application_submitted'
   |'application_action_required'
   |'application_in_review'
@@ -64,6 +65,7 @@ export function resolveMemberProjectState(input:ResolveMemberProjectStateInput):
     return 'application_submitted';
   }
 
+  if(project.status==='pilot')return 'register_interest';
   if(project.status==='completed')return 'closed';
   if(!projectAcceptsApplications(project,input.now))return 'closed';
   if(!input.applicationReady)return 'ineligible';
@@ -92,6 +94,7 @@ export function memberProjectCatalogueAction(state:MemberProjectState,projectId:
 export function memberProjectStateLabel(state:MemberProjectState){
   const labels:Record<MemberProjectState,string>={
     open_eligible:'Open for applications',
+    register_interest:'Registering interest',
     application_submitted:'Application submitted',
     application_action_required:'Action required',
     application_in_review:'In review',
@@ -109,6 +112,7 @@ export function memberProjectStateLabel(state:MemberProjectState){
 export function memberProjectStateCopy(state:MemberProjectState){
   const copy:Record<MemberProjectState,string>={
     open_eligible:'Applications are open. Choose an available project role and review the commitment before applying.',
+    register_interest:'This project is in pilot. Review the brief and register interest while the contribution roles are being prepared.',
     application_submitted:'Your project application has been submitted. Applications now owns the review lifecycle.',
     application_action_required:'Your application needs an update. Continue in Applications to see the required action.',
     application_in_review:'Your application is being reviewed. Continue in Applications for lifecycle updates.',

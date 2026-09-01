@@ -15,7 +15,7 @@ export default async function RecommendedLayout({children}:{children:React.React
 
   return <>{primary&&<section className="mprBanner" aria-labelledby="path-recommendation-title">
     <div className="mprIdentity">
-      <div className="mprEyebrow">YOUR DIRECTION</div>
+      <div className="mprEyebrow">RECOMMENDED FOR YOUR DIRECTION</div>
       <h2 id="path-recommendation-title">{primary.name}</h2>
       <div className="mprMetaRow"><span>{progressLabel}</span><span aria-hidden="true">·</span><span>{primary.verifiedProjects} Verified Proof</span></div>
     </div>

@@ -63,7 +63,7 @@ export default async function RecommendedPage(){
     supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).maybeSingle(),
     supabase.from('profile_domain_preferences').select('domains(slug,name)').eq('user_id',user.id),
     supabase.from('profile_tool_preferences').select('tools(slug,name)').eq('user_id',user.id),
-    supabase.from('projects').select('id,title,summary,status,project_type,applications_open,application_deadline,location,location_type,duration_weeks,weekly_commitment,project_roles(id,title,skills,openings),project_domains(domains(slug,name)),project_tools(tools(slug,name))').in('visibility',['public','members']).in('status',['recruiting','open','forming','active','review','completed']).order('created_at',{ascending:false}).limit(60),
+    supabase.from('projects').select('id,title,summary,status,project_type,applications_open,application_deadline,location,location_type,duration_weeks,weekly_commitment,project_roles(id,title,skills,openings),project_domains(domains(slug,name)),project_tools(tools(slug,name))').in('visibility',['public','members']).in('status',['pilot','recruiting','open','forming','active','review','completed']).order('created_at',{ascending:false}).limit(200),
     supabase.from('project_applications').select('id,project_id,status,project_run_id').eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}),
     supabase.from('project_members').select('project_id,project_run_id,membership_status,project_runs(status)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']),
     supabase.from('saved_projects').select('project_id').eq('user_id',user.id),
@@ -100,11 +100,11 @@ export default async function RecommendedPage(){
 
   const projectCards:CardItem[]=projects.flatMap(project=>{
     const roles=project.project_roles||[];const availableRoles=roles.filter(role=>availabilityKnown?((filledByRole.get(role.id)||0)<role.openings):false);
-    const application=latestApplication.get(project.id)||null;const membership=membershipByProject.get(project.id)||null;const relationship=Boolean(application&&!['declined','withdrawn'].includes(application.status)||membership);
-    if(!relationship&&(!projectAcceptsApplications(project,now)||!availabilityKnown||availableRoles.length===0))return [];
+    const application=latestApplication.get(project.id)||null;const membership=membershipByProject.get(project.id)||null;const relationship=Boolean(application&&!['declined','withdrawn'].includes(application.status)||membership);const discoverablePilot=project.status==='pilot';
+    if(!relationship&&!discoverablePilot&&(!projectAcceptsApplications(project,now)||!availabilityKnown||availableRoles.length===0))return [];
     const state=resolveMemberProjectState({project,application,membership,run:membership?.project_runs||null,applicationReady,hasAvailableRole:availableRoles.length>0,roleAvailabilityKnown:availabilityKnown,now});
-    if(!projectRecommendationEligible(state))return [];
-    const displayRoles=relationship?roles:availableRoles;const roleTitles=displayRoles.map(role=>role.title);const roleSkills=[...new Set(displayRoles.flatMap(role=>role.skills||[]).filter(Boolean))];
+    if(!discoverablePilot&&!projectRecommendationEligible(state))return [];
+    const displayRoles=relationship?roles:projectAcceptsApplications(project,now)&&availabilityKnown?availableRoles:roles;const roleTitles=displayRoles.map(role=>role.title);const roleSkills=[...new Set(displayRoles.flatMap(role=>role.skills||[]).filter(Boolean))];
     const domainSlugs=(project.project_domains||[]).flatMap(row=>row.domains?[row.domains.slug]:[]);const toolSlugs=(project.project_tools||[]).flatMap(row=>row.tools?[row.tools.slug]:[]);
     const reason=projectRecommendationReason(profile,{state,saved:savedProjects.has(project.id),roleTitles,roleSkills,domainSlugs,toolSlugs});if(!reason)return [];
     const action=memberProjectCatalogueAction(state,project.id);const meta=[workingModel(project),project.weekly_commitment,roleTitles[0],project.application_deadline?`Closes ${dateLabel(project.application_deadline)}`:null].filter((value):value is string=>Boolean(value));

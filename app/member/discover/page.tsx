@@ -30,7 +30,7 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).maybeSingle(),
     supabase.from('profile_domain_preferences').select('domain_id').eq('user_id',user.id),
     supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id),
-    supabase.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,duration_weeks,weekly_commitment,application_deadline,applications_open,created_at,project_roles(id,title,skills,openings)').in('visibility',['public','members']).in('status',['recruiting','open','forming','active','review','completed']).order('created_at',{ascending:false}).limit(60),
+    supabase.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,duration_weeks,weekly_commitment,application_deadline,applications_open,created_at,project_roles(id,title,skills,openings)').in('visibility',['public','members']).in('status',['pilot','recruiting','open','forming','active','review','completed']).order('created_at',{ascending:false}).limit(200),
     supabase.from('project_applications').select('id,project_id,status,project_run_id').eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}),
     supabase.from('project_members').select('project_id,project_run_id,membership_status,project_runs(status)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']),
     supabase.from('saved_projects').select('project_id').eq('user_id',user.id),
@@ -52,8 +52,6 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     const roles=project.project_roles||[];const availableRoles=roles.filter(role=>availabilityKnown?((filledByRole.get(role.id)||0)<role.openings):true);const roleCount=roles.reduce((sum,role)=>sum+Math.max(0,Number(role.openings)||0),0);const occupiedRoleCount=roles.reduce((sum,role)=>sum+Math.min(Math.max(0,Number(role.openings)||0),filledByRole.get(role.id)||0),0);const sharedAvailability=resolveProjectPublicAvailability({status:project.status,project_type:project.project_type||'open',application_deadline:project.application_deadline,applications_open:project.applications_open,role_count:roleCount,occupied_role_count:occupiedRoleCount,capacity_known:availabilityKnown});
     const application=latestApplication.get(project.id)||null;const membership=membershipByProject.get(project.id)||null;const run=membership?.project_runs||null;
     const state=resolveMemberProjectState({project,application,membership,run,applicationReady,hasAvailableRole:sharedAvailability.available&&availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
-    const relationship=Boolean(application&&!['declined','withdrawn'].includes(application.status)||membership);
-    if(!relationship&&!projectAcceptsApplications(project))return [];
     const displayRoles=projectAcceptsApplications(project)&&availabilityKnown?availableRoles:roles;
     const skills=[...new Set(displayRoles.flatMap(role=>role.skills||[]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
     const primaryContext=contexts.find(context=>context.isPrimary)||contexts[0]||null;

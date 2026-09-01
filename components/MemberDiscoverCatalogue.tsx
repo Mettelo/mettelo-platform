@@ -70,7 +70,7 @@ export default function MemberDiscoverCatalogue({projects}:Props){
       <div className="mdSearchRowV2">
         <label className="mdSearchWrapV2">
           <span className="mdSrOnly">Search projects</span>
-          <input className="mdSearchV2" type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search projects, skills, tools or topics"/>
+          <input className="mdSearchV2" type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search projects, skills or topics"/>
           <span className="mdSearchGlyphV2" aria-hidden="true">⌕</span>
         </label>
         <button ref={filterTrigger} className="mdButton mdButtonPrimary mdFilterTriggerV2" type="button" onClick={()=>setFiltersOpen(true)} aria-haspopup="dialog" aria-expanded={filtersOpen}>Filters · {activeCount}</button>

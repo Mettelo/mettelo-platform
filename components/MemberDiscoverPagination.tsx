@@ -1,12 +1,14 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 
 const PAGE_SIZE=12;
 
 export default function MemberDiscoverPagination(){
   const [page,setPage]=useState(1);
   const [count,setCount]=useState(0);
+  const [host,setHost]=useState<HTMLDivElement|null>(null);
   const pageRef=useRef(1);
 
   useEffect(()=>{pageRef.current=page},[page]);
@@ -14,13 +16,17 @@ export default function MemberDiscoverPagination(){
   useEffect(()=>{
     const grid=document.querySelector<HTMLElement>('.mdProjectGrid');
     if(!grid){setCount(0);return}
+    const paginationHost=document.createElement('div');
+    paginationHost.dataset.discoverPaginationHost='true';
+    grid.insertAdjacentElement('afterend',paginationHost);
+    setHost(paginationHost);
 
     let previousSignature='';
     const cards=()=>Array.from(grid.children).filter((child):child is HTMLElement=>child instanceof HTMLElement&&child.classList.contains('mdProjectCard'));
     const apply=(requestedPage=pageRef.current,resetWhenChanged=false)=>{
       const items=cards();
       const signature=items.map(item=>item.querySelector('h2')?.textContent||'').join('|');
-      const changed=signature!==previousSignature;
+      const changed=previousSignature!==''&&signature!==previousSignature;
       previousSignature=signature;
       const totalPages=Math.max(1,Math.ceil(items.length/PAGE_SIZE));
       const nextPage=Math.max(1,Math.min(totalPages,resetWhenChanged&&changed?1:requestedPage));
@@ -33,11 +39,11 @@ export default function MemberDiscoverPagination(){
     apply(pageRef.current);
     const observer=new MutationObserver(()=>apply(pageRef.current,true));
     observer.observe(grid,{childList:true});
-    return()=>{observer.disconnect();cards().forEach(item=>{item.hidden=false})};
+    return()=>{observer.disconnect();cards().forEach(item=>{item.hidden=false});paginationHost.remove();setHost(null)};
   },[]);
 
   const pages=Math.max(1,Math.ceil(count/PAGE_SIZE));
-  if(count<=PAGE_SIZE)return null;
+  if(!host||count<=PAGE_SIZE)return null;
 
   function go(nextPage:number){
     const grid=document.querySelector<HTMLElement>('.mdProjectGrid');
@@ -54,7 +60,7 @@ export default function MemberDiscoverPagination(){
 
   const start=(page-1)*PAGE_SIZE+1;
   const end=Math.min(count,page*PAGE_SIZE);
-  return <nav className="mdDiscoverPagination" aria-label="Discover project pages">
+  return createPortal(<nav className="mdDiscoverPagination" aria-label="Discover project pages">
     <button type="button" onClick={()=>go(page-1)} disabled={page===1} aria-label="Previous page">← Previous</button>
     <span aria-live="polite"><strong>Page {page} of {pages}</strong><small>Showing {start}–{end} of {count}</small></span>
     <button type="button" onClick={()=>go(page+1)} disabled={page===pages} aria-label="Next page">Next →</button>
@@ -69,5 +75,5 @@ export default function MemberDiscoverPagination(){
       .mdDiscoverPagination small{font-size:.7rem}
       @media(max-width:560px){.mdDiscoverPagination{grid-template-columns:1fr 1fr}.mdDiscoverPagination span{grid-column:1/-1;grid-row:1}.mdDiscoverPagination button{min-width:0;width:100%}}
     `}</style>
-  </nav>;
+  </nav>,host);
 }

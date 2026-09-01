@@ -338,3 +338,4 @@ jobs:
           else
             echo "All required release prerequisites passed for scope=$CLASSIFICATION."
             echo "Deployment validation/promotion may run now when deployment is required by that scope."
+          fi

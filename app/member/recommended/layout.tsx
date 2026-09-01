@@ -20,7 +20,7 @@ export default async function RecommendedLayout({children}:{children:React.React
       <div className="mprMetaRow"><span>{progressLabel}</span><span aria-hidden="true">·</span><span>{primary.verifiedProjects} Verified Proof</span></div>
     </div>
     <div className="mprNext">
-      <small>{paused?'PATH PAUSED':next?`NEXT · PROJECT ${next.position}`:'PATH PROGRESS'}</small>
+      <small>{paused?'PATH PAUSED':next?`NEXT IN PRIMARY PATH · PROJECT ${next.position}`:'PATH PROGRESS'}</small>
       <strong>{paused?'Recommendations are not currently guided by this Path':next?.projectTitle||'You have completed the visible Path projects'}</strong>
       <span className={`mprStatus ${next?.available&&!paused?'available':''}`}>{nextStatus}</span>
     </div>

@@ -1,0 +1,7 @@
+@media(max-width:900px){
+  .siteHeader .navActions .ghost,.siteHeader .iconButton{display:none}
+  footer .footerGrid{grid-template-columns:1fr}
+  footer .footerNewsletter{flex-wrap:wrap}
+  footer .footerNewsletter input{width:100%;flex-basis:100%}
+  footer .copyright{display:block}
+}

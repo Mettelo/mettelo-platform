@@ -1,0 +1,93 @@
+import {NextResponse} from 'next/server';
+import {createServerSupabaseClient} from '@/lib/supabase/server';
+import {serviceDb} from '@/lib/project-flow';
+
+const slugify=(value:string)=>value.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,90);
+const text=(value:unknown)=>String(value??'').trim();
+async function admin(){const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();return user?.app_metadata?.role==='admin'?user:null}
+
+type StageInput={id?:unknown;slug?:unknown;name?:unknown;description?:unknown;position?:unknown};
+type PlacementInput={project_id?:unknown;stage_slug?:unknown;position?:unknown;competency_focus?:unknown;capability_built?:unknown;prerequisite_project_id?:unknown;prerequisite_mode?:unknown;path_outcome?:unknown;placement_type?:unknown;stage_id?:unknown};
+type StageRow={id:string;slug:string;name:string;description:string|null;position:number};
+type PlacementRow={path_id:string;project_id:string;stage_id:string;position:number;competency_focus:string;capability_built:string;prerequisite_project_id:string|null;prerequisite_mode:string;path_outcome:string|null;placement_type:string};
+type PathDetail={
+  id:string;slug:string;name:string;target_role:string;target_outcome:string;status:string;
+  short_description:string|null;description:string|null;progression_summary:string|null;sort_order:number;
+  published_at:string|null;published_by:string|null;archived_at:string|null;archived_by:string|null;restored_at:string|null;restored_by:string|null;
+  stages:StageRow[];placements:Array<PlacementRow & {project:Record<string,unknown>|null}>;
+  [key:string]:unknown;
+};
+
+async function detail(db:NonNullable<ReturnType<typeof serviceDb>>,id:string):Promise<PathDetail|null>{
+  const {data:path}=await db.from('capability_paths').select('*').eq('id',id).maybeSingle();
+  if(!path)return null;
+  const [{data:stageData},{data:placementData}]=await Promise.all([
+    db.from('capability_path_stages').select('id,slug,name,description,position').eq('path_id',id).order('position'),
+    db.from('capability_path_projects').select('path_id,project_id,stage_id,position,competency_focus,capability_built,prerequisite_project_id,prerequisite_mode,path_outcome,placement_type').eq('path_id',id).order('position')
+  ]);
+  const stages=(stageData||[]) as StageRow[];
+  const placements=(placementData||[]) as PlacementRow[];
+  const projectIds=[...new Set(placements.map(item=>item.project_id))];
+  const {data:projects}=projectIds.length?await db.from('projects').select('id,slug,title,status,visibility,project_type').in('id',projectIds):{data:[]};
+  return {...path,stages,placements:placements.map(item=>({...item,project:(projects||[]).find(project=>project.id===item.project_id)||null}))} as PathDetail;
+}
+
+function validateStructure(stages:StageInput[],placements:PlacementInput[]){
+  const errors:string[]=[];
+  if(!stages.length)errors.push('Add at least one stage.');
+  const stageSlugs=new Set<string>(),stagePositions=new Set<number>();
+  for(const stage of stages){const slug=slugify(text(stage.slug||stage.name));const position=Number(stage.position);if(!text(stage.name))errors.push('Every stage needs a name.');if(!slug)errors.push('Every stage needs a valid slug.');if(!Number.isInteger(position)||position<1)errors.push('Every stage needs a positive position.');if(stageSlugs.has(slug))errors.push(`Stage slug “${slug}” is duplicated.`);if(stagePositions.has(position))errors.push(`Stage position ${position} is duplicated.`);stageSlugs.add(slug);stagePositions.add(position)}
+  const projectIds=new Set<string>(),positions=new Set<number>(),projectPositions=new Map<string,number>();
+  for(const item of placements){const projectId=text(item.project_id),position=Number(item.position),stageSlug=slugify(text(item.stage_slug));if(!projectId)errors.push('Every placement needs a project.');if(projectIds.has(projectId))errors.push('The same project cannot appear twice in one path.');if(!Number.isInteger(position)||position<1)errors.push('Every placement needs a positive position.');if(positions.has(position))errors.push(`Project position ${position} is duplicated.`);if(!stageSlugs.has(stageSlug))errors.push('Every placement must use a stage from this path.');if(!text(item.competency_focus))errors.push('Every placement needs a competency focus.');if(!text(item.capability_built))errors.push('Every placement needs a capability built.');if(text(item.prerequisite_project_id)===projectId)errors.push('A project cannot be its own prerequisite.');projectIds.add(projectId);positions.add(position);projectPositions.set(projectId,position)}
+  for(const item of placements){const prerequisite=text(item.prerequisite_project_id),projectId=text(item.project_id);if(prerequisite&&!projectIds.has(prerequisite))errors.push('Prerequisites must be projects already placed in the same path.');if(prerequisite&&projectPositions.has(prerequisite)&&projectPositions.has(projectId)&&(projectPositions.get(prerequisite)??0)>=(projectPositions.get(projectId)??0))errors.push('A prerequisite must appear earlier in the Path than the project that depends on it.')}
+  return [...new Set(errors)];
+}
+
+async function lifecycleEvent(db:NonNullable<ReturnType<typeof serviceDb>>,pathId:string,eventType:string,userId:string,metadata:Record<string,unknown>={}){const {error}=await db.from('capability_path_lifecycle_events').insert({path_id:pathId,event_type:eventType,actor_user_id:userId,metadata});if(error)throw error}
+
+export async function GET(request:Request){try{
+  const user=await admin();if(!user)return NextResponse.json({error:'Admin access required.'},{status:403});
+  const db=serviceDb();if(!db)return NextResponse.json({error:'Admin database is not configured.'},{status:503});
+  const url=new URL(request.url);const mode=url.searchParams.get('mode');
+  if(mode==='projects'){const q=text(url.searchParams.get('q'));let query=db.from('projects').select('id,slug,title,status,visibility,project_type').order('updated_at',{ascending:false}).limit(30);if(q)query=query.ilike('title',`%${q.replaceAll('%','')}%`);const {data,error}=await query;if(error)throw error;return NextResponse.json({items:data||[]});}
+  if(mode==='capabilities'){const {data,error}=await db.from('capabilities').select('id,slug,name,capability_type,is_active').eq('is_active',true).order('capability_type').order('sort_order').limit(500);if(error)throw error;return NextResponse.json({items:data||[]});}
+  const projectId=text(url.searchParams.get('project_id'));
+  if(mode==='project-capabilities'&&projectId){const [{data:all,error:allError},{data:selected,error:selectedError}]=await Promise.all([db.from('capabilities').select('id,slug,name,capability_type,is_active').eq('is_active',true).order('capability_type').order('sort_order').limit(500),db.from('project_capabilities').select('capability_id,importance,evidence_expected').eq('project_id',projectId)]);if(allError)throw allError;if(selectedError)throw selectedError;return NextResponse.json({items:all||[],selected:selected||[]});}
+  if(projectId){const {data,error}=await db.from('capability_path_projects').select('path_id,project_id,stage_id,position,competency_focus,capability_built,placement_type').eq('project_id',projectId).order('position');if(error)throw error;const pathIds=[...new Set((data||[]).map(item=>String(item.path_id)))];const {data:paths}=pathIds.length?await db.from('capability_paths').select('id,name,slug,status').in('id',pathIds):{data:[]};const stageIds=[...new Set((data||[]).map(item=>String(item.stage_id)))];const {data:stages}=stageIds.length?await db.from('capability_path_stages').select('id,name').in('id',stageIds):{data:[]};return NextResponse.json({items:(data||[]).map(item=>({...item,path:(paths||[]).find(path=>path.id===item.path_id)||null,stage:(stages||[]).find(stage=>stage.id===item.stage_id)||null}))});}
+  const id=text(url.searchParams.get('id'));if(id){const item=await detail(db,id);return item?NextResponse.json({item}):NextResponse.json({error:'Capability Path not found.'},{status:404});}
+  const page=Math.max(1,Number(url.searchParams.get('page'))||1),pageSize=Math.min(100,Math.max(1,Number(url.searchParams.get('page_size'))||25)),status=text(url.searchParams.get('status')),q=text(url.searchParams.get('q')).replaceAll('%',''),sort=text(url.searchParams.get('sort'))||'updated';
+  let query=db.from('capability_paths').select('id,slug,name,target_role,target_outcome,status,sort_order,published_at,archived_at,created_at,updated_at',{count:'exact'});if(status&&status!=='all')query=query.eq('status',status);if(q)query=query.or(`name.ilike.%${q}%,target_role.ilike.%${q}%,target_outcome.ilike.%${q}%,slug.ilike.%${q}%`);query=sort==='name'?query.order('name'):sort==='status'?query.order('status').order('name'):query.order('updated_at',{ascending:false});const from=(page-1)*pageSize,{data:paths,count,error}=await query.range(from,from+pageSize-1);if(error)throw error;const pathIds=(paths||[]).map(path=>String(path.id));const [{data:stages},{data:placements}]=pathIds.length?await Promise.all([db.from('capability_path_stages').select('path_id,id').in('path_id',pathIds),db.from('capability_path_projects').select('path_id,project_id').in('path_id',pathIds)]):[{data:[]},{data:[]}];
+  return NextResponse.json({items:(paths||[]).map(path=>({...path,stage_count:(stages||[]).filter(stage=>stage.path_id===path.id).length,project_count:(placements||[]).filter(item=>item.path_id===path.id).length})),page,page_size:pageSize,total:count||0});
+}catch(error){console.error(error);return NextResponse.json({error:'Unable to load Capability Paths.'},{status:500})}}
+
+export async function POST(request:Request){try{
+  const user=await admin();if(!user)return NextResponse.json({error:'Admin access required.'},{status:403});
+  const db=serviceDb();if(!db)return NextResponse.json({error:'Admin database is not configured.'},{status:503});
+  const body=await request.json() as Record<string,unknown>;const name=text(body.name),targetRole=text(body.target_role),targetOutcome=text(body.target_outcome);if(!name||!targetRole||!targetOutcome)return NextResponse.json({error:'Path name, target role and target outcome are required.'},{status:400});const slug=slugify(text(body.slug)||name);if(!slug)return NextResponse.json({error:'Enter a valid Path name or slug.'},{status:400});const {data:existing}=await db.from('capability_paths').select('id').eq('slug',slug).maybeSingle();if(existing)return NextResponse.json({error:'That Capability Path slug is already in use.'},{status:409});const now=new Date().toISOString();const {data:item,error}=await db.from('capability_paths').insert({name,slug,target_role:targetRole,target_outcome:targetOutcome,short_description:text(body.short_description)||null,description:text(body.description)||null,progression_summary:text(body.progression_summary)||null,sort_order:Number(body.sort_order)||100,status:'draft',created_by:user.id,updated_by:user.id,updated_at:now}).select('*').single();if(error)throw error;await lifecycleEvent(db,String(item.id),'created',user.id);return NextResponse.json({ok:true,item:{...item,stages:[],placements:[]}},{status:201});
+}catch(error:unknown){console.error(error);const code=typeof error==='object'&&error&&'code'in error?String((error as {code?:unknown}).code):'';if(code==='23505')return NextResponse.json({error:'A Path with that name or slug already exists.'},{status:409});return NextResponse.json({error:'Unable to create Capability Path.'},{status:500})}}
+
+export async function PUT(request:Request){try{
+  const user=await admin();if(!user)return NextResponse.json({error:'Admin access required.'},{status:403});
+  const db=serviceDb();if(!db)return NextResponse.json({error:'Admin database is not configured.'},{status:503});
+  const body=await request.json() as {id?:unknown;stages?:StageInput[];placements?:PlacementInput[]};const id=text(body.id);if(!id)return NextResponse.json({error:'Capability Path ID is required.'},{status:400});const current=await detail(db,id);if(!current)return NextResponse.json({error:'Capability Path not found.'},{status:404});if(current.status!=='draft')return NextResponse.json({error:'Published and archived Paths are read-only. Restore or move the Path to Draft before changing stages or project placements.'},{status:409});
+  const oldSlugById=new Map<string,string>(current.stages.map(stage=>[stage.id,stage.slug]));const renamedSlugs=new Map<string,string>();
+  const stages=Array.isArray(body.stages)?body.stages.map((stage,index)=>{const slug=slugify(text(stage.slug||stage.name));const stageId=text(stage.id),oldSlug=oldSlugById.get(stageId);if(oldSlug&&oldSlug!==slug)renamedSlugs.set(oldSlug,slug);return{id:stageId,slug,name:text(stage.name),description:text(stage.description),position:Number(stage.position)||index+1}}):[];
+  const placements=Array.isArray(body.placements)?body.placements.map((item,index)=>{const oldStageSlug=slugify(text(item.stage_slug));return{project_id:text(item.project_id),stage_slug:renamedSlugs.get(oldStageSlug)||oldStageSlug,position:Number(item.position)||index+1,competency_focus:text(item.competency_focus),capability_built:text(item.capability_built),prerequisite_project_id:text(item.prerequisite_project_id),prerequisite_mode:['recommended','required'].includes(text(item.prerequisite_mode))?text(item.prerequisite_mode):'recommended',path_outcome:text(item.path_outcome),placement_type:['recommended','required','optional'].includes(text(item.placement_type))?text(item.placement_type):'recommended'}}):[];
+  const validation=validateStructure(stages,placements);if(validation.length)return NextResponse.json({error:validation.join(' ')},{status:409});const {error}=await db.rpc('admin_replace_capability_path_structure',{p_path_id:id,p_stages:stages,p_placements:placements});if(error)throw error;await db.from('capability_paths').update({updated_at:new Date().toISOString(),updated_by:user.id}).eq('id',id);return NextResponse.json({ok:true,item:await detail(db,id)});
+}catch(error:unknown){console.error(error);const message=error instanceof Error?error.message:'Unable to save Path structure.';return NextResponse.json({error:message},{status:500})}}
+
+export async function PATCH(request:Request){try{
+  const user=await admin();if(!user)return NextResponse.json({error:'Admin access required.'},{status:403});
+  const db=serviceDb();if(!db)return NextResponse.json({error:'Admin database is not configured.'},{status:503});
+  const body=await request.json() as Record<string,unknown>;const action=text(body.action)||'save';
+  if(action==='set-project-capabilities'){const projectId=text(body.project_id);const ids=Array.isArray(body.capability_ids)?body.capability_ids.map(value=>text(value)).filter(Boolean):[];if(!projectId)return NextResponse.json({error:'Project ID is required.'},{status:400});const {error}=await db.rpc('admin_replace_project_capabilities',{p_project_id:projectId,p_capability_ids:ids});if(error)throw error;return NextResponse.json({ok:true});}
+  const id=text(body.id);const current=await detail(db,id);if(!current)return NextResponse.json({error:'Capability Path not found.'},{status:404});const now=new Date().toISOString();
+  if(action==='archive'){if(current.status==='archived')return NextResponse.json({ok:true,item:current});const {error}=await db.from('capability_paths').update({status:'archived',archived_at:now,archived_by:user.id,updated_at:now,updated_by:user.id}).eq('id',id);if(error)throw error;await lifecycleEvent(db,id,'archived',user.id,{previous_status:current.status});return NextResponse.json({ok:true,item:await detail(db,id)});}
+  if(action==='restore'){if(current.status!=='archived')return NextResponse.json({error:'Only archived Paths can be restored.'},{status:409});const {error}=await db.from('capability_paths').update({status:'draft',restored_at:now,restored_by:user.id,updated_at:now,updated_by:user.id}).eq('id',id);if(error)throw error;await lifecycleEvent(db,id,'restored',user.id,{archived_at:current.archived_at,archived_by:current.archived_by});return NextResponse.json({ok:true,item:await detail(db,id)});}
+  if(action==='edit-draft'){if(current.status!=='published')return NextResponse.json({error:'Only a published Path can be moved back to Draft for editing.'},{status:409});const {error}=await db.from('capability_paths').update({status:'draft',updated_at:now,updated_by:user.id}).eq('id',id);if(error)throw error;await lifecycleEvent(db,id,'moved_to_draft',user.id,{published_at:current.published_at});return NextResponse.json({ok:true,item:await detail(db,id)});}
+  if(current.status!=='draft')return NextResponse.json({error:'Published and archived Paths are read-only. Move the Path to Draft before editing its content.'},{status:409});
+  const nextSlug=slugify(text(body.slug||current.slug));const patch:Record<string,unknown>={name:text(body.name||current.name),slug:nextSlug,target_role:text(body.target_role||current.target_role),target_outcome:text(body.target_outcome||current.target_outcome),short_description:text(body.short_description)||null,description:text(body.description)||null,progression_summary:text(body.progression_summary)||null,sort_order:Number(body.sort_order)||100,updated_at:now,updated_by:user.id};
+  if(!text(patch.name)||!text(patch.slug)||!text(patch.target_role)||!text(patch.target_outcome))return NextResponse.json({error:'Path name, slug, target role and target outcome are required.'},{status:400});
+  if(action==='publish'){const structureErrors=validateStructure(current.stages,current.placements.map(item=>({...item,stage_slug:current.stages.find(stage=>stage.id===item.stage_id)?.slug||''})));if(!current.placements.length)structureErrors.push('Add at least one project placement before publishing.');if(structureErrors.length)return NextResponse.json({error:`Complete the Path before publishing: ${[...new Set(structureErrors)].join(' ')}`},{status:409});Object.assign(patch,{status:'published',published_at:now,published_by:user.id});}
+  const {error}=await db.from('capability_paths').update(patch).eq('id',id);if(error)throw error;if(action==='publish')await lifecycleEvent(db,id,'published',user.id);return NextResponse.json({ok:true,item:await detail(db,id)});
+}catch(error:unknown){console.error(error);const code=typeof error==='object'&&error&&'code'in error?String((error as {code?:unknown}).code):'';if(code==='23505')return NextResponse.json({error:'A Path with that name or slug already exists.'},{status:409});return NextResponse.json({error:error instanceof Error?error.message:'Unable to update Capability Path.'},{status:500})}}

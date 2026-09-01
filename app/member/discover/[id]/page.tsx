@@ -1,6 +1,7 @@
 import {notFound,redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
+import {loadProjectRoleUsage} from '@/lib/project-role-capacity';
 import {calculateMemberReadiness} from '@/lib/member-readiness';
 import {memberProjectPrimaryAction,memberProjectStateCopy,memberProjectStateLabel,resolveMemberProjectState} from '@/lib/member-project-journey';
 import MemberProjectDetailClient from '@/components/MemberProjectDetailClient';
@@ -29,8 +30,8 @@ export default async function MemberProjectDetailPage({params}:{params:Promise<{
   const profile=profileResult.data as Record<string,unknown>|null;
   const memberReadiness=calculateMemberReadiness({profile:profile||{},domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0});
   const applicationReady=memberReadiness.applicationReadiness.ready;
-  const roles=project.project_roles||[];const db=serviceDb();let availabilityKnown=false;const filled=new Map<string,number>();
-  if(db&&roles.length){const result=await db.from('project_members').select('project_role_id').eq('project_id',id).in('membership_status',['waiting','active']);if(!result.error){for(const row of result.data||[]){if(row.project_role_id)filled.set(row.project_role_id,(filled.get(row.project_role_id)||0)+1)}availabilityKnown=true}else console.error('member detail role capacity lookup failed',result.error)}else if(db)availabilityKnown=true;
+  const roles=project.project_roles||[];const db=serviceDb();let availabilityKnown=false;let filled=new Map<string,number>();
+  if(db){const usage=await loadProjectRoleUsage(db,id,project.project_type);availabilityKnown=usage.known;filled=usage.filled;if(!usage.known)console.error('member detail role capacity lookup failed')}
   const availableRoles=roles.filter(role=>availabilityKnown?((filled.get(role.id)||0)<role.openings):false);const run=membership?.project_runs||null;
   const state=resolveMemberProjectState({project,application,membership,run,applicationReady,hasAvailableRole:availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
   const displayRoles=roles.map(role=>{const used=filled.get(role.id)||0;return{id:role.id,title:role.title,description:role.description,skills:role.skills||[],openings:role.openings,remaining:availabilityKnown?Math.max(0,role.openings-used):null,available:availabilityKnown&&used<role.openings}});

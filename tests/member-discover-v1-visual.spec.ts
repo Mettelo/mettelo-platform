@@ -48,13 +48,13 @@ test('Discover and member project detail preserve the approved responsive intern
   }
 });
 
-test('all signed-in public project entry points converge into My Mettelo Discover',async({page})=>{
+test('member Discover links stay internal while signed-in public Projects routes remain public',async({page})=>{
   test.setTimeout(120_000);await signIn(page);
   await page.goto('/member/applications',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'Applications'})).toBeVisible();
   const discoverLinks=page.getByRole('link',{name:'Discover projects'});const discoverCount=await discoverLinks.count();expect(discoverCount).toBeGreaterThan(0);
   for(let index=0;index<discoverCount;index+=1){await page.goto('/member/applications',{waitUntil:'networkidle'});await page.getByRole('link',{name:'Discover projects'}).nth(index).click();await page.waitForURL(url=>url.pathname==='/member/discover',{timeout:20_000});await expect(page.getByRole('heading',{level:1,name:'Discover projects'})).toBeVisible()}
-  await page.goto('/projects',{waitUntil:'networkidle'});await page.waitForURL(url=>url.pathname==='/member/discover',{timeout:20_000});
-  await page.goto(`/projects/${projectId}`,{waitUntil:'networkidle'});await page.waitForURL(url=>url.pathname===`/member/discover/${projectId}`,{timeout:20_000});await expect(page.getByText('MEMBER PROJECT DETAIL',{exact:true})).toBeVisible();
+  await page.goto('/projects',{waitUntil:'networkidle'});expect(new URL(page.url()).pathname).toBe('/projects');
+  await page.goto(`/projects/${projectId}`,{waitUntil:'networkidle'});expect(new URL(page.url()).pathname).toBe(`/projects/${projectId}`);await expect(page.getByRole('heading',{level:1,name:title})).toBeVisible();
 });
 
 test('signed-out project catalogue and detail remain public, then Apply preserves intent into the member flow',async({page})=>{

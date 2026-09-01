@@ -52,9 +52,9 @@ export async function middleware(request:NextRequest){
     return rememberIntent(NextResponse.next(),request,intent);
   }
   const architectEntry=pathname==='/project-architect';
-  const memberCatalogueEntry=pathname==='/projects';
+  const publicProjectsCatalogue=pathname==='/projects';
   const memberPublicProjectId=publicProjectId(pathname);
-  const publicProjectEntry=memberCatalogueEntry||Boolean(memberPublicProjectId);
+  const publicProjectEntry=publicProjectsCatalogue||Boolean(memberPublicProjectId);
   const adminPage=pathname.startsWith('/admin');
   const adminApi=pathname.startsWith('/api/admin');
   const protectedPath=pathname.startsWith('/member')||adminPage||adminApi||architectEntry||publicProjectEntry;
@@ -81,7 +81,9 @@ export async function middleware(request:NextRequest){
     if(adminApi)return preserveAuthCookies(response,adminApiError('Authentication required.',401));
     const target=redirectTarget(request);target.pathname='/signin';const requested=`${pathname}${request.nextUrl.search}`;target.searchParams.set('next',architectEntry?'/member/project-architect':requested);return preserveAuthCookies(response,NextResponse.redirect(target));
   }
-  if(memberCatalogueEntry)return loopbackSafePageRedirect(request,response,'/member/discover','Redirecting to My Mettelo Discover');
+  // The global Projects navigation is intentionally public for signed-in and signed-out users.
+  // Member-specific discovery remains available at /member/discover.
+  if(publicProjectsCatalogue)return response;
   if(memberPublicProjectId)return loopbackSafePageRedirect(request,response,`/member/discover/${memberPublicProjectId}`,'Redirecting to My Mettelo project');
   if(architectEntry){const target=redirectTarget(request);target.pathname='/member/project-architect';target.search='';return preserveAuthCookies(response,NextResponse.redirect(target))}
   if(adminPage||adminApi){

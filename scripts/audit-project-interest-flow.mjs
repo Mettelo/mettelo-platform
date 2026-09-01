@@ -18,7 +18,7 @@ expect('components/MemberDiscoverCatalogue.tsx',['Search projects, skills or top
 // Member Project Detail is the authenticated decision surface and consumes canonical application readiness.
 expect('app/member/discover/[id]/page.tsx',[".in('visibility',['public','members'])",'calculateMemberReadiness','applicationReadiness.ready','applicationReadiness.missing','project_members','role capacity lookup','resolveMemberProjectState']);
 forbid('app/member/discover/[id]/page.tsx',['PROFILE_APPLICATION_READY']);
-expect('components/MemberProjectDetailClient.tsx',['MEMBER PROJECT DETAIL','Your status','OPEN PROJECT ROLES','Choose how you could contribute','What happens after applying','Track your application','Continue to Projects when confirmed','Work with your team in Mettelo Lab','View public project page']);
+expect('components/MemberProjectDetailClient.tsx',['MEMBER PROJECT DETAIL','YOUR DECISION','Ready to contribute?','08 · CHOOSE YOUR CONTRIBUTION','Open project roles','Choose the responsibility you can realistically own.','09 · WHAT HAPPENS NEXT','Your project journey','Track your application','Join Projects when confirmed','Deliver in Mettelo Lab','View public project page']);
 forbid('components/MemberProjectDetailClient.tsx',['Careers role','Open Mettelo Lab']);
 
 // The member form owns role/review/submit and uses the same canonical application readiness result.

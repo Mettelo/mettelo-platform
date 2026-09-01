@@ -146,11 +146,11 @@ test.describe('recursive public responsive coverage',()=>{
       expect(response?.status()).toBeLessThan(400);
       await expectNoHorizontalOverflow(page,projectPath!);
       await expectNoUnexpectedViewportEscape(page,projectPath!);
-      const grid=page.locator('.projectDetailGridV2');
+      const grid=page.locator('.ppv2Layout');
       await expect(grid).toBeVisible();
       const gridColumns=await grid.evaluate(element=>getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length);
       expect(gridColumns,`project detail should use one content column at ${viewport.width}x${viewport.height}`).toBe(1);
-      const side=await page.locator('.projectDetailSideV2').boundingBox();
+      const side=await page.locator('.ppv2Side').boundingBox();
       if(side)expect(side.width).toBeLessThanOrEqual(viewport.width);
     }
   });

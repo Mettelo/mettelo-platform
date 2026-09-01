@@ -37,7 +37,7 @@ export default function MemberCapabilityPathFilters({paths,selectedPath,selected
         </div>
         <div className="mcpfActions">
           <button type="submit">Apply Path</button>
-          {(selectedPath||selectedStage)&&<a href="/member/discover">Clear Path</a>}
+          {(selectedPath||selectedStage)&&<a href="/member/discover">Clear Path filters</a>}
         </div>
       </form>
     </details>

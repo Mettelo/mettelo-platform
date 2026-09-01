@@ -44,7 +44,7 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
     </div>
     <aside className="ppv2Side"><section className="ppv2SideCard"><div className="ppv2Eyebrow">PROJECT SUMMARY</div><dl><div><dt>Status</dt><dd>{statusLabel}</dd></div><div><dt>Working model</dt><dd>{workingModel}</dd></div><div><dt>Team size</dt><dd>{project.team_size_threshold?`${project.team_size_threshold} members`:'Not published'}</dd></div></dl><Link className="ppv2Button ppv2Primary" href={decisionHref}>{canApply?'Apply for a role':'Open in My Mettelo'}</Link></section></aside></main>
 
-    <style jsx global>{styles}</style>
+    <style>{styles}</style>
   </div>;
 }
 

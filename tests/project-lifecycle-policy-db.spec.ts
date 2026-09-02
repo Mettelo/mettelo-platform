@@ -43,7 +43,7 @@ test('project lifecycle database invariants fail closed and future imports becom
     await db.from('projects').delete().in('id',[openProjectId,partnerProjectId,importedProjectId]);
 
     const {error:openProjectError}=await db.from('projects').insert({
-      id:openProjectId,slug:'e2e-continuous-open-project',title:'E2E Continuous Open Project',summary:'Disposable lifecycle reliability project.',problem_statement:'Prove lifecycle and capacity invariants.',status:'draft',visibility:'private',project_type:'open',applications_open:false,team_size_threshold:3,project_type_review_required:false
+      id:openProjectId,slug:'e2e-continuous-open-project',title:'E2E Continuous Open Project',summary:'Disposable lifecycle project used to verify continuous cohort publication rules.',problem_statement:'Prove lifecycle and capacity invariants.',status:'draft',visibility:'private',project_type:'open',applications_open:false,team_size_threshold:3,project_type_review_required:false
     });
     await noError(openProjectError,'create open project');
 
@@ -97,7 +97,7 @@ test('project lifecycle database invariants fail closed and future imports becom
     expect(archiveLiveError,'live team cannot be archived').not.toBeNull();
 
     const {error:partnerError}=await db.from('projects').insert({
-      id:partnerProjectId,slug:'e2e-single-partner-project',title:'E2E Partner Project',summary:'Disposable partner lifecycle project.',problem_statement:'Prove single-engagement invariants.',status:'draft',visibility:'private',project_type:'partner',partner_name:'E2E Partner',applications_open:false,team_size_threshold:2,project_type_review_required:false
+      id:partnerProjectId,slug:'e2e-single-partner-project',title:'E2E Partner Project',summary:'Disposable partner lifecycle project used to verify single-engagement publication rules.',problem_statement:'Prove single-engagement invariants.',status:'draft',visibility:'private',project_type:'partner',partner_name:'E2E Partner',applications_open:false,team_size_threshold:2,project_type_review_required:false
     });
     await noError(partnerError,'create partner project');
     const {error:partnerRoleError}=await db.from('project_roles').insert({id:partnerRoleId,project_id:partnerProjectId,title:'Partner Project Contributor',openings:2,skills:[]});

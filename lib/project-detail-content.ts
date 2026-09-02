@@ -94,14 +94,12 @@ type PlacementRow={
   path_outcome:string|null;
 };
 
-type ProviderRow={name:unknown;logo_asset_path:unknown};
 type DataSourceRow={
   id:unknown;
   name:unknown;
   description:unknown;
   source_type:unknown;
   provider_name:unknown;
-  provider:ProviderRow|ProviderRow[]|null;
   licence_name:unknown;
   required_subset:unknown;
   approximate_size:unknown;
@@ -145,7 +143,7 @@ export async function getProjectDetailContent(projectId:string):Promise<ProjectD
 
   const [deliverablesResult,dataSourcesResult,successCriteriaResult,capabilitiesResult,placementsResult,originResult]=await Promise.all([
     db.from('project_deliverables').select('id,title,deliverable_type,acceptance_criteria,public_summary,expected_format,is_required,status,sort_order').eq('project_id',projectId).is('project_run_id',null).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
-    db.from('project_data_sources').select('id,name,description,source_type,provider_name,provider:project_resource_providers(name,logo_asset_path),licence_name,required_subset,approximate_size,data_period,data_format,known_limitations,provenance,sensitivity,publish_policy,governance_status,governance_verified_at,retention_policy').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
+    db.from('project_data_sources').select('id,name,description,source_type,provider_name,licence_name,required_subset,approximate_size,data_period,data_format,known_limitations,provenance,sensitivity,publish_policy,governance_status,governance_verified_at,retention_policy').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
     db.from('project_success_criteria').select('id,title,description,measurement,is_required,visibility,sort_order').eq('project_id',projectId).eq('visibility','public').order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
     db.from('project_capabilities').select('importance,evidence_expected,capabilities(name,capability_type)').eq('project_id',projectId),
     db.from('capability_path_projects').select('path_id,stage_id,position,competency_focus,capability_built,path_outcome').eq('project_id',projectId).order('position',{ascending:true}),
@@ -158,30 +156,27 @@ export async function getProjectDetailContent(projectId:string):Promise<ProjectD
 
   const dataSources=((dataSourcesResult.data||[]) as unknown as DataSourceRow[])
     .filter(publicDataSource)
-    .map(row=>{
-      const provider=oneRelation(row.provider);
-      return{
-        id:String(row.id),
-        name:String(row.name),
-        description:text(row.description),
-        sourceType:text(row.source_type),
-        externalUrl:null,
-        providerName:text(provider?.name)||text(row.provider_name),
-        providerUrl:null,
-        providerLogoAssetPath:text(provider?.logo_asset_path),
-        licenceName:text(row.licence_name),
-        licenceUrl:null,
-        requiredSubset:text(row.required_subset),
-        approximateSize:text(row.approximate_size),
-        dataPeriod:text(row.data_period),
-        dataFormat:text(row.data_format),
-        knownLimitations:text(row.known_limitations),
-        provenance:text(row.provenance),
-        governanceStatus:text(row.governance_status),
-        governanceVerifiedAt:text(row.governance_verified_at),
-        retentionPolicy:text(row.retention_policy)
-      };
-    });
+    .map(row=>({
+      id:String(row.id),
+      name:String(row.name),
+      description:text(row.description),
+      sourceType:text(row.source_type),
+      externalUrl:null,
+      providerName:text(row.provider_name),
+      providerUrl:null,
+      providerLogoAssetPath:null,
+      licenceName:text(row.licence_name),
+      licenceUrl:null,
+      requiredSubset:text(row.required_subset),
+      approximateSize:text(row.approximate_size),
+      dataPeriod:text(row.data_period),
+      dataFormat:text(row.data_format),
+      knownLimitations:text(row.known_limitations),
+      provenance:text(row.provenance),
+      governanceStatus:text(row.governance_status),
+      governanceVerifiedAt:text(row.governance_verified_at),
+      retentionPolicy:text(row.retention_policy)
+    }));
 
   const successCriteria=(successCriteriaResult.data||[]).map(row=>({id:String(row.id),title:String(row.title),description:text(row.description),measurement:text(row.measurement),isRequired:Boolean(row.is_required)}));
 

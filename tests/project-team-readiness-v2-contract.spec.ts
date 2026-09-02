@@ -30,6 +30,15 @@ test.describe('Project Experience V2 team formation contract',()=>{
     expect(readiness).not.toContain('current_job_title');
   });
 
+  test('concurrent approvals have one automatic lead-assignment winner',()=>{
+    const readiness=read('lib/project-team-readiness.ts');
+    expect(readiness).toContain(".eq('team_role','contributor')");
+    expect(readiness).toContain(".select('id')");
+    expect(readiness).toContain('if(assigned){');
+    expect(readiness).toContain('A concurrent approval may have completed the same deterministic lead');
+    expect(readiness).toContain(".eq('team_role','project_lead')");
+  });
+
   test('open cohorts start on readiness rather than headcount alone',()=>{
     const route=read('app/api/admin/applications/route.ts');
     expect(route).toContain('assessProjectTeamReadiness');

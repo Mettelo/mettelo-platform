@@ -9,7 +9,7 @@ test.describe('Public Projects Filters V2',()=>{
   test('public catalogue uses the shared governed engine and public-only data boundary',()=>{
     const page=read('app/projects/page.tsx');
     const engine=read('lib/project-catalogue-filtering.ts');
-    expect(page).toContain("from('@/lib/project-catalogue-filtering')");
+    expect(page).toContain("from '@/lib/project-catalogue-filtering'");
     expect(page).toContain(".eq('visibility','public')");
     expect(page).toContain('filterAndSortProjectCatalogue(catalogueItems,filters)');
     expect(page).toContain('const PUBLIC_PAGE_SIZE=12');
@@ -39,23 +39,23 @@ test.describe('Public Projects Filters V2',()=>{
     await page.goto('/projects#projects',{waitUntil:'networkidle'});
     const trigger=page.getByRole('button',{name:/Filters ·/});
     await expect(trigger).toBeVisible();
-    const sort=page.getByLabel('Sort');
+    const sort=page.getByLabel('Sort',{exact:true});
     await expect(sort).toBeVisible();
     await expect(sort.locator('option')).toHaveText(['Recently added','Closing soon','Shortest duration','Longest duration']);
     await trigger.click();
     const dialog=page.getByRole('dialog',{name:'Filter projects'});
     await expect(dialog).toBeVisible();
-    await expect(page.getByLabel('Role')).toBeVisible();
-    await expect(page.getByLabel('Skill / capability')).toBeVisible();
-    await expect(page.getByLabel('Domain')).toBeVisible();
-    await expect(page.getByLabel('Tool / technology')).toBeVisible();
-    await expect(page.getByLabel('Project type')).toBeVisible();
-    await expect(page.getByLabel('Working model')).toBeVisible();
-    await expect(page.getByLabel('Commitment')).toBeVisible();
-    await expect(page.getByLabel('Duration')).toBeVisible();
-    await expect(page.getByLabel('Project stage')).toBeVisible();
-    await expect(page.getByLabel('Capability Path')).toBeVisible();
-    await expect(page.getByLabel('Close project filters')).toBeFocused();
+    await expect(page.getByLabel('Role',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Skill / capability',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Domain',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Tool / technology',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Project type',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Working model',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Commitment',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Duration',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Project stage',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Capability Path',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Close project filters',{exact:true})).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
     await expect(trigger).toBeFocused();
@@ -66,7 +66,7 @@ test.describe('Public Projects Filters V2',()=>{
   test('valid public filter state is URL-driven and survives refresh',async({page})=>{
     await page.goto('/projects#projects',{waitUntil:'networkidle'});
     await page.getByRole('button',{name:/Filters ·/}).click();
-    const domain=page.getByLabel('Domain');
+    const domain=page.getByLabel('Domain',{exact:true});
     const options=await domain.locator('option').evaluateAll(nodes=>nodes.map(node=>({value:(node as HTMLOptionElement).value,text:node.textContent||''})).filter(item=>item.value&&item.value!=='all'));
     test.skip(options.length===0,'No public domain facets are available in this fixture.');
     await domain.selectOption(options[0].value);
@@ -75,7 +75,7 @@ test.describe('Public Projects Filters V2',()=>{
     await page.reload({waitUntil:'networkidle'});
     await expect(page.getByRole('button',{name:/Filters · [1-9]/})).toBeVisible();
     await page.getByRole('button',{name:/Filters ·/}).click();
-    await expect(page.getByLabel('Domain')).toHaveValue(options[0].value);
+    await expect(page.getByLabel('Domain',{exact:true})).toHaveValue(options[0].value);
   });
 
   test('public filter UI reflows at supported phone/tablet widths and 200 percent text',async({page})=>{

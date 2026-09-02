@@ -5,6 +5,11 @@ import path from 'node:path';
 const root=process.cwd();
 function read(relative:string){return fs.readFileSync(path.join(root,relative),'utf8')}
 
+async function expectVisibleNativeLabelledSelect(control:ReturnType<import('@playwright/test').Page['locator']>){
+  await expect(control).toBeVisible();
+  expect(await control.evaluate(element=>Boolean((element as HTMLSelectElement).labels?.length))).toBe(true);
+}
+
 test.describe('Public Projects Filters V2',()=>{
   test('public catalogue uses the shared governed engine and public-only data boundary',()=>{
     const page=read('app/projects/page.tsx');
@@ -39,22 +44,16 @@ test.describe('Public Projects Filters V2',()=>{
     await page.goto('/projects#projects',{waitUntil:'networkidle'});
     const trigger=page.getByRole('button',{name:/Filters ·/});
     await expect(trigger).toBeVisible();
-    const sort=page.getByLabel('Sort',{exact:true});
-    await expect(sort).toBeVisible();
+    const sort=page.locator('.publicSortControl select[name="sort"]');
+    await expectVisibleNativeLabelledSelect(sort);
     await expect(sort.locator('option')).toHaveText(['Recently added','Closing soon','Shortest duration','Longest duration']);
     await trigger.click();
     const dialog=page.getByRole('dialog',{name:'Filter projects'});
     await expect(dialog).toBeVisible();
-    await expect(page.getByLabel('Role',{exact:true})).toBeVisible();
-    await expect(page.getByLabel('Skill / capability',{exact:true})).toBeVisible();
-    await expect(page.getByLabel('Domain',{exact:true})).toBeVisible();
-    await expect(page.getByLabel('Tool / technology',{exact:true})).toBeVisible();
-    await expect(page.getByLabel('Project type',{exact:true})).toBeVisible();
-    await expect(page.getByLabel('Working model',{exact:true})).toBeVisible();
-    await expect(page.getByLabel('Commitment',{exact:true})).toBeVisible();
-    await expect(page.getByLabel('Duration',{exact:true})).toBeVisible();
-    await expect(page.getByLabel('Project stage',{exact:true})).toBeVisible();
-    await expect(page.getByLabel('Capability Path',{exact:true})).toBeVisible();
+    for(const name of ['role','domain','tool','type','working','commitment','duration','stage','path']){
+      await expectVisibleNativeLabelledSelect(dialog.locator(`select[name="${name}"]`));
+    }
+    await expect(dialog.getByRole('combobox',{name:'Skill / capability'})).toBeVisible();
     await expect(page.getByLabel('Close project filters',{exact:true})).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
@@ -66,7 +65,8 @@ test.describe('Public Projects Filters V2',()=>{
   test('valid public filter state is URL-driven and survives refresh',async({page})=>{
     await page.goto('/projects#projects',{waitUntil:'networkidle'});
     await page.getByRole('button',{name:/Filters ·/}).click();
-    const domain=page.getByLabel('Domain',{exact:true});
+    const dialog=page.getByRole('dialog',{name:'Filter projects'});
+    const domain=dialog.locator('select[name="domain"]');
     const options=await domain.locator('option').evaluateAll(nodes=>nodes.map(node=>({value:(node as HTMLOptionElement).value,text:node.textContent||''})).filter(item=>item.value&&item.value!=='all'));
     test.skip(options.length===0,'No public domain facets are available in this fixture.');
     await domain.selectOption(options[0].value);
@@ -75,7 +75,7 @@ test.describe('Public Projects Filters V2',()=>{
     await page.reload({waitUntil:'networkidle'});
     await expect(page.getByRole('button',{name:/Filters · [1-9]/})).toBeVisible();
     await page.getByRole('button',{name:/Filters ·/}).click();
-    await expect(page.getByLabel('Domain',{exact:true})).toHaveValue(options[0].value);
+    await expect(page.getByRole('dialog',{name:'Filter projects'}).locator('select[name="domain"]')).toHaveValue(options[0].value);
   });
 
   test('public filter UI reflows at supported phone/tablet widths and 200 percent text',async({page})=>{

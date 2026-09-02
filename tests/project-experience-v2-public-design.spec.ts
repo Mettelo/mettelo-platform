@@ -39,6 +39,17 @@ test.describe('Project Experience V2 advanced public Project Detail',()=>{
     expect(admin.indexOf("if(!catalogue.ok)")).toBeLessThan(admin.indexOf("status:'recruiting',visibility:'public'"));
   });
 
+  test('project detail components do not create nested main landmarks',()=>{
+    const rootLayout=read('app/layout.tsx');
+    const publicDetail=read('components/project-experience/ProjectPublicDetailV2.tsx');
+    const memberDetail=read('components/project-experience/MemberProjectDetailV2.tsx');
+    expect(rootLayout).toContain('<main id="main-content">');
+    expect(publicDetail).not.toContain('<main');
+    expect(memberDetail).not.toContain('<main');
+    expect(publicDetail).toContain('id="project-content"');
+    expect(memberDetail).toContain('id="member-project-main"');
+  });
+
   test('the canonical public page preserves the approved decision-led information architecture',async({page})=>{
     await page.setViewportSize({width:1440,height:1000});
     await page.goto(`/projects/${projectId}`,{waitUntil:'networkidle'});

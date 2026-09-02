@@ -29,11 +29,12 @@ export type ProjectCatalogueFilters={
   workingModel:string;
   projectType:string;
   stage:string;
+  duration:string;
   sort:ProjectCatalogueSort;
 };
 
 export const DEFAULT_PROJECT_CATALOGUE_FILTERS:ProjectCatalogueFilters={
-  query:'',role:'all',capability:'all',domain:'all',tool:'all',commitment:'all',workingModel:'all',projectType:'all',stage:'all',sort:'recent'
+  query:'',role:'all',capability:'all',domain:'all',tool:'all',commitment:'all',workingModel:'all',projectType:'all',stage:'all',duration:'all',sort:'recent'
 };
 
 export function normalizeCommitment(value:string|null|undefined):CatalogueFacet|null{
@@ -51,6 +52,11 @@ export function normalizeCommitment(value:string|null|undefined):CatalogueFacet|
     return{slug:`${amount}-hours`,label:`${amount} ${Number(amount)===1?'hour':'hours'}`};
   }
   return null;
+}
+
+export function durationFacet(value:number|null|undefined):CatalogueFacet|null{
+  if(!value||value<=0)return null;
+  return{slug:`${value}-weeks`,label:`${value} ${value===1?'week':'weeks'}`};
 }
 
 export function workingModelFacet(value:string|null|undefined):CatalogueFacet|null{
@@ -91,6 +97,7 @@ export function catalogueSearchText(item:ProjectCatalogueFilterable){
     item.workingModelFacet?facetText(item.workingModelFacet):'',
     item.projectTypeFacet?facetText(item.projectTypeFacet):'',
     item.stageFacet?facetText(item.stageFacet):'',
+    durationFacet(item.durationWeeks)?facetText(durationFacet(item.durationWeeks)!):'',
     ...(item.searchExtra||[])
   ].join(' ').toLowerCase();
 }
@@ -110,7 +117,8 @@ export function filterAndSortProjectCatalogue<T extends ProjectCatalogueFilterab
     &&hasSingle(item.commitmentFacet,filters.commitment)
     &&hasSingle(item.workingModelFacet,filters.workingModel)
     &&hasSingle(item.projectTypeFacet,filters.projectType)
-    &&hasSingle(item.stageFacet,filters.stage));
+    &&hasSingle(item.stageFacet,filters.stage)
+    &&hasSingle(durationFacet(item.durationWeeks),filters.duration));
 
   return[...filtered].sort((a,b)=>{
     if(filters.sort==='closing'){
@@ -143,6 +151,10 @@ export function catalogueSingleFacetOptions(projects:ProjectCatalogueFilterable[
   return[...map.values()].sort((a,b)=>a.label.localeCompare(b.label));
 }
 
+export function catalogueDurationOptions(projects:ProjectCatalogueFilterable[]){
+  return[...new Set(projects.map(item=>item.durationWeeks).filter((value):value is number=>Boolean(value&&value>0)))].sort((a,b)=>a-b).map(value=>durationFacet(value)!);
+}
+
 export function activeProjectCatalogueFilterCount(filters:ProjectCatalogueFilters){
-  return[filters.role,filters.capability,filters.domain,filters.tool,filters.commitment,filters.workingModel,filters.projectType,filters.stage].filter(value=>value!=='all').length;
+  return[filters.role,filters.capability,filters.domain,filters.tool,filters.commitment,filters.workingModel,filters.projectType,filters.stage,filters.duration].filter(value=>value!=='all').length;
 }

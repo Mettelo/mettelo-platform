@@ -317,7 +317,6 @@ def match_record(record: dict[str, Any], idxs):
 def project_payload(r: dict[str, Any], new: bool) -> dict[str, Any]:
     payload = {
         "canonical_project_key": r["project_id"],
-        "slug": r["slug"],
         "title": r["title"],
         "summary": short_title(r["objective"], 900),
         "problem_statement": r["problem_statement"],
@@ -327,7 +326,13 @@ def project_payload(r: dict[str, Any], new: bool) -> dict[str, Any]:
         "team_size_threshold": r["team_size"],
     }
     if new:
-        payload.update({"status": "draft", "visibility": "private", "project_type": "open", "applications_open": False})
+        payload.update({
+            "slug": r["slug"],
+            "status": "draft",
+            "visibility": "private",
+            "project_type": "open",
+            "applications_open": False,
+        })
     return payload
 
 
@@ -370,7 +375,7 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> s
     qid = urllib.parse.quote(project_uuid)
     existing_deliverables = api.request("GET", f"project_deliverables?select=id,title,canonical_item_key,sort_order&project_id=eq.{qid}&project_run_id=is.null") or []
     existing_criteria = api.request("GET", f"project_success_criteria?select=id,title,canonical_item_key,sort_order&project_id=eq.{qid}") or []
-    existing_roles = api.request("GET", f"project_roles?select=id,title,canonical_role_key&project_id=eq.{qid}") or []
+    existing_roles = api.request("GET", f"project_roles?select=id,title,canonical_role_key,role_status&project_id=eq.{qid}") or []
     existing_sources = api.request("GET", f"project_data_sources?select=id,name,canonical_source_key&project_id=eq.{qid}&project_run_id=is.null") or []
 
     for i, item in enumerate(r["deliverables"], 1):
@@ -421,12 +426,12 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> s
             "responsibilities": role["responsibilities"],
             "recommended_skills": role_skills,
             "weekly_commitment": r["weekly_commitment"] or None,
-            "role_status": "open",
         }
         existing = existing_child(existing_roles, "canonical_role_key", key, "title", role["name"])
         if existing:
             api.patch("project_roles", "id=eq." + urllib.parse.quote(str(existing["id"])), payload)
         else:
+            payload["role_status"] = "open"
             api.upsert("project_roles", "project_id,canonical_role_key", payload)
 
     gov = governance_status(r["preservation_class"])

@@ -30,8 +30,10 @@ test.describe('Project Experience V2 Project Architect builder contract',()=>{
     expect(page).toContain("from('project_resource_providers')");
     expect(page).toContain("from('capabilities')");
     expect(page).toContain(".eq('is_active',true)");
-    expect(form).toContain('providers={providers||[]}');
-    expect(form).toContain('capabilities={capabilities||[]}');
+    expect(page).toContain('<ArchitectProjectForm providers={providers||[]} capabilities={capabilities||[]}');
+    expect(form).toContain('type Props={providers:Provider[];capabilities:Capability[]}');
+    expect(form).toContain('providers.map(provider=>');
+    expect(form).toContain('capabilities.map(capability=>');
     expect(api).toContain("db.from('project_resource_providers').select('id').in('id',providerIds).eq('is_active',true)");
     expect(api).not.toContain("db.from('project_resource_providers').insert");
   });

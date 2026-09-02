@@ -28,7 +28,7 @@ with assessed as (
     array_remove(array[
       case when pb.project_id is null or nullif(btrim(coalesce(pb.primary_use_case,'')),'') is null then 'primary_use_case' end,
       case when pb.project_id is null or nullif(btrim(coalesce(pb.primary_objective,'')),'') is null then 'primary_objective' end,
-      case when not exists(select 1 from public.project_milestones m where m.project_id=p.id) then 'timeline' end,
+      case when not exists(select 1 from public.project_milestones m where m.project_id=p.id and m.project_run_id is null) then 'timeline' end,
       case when not exists(select 1 from public.project_capabilities pc where pc.project_id=p.id) then 'capabilities' end,
       case when not exists(select 1 from public.project_capabilities pc where pc.project_id=p.id and pc.evidence_expected) then 'evidence_expectations' end
     ],null)::text[] as quality_gaps,
@@ -56,7 +56,7 @@ with assessed as (
       case when pb.project_id is null then 'project_brief' end,
       case when not exists(select 1 from public.project_deliverables d where d.project_id=p.id and d.project_run_id is null and d.is_required) then 'deliverables' end,
       case when not exists(select 1 from public.project_success_criteria sc where sc.project_id=p.id and sc.is_required) then 'success_criteria' end,
-      case when not exists(select 1 from public.project_milestones m where m.project_id=p.id) then 'timeline' end
+      case when not exists(select 1 from public.project_milestones m where m.project_id=p.id and m.project_run_id is null) then 'timeline' end
     ],null)::text[] as lab_missing
   from public.projects p
   left join public.project_problem_briefs pb on pb.project_id=p.id

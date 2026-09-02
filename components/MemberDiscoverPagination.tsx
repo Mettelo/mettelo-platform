@@ -3,10 +3,19 @@
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 
-const PAGE_SIZE=12;
+const PAGE_SIZE=9;
+
+type PageItem=number|'ellipsis-start'|'ellipsis-end';
 
 function projectCards(grid:HTMLElement){
   return Array.from(grid.children).filter((child):child is HTMLElement=>child instanceof HTMLElement&&child.classList.contains('mdProjectCard'));
+}
+
+function pageItems(current:number,total:number):PageItem[]{
+  if(total<=7)return Array.from({length:total},(_,index)=>index+1);
+  if(current<=4)return[1,2,3,4,5,'ellipsis-end',total];
+  if(current>=total-3)return[1,'ellipsis-start',total-4,total-3,total-2,total-1,total];
+  return[1,'ellipsis-start',current-1,current,current+1,'ellipsis-end',total];
 }
 
 export default function MemberDiscoverPagination(){
@@ -74,20 +83,24 @@ export default function MemberDiscoverPagination(){
 
   const start=(page-1)*PAGE_SIZE+1;
   const end=Math.min(count,page*PAGE_SIZE);
+  const items=pageItems(page,pages);
   return createPortal(<nav className="mdDiscoverPagination" aria-label="Discover project pages">
     <button type="button" onClick={()=>go(page-1)} disabled={page===1} aria-label="Previous page">← Previous</button>
-    <span aria-live="polite"><strong>Page {page} of {pages}</strong><small>Showing {start}–{end} of {count}</small></span>
+    <div className="mdPaginationCentre">
+      <div className="mdPageNumbers" aria-label="Choose project page">
+        {items.map(item=>typeof item==='number'?<button key={item} type="button" className="mdPageNumber" onClick={()=>go(item)} aria-label={`Page ${item}`} aria-current={item===page?'page':undefined}>{item}</button>:<span className="mdPageEllipsis" key={item} aria-hidden="true">…</span>)}
+      </div>
+      <span className="mdPageSummary" aria-live="polite"><strong>Page {page} of {pages}</strong><small>Showing {start}–{end} of {count}</small></span>
+    </div>
     <button type="button" onClick={()=>go(page+1)} disabled={page===pages} aria-label="Next page">Next →</button>
     <style jsx>{`
       .mdDiscoverPagination{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;margin:18px 0 8px;padding:12px;border:1px solid #e7e1d6;border-radius:14px;background:#fcfbf7}
-      .mdDiscoverPagination button{min-width:112px;min-height:44px;padding:8px 14px;border:1px solid #c9c3b8;border-radius:10px;background:#fff;color:#10131d;font-weight:800;cursor:pointer}
+      .mdDiscoverPagination>button{min-width:112px;min-height:44px;padding:8px 14px;border:1px solid #c9c3b8;border-radius:10px;background:#fff;color:#10131d;font-weight:800;cursor:pointer}
       .mdDiscoverPagination button:hover:not(:disabled),.mdDiscoverPagination button:focus-visible:not(:disabled){background:#f7efdd;border-color:#c6892a}
       .mdDiscoverPagination button:focus-visible{outline:3px solid rgba(42,47,82,.28);outline-offset:2px}
       .mdDiscoverPagination button:disabled{opacity:.42;cursor:not-allowed}
-      .mdDiscoverPagination span{display:grid;justify-items:center;gap:2px;color:#5b6472;text-align:center}
-      .mdDiscoverPagination strong{color:#10131d;font-size:.82rem}
-      .mdDiscoverPagination small{font-size:.7rem}
-      @media(max-width:560px){.mdDiscoverPagination{grid-template-columns:1fr 1fr}.mdDiscoverPagination span{grid-column:1/-1;grid-row:1}.mdDiscoverPagination button{min-width:0;width:100%}}
+      .mdPaginationCentre{display:grid;justify-items:center;gap:7px;min-width:0}.mdPageNumbers{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap}.mdPageNumber{width:38px;min-width:38px;height:38px;border:1px solid #d1cbc0;border-radius:9px;background:#fff;color:#10131d;font-weight:800;cursor:pointer}.mdPageNumber[aria-current="page"]{background:#10131d;color:#fff;border-color:#10131d}.mdPageEllipsis{min-width:22px;text-align:center;color:#68717d;font-weight:800}.mdPageSummary{display:grid;justify-items:center;gap:2px;color:#5b6472;text-align:center}.mdPageSummary strong{color:#10131d;font-size:.82rem}.mdPageSummary small{font-size:.7rem}
+      @media(max-width:560px){.mdDiscoverPagination{grid-template-columns:1fr 1fr}.mdPaginationCentre{grid-column:1/-1;grid-row:1}.mdPageNumbers{display:none}.mdDiscoverPagination>button{min-width:0;width:100%}.mdDiscoverPagination>button:first-of-type{grid-column:1;grid-row:2}.mdDiscoverPagination>button:last-of-type{grid-column:2;grid-row:2}}
     `}</style>
   </nav>,host);
 }

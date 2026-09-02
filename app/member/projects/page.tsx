@@ -1,12 +1,13 @@
 import type {Metadata} from 'next';
 import Link from 'next/link';
 import {redirect} from 'next/navigation';
+import MemberProjectsCapabilityPathStrip from '@/components/MemberProjectsCapabilityPathStrip';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
 import {humaniseProjectValue,matchesProjectPortfolioFilter,nextPortfolioTask,projectPriority,type PortfolioTask} from '@/lib/member-projects';
 import styles from './member-projects.module.css';
 
-export const metadata:Metadata={title:'My Mettelo Projects',description:'Your cross-project Mettelo portfolio and the fastest route back into active project work.'};
+export const metadata:Metadata={title:'My Projects · My Mettelo',description:'Manage ongoing, preparing and completed Mettelo project work from one member portfolio.'};
 export const dynamic='force-dynamic';
 
 const PAGE_SIZE=6;
@@ -92,9 +93,11 @@ export default async function MyProjectsPage({searchParams}:{searchParams:Promis
 
   return <main className={styles.page} aria-labelledby="projects-title">
     <header className={styles.hero}>
-      <div><div className={styles.eyebrow}>MY WORK · PROJECTS</div><h1 id="projects-title">Projects</h1><p>Your project portfolio in one place. Resume active work, follow projects preparing to start, and revisit completed work and the verified Proof you built.</p></div>
+      <div><div className={styles.eyebrow}>MY WORK · PROJECTS</div><h1 id="projects-title">My Projects</h1><p>Manage the projects you’ve joined. Continue active work, track projects preparing to start, and revisit completed work and the Proof you built.</p></div>
       <div className={styles.heroActions}><Link className={`${styles.button} ${styles.buttonDark}`} href="/member/discover">Discover projects</Link><Link className={styles.button} href="/member/recommended">Recommended</Link></div>
     </header>
+
+    <MemberProjectsCapabilityPathStrip/>
 
     <section className={styles.summary} aria-label="Project portfolio summary">
       <article><strong>{active.length}</strong><span>Active</span><small>Project{active.length===1?'':'s'} currently in delivery</small></article>
@@ -106,17 +109,17 @@ export default async function MyProjectsPage({searchParams}:{searchParams:Promis
     <form className={styles.filters} action="/member/projects" method="get" aria-label="Project filters">
       <label><span className="srOnly">Search my projects</span><input className={styles.search} name="q" defaultValue={query} aria-label="Search my projects" placeholder="Search your projects or role"/></label>
       <div className={styles.tabs} aria-label="Project state">
-        {(['current','completed','all'] as const).map(value=><Link key={value} className={`${styles.tab} ${state===value?styles.tabActive:''}`} aria-current={state===value?'page':undefined} href={filterHref({state:value,page:'1'})}>{humaniseProjectValue(value)}</Link>)}
+        {(['current','completed','all'] as const).map(value=><Link key={value} className={`${styles.tab} ${state===value?styles.tabActive:''}`} aria-current={state===value?'page':undefined} href={filterHref({state:value,page:'1'})}>{value==='current'?'Ongoing':humaniseProjectValue(value)}</Link>)}
       </div>
       <select className={styles.select} name="role" defaultValue={role} aria-label="Filter by project role"><option value="all">All roles</option>{roles.map(value=><option value={value} key={value}>{humaniseProjectValue(value)}</option>)}</select>
       <button className={`${styles.button} ${styles.buttonDark}`} type="submit">Apply filters</button>
       <input type="hidden" name="state" value={state}/>
     </form>
 
-    {resultCount===0&&<section className={styles.empty} aria-live="polite"><h2>No matching projects</h2><p>Your current search or filters did not match this bounded portfolio view. Clear the filters to return to your current work.</p><Link className={`${styles.button} ${styles.buttonDark}`} href="/member/projects">Reset filters</Link></section>}
+    {resultCount===0&&<section className={styles.empty} aria-live="polite"><h2>No matching projects</h2><p>Your current search or filters did not match this bounded portfolio view. Clear the filters to return to your ongoing work.</p><Link className={`${styles.button} ${styles.buttonDark}`} href="/member/projects">Reset filters</Link></section>}
 
     {showCurrent&&<>
-      <section className={styles.section} aria-labelledby="current-work-title"><div className={styles.sectionHead}><div><div className={styles.eyebrow}>CURRENT WORK</div><h2 id="current-work-title">Continue where you left off</h2><p>Active work gets priority because it is the project work you can act on now.</p></div><span className={styles.count}>{filteredActive.length} active</span></div>
+      <section className={styles.section} aria-labelledby="current-work-title"><div className={styles.sectionHead}><div><div className={styles.eyebrow}>ONGOING WORK</div><h2 id="current-work-title">Continue where you left off</h2><p>Active work gets priority because it is the project work you can act on now.</p></div><span className={styles.count}>{filteredActive.length} active</span></div>
         {primary&&primaryProject?<div className={styles.activeGrid}>
           <article className={styles.activeCard}><div><span className={styles.status}>● Active</span><h3>{primaryProject.title}</h3><p>{typeLabel(primaryProject)} · {one(primary.project_runs)?.run_number?`Your team: Team ${one(primary.project_runs)?.run_number} · `:''}Your role: {humaniseProjectValue(primary.team_role)}</p><div className={styles.meta}><span>{completedTaskCount} of {primaryTasks.length} assigned tasks complete</span>{primaryNext?.blocker_reason&&<span>Blocker recorded</span>}{primaryNext?.due_at&&<span>Due {dateLabel(primaryNext.due_at)}</span>}</div><div className={styles.actions}><Link className={`${styles.button} ${styles.buttonDark}`} href={labHref(primary)}>Open Mettelo Lab →</Link></div></div><aside className={styles.upNext}><small>UP NEXT{primaryNext?.due_at?` · DUE ${dateLabel(primaryNext.due_at)?.toUpperCase()}`:''}</small><strong>{primaryNext?.title||'Continue in Mettelo Lab'}</strong><p>{primaryNext?.blocker_reason?`Blocker: ${primaryNext.blocker_reason}`:'Project execution and full task context remain inside Mettelo Lab.'}</p></aside></article>
           {filteredActive.slice(1).map(item=>{const project=one(item.projects);const itemTasks=tasksByProject.get(item.project_id)||[];const next=nextPortfolioTask(itemTasks);return <article className={styles.activeCardSecondary} key={item.id}><div><span className={styles.status}>● Active</span><h3>{project?.title}</h3><p>{humaniseProjectValue(item.team_role)}{one(item.project_runs)?.run_number?` · Team ${one(item.project_runs)?.run_number}`:''}</p>{next&&<div className={styles.meta}><span>Next: {next.title}</span>{next.due_at&&<span>Due {dateLabel(next.due_at)}</span>}</div>}</div><div className={styles.actions}><Link className={`${styles.button} ${styles.buttonDark}`} href={labHref(item)}>Open Mettelo Lab →</Link></div></article>})}
@@ -133,6 +136,6 @@ export default async function MyProjectsPage({searchParams}:{searchParams:Promis
       {totalPages>1&&<nav className={styles.pagination} aria-label="Completed project pages"><Link className={styles.button} aria-disabled={page===1} tabIndex={page===1?-1:0} href={page===1?'#':filterHref({page:String(page-1)})}>Previous</Link><span>Page {page} of {totalPages}</span><Link className={styles.button} aria-disabled={page===totalPages} tabIndex={page===totalPages?-1:0} href={page===totalPages?'#':filterHref({page:String(page+1)})}>Next</Link></nav>}
     </section>}
 
-    <section className={styles.explore} aria-labelledby="explore-title"><div><div className={styles.eyebrow}>EXPLORE & GROW</div><h2 id="explore-title">Ready for another project?</h2><p>Discover broad project opportunities or start with projects matched to your profile. These remain secondary while current work needs attention.</p></div><div className={styles.heroActions}><Link className={`${styles.button} ${styles.buttonDark}`} href="/member/discover">Discover projects</Link><Link className={styles.button} href="/member/recommended">See recommendations</Link></div></section>
+    <section className={styles.explore} aria-labelledby="explore-title"><div><div className={styles.eyebrow}>EXPLORE & GROW</div><h2 id="explore-title">Ready for another project?</h2><p>Discover broad project opportunities or start with projects matched to your profile. These remain secondary while ongoing work needs attention.</p></div><div className={styles.heroActions}><Link className={`${styles.button} ${styles.buttonDark}`} href="/member/discover">Discover projects</Link><Link className={styles.button} href="/member/recommended">See recommendations</Link></div></section>
   </main>;
 }

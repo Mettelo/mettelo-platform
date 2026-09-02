@@ -4,7 +4,7 @@ export type MemberNavGroup={label:string;items:MemberNavItem[]};
 export const memberNavGroups:MemberNavGroup[]=[
   {label:'My Work',items:[
     {label:'Home',href:'/member',description:'Priorities and progress'},
-    {label:'Projects',href:'/member/projects',description:'Your Mettelo Labs'},
+    {label:'My Projects',href:'/member/projects',description:'Ongoing and completed project work'},
     {label:'Applications',href:'/member/applications',description:'Status and team formation'},
     {label:'Proof',href:'/member/proof',description:'Verified evidence'},
     {label:'Profile',href:'/member/profile',description:'Your professional identity'}

@@ -5,6 +5,7 @@ const url=process.env.E2E_SUPABASE_URL?.trim();
 const serviceKey=process.env.E2E_SUPABASE_SERVICE_ROLE_KEY?.trim();
 const localHost=url?new URL(url).hostname:'';
 const canRun=Boolean(url&&serviceKey&&['127.0.0.1','localhost'].includes(localHost));
+function createLifecycleDb(){return createClient(url!,serviceKey!,{auth:{persistSession:false,autoRefreshToken:false}})}
 
 const openProjectId='00000000-0000-4000-8000-00000000e3e1';
 const partnerProjectId='00000000-0000-4000-8000-00000000e3e2';
@@ -19,7 +20,7 @@ const importBatchId='00000000-0000-4000-8000-00000000e3c1';
 
 async function noError(error:{message:string}|null,label:string){expect(error,`${label}: ${error?.message||''}`).toBeNull()}
 
-async function createDisposableUser(db:ReturnType<typeof createClient>,suffix:string){
+async function createDisposableUser(db:ReturnType<typeof createLifecycleDb>,suffix:string){
   const email=`lifecycle-${suffix}-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`;
   const {data,error}=await db.auth.admin.createUser({email,password:'Mettelo-E2E-Only-123!',email_confirm:true});
   await noError(error,'create disposable lifecycle user');
@@ -29,7 +30,7 @@ async function createDisposableUser(db:ReturnType<typeof createClient>,suffix:st
 
 test('project lifecycle database invariants fail closed and future imports become configuration-ready',async()=>{
   test.skip(!canRun,'Runs only against the disposable isolated Supabase release-gate database.');
-  const db=createClient(url!,serviceKey!,{auth:{persistSession:false,autoRefreshToken:false}});
+  const db=createLifecycleDb();
   const users:string[]=[];
 
   try{

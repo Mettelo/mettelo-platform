@@ -46,25 +46,31 @@ async function deleteFixture(db:SupabaseClient,projectId:string){
 
 async function insertCompleteFixture(db:SupabaseClient,projectId:string,visibility:'public'|'members'){
   const ids=await canonicalIds(db);
+  // Mirror the production lifecycle invariant: create a private closed draft, add enough
+  // role capacity and governed facets, then expose the project. Never create an
+  // application-open project before its capacity exists, and member-only projects stay closed.
   const {error:projectError}=await db.from('projects').insert({
     id:projectId,
     slug:`e2e-catalogue-ready-${projectId.slice(-4)}`,
     title:'E2E Catalogue Ready Project',
     summary:'Disposable project proving canonical catalogue metadata and readiness.',
     problem_statement:'Prove a complete governed taxonomy fixture becomes catalogue ready.',
-    status:'open',
-    visibility,
+    status:'draft',
+    visibility:'private',
     project_type:'open',
-    applications_open:true,
+    applications_open:false,
     project_type_review_required:false,
     location:'Remote',
     location_type:'remote',
     catalogue_working_model_source:'explicit',
     duration_weeks:4,
-    weekly_commitment:'3–5 hours / week'
+    weekly_commitment:'3–5 hours / week',
+    team_size_threshold:1
   });
   await expectNoError(projectError,'create complete project fixture');
 
+  const {error:projectRoleError}=await db.from('project_roles').insert({project_id:projectId,title:'Data Analyst',discipline:'Data & AI',description:'Deterministic governed catalogue fixture role.',skills:['Data Analysis'],openings:1});
+  await expectNoError(projectRoleError,'create complete project role capacity');
   const {error:familyError}=await db.from('project_role_families').insert({project_id:projectId,role_catalogue_id:ids.role.id,source:'e2e'});
   await expectNoError(familyError,'associate canonical role family');
   const {error:capabilityError}=await db.from('project_capabilities').insert(ids.capabilities.map(item=>({project_id:projectId,capability_id:item.id,importance:'core',evidence_expected:true})));
@@ -75,6 +81,9 @@ async function insertCompleteFixture(db:SupabaseClient,projectId:string,visibili
   await expectNoError(toolError,'associate canonical tool');
   const {error:methodError}=await db.from('project_methods').insert({project_id:projectId,method_id:ids.method.id});
   await expectNoError(methodError,'associate canonical method');
+
+  const {error:publishError}=await db.from('projects').update({status:'open',visibility,applications_open:visibility==='public'}).eq('id',projectId);
+  await expectNoError(publishError,'finalize complete project fixture');
 }
 
 test('Phase 1 marks a complete canonical project ready and reports an incomplete project precisely',async()=>{

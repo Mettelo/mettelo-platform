@@ -19,6 +19,20 @@ test.describe('Public project discovery filters',()=>{
     expect(migration.toLowerCase()).not.toContain('levenshtein');
   });
 
+  test('public project cards derive application state from the shared lifecycle contract',()=>{
+    const page=read('app/projects/page.tsx');
+    const availability=read('lib/project-public-availability.ts');
+    expect(page).toContain('applications_open:boolean|null');
+    expect(page).toContain('applications_open,github_url');
+    expect(page).toContain('projectAvailability(p).available');
+    expect(page).toContain('sum+Math.max(0,Number(role.openings)||0)');
+    expect(page).toContain("status==='pilot'?availabilityLabel.toUpperCase()");
+    expect(page).toContain("deadline&&p.project_type==='partner'");
+    expect(page).not.toContain("status==='pilot'?'PILOT — REGISTERING INTEREST'");
+    expect(availability).toContain("project.status==='pilot'?'Pilot · Applications open'");
+    expect(availability).toContain("project.status==='pilot'?'register_interest':'applications_closed'");
+  });
+
   test('filter surface exposes governed useful controls without dead quick/level filters',async({page})=>{
     await page.goto('/projects#projects',{waitUntil:'networkidle'});
     const panel=page.locator('.projectFilterPanel');

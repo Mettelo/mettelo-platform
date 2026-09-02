@@ -60,16 +60,22 @@ async function loadPublishedPathPositionIndex():Promise<PublishedPathPositionInd
 }
 
 export async function getPublishedPathProjectPositions(slug:string):Promise<Map<string,number>>{
- // /projects resolves every published Path at once. Deduplicate that burst into one
- // visibility-safe placements query so a larger Path catalogue cannot exhaust the
- // anonymous PostgREST pool and silently turn one Path into an empty filter result.
+ // Resolve the catalogue burst through one batched anonymous query first. In the
+ // uncommon case where that batch yields no rows for a published Path, recover
+ // from the same authoritative public Path detail resolver used by /projects/paths/[slug].
+ // This preserves pool efficiency while preventing a transient/partial batch result
+ // from hiding a canonical project that the Path detail page can already prove public.
  if(!publishedPathPositionsInFlight){
   const request=loadPublishedPathPositionIndex();
   publishedPathPositionsInFlight=request;
   request.then(()=>{if(publishedPathPositionsInFlight===request)publishedPathPositionsInFlight=null},()=>{if(publishedPathPositionsInFlight===request)publishedPathPositionsInFlight=null});
  }
  const index=await publishedPathPositionsInFlight;
- return new Map(index.get(slug)||[]);
+ const positions=index.get(slug);
+ if(positions?.size)return new Map(positions);
+ const detail=await getPublishedCapabilityPath(slug);
+ if(!detail)return new Map();
+ return new Map(detail.placements.filter(item=>Boolean(item.project)).map(item=>[item.project_id,item.position]));
 }
 
 export async function getProjectCapabilityPathPlacements(projectId:string){

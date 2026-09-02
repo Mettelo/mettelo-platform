@@ -31,6 +31,19 @@ test.describe('Public Projects Filters V2',()=>{
     expect(controls).toContain('publicFilterChip');
   });
 
+  test('public catalogue degrades to canonical project cards instead of a false outage when optional embeds fail',()=>{
+    const page=read('app/projects/page.tsx');
+    const publicClient=read('lib/supabase/public.ts');
+    expect(page).toContain("const scalarResult=await supabase.from('projects').select('id,slug,title,summary,status,project_type,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,applications_open,github_url,created_at')");
+    expect(page).toContain('if(scalarResult.error)loadError=true;else projects=');
+    expect(page).toContain('Facet relationships are useful enrichment, not catalogue availability authority.');
+    expect(publicClient).toContain('new Set([429,500,502,503,504])');
+    expect(publicClient).toContain('const PUBLIC_READ_MAX_ATTEMPTS=3');
+    expect(publicClient).toContain("const retryable=method==='GET'||method==='HEAD'");
+    expect(publicClient).toContain('if(!retryable)return fetch(input,init)');
+    expect(publicClient).not.toContain("retryable=method==='POST'");
+  });
+
   test('catalogue readiness and facet visibility preserve the governed RLS boundary',()=>{
     const migration=read('supabase/migrations/20260902101500_project_catalogue_filters_v2_phase1.sql');
     const visibility=read('supabase/migrations/20260902103000_project_catalogue_filters_v2_visibility_rls.sql');

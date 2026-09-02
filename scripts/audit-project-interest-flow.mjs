@@ -5,7 +5,8 @@ const forbid=(path,needles)=>{const source=read(path);const found=needles.filter
 
 // Canonical interest + application domain remains one endpoint.
 expect('components/SubmissionForm.tsx',["'/api/project-applications'","application_kind:'interest'",'requested_role:data.role','contribution_statement:data.contribution']);
-expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application'",".not('status','in','(declined,withdrawn)')",".eq('project_role_id',role.id)",".in('membership_status',['waiting','active'])",'That project role has filled','terms_accepted_at','notifyAdmins','notifyUser']);
+expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application'",".not('status','in','(declined,withdrawn)')",'loadProjectRoleUsage(termsDb,projectId,project.project_type)','That project role has filled','terms_accepted_at','notifyAdmins','notifyUser']);
+expect('lib/project-role-capacity.ts',[".eq('status','forming')",".eq('has_started',false)",".eq('project_run_id',run.id)",".in('membership_status',['waiting','active'])",".eq('project_id',projectId)"]);
 expect('supabase/migrations/20260819193000_member_discover_application_integrity.sql',['project_applications_one_active_application_per_project_user',"application_kind='application'",'saved_projects','enable row level security','auth.uid()']);
 
 // Authenticated Discover must stay in My Mettelo and use real project-domain data only.

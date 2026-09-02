@@ -1,10 +1,15 @@
 import {NextResponse} from 'next/server';
-import {architectContext,clean,recordGovernance} from '@/lib/project-governance';
+import {architectContext,clean} from '@/lib/project-governance';
 
 const decisions=new Set(['verification_required','amber','green','red']);
 const permissions=new Set(['permitted','restricted','not_permitted','unknown']);
 function httpsUrl(value:unknown){const url=clean(value,2000);return !url||/^https:\/\//i.test(url)?url:''}
-function qualityStatus(decision:string){return decision==='green'?'approved':decision==='verification_required'?'unreviewed':'issues_found'}
+function rpcMessage(message:string){
+  if(message.includes('GREEN_REQUIRES_LICENCE_EVIDENCE'))return 'A GREEN decision requires the original source, a licence name, and either a licence URL or independent HTTPS governance evidence.';
+  if(message.includes('PUBLIC_USE_REQUIRES_GREEN_PUBLIC_RESOURCE'))return 'Public source display can be approved only for a GREEN resource classified as public.';
+  if(message.includes('CANONICAL_RESOURCE_NOT_FOUND'))return 'Canonical project resource not found.';
+  return 'Unable to update project resource governance.';
+}
 
 export async function GET(){
   try{
@@ -29,24 +34,12 @@ export async function PATCH(request:Request){
     if(rawEvidence&&!evidenceUrl)return NextResponse.json({error:'Governance evidence must use an HTTPS URL.'},{status:400});
     if(rawInternal&&!internalStorageUrl)return NextResponse.json({error:'Internal storage links must use HTTPS.'},{status:400});
     if(decision!=='green'&&!notes)return NextResponse.json({error:'Add review notes for verification-required, amber or red decisions.'},{status:400});
-    const {data:source,error:sourceError}=await db.from('project_data_sources').select('id,project_id,name,sensitivity,external_url,licence_name,licence_url,governance_status').eq('id',resourceId).is('project_run_id',null).maybeSingle();
+    const {data:source,error:sourceError}=await db.from('project_data_sources').select('id,name,sensitivity,external_url,licence_name,licence_url').eq('id',resourceId).is('project_run_id',null).maybeSingle();
     if(sourceError)throw sourceError;if(!source)return NextResponse.json({error:'Canonical project resource not found.'},{status:404});
-    if(decision==='green'&&(!source.external_url||!source.licence_name))return NextResponse.json({error:'A green decision requires an original source URL and licence name.'},{status:409});
-    if(publicUseApproved&&(decision!=='green'||source.sensitivity!=='public'))return NextResponse.json({error:'Public source display can be approved only for a green resource classified as public.'},{status:409});
-    const now=new Date().toISOString();
-    const {error:updateError}=await db.from('project_data_sources').update({
-      governance_status:decision,
-      governance_verified_at:now,
-      governance_verified_by:user.id,
-      retention_policy:retention,
-      internal_storage_policy:internalStorage,
-      internal_storage_url:internalStorageUrl||null,
-      publish_policy:publicUseApproved?'permitted':'not_permitted',
-      quality_status:qualityStatus(decision)
-    }).eq('id',source.id).is('project_run_id',null);
-    if(updateError)throw updateError;
-    const {error:reviewError}=await db.from('project_data_source_governance_reviews').insert({data_source_id:source.id,decision,notes:notes||null,evidence_url:evidenceUrl||null,reviewer_user_id:user.id});if(reviewError)throw reviewError;
-    await recordGovernance(db,{projectId:source.project_id,actorId:user.id,actorScope:'admin',eventType:'resource_governance_reviewed',reason:notes||`Resource ${source.name} reviewed as ${decision}.`,metadata:{resource_id:source.id,resource_name:source.name,decision,retention_policy:retention,internal_storage_policy:internalStorage,public_use_approved:publicUseApproved,evidence_url:evidenceUrl||null}});
-    return NextResponse.json({ok:true,resource_id:source.id,governance_status:decision,publish_policy:publicUseApproved?'permitted':'not_permitted'});
+    if(decision==='green'&&(!source.external_url||!source.licence_name||(!source.licence_url&&!evidenceUrl)))return NextResponse.json({error:'A GREEN decision requires the original source, a licence name, and either a licence URL or independent HTTPS governance evidence.'},{status:409});
+    if(publicUseApproved&&(decision!=='green'||source.sensitivity!=='public'))return NextResponse.json({error:'Public source display can be approved only for a GREEN resource classified as public.'},{status:409});
+    const {error}=await db.rpc('apply_project_resource_governance_review',{target_resource_id:resourceId,actor_user_id:user.id,decision_value:decision,notes_value:notes,evidence_url_value:evidenceUrl,retention_policy_value:retention,internal_storage_policy_value:internalStorage,internal_storage_url_value:internalStorageUrl,public_use_approved:publicUseApproved});
+    if(error)return NextResponse.json({error:rpcMessage(error.message)},{status:error.message.includes('REQUIRES')?409:500});
+    return NextResponse.json({ok:true,resource_id:resourceId,governance_status:decision,publish_policy:publicUseApproved?'permitted':'not_permitted'});
   }catch(error){console.error('project resource governance update error',error);return NextResponse.json({error:'Unable to update project resource governance.'},{status:500})}
 }

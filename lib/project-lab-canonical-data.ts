@@ -15,6 +15,7 @@ export type LabCanonicalResource={
   dataPeriod:string|null;
   dataFormat:string|null;
   sensitivity:string;
+  governanceStatus:string;
   internalStorageUrl:string|null;
 };
 
@@ -47,7 +48,9 @@ function oneRelation<T>(value:T|T[]|null|undefined){return Array.isArray(value)?
  * The server-side membership check is mandatory because this projection may include
  * team/private canonical resource links. Only active/completed project members and
  * admins reach the service-role projection. Run-scoped execution rows are excluded
- * explicitly with project_run_id IS NULL.
+ * explicitly with project_run_id IS NULL. A private working-copy URL is projected
+ * only after resource governance is green AND internal storage is explicitly
+ * permitted; membership by itself is never enough to expose an unverified copy.
  */
 export async function getProjectLabCanonicalData(projectId:string):Promise<LabCanonicalDefinition|null>{
   const auth=await createServerSupabaseClient();
@@ -64,8 +67,8 @@ export async function getProjectLabCanonicalData(projectId:string):Promise<LabCa
   const [projectResult,briefResult,resourceResult,deliverableResult,successResult,milestoneResult,capabilityResult]=await Promise.all([
     db.from('projects').select('id,title,summary,problem_statement').eq('id',projectId).maybeSingle(),
     db.from('project_problem_briefs').select('context,stakeholder,primary_use_case,primary_objective,supporting_objectives,key_questions,in_scope,out_of_scope').eq('project_id',projectId).maybeSingle(),
-    db.from('project_data_sources').select('id,name,description,source_type,external_url,provider_name,provider:project_resource_providers(name),licence_name,required_subset,data_period,data_format,sensitivity,internal_storage_url').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
-    db.from('project_deliverables').select('id,title,description:public_summary,public_summary,expected_format,acceptance_criteria,is_required,status,sort_order').eq('project_id',projectId).is('project_run_id',null).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
+    db.from('project_data_sources').select('id,name,description,source_type,external_url,provider_name,provider:project_resource_providers(name),licence_name,required_subset,data_period,data_format,sensitivity,governance_status,internal_storage_policy,internal_storage_url').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
+    db.from('project_deliverables').select('id,title,public_summary,expected_format,acceptance_criteria,is_required,status,sort_order').eq('project_id',projectId).is('project_run_id',null).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
     db.from('project_success_criteria').select('id,title,description,measurement,is_required,sort_order').eq('project_id',projectId).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
     db.from('project_milestones').select('id,title,description,week_start,week_end,expected_output,sort_order').eq('project_id',projectId).is('project_run_id',null).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
     db.from('project_capabilities').select('evidence_expected,capabilities(name)').eq('project_id',projectId).eq('evidence_expected',true)
@@ -87,6 +90,8 @@ export async function getProjectLabCanonicalData(projectId:string):Promise<LabCa
 
   const resources=(resourceResult.data||[]).map(row=>{
     const provider=oneRelation(row.provider as {name:unknown}|{name:unknown}[]|null);
+    const governanceStatus=String(row.governance_status||'unreviewed');
+    const storagePermitted=governanceStatus==='green'&&row.internal_storage_policy==='permitted';
     return{
       id:String(row.id),
       name:String(row.name),
@@ -99,7 +104,8 @@ export async function getProjectLabCanonicalData(projectId:string):Promise<LabCa
       dataPeriod:text(row.data_period),
       dataFormat:text(row.data_format),
       sensitivity:String(row.sensitivity||'internal'),
-      internalStorageUrl:text(row.internal_storage_url)
+      governanceStatus,
+      internalStorageUrl:storagePermitted?text(row.internal_storage_url):null
     };
   });
 

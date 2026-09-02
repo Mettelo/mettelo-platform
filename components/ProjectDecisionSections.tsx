@@ -12,6 +12,11 @@ type Props={
 };
 
 function unique(values:string[]){return [...new Set(values.filter(Boolean))]}
+function criterionText(item:ProjectDetailContent['successCriteria'][number]){
+  if(item.measurement)return`${item.title} — ${item.measurement}`;
+  if(item.description)return`${item.title}: ${item.description}`;
+  return item.title;
+}
 
 export default function ProjectDecisionSections({summary,problemStatement,detail,domains,tools,methods}:Props){
   const technical=unique([...detail.technicalSkills,...detail.capabilities.filter(item=>item.type==='technical').map(item=>item.name)]);
@@ -19,13 +24,13 @@ export default function ProjectDecisionSections({summary,problemStatement,detail
   const toolNames=unique([...tools.map(item=>item.name),...detail.importedTools]);
   const methodNames=unique([...methods.map(item=>item.name),...detail.importedMethods]);
   const domainNames=unique([...domains.map(item=>item.name),...(detail.importedDomain?[detail.importedDomain]:[])]);
-  const criteria=unique(detail.deliverables.map(item=>item.acceptanceCriteria||'').filter(Boolean));
-  const proofSignals=unique([
-    ...detail.pathContexts.map(item=>item.capabilityBuilt),
-    ...detail.capabilities.filter(item=>item.evidenceExpected).map(item=>item.name),
-    ...technical.slice(0,2),
-    ...professional.slice(0,1)
-  ]).slice(0,3);
+  const canonicalCriteria=detail.successCriteria.map(criterionText);
+  const fallbackCriteria=unique(detail.deliverables.map(item=>item.acceptanceCriteria||'').filter(Boolean));
+  const criteria=canonicalCriteria.length?canonicalCriteria:fallbackCriteria;
+  // Only capabilities explicitly configured as evidence_expected may be described
+  // as Proof potential. General skills and Capability Path context remain useful
+  // learning/direction information but are not evidence promises.
+  const proofSignals=unique(detail.capabilities.filter(item=>item.evidenceExpected).map(item=>item.name)).slice(0,6);
 
   return <div className={styles.stack}>
     <section className={styles.section} aria-labelledby="project-problem-heading">
@@ -43,21 +48,21 @@ export default function ProjectDecisionSections({summary,problemStatement,detail
       <div className={styles.eyebrow}>02 · What you must produce</div>
       <h2 id="project-deliverables-heading">Project deliverables</h2>
       <p>The outputs below define what the team is expected to produce. Required deliverables later become part of the delivery and review record.</p>
-      {detail.deliverables.length?<div className={styles.deliverables}>{detail.deliverables.map((item,index)=><article className={styles.deliverable} key={item.id}><div className={styles.number} aria-hidden="true">{index+1}</div><div><h3>{item.title}{item.isRequired?' · Required':''}</h3>{item.deliverableType&&<p>{item.deliverableType}</p>}{item.acceptanceCriteria&&<p><strong>Acceptance:</strong> {item.acceptanceCriteria}</p>}</div></article>)}</div>:<div className={styles.empty} role="status"><strong>Detailed deliverables are being prepared.</strong><span>This project can be explored, but Mettelo should publish the delivery outputs before opening new applications under the Project Detail V2 quality standard.</span></div>}
+      {detail.deliverables.length?<div className={styles.deliverables}>{detail.deliverables.map((item,index)=><article className={styles.deliverable} key={item.id}><div className={styles.number} aria-hidden="true">{index+1}</div><div><h3>{item.title}{item.isRequired?' · Required':''}</h3>{item.publicSummary&&<p>{item.publicSummary}</p>}{item.deliverableType&&<p>{item.deliverableType}</p>}{item.expectedFormat&&<p><strong>Expected format:</strong> {item.expectedFormat}</p>}{item.acceptanceCriteria&&<p><strong>Acceptance:</strong> {item.acceptanceCriteria}</p>}</div></article>)}</div>:<div className={styles.empty} role="status"><strong>Detailed deliverables are being prepared.</strong><span>This project can be explored, but Mettelo should publish the delivery outputs before opening new applications under the Project Detail V2 quality standard.</span></div>}
     </section>
 
     <section className={styles.section} aria-labelledby="project-success-heading">
       <div className={styles.eyebrow}>03 · Quality bar</div>
       <h2 id="project-success-heading">How success will be judged</h2>
-      <p>Success criteria should be explicit enough that a member understands the standard before committing.</p>
-      {criteria.length?<div className={styles.criteria}>{criteria.map((item,index)=><div className={styles.criterion} key={`${index}-${item}`}><strong>Acceptance criterion {index+1}</strong><span>{item}</span></div>)}</div>:<div className={styles.empty} role="status"><strong>Acceptance criteria are not yet published.</strong><span>This is a content-readiness gap, not an invitation to infer a quality standard.</span></div>}
+      <p>Success criteria should be explicit enough that a member understands the project-level standard before committing. Deliverable acceptance is used only as a compatibility fallback where an older project has not yet been enriched.</p>
+      {criteria.length?<div className={styles.criteria}>{criteria.map((item,index)=><div className={styles.criterion} key={`${index}-${item}`}><strong>{canonicalCriteria.length?`Success criterion ${index+1}`:`Acceptance criterion ${index+1}`}</strong><span>{item}</span></div>)}</div>:<div className={styles.empty} role="status"><strong>Success criteria are not yet published.</strong><span>This is a content-readiness gap, not an invitation to infer a quality standard.</span></div>}
     </section>
 
     <section className={styles.section} aria-labelledby="project-data-heading">
       <div className={styles.eyebrow}>04 · Data & resources</div>
       <h2 id="project-data-heading">What you will work with</h2>
-      <p>Only project-level resource information that Mettelo has deliberately attached to this brief is shown here.</p>
-      {detail.dataSources.length?<div className={styles.dataList}>{detail.dataSources.map(item=><article className={styles.dataCard} key={item.id}><h3>{item.name}</h3>{item.description&&<p>{item.description}</p>}<div className={styles.meta}>{item.sourceType&&<span>{item.sourceType}</span>}{item.dataFormat&&<span>{item.dataFormat}</span>}{item.dataPeriod&&<span>{item.dataPeriod}</span>}{item.accessStatus&&<span>Access: {item.accessStatus}</span>}{item.qualityStatus&&<span>Quality: {item.qualityStatus}</span>}</div>{item.knownLimitations&&<p><strong>Known limitations:</strong> {item.knownLimitations}</p>}{item.externalUrl&&<a className={styles.dataLink} href={item.externalUrl} target="_blank" rel="noreferrer">View source details ↗</a>}</article>)}</div>:<div className={styles.empty} role="status"><strong>Project resources are not yet published.</strong><span>Source, access and governance information should be available before a member is expected to begin delivery.</span></div>}
+      <p>Only resources explicitly classified as public and permitted for publication are shown on Project Detail. Team-only and restricted resources remain inside authorised Mettelo Lab access.</p>
+      {detail.dataSources.length?<div className={styles.dataList}>{detail.dataSources.map(item=><article className={styles.dataCard} key={item.id}><h3>{item.name}</h3>{item.description&&<p>{item.description}</p>}<div className={styles.meta}>{item.sourceType&&<span>{item.sourceType}</span>}{item.providerName&&<span>{item.providerName}</span>}{item.dataFormat&&<span>{item.dataFormat}</span>}{item.dataPeriod&&<span>{item.dataPeriod}</span>}{item.approximateSize&&<span>{item.approximateSize}</span>}</div>{item.providerName&&<p><strong>Provider:</strong> {item.providerUrl?<a className={styles.dataLink} href={item.providerUrl} target="_blank" rel="noreferrer">{item.providerName} ↗</a>:item.providerName}</p>}{item.licenceName&&<p><strong>Licence:</strong> {item.licenceUrl?<a className={styles.dataLink} href={item.licenceUrl} target="_blank" rel="noreferrer">{item.licenceName} ↗</a>:item.licenceName}</p>}{item.requiredSubset&&<p><strong>Required subset:</strong> {item.requiredSubset}</p>}{item.provenance&&<p><strong>Source / provenance:</strong> {item.provenance}</p>}{item.knownLimitations&&<p><strong>Known limitations:</strong> {item.knownLimitations}</p>}{item.externalUrl&&<a className={styles.dataLink} href={item.externalUrl} target="_blank" rel="noreferrer">View original source ↗</a>}<small>Source identification is provided for attribution and transparency and does not imply sponsorship, endorsement or partnership with Mettelo.</small></article>)}</div>:<div className={styles.empty} role="status"><strong>No public project resources are published yet.</strong><span>Internal, team-only and restricted resources are intentionally not exposed on this discovery page.</span></div>}
     </section>
 
     <section className={styles.section} aria-labelledby="project-capabilities-heading">
@@ -81,8 +86,8 @@ export default function ProjectDecisionSections({summary,problemStatement,detail
     <section className={styles.section} aria-labelledby="project-proof-heading">
       <div className={styles.eyebrow}>07 · Evidence</div>
       <h2 id="project-proof-heading">What credible Proof could come from the work</h2>
-      <p>Proof is never promised in advance. It is created from contribution that is actually completed and verified.</p>
-      <div className={styles.proof}><p>The strongest evidence should connect your role, the work you personally contributed, the project context and the review outcome.</p>{proofSignals.length>0&&<div className={styles.proofList}>{proofSignals.map(item=><div className={styles.proofItem} key={item}><strong>{item}</strong><span>Potential evidence signal if your contribution is completed and verified.</span></div>)}</div>}</div>
+      <p>These are explicitly configured evidence opportunities, not automatic awards. Mettelo Proof is created only from contribution that is actually completed and verified.</p>
+      <div className={styles.proof}><p>The strongest evidence should connect your role, the work you personally contributed, the project context and the review outcome.</p>{proofSignals.length>0?<div className={styles.proofList}>{proofSignals.map(item=><div className={styles.proofItem} key={item}><strong>{item}</strong><span>Potential evidence signal if your contribution is completed and verified.</span></div>)}</div>:<div className={styles.empty} role="status"><strong>Evidence expectations are not yet configured.</strong><span>Skills and Capability Path context are not treated as Proof promises.</span></div>}</div>
     </section>
   </div>;
 }

@@ -3,8 +3,9 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 
 // Preserve the full established Phase 2 audit while updating only contracts that
-// later approved phases deliberately centralised or renamed. The transformed audit
-// must still prove every member capability remains reachable.
+// later approved phases deliberately centralised or strengthened. The transformed
+// audit must still prove every member capability remains reachable, while rejecting
+// the retired headcount-only Open Project auto-start rule.
 const sourcePath='scripts/audit-phase-2-member-projects.mjs';
 const source=fs.readFileSync(sourcePath,'utf8');
 const legacyAvailability="['app/projects/page.tsx',['roleCount','deadlinePassed','Roles are still being prepared','View project →']],";
@@ -16,13 +17,23 @@ const governedNavigation="['lib/member-navigation.ts',[\"label:'My Work'\",\"lab
 if(!source.includes(legacyNavigation))throw new Error('Phase 2 member navigation audit contract changed unexpectedly; review before updating this compatibility audit.');
 
 const legacyPublicDetail="['app/projects/[id]/page.tsx',['What this project is solving','Know what you are committing to','AVAILABLE ROLES','EXPECTED PROOF','Application deadline','ProjectApplicationForm','Roles pending','roles.length>0']],";
-const decisionPublicDetail="['app/projects/[id]/page.tsx',['PUBLIC PROJECT DETAIL','BEFORE YOU APPLY','ProjectDecisionSections','Project roles','From project discovery to verified contribution','Applications close','Apply for a role','Continue in My Mettelo','No participation roles are published yet.','roles.length>0']],";
+const canonicalPublicDetail="['app/projects/[id]/page.tsx',['ProjectPublicDetailV2','getProjectExperiencePlanning','buildProjectExperienceModel','roles.length>0']],\n  ['components/project-experience/ProjectPublicDetailV2.tsx',['Build evidence of capability, not just another portfolio piece.','Team structure','Applications close','Apply for a role','Open in My Mettelo','Good fit if…','No participation roles are published yet.']],";
 if(!source.includes(legacyPublicDetail))throw new Error('Phase 2 public project detail audit contract changed unexpectedly; review before updating this compatibility audit.');
+
+const legacyAdminAutoStart="['app/api/admin/applications/route.ts',[\"project.project_type==='open'\",\"order('run_number',{ascending:true})\",'cohort_auto_started',\"project.project_type==='partner'\",\"full&&project.project_type==='open'\",'required_team_size',\"if(!run&&project.project_type==='open')\",'if(!run){']],";
+const readinessAdminAutoStart="['app/api/admin/applications/route.ts',[\"project.project_type==='open'\",\"order('run_number',{ascending:true})\",'cohort_auto_started',\"project.project_type==='partner'\",'assessProjectTeamReadiness',\"if(readiness.ready&&project.project_type==='open'&&!run.has_started)\",'responsibility_coverage_ready:readiness.responsibilityCoverageReady','lab_ready:readiness.labReady','required_team_size',\"if(!run&&project.project_type==='open')\",'if(!run){']],\n  ['lib/project-team-readiness.ts',[\"members.every(member=>Boolean(member.project_role_id))\",\".select('lab_ready')\",\"if(leads.length===0)blockers.push('project_lead')\",\"if(leads.length>1)blockers.push('multiple_project_leads')\",'ready:blockers.length===0']],";
+if(!source.includes(legacyAdminAutoStart))throw new Error('Phase 2 Open Project start audit contract changed unexpectedly; review before updating this compatibility audit.');
+
+const legacyStartInvariant="const openShouldStart=(type,current,required,started)=>type==='open'&&!started&&current>=required;\nif(!openShouldStart('open',3,3,false)||openShouldStart('partner',3,3,false)||openShouldStart('open',2,3,false)){console.error('Project team auto-start invariant failed.');failed=true;}";
+const readinessStartInvariant="const openShouldStart=(type,{current,required,started,responsibilities,leadCount,labReady})=>type==='open'&&!started&&current>=required&&responsibilities&&leadCount===1&&labReady;\nif(!openShouldStart('open',{current:3,required:3,started:false,responsibilities:true,leadCount:1,labReady:true})||openShouldStart('partner',{current:3,required:3,started:false,responsibilities:true,leadCount:1,labReady:true})||openShouldStart('open',{current:3,required:3,started:false,responsibilities:false,leadCount:1,labReady:true})||openShouldStart('open',{current:3,required:3,started:false,responsibilities:true,leadCount:0,labReady:true})||openShouldStart('open',{current:3,required:3,started:false,responsibilities:true,leadCount:1,labReady:false})||openShouldStart('open',{current:2,required:3,started:false,responsibilities:true,leadCount:1,labReady:true})){console.error('Project team readiness-gated auto-start invariant failed.');failed=true;}";
+if(!source.includes(legacyStartInvariant))throw new Error('Phase 2 headcount-only auto-start simulation changed unexpectedly; review before updating this compatibility audit.');
 
 const transformed=source
   .replace(legacyAvailability,governedAvailability)
   .replace(legacyNavigation,governedNavigation)
-  .replace(legacyPublicDetail,decisionPublicDetail);
+  .replace(legacyPublicDetail,canonicalPublicDetail)
+  .replace(legacyAdminAutoStart,readinessAdminAutoStart)
+  .replace(legacyStartInvariant,readinessStartInvariant);
 const tempPath=path.resolve(`.tmp-phase2-member-projects-${process.pid}.mjs`);
 try{
   fs.writeFileSync(tempPath,transformed,'utf8');

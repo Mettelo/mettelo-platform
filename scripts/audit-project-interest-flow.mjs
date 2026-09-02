@@ -12,7 +12,7 @@ expect('app/api/admin/applications/route.ts',[
   ".from('project_members')",
   '.insert({',
   'No existing cohort history was overwritten.',
-  'Concurrent approvals may both observe no forming cohort',
+  'if(createError){const {data:concurrentRun}=await db',
   'if(!concurrentRun)throw createError',
   'run=concurrentRun',
   'const {data:startedRun,error:startError}=await db',
@@ -25,6 +25,24 @@ expect('lib/project-role-capacity.ts',[".eq('status','forming')",".eq('has_start
 expect('supabase/migrations/20260901193000_project_lifecycle_invariants.sql',['pg_advisory_xact_lock','Project cohort capacity exceeded','Project role capacity exceeded for this cohort','Application-open projects require complete decision content and team size','Application-open projects require enough role capacity for the full team','Partner Projects support one engagement run only','Projects with operational history cannot return to Draft']);
 expect('supabase/migrations/20260901194000_imported_open_project_default_roles.sql',['after update of status on public.capability_path_import_batches',"'Project Contributor'",'greatest(coalesce(p.team_size_threshold,1),1)','origin.was_existing=false','not exists']);
 expect('supabase/migrations/20260819193000_member_discover_application_integrity.sql',['project_applications_one_active_application_per_project_user',"application_kind='application'",'saved_projects','enable row level security','auth.uid()']);
+
+// Team formation is readiness-driven, opt-in for automatic leadership, and single-winner under concurrency.
+expect('lib/project-team-readiness.ts',[
+  'const volunteers=candidates.filter(candidate=>candidate.leadershipInterest)',
+  'recommendation=volunteers[0]||null',
+  ".eq('team_role','contributor')",
+  ".select('id')",
+  'if(assigned){',
+  'A concurrent approval may have completed the same deterministic lead',
+  "if(leads.length===0)blockers.push('project_lead')",
+  "if(leads.length>1)blockers.push('multiple_project_leads')"
+]);
+expect('supabase/migrations/20260902122350_project_team_single_lead_invariant.sql',[
+  'create unique index if not exists project_members_one_current_lead_per_run',
+  'on public.project_members(project_run_id)',
+  "team_role='project_lead'",
+  "membership_status in ('waiting','active')"
+]);
 
 // Authenticated Discover must stay in My Mettelo and use real project-domain data only.
 expect('lib/member-navigation.ts',["{label:'Discover',href:'/member/discover'","{label:'Saved',href:'/member/saved'"]);

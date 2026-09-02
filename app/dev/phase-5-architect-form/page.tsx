@@ -1,3 +1,7 @@
 import {notFound} from 'next/navigation';
 import ArchitectProjectForm from '@/components/ArchitectProjectForm';
-export default function PhaseFiveArchitectForm(){if(process.env.VERCEL_ENV==='production')notFound();return <main><section className="section softSection memberWorkspace"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">Project Architect · New proposal</div><h1>Create a governed Data &amp; AI project.</h1></div><p>Define the problem, evidence, delivery shape and risk. The proposal remains private until an independent review is complete.</p></div><ArchitectProjectForm/></div></section></main>}
+
+export default function PhaseFiveArchitectForm(){
+  if(process.env.VERCEL_ENV==='production')notFound();
+  return <main><section className="section softSection memberWorkspace"><div className="shell"><div className="sectionHead"><div><div className="eyebrow">Project Architect · New proposal</div><h1>Create a governed Data &amp; AI project.</h1></div><p>Define the problem, evidence, delivery shape and risk. The proposal remains private until an independent review is complete.</p></div><ArchitectProjectForm providers={[]} capabilities={[]}/></div></section></main>;
+}

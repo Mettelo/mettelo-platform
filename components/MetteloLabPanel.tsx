@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {serviceDb} from '@/lib/project-flow';
 import {resolveProjectTeamOverview,type ProjectTeamOverview,type ProjectTeamOverviewMember} from '@/lib/project-team-overview';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
+import ProjectLabCanonicalBrief from '@/components/project-experience/ProjectLabCanonicalBrief';
 import styles from './MetteloLabPanel.module.css';
 
 type TeamMember={id:string;name:string;headline:string|null;role:string};
@@ -40,6 +41,7 @@ export default async function MetteloLabPanel(props:Props){
    <div className={styles.headerMain}><span className={styles.labEyebrow}>METTELO LAB / HOME</span><h2 id="mettelo-lab-title">{props.projectTitle}</h2><p>{props.projectSummary||'Your workspace for contributing to this project, working with your team and building evidence around the work you deliver.'}</p></div>
    <aside className={styles.headerContext} aria-label="Your project context"><span className={styles.contextLabel}>YOUR CONTEXT</span><strong>{humanise(props.workspaceRole)}</strong><small>{current?`Team ${current.run_number}`:'Team forming'} · {humanise(props.runStatus)}</small></aside>
   </header>
+  <ProjectLabCanonicalBrief projectId={props.projectId}/>
   <section className={styles.nextAction} data-lab-home-section aria-labelledby="lab-next-action"><div className={styles.nextActionCopy}><span className={styles.labLabel}>UP NEXT</span><h3 id="lab-next-action">{actionTitle}</h3><p>{actionCopy}</p></div><a className={styles.labButton} href={actionHref}>{actionLabel}<span aria-hidden="true">→</span></a></section>
   <section className={styles.summary} data-lab-home-section aria-labelledby="lab-summary-title">
    <div className={styles.sectionTitle}><span className={styles.labLabel}>PROJECT PROGRESS</span><h3 id="lab-summary-title">Where things stand</h3><p>Track completed work and see what your team still needs to deliver.</p></div>

@@ -54,7 +54,7 @@ test.describe('Capability Paths Phase 4 member contract',()=>{
   expect(discover).toContain('if(selectedPath&&!contexts.some');expect(discover).not.toContain('pathSummary?');
  });
  test('member recommendations use the same capacity-aware availability truth and paused Paths stop guiding actions',()=>{
-  hasAll(availability,['occupied_role_count','capacity_known','roles_filled','The currently advertised project roles are filled']);
+  hasAll(availability,['occupied_role_count','capacity_known','roles_filled','The current cohort roles are filled','Open projects become available again for the next cohort']);
   hasAll(helper,['serviceDb','filledByRole','occupiedRoleCount','capacity_known:capacityKnown',"follow.status==='following'?incomplete.find"]);
   hasAll(recommended,['RECOMMENDED FOR YOUR DIRECTION','NEXT IN PRIMARY PATH','nearest currently available project',"followStatus==='paused'",'Manage Paths']);
   expect(panel).toContain('actionable&&!archived&&!paused');

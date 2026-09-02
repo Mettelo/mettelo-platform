@@ -1,6 +1,7 @@
 import {redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
+import {loadProjectRoleUsageBulk,type RoleUsage} from '@/lib/project-role-capacity';
 import {calculateMemberReadiness} from '@/lib/member-readiness';
 import MemberDiscoverCatalogue from '@/components/MemberDiscoverCatalogue';
 import MemberCapabilityPathFilters from '@/components/MemberCapabilityPathFilters';
@@ -16,7 +17,6 @@ type Project={id:string;slug:string;title:string;summary:string;status:string;pr
 type Application={id:string;project_id:string;status:string;project_run_id:string|null};
 type Membership={project_id:string;project_run_id:string|null;membership_status:string;project_runs:{status:string}|null};
 type Saved={project_id:string};
-type CapacityRow={project_id:string;project_role_id:string|null};
 type Search={path?:string|string[];stage?:string|string[]};
 
 function titleCase(value:string){return value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase())}
@@ -53,22 +53,18 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
   for(const item of applications){if(!latestApplication.has(item.project_id))latestApplication.set(item.project_id,item)}
   const membershipByProject=new Map(memberships.map(item=>[item.project_id,item]));
   const db=serviceDb();
-  let capacityRows:CapacityRow[]=[];
-  let availabilityKnown=false;
-  if(db&&projects.length){
-    const result=await db.from('project_members').select('project_id,project_role_id').in('project_id',projects.map(item=>item.id)).in('membership_status',['waiting','active']);
-    if(!result.error){capacityRows=(result.data||[]) as CapacityRow[];availabilityKnown=true}else console.error('member Discover capacity lookup failed',result.error);
-  }
-  const filledByRole=new Map<string,number>();
-  for(const row of capacityRows){if(row.project_role_id)filledByRole.set(row.project_role_id,(filledByRole.get(row.project_role_id)||0)+1)}
+  let usageByProject=new Map<string,RoleUsage>();
+  if(db&&projects.length)usageByProject=await loadProjectRoleUsageBulk(db,projects.map(project=>({id:project.id,project_type:project.project_type})));
   const pathContexts=await getMemberProjectPathContexts(supabase,user.id,projects.map(item=>item.id));
   const items=projects.flatMap(project=>{
     const contexts=pathContexts.get(project.id)||[];
     if(selectedPath&&!contexts.some(context=>context.pathSlug===selectedPath&&(!selectedStage||context.stageName===selectedStage)))return [];
+    const usage=usageByProject.get(project.id)||{known:false,filled:new Map<string,number>()};
+    const availabilityKnown=usage.known;
     const roles=project.project_roles||[];
-    const availableRoles=roles.filter(role=>availabilityKnown?((filledByRole.get(role.id)||0)<role.openings):true);
+    const availableRoles=roles.filter(role=>availabilityKnown?((usage.filled.get(role.id)||0)<role.openings):true);
     const roleCount=roles.reduce((sum,role)=>sum+Math.max(0,Number(role.openings)||0),0);
-    const occupiedRoleCount=roles.reduce((sum,role)=>sum+Math.min(Math.max(0,Number(role.openings)||0),filledByRole.get(role.id)||0),0);
+    const occupiedRoleCount=roles.reduce((sum,role)=>sum+Math.min(Math.max(0,Number(role.openings)||0),usage.filled.get(role.id)||0),0);
     const sharedAvailability=resolveProjectPublicAvailability({status:project.status,project_type:project.project_type||'open',application_deadline:project.application_deadline,applications_open:project.applications_open,role_count:roleCount,occupied_role_count:occupiedRoleCount,capacity_known:availabilityKnown});
     const application=latestApplication.get(project.id)||null;
     const membership=membershipByProject.get(project.id)||null;

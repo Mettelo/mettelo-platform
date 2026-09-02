@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+type DbError={code?:string;message?:string};
+
 export async function POST(request:Request){
   try{
     const auth=await createServerSupabaseClient();
@@ -25,10 +27,15 @@ export async function POST(request:Request){
     const existing=await db.from('project_roles').select('id').eq('project_id',projectId).eq('title',title).maybeSingle();
     const payload={project_id:projectId,title,discipline:discipline||null,description:description||null,skills,openings};
     const result=existing.data?.id?await db.from('project_roles').update(payload).eq('id',existing.data.id).select('*').single():await db.from('project_roles').insert(payload).select('*').single();
-    if(result.error) throw result.error;
+    if(result.error){
+      if(result.error.code==='23514')return NextResponse.json({error:result.error.message||'This role change would make the live project capacity invalid.'},{status:409});
+      throw result.error;
+    }
     return NextResponse.json({ok:true,role:result.data});
   }catch(error){
+    const dbError=error as DbError;
     console.error('project role error',error);
+    if(dbError.code==='23514')return NextResponse.json({error:dbError.message||'This role change conflicts with current project capacity.'},{status:409});
     return NextResponse.json({error:'Unable to save project role.'},{status:500});
   }
 }

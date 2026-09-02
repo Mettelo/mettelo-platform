@@ -118,12 +118,12 @@ export function buildProjectExperienceModel({project,roles,domains,tools,methods
     ...detail.deliverables.map(item=>item.acceptanceCriteria)
   ]);
   const successCriteria=canonicalSuccess.length?canonicalSuccess:fallbackSuccess;
-  const proofSignals=unique([
-    ...detail.pathContexts.map(item=>item.capabilityBuilt),
-    ...detail.capabilities.filter(item=>item.evidenceExpected).map(item=>item.name),
-    ...technical.slice(0,3),
-    ...professional.slice(0,2)
-  ]).slice(0,6);
+  // Proof potential must be explicitly configured. General taxonomy, profile-facing
+  // skills and Capability Path context can describe learning direction, but they must
+  // not imply that a project is designed to generate verified evidence for a capability.
+  const proofSignals=unique(
+    detail.capabilities.filter(item=>item.evidenceExpected).map(item=>item.name)
+  ).slice(0,6);
 
   return{
     project,

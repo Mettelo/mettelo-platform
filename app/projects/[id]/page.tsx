@@ -16,6 +16,12 @@ type Role={
   skills:string[]|null;
   openings:number;
   discipline:string|null;
+  responsibilities:string[]|null;
+  recommended_skills:string[]|null;
+  experience_expectation:string|null;
+  weekly_commitment:string|null;
+  role_status:string|null;
+  application_requirements:string|null;
 };
 
 type TaxonomyRef={slug:string;name:string};
@@ -52,11 +58,11 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   if(!publicDb)notFound();
 
   // Establish that this is a genuinely public project first. Canonical planning
-  // content is then projected server-side through explicit public-safe loaders;
-  // no private resource link or governance evidence is read by the component.
+  // content is projected server-side through explicit public-safe loaders. No
+  // internal storage URL or private governance evidence enters this public route.
   const projectResult=await publicDb
     .from('projects')
-    .select('id,title,summary,problem_statement,status,project_type,applications_open,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,team_size_threshold,project_roles(id,title,description,skills,openings,discipline),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))')
+    .select('id,title,summary,problem_statement,status,project_type,applications_open,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,team_size_threshold,project_roles(id,title,description,skills,openings,discipline,responsibilities,recommended_skills,experience_expectation,weekly_commitment,role_status,application_requirements),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))')
     .eq('id',id)
     .eq('visibility','public')
     .maybeSingle();
@@ -71,7 +77,7 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   ]);
   const {data:{user}}=await auth.auth.getUser();
 
-  const roles=project.project_roles||[];
+  const roles=(project.project_roles||[]).filter(role=>role.role_status!=='closed'&&role.role_status!=='filled');
   const canApply=projectAcceptsApplications(project)&&roles.length>0;
   const domains=relationValues(project.project_domains,'domains');
   const tools=relationValues(project.project_tools,'tools');
@@ -101,7 +107,13 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
       description:role.description,
       discipline:role.discipline,
       skills:(role.skills||[]).filter(Boolean),
-      openings:role.openings
+      openings:role.openings,
+      responsibilities:(role.responsibilities||[]).filter(Boolean),
+      recommendedSkills:(role.recommended_skills||[]).filter(Boolean),
+      experienceExpectation:role.experience_expectation,
+      weeklyCommitment:role.weekly_commitment,
+      roleStatus:role.role_status,
+      applicationRequirements:role.application_requirements
     })),
     domains,
     tools,

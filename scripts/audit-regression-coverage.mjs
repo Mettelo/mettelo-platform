@@ -47,6 +47,7 @@ const v2Files={
   memberPage:'app/member/discover/[id]/page.tsx',
   memberComponent:'components/project-experience/MemberProjectDetailV2.tsx',
   memberStyles:'components/project-experience/MemberProjectDetailV2.module.css',
+  roleData:'lib/project-experience-role-data.ts',
   canonicalData:'lib/project-experience-data.ts',
   labData:'lib/project-lab-canonical-data.ts',
   architectCreate:'components/ArchitectProjectForm.tsx',
@@ -67,6 +68,7 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   const memberPage=fs.readFileSync(v2Files.memberPage,'utf8');
   const memberComponent=fs.readFileSync(v2Files.memberComponent,'utf8');
   const memberStyles=fs.readFileSync(v2Files.memberStyles,'utf8');
+  const roleData=fs.readFileSync(v2Files.roleData,'utf8');
   const canonicalData=fs.readFileSync(v2Files.canonicalData,'utf8');
   const labData=fs.readFileSync(v2Files.labData,'utf8');
   const createForm=fs.readFileSync(v2Files.architectCreate,'utf8');
@@ -77,32 +79,12 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   const atomicUpdate=fs.readFileSync(v2Files.atomicUpdate,'utf8');
   const atomicAudit=fs.readFileSync(v2Files.atomicAudit,'utf8');
 
-  for(const marker of ['getProjectDetailContent','getProjectExperiencePlanning','buildProjectExperienceModel','ProjectPublicDetailV2'])if(!publicPage.includes(marker))failures.push(`Project Experience V2: public detail is missing canonical wiring marker ${marker}`);
-  for(const marker of ['getProjectDetailContent','getProjectExperiencePlanning','buildProjectExperienceModel','MemberProjectDetailV2'])if(!memberPage.includes(marker))failures.push(`Project Experience V2: member detail is missing canonical wiring marker ${marker}`);
+  for(const marker of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel','ProjectPublicDetailV2'])if(!publicPage.includes(marker))failures.push(`Project Experience V2: public detail is missing canonical wiring marker ${marker}`);
+  for(const marker of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel','MemberProjectDetailV2'])if(!memberPage.includes(marker))failures.push(`Project Experience V2: member detail is missing canonical wiring marker ${marker}`);
   if(!canonicalData.includes(".is('project_run_id',null)"))failures.push('Project Experience V2: canonical data projection does not explicitly exclude run execution rows');
   if(!labData.includes("governanceStatus==='green'&&row.internal_storage_policy==='permitted'"))failures.push('Project Experience V2: Lab private resource links are not gated by green storage governance');
 
-  const designMarkers=[
-    'Build evidence of capability, not just another portfolio piece.',
-    'Start with the decision, not the dataset.',
-    'Clear objectives. Room for judgement.',
-    'Data, provenance & trust',
-    'Professional outputs, not tick-box files.',
-    'Know the quality bar before you start.',
-    'Capability becomes more valuable when there is evidence behind it.',
-    'A structured route from ambiguity to handover.',
-    'Choose where you can contribute—and where you want to stretch.',
-    'Good fit if…',
-    'challenge.keyQuestions',
-    'challenge.inScope',
-    'challenge.outOfScope',
-    'providerLogoAssetPath',
-    'licenceName',
-    'governanceVerifiedAt',
-    'retentionPolicy',
-    "proofConfigured?'Mettelo Proof potential · verification required':'Evidence expectations pending'",
-    'styles.mobileCta'
-  ];
+  const designMarkers=['Build evidence of capability, not just another portfolio piece.','Start with the decision, not the dataset.','Clear objectives. Room for judgement.','Data, provenance & trust','Professional outputs, not tick-box files.','Know the quality bar before you start.','Capability becomes more valuable when there is evidence behind it.','A structured route from ambiguity to handover.','Choose where you can contribute—and where you want to stretch.','Good fit if…','challenge.keyQuestions','challenge.inScope','challenge.outOfScope','providerLogoAssetPath','licenceName','governanceVerifiedAt','retentionPolicy',"proofConfigured?'Mettelo Proof potential · verification required':'Evidence expectations pending'",'styles.mobileCta'];
   for(const marker of designMarkers)if(!publicComponent.includes(marker))failures.push(`Project Experience V2: advanced public redesign lost required marker ${marker}`);
   for(const marker of ['Problem</span>','Output</span>','Proof</span>','Data</span>'])if(!publicComponent.includes(marker))failures.push(`Project Experience V2: Problem / Output / Proof / Data decision strip lost ${marker}`);
 
@@ -110,7 +92,8 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   if(publicDetailContent.includes('internal_storage_url'))failures.push('Project Experience V2: private stored-copy URL leaked into public resource projection');
   for(const marker of ['grid-template-columns:minmax(0,1.38fr) 390px','grid-template-columns:repeat(4,1fr)','position:sticky','@media(max-width:760px)','@media(max-width:520px)','prefers-reduced-motion','focus-visible'])if(!publicStyles.includes(marker))failures.push(`Project Experience V2: advanced responsive/accessibility styling lost ${marker}`);
 
-  for(const marker of ['responsibilities','recommended_skills','experience_expectation','weekly_commitment','application_requirements'])if(!memberPage.includes(marker))failures.push(`Project Experience V2: Public to Member role continuity lost ${marker}`);
+  for(const marker of ['responsibilities','recommended_skills','experience_expectation','weekly_commitment','role_status','application_requirements'])if(!roleData.includes(marker))failures.push(`Project Experience V2: rollout-safe rich role projection lost ${marker}`);
+  if(!roleData.includes('if(error)return new Map()'))failures.push('Project Experience V2: rich role projection no longer degrades safely before the additive schema reaches a preview database');
   for(const marker of ['role.responsibilities','role.recommendedSkills','role.experienceExpectation','role.weeklyCommitment','role.applicationRequirements','pdv2RoleDetails'])if(!memberComponent.includes(marker))failures.push(`Project Experience V2: member role decision UI lost rich role marker ${marker}`);
   for(const marker of ['pdv2RoleDetails','pdv2RoleDetail','grid-template-columns:minmax(0,1.25fr) 390px','@media(max-width:760px)','@media(max-width:520px)','prefers-reduced-motion','focus-visible'])if(!memberStyles.includes(marker))failures.push(`Project Experience V2: advanced Member responsive treatment lost ${marker}`);
 
@@ -129,10 +112,5 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   if(!governance.includes('if(!isAdmin)'))failures.push('Project Experience V2: resource-governance decision endpoint is not Admin restricted');
 }
 
-if(failures.length){
-  console.error('Critical regression coverage audit failed:');
-  failures.forEach(failure=>console.error(`- ${failure}`));
-  process.exit(1);
-}
-
+if(failures.length){console.error('Critical regression coverage audit failed:');failures.forEach(failure=>console.error(`- ${failure}`));process.exit(1)}
 console.log(`Critical regression coverage audit passed (${journeys.length} journeys + ${projectExperienceContracts.length} Project Experience V2 contracts + advanced Public/Member redesign).`);

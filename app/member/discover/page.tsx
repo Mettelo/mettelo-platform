@@ -4,6 +4,7 @@ import {serviceDb} from '@/lib/project-flow';
 import {loadProjectRoleUsageBulk,type RoleUsage} from '@/lib/project-role-capacity';
 import {calculateMemberReadiness} from '@/lib/member-readiness';
 import MemberDiscoverCatalogue from '@/components/MemberDiscoverCatalogue';
+import MemberDiscoverPagination from '@/components/MemberDiscoverPagination';
 import MemberCapabilityPathFilters from '@/components/MemberCapabilityPathFilters';
 import MemberPageHeader from '@/components/MemberPageHeader';
 import {memberProjectCatalogueAction,memberProjectStateLabel,projectAcceptsApplications,resolveMemberProjectState} from '@/lib/member-project-journey';
@@ -81,7 +82,7 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     <MemberPageHeader eyebrow="DIRECTION & DISCOVERY · PROJECTS" title="Discover projects" description="Explore the full project catalogue. Use a Capability Path when you want direction, without limiting what you can discover." actions={<>{pathAction}<a className="mdButton mdDiscoverTopAction" href="/member/recommended">Recommended for you</a></>}/>
     <div className="mdDiscoverControlStack">
       {pathProgress.length?<MemberCapabilityPathFilters paths={pathProgress} selectedPath={selectedPath} selectedStage={selectedStage}/>:<aside className="mdPathPrompt"><div><strong>Want a clearer route through the catalogue?</strong><span>Follow a Capability Path to add sequence and stage context while keeping Discover broad.</span></div><a href="/member/paths">Explore Paths →</a></aside>}
-      {projectsResult.error?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Nothing has been changed. Refresh this page to try the member catalogue again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<MemberDiscoverCatalogue projects={items}/>} 
+      {projectsResult.error?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Nothing has been changed. Refresh this page to try the member catalogue again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<><MemberDiscoverCatalogue projects={items}/><MemberDiscoverPagination/></>}
     </div>
     <style>{`
       .mdDiscoverPage{width:min(100%,1240px);margin:0;min-width:0;color:#111318}.mdDiscoverControlStack{margin-top:18px}.mdDiscoverTopAction{white-space:nowrap}.mdDiscoverError{margin-top:20px;padding:22px;border:1px solid #d8dde3;border-radius:14px;background:#fff}.mdDiscoverError h2{margin:0 0 6px}.mdDiscoverError p{margin:0 0 14px;color:#59636f}.mdPathPrompt{margin:0 0 14px;padding:13px 15px;border:1px solid #ded6c8;border-radius:14px;background:#fbf7ee;display:flex;justify-content:space-between;gap:18px;align-items:center}.mdPathPrompt>div{display:grid;gap:3px}.mdPathPrompt strong{font-size:12px}.mdPathPrompt span{color:#59636f;font-size:11px;line-height:1.45}.mdPathPrompt a{min-height:44px;display:inline-flex;align-items:center;color:#8b5a17;font-size:11px;font-weight:800;white-space:nowrap}.mdPathPrompt a:focus-visible{outline:3px solid #173f8f;outline-offset:3px}@media(max-width:680px){.mdDiscoverControlStack{margin-top:14px}.mdDiscoverTopAction{white-space:normal;text-align:center}.mdPathPrompt{display:grid}.mdPathPrompt a{white-space:normal}}

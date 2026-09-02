@@ -5,8 +5,11 @@ const forbid=(path,needles)=>{const source=read(path);const found=needles.filter
 
 // Canonical interest + application domain remains one endpoint.
 expect('components/SubmissionForm.tsx',["'/api/project-applications'","application_kind:'interest'",'requested_role:data.role','contribution_statement:data.contribution']);
-expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application'",".not('status','in','(declined,withdrawn)')",'loadProjectRoleUsage(termsDb,projectId,project.project_type)','That project role has filled','terms_accepted_at','notifyAdmins','notifyUser']);
+expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application'",".not('status','in','(declined,withdrawn)')",'loadProjectRoleUsage(termsDb,projectId,project.project_type)','already participated in this canonical project','That project role has filled','terms_accepted_at','notifyAdmins','notifyUser']);
+expect('app/api/admin/applications/route.ts',['loadProjectRoleUsage(db,application.project_id,project.project_type)','already has participation history for this canonical project',".from('project_members').insert",'No existing cohort history was overwritten.','Two approvals can race when no forming Open cohort exists']);
+forbid('app/api/admin/applications/route.ts',[".from('project_members').upsert"]);
 expect('lib/project-role-capacity.ts',[".eq('status','forming')",".eq('has_started',false)",".eq('project_run_id',run.id)",".in('membership_status',['waiting','active'])",".eq('project_id',projectId)"]);
+expect('supabase/migrations/20260901193000_project_lifecycle_invariants.sql',['pg_advisory_xact_lock','Project cohort capacity exceeded','Project role capacity exceeded for this cohort','Application-open projects require enough role capacity for the full team','Partner Projects support one engagement run only','Projects with operational history cannot return to Draft']);
 expect('supabase/migrations/20260819193000_member_discover_application_integrity.sql',['project_applications_one_active_application_per_project_user',"application_kind='application'",'saved_projects','enable row level security','auth.uid()']);
 
 // Authenticated Discover must stay in My Mettelo and use real project-domain data only.
@@ -41,5 +44,4 @@ forbid('app/api/projects/saved/route.ts',['project_applications','career_applica
 expect('app/member/saved/page.tsx',['Saving a project never creates an application.','/member/discover/','/member/saved-opportunities']);
 
 expect('app/admin/project-operations/applications/page.tsx',['const db=privilegedDb||auth',".from('project_applications')",'if(privilegedDb){const users']);
-expect('app/api/admin/applications/route.ts',['serviceDb()','notifyUser']);
 console.log('Project interest, member Discover and application convergence contract passed.');

@@ -127,7 +127,7 @@ export default function PublicProjectFilters({values,activeCount,resultCount,rol
 
         <fieldset><legend>Availability and direction</legend><div className="publicFilterGrid">
           <label><span>Project stage</span><select name="stage" defaultValue={values.stage}><option value="all">Any project stage</option>{stages.map(item=><option key={item.slug} value={item.slug}>{item.label}</option>)}</select></label>
-          <label><span>Capability Path</span><select name="path" defaultValue={values.path}><option value="all">All Capability Paths</option>{paths.map(item=><option key={item.slug} value={item.slug}>{item.label}</option>)}</select></label>
+          <label><span>Capability Path</span><select id="path-filter" name="path" defaultValue={values.path}><option value="all">All Capability Paths</option>{paths.map(item=><option key={item.slug} value={item.slug}>{item.label}</option>)}</select></label>
         </div></fieldset>
 
         <div className="publicFilterActions"><a href="/projects#projects" className="button ghost" onClick={()=>emitCatalogueAnalytics({event:'filters_cleared',surface:'public',active_count:activeCount,result_count:resultCount})}>Clear all</a><button className="button dark" type="submit">Show {resultCount} project{resultCount===1?'':'s'}</button></div>

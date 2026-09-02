@@ -31,12 +31,15 @@ test.describe('Public Projects Filters V2',()=>{
     expect(controls).toContain('publicFilterChip');
   });
 
-  test('catalogue readiness is a governed publish contract rather than a UI-only warning',()=>{
+  test('catalogue readiness and facet visibility preserve the governed RLS boundary',()=>{
     const migration=read('supabase/migrations/20260902101500_project_catalogue_filters_v2_phase1.sql');
+    const visibility=read('supabase/migrations/20260902103000_project_catalogue_filters_v2_visibility_rls.sql');
     const architect=read('app/api/architect-projects/route.ts');
     const admin=read('app/api/admin/project-governance/route.ts');
-    expect(migration).toContain('create or replace view public.project_catalogue_readiness');
+    expect(migration).toContain('create or replace view public.project_catalogue_readiness with (security_invoker=true)');
     expect(migration).toContain('coalesce(c.capability_count,0)>=3');
+    expect(visibility).toContain('exists(select 1 from public.projects p where p.id=project_domains.project_id)');
+    expect(visibility).toContain('exists(select 1 from public.projects p where p.id=project_capabilities.project_id)');
     expect(architect).toContain('requireProjectCatalogueReady');
     expect(architect).toContain('Complete catalogue readiness before review');
     expect(admin).toContain('requireProjectCatalogueReady');
@@ -56,8 +59,17 @@ test.describe('Public Projects Filters V2',()=>{
     for(const name of ['role','domain','tool','type','working','commitment','duration','stage','path']){
       await expectVisibleNativeLabelledSelect(dialog.locator(`select[name="${name}"]`));
     }
-    await expect(dialog.getByRole('combobox',{name:'Skill / capability'})).toBeVisible();
+    const combo=dialog.getByRole('combobox',{name:'Skill / capability'});
+    await expect(combo).toBeVisible();
+    await expect(combo).toHaveAttribute('aria-autocomplete','list');
     await expect(page.getByLabel('Close project filters',{exact:true})).toBeFocused();
+    await combo.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(combo).toHaveAttribute('aria-expanded','true');
+    const capabilityOptions=dialog.locator('#public-capability-options [role="option"]');
+    if(await capabilityOptions.count())await expect(combo).toHaveAttribute('aria-activedescendant',/public-capability-option-/);
+    await page.keyboard.press('Escape');
+    await expect(combo).toHaveAttribute('aria-expanded','false');
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
     await expect(trigger).toBeFocused();

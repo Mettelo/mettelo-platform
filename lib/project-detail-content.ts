@@ -16,9 +16,8 @@ export type ProjectDetailDataSource={
   externalUrl:string|null;
   dataPeriod:string|null;
   dataFormat:string|null;
-  accessStatus:string|null;
-  qualityStatus:string|null;
   knownLimitations:string|null;
+  provenance:string|null;
 };
 
 export type ProjectDetailCapability={
@@ -74,11 +73,38 @@ type PlacementRow={
   path_outcome:string|null;
 };
 
+type DataSourceRow={
+  id:unknown;
+  name:unknown;
+  description:unknown;
+  source_type:unknown;
+  external_url:unknown;
+  data_period:unknown;
+  data_format:unknown;
+  known_limitations:unknown;
+  provenance:unknown;
+  sensitivity:unknown;
+  publish_policy:unknown;
+};
+
 function strings(value:unknown){
   return Array.isArray(value)?value.filter((item):item is string=>typeof item==='string'&&Boolean(item.trim())):[];
 }
 
 function oneRelation<T>(value:T|T[]|null|undefined){return Array.isArray(value)?value[0]||null:value||null}
+
+/**
+ * Project Detail is a discovery surface, not a Lab authorization boundary.
+ *
+ * This loader uses the service-role client because the canonical project template
+ * records are protected by member-oriented RLS. Service-role access must never
+ * make internal/restricted resources public. A resource is therefore eligible
+ * for Project Detail only when both the data classification and explicit publish
+ * policy say it is public. Defaults are deliberately deny-by-default.
+ */
+function publicDataSource(row:DataSourceRow){
+  return row.sensitivity==='public'&&row.publish_policy==='permitted';
+}
 
 export async function getProjectDetailContent(projectId:string):Promise<ProjectDetailContent>{
   const empty:ProjectDetailContent={deliverables:[],dataSources:[],capabilities:[],pathContexts:[],technicalSkills:[],professionalSkills:[],importedTools:[],importedMethods:[],importedDomain:null,sourceProjectKey:null};
@@ -87,7 +113,7 @@ export async function getProjectDetailContent(projectId:string):Promise<ProjectD
 
   const [deliverablesResult,dataSourcesResult,capabilitiesResult,placementsResult,originResult]=await Promise.all([
     db.from('project_deliverables').select('id,title,deliverable_type,acceptance_criteria,is_required,status').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
-    db.from('project_data_sources').select('id,name,description,source_type,external_url,data_period,data_format,access_status,quality_status,known_limitations').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
+    db.from('project_data_sources').select('id,name,description,source_type,external_url,data_period,data_format,known_limitations,provenance,sensitivity,publish_policy').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
     db.from('project_capabilities').select('importance,evidence_expected,capabilities(name,capability_type)').eq('project_id',projectId),
     db.from('capability_path_projects').select('path_id,stage_id,position,competency_focus,capability_built,path_outcome').eq('project_id',projectId).order('position',{ascending:true}),
     db.from('capability_path_import_project_origins').select('batch_id,source_project_key').eq('project_id',projectId).order('created_at',{ascending:false}).limit(1).maybeSingle()
@@ -97,9 +123,19 @@ export async function getProjectDetailContent(projectId:string):Promise<ProjectD
     .filter(row=>row.status!=='cancelled')
     .map(row=>({id:String(row.id),title:String(row.title),deliverableType:row.deliverable_type?String(row.deliverable_type):null,acceptanceCriteria:row.acceptance_criteria?String(row.acceptance_criteria):null,isRequired:Boolean(row.is_required)}));
 
-  const dataSources=(dataSourcesResult.data||[]).map(row=>({
-    id:String(row.id),name:String(row.name),description:row.description?String(row.description):null,sourceType:row.source_type?String(row.source_type):null,externalUrl:row.external_url?String(row.external_url):null,dataPeriod:row.data_period?String(row.data_period):null,dataFormat:row.data_format?String(row.data_format):null,accessStatus:row.access_status?String(row.access_status):null,qualityStatus:row.quality_status?String(row.quality_status):null,knownLimitations:row.known_limitations?String(row.known_limitations):null
-  }));
+  const dataSources=((dataSourcesResult.data||[]) as DataSourceRow[])
+    .filter(publicDataSource)
+    .map(row=>({
+      id:String(row.id),
+      name:String(row.name),
+      description:row.description?String(row.description):null,
+      sourceType:row.source_type?String(row.source_type):null,
+      externalUrl:row.external_url?String(row.external_url):null,
+      dataPeriod:row.data_period?String(row.data_period):null,
+      dataFormat:row.data_format?String(row.data_format):null,
+      knownLimitations:row.known_limitations?String(row.known_limitations):null,
+      provenance:row.provenance?String(row.provenance):null
+    }));
 
   const capabilities=((capabilitiesResult.data||[]) as unknown as CapabilityRow[]).flatMap(row=>{
     const capability=oneRelation(row.capabilities);if(!capability)return[];

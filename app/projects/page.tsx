@@ -51,7 +51,13 @@ export default async function ProjectsPage({searchParams}:{searchParams?:Promise
   ]);
   if(projectResult.error){
    const fallbackResult=await supabase.from('projects').select('id,slug,title,summary,status,project_type,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,applications_open,github_url,created_at,project_roles(id,title,discipline,openings),project_runs(id,run_number,status,completed_at),project_domains(is_primary,domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))').in('status',['pilot','recruiting','open','forming','active','review','completed']).eq('visibility','public').order('created_at',{ascending:false}).limit(500);
-   if(fallbackResult.error)loadError=true;else projects=(fallbackResult.data||[]) as unknown as Project[];
+   if(fallbackResult.error){
+    // Facet relationships are useful enrichment, not catalogue availability authority.
+    // If PostgREST cannot resolve an optional embed, recover the public project cards
+    // from scalar project fields so Capability Path and direct discovery remain usable.
+    const scalarResult=await supabase.from('projects').select('id,slug,title,summary,status,project_type,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,applications_open,github_url,created_at').in('status',['pilot','recruiting','open','forming','active','review','completed']).eq('visibility','public').order('created_at',{ascending:false}).limit(500);
+    if(scalarResult.error)loadError=true;else projects=(scalarResult.data||[]) as unknown as Project[];
+   }else projects=(fallbackResult.data||[]) as unknown as Project[];
   }else projects=(projectResult.data||[]) as unknown as Project[];
   if(!aliasResult.error)aliases=(aliasResult.data||[]) as Alias[];
  }else loadError=true;

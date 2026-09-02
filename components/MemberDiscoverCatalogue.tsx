@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {type KeyboardEvent,useEffect,useMemo,useRef,useState} from 'react';
 import SaveProjectButton from '@/components/SaveProjectButton';
 import type {MemberProjectState} from '@/lib/member-project-journey';
 import {
@@ -95,10 +95,20 @@ export default function MemberDiscoverCatalogue({projects}:Props){
   function closeFilters(){setCapabilityOpen(false);setFiltersOpen(false);requestAnimationFrame(()=>filterTrigger.current?.focus())}
   function chooseCapability(option:CatalogueFacet){setFilters(current=>({...current,capability:option.slug}));setCapabilitySearch(option.label);setCapabilityOpen(false);setCapabilityIndex(0);requestAnimationFrame(()=>capabilityInput.current?.focus())}
   function onCapabilityChange(value:string){setCapabilitySearch(value);setCapabilityOpen(true);setCapabilityIndex(0);if(selectedCapability&&value!==selectedCapability.label)setFilters(current=>({...current,capability:'all'}))}
-  function onCapabilityKeyDown(event:React.KeyboardEvent<HTMLInputElement>){
+  function onCapabilityKeyDown(event:KeyboardEvent<HTMLInputElement>){
     if(event.key==='Escape'&&capabilityOpen){event.preventDefault();event.stopPropagation();setCapabilityOpen(false);return}
-    if(event.key==='ArrowDown'){event.preventDefault();setCapabilityOpen(true);setCapabilityIndex(index=>Math.min(Math.max(0,capabilityMatches.length-1),index+1));return}
-    if(event.key==='ArrowUp'){event.preventDefault();setCapabilityOpen(true);setCapabilityIndex(index=>Math.max(0,index-1));return}
+    if(event.key==='ArrowDown'){
+      event.preventDefault();
+      if(!capabilityOpen){setCapabilityOpen(true);setCapabilityIndex(0)}
+      else setCapabilityIndex(index=>Math.min(Math.max(0,capabilityMatches.length-1),index+1));
+      return;
+    }
+    if(event.key==='ArrowUp'){
+      event.preventDefault();
+      if(!capabilityOpen){setCapabilityOpen(true);setCapabilityIndex(Math.max(0,capabilityMatches.length-1))}
+      else setCapabilityIndex(index=>Math.max(0,index-1));
+      return;
+    }
     if(event.key==='Enter'&&capabilityOpen&&capabilityMatches[capabilityIndex]){event.preventDefault();chooseCapability(capabilityMatches[capabilityIndex])}
   }
 
@@ -115,7 +125,7 @@ export default function MemberDiscoverCatalogue({projects}:Props){
       <div className="mdFilterSummaryV2" aria-label="Current catalogue refinements">
         {filterPairs.map(item=><button className="mdActiveChipV2" key={item.key} type="button" onClick={()=>remove(item.key)} aria-label={`Remove ${item.label}: ${item.value} filter`}><span>{item.label}: {item.value}</span><b aria-hidden="true">×</b></button>)}
         <button className="mdPassiveChipV2" type="button" onClick={()=>setFiltersOpen(true)}>Sort: {sortLabels[filters.sort]}</button>
-        {activeCount>0&&<button className="mdClearInlineV2" type="button" onClick={clearFilters}>Clear filters</button>}
+        {(activeCount>0||filters.sort!=='recent')&&<button className="mdClearInlineV2" type="button" onClick={clearFilters}>Clear filters</button>}
       </div>
     </section>
 

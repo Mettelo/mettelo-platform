@@ -41,6 +41,9 @@ for(const file of projectExperienceContracts){if(!fs.existsSync(file))failures.p
 
 const v2Files={
   publicPage:'app/projects/[id]/page.tsx',
+  publicComponent:'components/project-experience/ProjectPublicDetailV2.tsx',
+  publicStyles:'components/project-experience/ProjectPublicDetailV2.module.css',
+  publicDetailContent:'lib/project-detail-content.ts',
   memberPage:'app/member/discover/[id]/page.tsx',
   canonicalData:'lib/project-experience-data.ts',
   labData:'lib/project-lab-canonical-data.ts',
@@ -56,6 +59,9 @@ for(const [name,file] of Object.entries(v2Files)){if(!fs.existsSync(file))failur
 
 if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   const publicPage=fs.readFileSync(v2Files.publicPage,'utf8');
+  const publicComponent=fs.readFileSync(v2Files.publicComponent,'utf8');
+  const publicStyles=fs.readFileSync(v2Files.publicStyles,'utf8');
+  const publicDetailContent=fs.readFileSync(v2Files.publicDetailContent,'utf8');
   const memberPage=fs.readFileSync(v2Files.memberPage,'utf8');
   const canonicalData=fs.readFileSync(v2Files.canonicalData,'utf8');
   const labData=fs.readFileSync(v2Files.labData,'utf8');
@@ -67,15 +73,44 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   const atomicUpdate=fs.readFileSync(v2Files.atomicUpdate,'utf8');
   const atomicAudit=fs.readFileSync(v2Files.atomicAudit,'utf8');
 
-  if(!publicPage.includes('getProjectExperienceModel'))failures.push('Project Experience V2: public detail is not using the canonical project model');
-  if(!memberPage.includes('getProjectExperienceModel'))failures.push('Project Experience V2: member detail is not using the canonical project model');
+  for(const marker of ['getProjectDetailContent','getProjectExperiencePlanning','buildProjectExperienceModel','ProjectPublicDetailV2'])if(!publicPage.includes(marker))failures.push(`Project Experience V2: public detail is missing canonical wiring marker ${marker}`);
+  for(const marker of ['getProjectDetailContent','getProjectExperiencePlanning','buildProjectExperienceModel','MemberProjectDetailV2'])if(!memberPage.includes(marker))failures.push(`Project Experience V2: member detail is missing canonical wiring marker ${marker}`);
   if(!canonicalData.includes(".is('project_run_id',null)"))failures.push('Project Experience V2: canonical data projection does not explicitly exclude run execution rows');
   if(!labData.includes("governanceStatus==='green'&&row.internal_storage_policy==='permitted'"))failures.push('Project Experience V2: Lab private resource links are not gated by green storage governance');
+
+  const designMarkers=[
+    'Build evidence of capability, not just another portfolio piece.',
+    'Start with the decision, not the dataset.',
+    'Clear objectives. Room for judgement.',
+    'Data, provenance & trust',
+    'Professional outputs, not tick-box files.',
+    'Know the quality bar before you start.',
+    'Capability becomes more valuable when there is evidence behind it.',
+    'A structured route from ambiguity to handover.',
+    'Choose where you can contribute—and where you want to stretch.',
+    'Good fit if…',
+    'challenge.keyQuestions',
+    'challenge.inScope',
+    'challenge.outOfScope',
+    'providerLogoAssetPath',
+    'licenceName',
+    'governanceVerifiedAt',
+    'retentionPolicy',
+    "proofConfigured?'Mettelo Proof potential · verification required':'Evidence expectations pending'",
+    'styles.mobileCta'
+  ];
+  for(const marker of designMarkers)if(!publicComponent.includes(marker))failures.push(`Project Experience V2: advanced public redesign lost required marker ${marker}`);
+  for(const marker of ['Problem</span>','Output</span>','Proof</span>','Data</span>'])if(!publicComponent.includes(marker))failures.push(`Project Experience V2: Problem / Output / Proof / Data decision strip lost ${marker}`);
+
+  if(!publicDetailContent.includes("row.sensitivity==='public'&&row.publish_policy==='permitted'&&row.governance_status==='green'"))failures.push('Project Experience V2: public resource projection is not GREEN + public + publish-permitted');
+  if(publicDetailContent.includes('internal_storage_url'))failures.push('Project Experience V2: private stored-copy URL leaked into public resource projection');
+  for(const marker of ['grid-template-columns:minmax(0,1.38fr) 390px','grid-template-columns:repeat(4,1fr)','position:sticky','@media(max-width:760px)','@media(max-width:520px)','prefers-reduced-motion','focus-visible'])if(!publicStyles.includes(marker))failures.push(`Project Experience V2: advanced responsive/accessibility styling lost ${marker}`);
+
   for(const label of ['Project basics','Problem & context','Data & resources','Deliverables & success','Skills & Proof','Roles & team','Timeline','Application settings','Lab preview']){
     if(!createForm.includes(label))failures.push(`Project Experience V2: create builder is missing ${label}`);
     if(!editForm.includes(label))failures.push(`Project Experience V2: edit builder is missing ${label}`);
   }
-  if(!draftRoute.includes("saveAtomicRevision"))failures.push('Project Experience V2: canonical draft PATCH is not delegated to the atomic revision handler');
+  if(!draftRoute.includes('saveAtomicRevision'))failures.push('Project Experience V2: canonical draft PATCH is not delegated to the atomic revision handler');
   if(!revisionRoute.includes("db.rpc('apply_project_experience_draft_revision'"))failures.push('Project Experience V2: canonical draft revision does not use the atomic RPC');
   if(draftRoute.includes("db.from('project_data_sources').update("))failures.push('Project Experience V2: route-level resource mutation reintroduced outside the atomic transaction');
   if(!atomicUpdate.includes('REVIEWED_RESOURCE_REMOVAL_BLOCKED')||!atomicUpdate.includes('GREEN_RESOURCE_EDIT_BLOCKED'))failures.push('Project Experience V2: atomic resource-governance safeguards are incomplete');
@@ -83,7 +118,7 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   if(atomicUpdate.includes('delete from public.project_roles'))failures.push('Project Experience V2: role deletion would break stable role/application history');
   if(!atomicAudit.includes("'project_definition_updated'")||!atomicAudit.includes("'atomic_revision',true"))failures.push('Project Experience V2: canonical revision audit is not coupled to the database transaction');
   if(!atomicUpdate.includes('from public,anon,authenticated')||!atomicAudit.includes('from public,anon,authenticated'))failures.push('Project Experience V2: atomic RPC privileges are not revoked from browser roles');
-  if(!governance.includes("if(!isAdmin)"))failures.push('Project Experience V2: resource-governance decision endpoint is not Admin restricted');
+  if(!governance.includes('if(!isAdmin)'))failures.push('Project Experience V2: resource-governance decision endpoint is not Admin restricted');
 }
 
 if(failures.length){
@@ -92,4 +127,4 @@ if(failures.length){
   process.exit(1);
 }
 
-console.log(`Critical regression coverage audit passed (${journeys.length} journeys + ${projectExperienceContracts.length} Project Experience V2 contracts).`);
+console.log(`Critical regression coverage audit passed (${journeys.length} journeys + ${projectExperienceContracts.length} Project Experience V2 contracts + advanced public redesign).`);

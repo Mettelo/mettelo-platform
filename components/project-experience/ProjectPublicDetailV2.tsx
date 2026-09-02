@@ -12,9 +12,14 @@ type Props={
 function titleCase(value:string|null|undefined){return value?value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase()):'Not published'}
 function date(value:string|null|undefined){return value?new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric'}).format(new Date(value)):'Not published'}
 function weeks(value:number|null){return value?`${value} ${value===1?'week':'weeks'}`:'Not published'}
+function milestoneWindow(start:number|null,end:number|null){
+  if(start&&end&&start!==end)return`Weeks ${start}–${end}`;
+  if(start||end)return`Week ${start||end}`;
+  return'Project timeline';
+}
 
 export default function ProjectPublicDetailV2({model,canApply,ctaHref,authenticated}:Props){
-  const {project,challenge,resources,deliverables,successCriteria,capabilities,proofSignals,roles,taxonomy}=model;
+  const {project,challenge,resources,deliverables,successCriteria,timeline,capabilities,proofSignals,roles,taxonomy}=model;
   const workingModel=project.locationType?titleCase(project.locationType):project.location||'Project-specific';
   const statusLabel=canApply?'Applications open':project.status==='pilot'?'Pilot project':'Applications closed';
   const primarySource=resources[0]||null;
@@ -26,6 +31,7 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
     deliverables.length&&['deliverables','Deliverables'],
     successCriteria.length&&['success','Success criteria'],
     (proofSignals.length||capabilities.technical.length||capabilities.professional.length)&&['proof','What you can prove'],
+    timeline.length&&['timeline','Timeline'],
     roles.length&&['roles','Available roles'],
     ['apply','Application']
   ].filter(Boolean) as [string,string][];
@@ -97,9 +103,11 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
 
         <section id="proof" className={`${styles.section} ${styles.proofSection}`} aria-labelledby="proof-title"><span className={styles.kicker}>06 · Capability & evidence</span><h2 id="proof-title">What you could credibly prove through the work.</h2><p className={styles.lead}>These are evidence opportunities, not automatic awards. Mettelo Proof still requires completed contribution and verification.</p><div className={styles.proofGrid}>{proofSignals.length?proofSignals.map((item,index)=><article key={item}><span>{String(index+1).padStart(2,'0')}</span><strong>{item}</strong><p>Potential evidence signal when your contribution is completed and verified.</p></article>):<article><span>—</span><strong>Evidence mapping pending</strong><p>The project can be explored without overstating what it proves.</p></article>}</div><div className={styles.capabilityRows}><div><b>Technical</b><p>{capabilities.technical.length?capabilities.technical.join(' · '):'Not yet mapped'}</p></div><div><b>Professional</b><p>{capabilities.professional.length?capabilities.professional.join(' · '):'Not yet mapped'}</p></div><div><b>Methods & tools</b><p>{capabilities.methodsAndTools.length?capabilities.methodsAndTools.join(' · '):'Not yet mapped'}</p></div></div></section>
 
-        <section id="roles" className={styles.section} aria-labelledby="roles-title"><span className={styles.kicker}>07 · Available roles</span><h2 id="roles-title">Choose the responsibility you want to own.</h2>{roles.length?<div className={styles.roles}>{roles.map(role=><article key={role.id}><div><h3>{role.title}</h3>{role.discipline&&<span>{role.discipline}</span>}</div><p>{role.description||'Role detail is being completed.'}</p><div><span>{role.openings} place{role.openings===1?'':'s'}</span>{role.skills.slice(0,5).map(skill=><span key={skill}>{skill}</span>)}</div></article>)}</div>:<div className={styles.empty}><strong>No participation roles are published yet.</strong><span>This project remains discoverable but is not ready for role application.</span></div>}</section>
+        <section id="timeline" className={styles.section} aria-labelledby="timeline-title"><span className={styles.kicker}>07 · Project timeline</span><h2 id="timeline-title">See the planned progression before you commit.</h2><p className={styles.lead}>This is the published project plan, not live Lab task status. Execution updates remain inside the authorised project workspace.</p>{timeline.length?<div className={styles.deliverables}>{timeline.map((item,index)=><article key={item.id}><div><span>{String(index+1).padStart(2,'0')}</span><b>{milestoneWindow(item.weekStart,item.weekEnd)}</b></div><strong>{item.title}</strong>{item.description&&<p>{item.description}</p>}{item.expectedOutput&&<p><strong>Expected output:</strong> {item.expectedOutput}</p>}</article>)}</div>:<div className={styles.empty}><strong>A detailed project timeline has not been published yet.</strong><span>Mettelo does not expose live Lab task state as a substitute for an approved project plan.</span></div>}</section>
 
-        <section id="apply" className={styles.applyBanner} aria-labelledby="apply-title"><div><span className={styles.kicker}>08 · Application</span><h2 id="apply-title">Ready to take the next step?</h2><p>{canApply?'Continue to My Mettelo to check profile readiness, choose an available role and complete the application.':'You can continue to My Mettelo to review your project state. Application stays unavailable until the project is recruiting with capacity.'}</p></div><div><Link href={ctaHref}>{canApply?'Apply for a role':'Open in My Mettelo'}</Link><small>{authenticated?'Your project context is preserved.':'Sign in returns you here.'}</small></div></section>
+        <section id="roles" className={styles.section} aria-labelledby="roles-title"><span className={styles.kicker}>08 · Available roles</span><h2 id="roles-title">Choose the responsibility you want to own.</h2>{roles.length?<div className={styles.roles}>{roles.map(role=><article key={role.id}><div><h3>{role.title}</h3>{role.discipline&&<span>{role.discipline}</span>}</div><p>{role.description||'Role detail is being completed.'}</p><div><span>{role.openings} place{role.openings===1?'':'s'}</span>{role.skills.slice(0,5).map(skill=><span key={skill}>{skill}</span>)}</div></article>)}</div>:<div className={styles.empty}><strong>No participation roles are published yet.</strong><span>This project remains discoverable but is not ready for role application.</span></div>}</section>
+
+        <section id="apply" className={styles.applyBanner} aria-labelledby="apply-title"><div><span className={styles.kicker}>09 · Application</span><h2 id="apply-title">Ready to take the next step?</h2><p>{canApply?'Continue to My Mettelo to check profile readiness, choose an available role and complete the application.':'You can continue to My Mettelo to review your project state. Application stays unavailable until the project is recruiting with capacity.'}</p></div><div><Link href={ctaHref}>{canApply?'Apply for a role':'Open in My Mettelo'}</Link><small>{authenticated?'Your project context is preserved.':'Sign in returns you here.'}</small></div></section>
       </main>
     </div>
 

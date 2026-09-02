@@ -112,20 +112,31 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
       {projectsResult.error?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Nothing has been changed. Refresh this page to try the member catalogue again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<><MemberDiscoverCatalogue projects={items}/><MemberDiscoverPagination/></>}
     </div>
     <style>{`
-      .mdDiscoverPage{width:min(100%,1240px);margin:0;min-width:0;color:var(--ink)}
+      .mdDiscoverPage{width:100%;max-width:none;margin:0;min-width:0;color:var(--ink)}
       .mdDiscoverControlStack{margin-top:18px}.mdDiscoverTopAction{white-space:nowrap}
       .mdDiscoverPage .mdButtonPrimary{background:var(--ink);border-color:var(--ink);color:var(--white)}
       .mdDiscoverPage .mdButton:not(.mdButtonPrimary){border-color:#cfc7ba;background:var(--white);color:var(--ink)}
       .mdDiscoverPage .mdButton:hover{border-color:var(--bronze);background:var(--sand);color:var(--bronze-deep)}
-      .mdDiscoverPage .mdProjectCard,.mdDiscoverPage .mdControlsV2,.mdDiscoverPage .mdEmpty{border-color:var(--line)}
+      .mdDiscoverPage .mdControlsV2{margin-top:10px;padding:16px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.92);box-shadow:0 8px 24px rgba(16,19,29,.03)}
+      .mdDiscoverPage .mdSearchV2{border-color:#cfc7ba;background:var(--paper)}
+      .mdDiscoverPage .mdProjectGrid{gap:18px}
+      .mdDiscoverPage .mdProjectCard{border-color:var(--line);border-radius:18px;padding:20px;box-shadow:0 9px 25px rgba(16,19,29,.035);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+      .mdDiscoverPage .mdProjectCard:hover{transform:translateY(-2px);border-color:#d7c59f;box-shadow:0 15px 34px rgba(16,19,29,.07)}
+      .mdDiscoverPage .mdProjectCard h2{font-size:21px;line-height:1.15}
+      .mdDiscoverPage .mdProjectCard>p{max-width:68ch;color:var(--slate);line-height:1.58}
       .mdDiscoverPage .mdCardOpen{background:linear-gradient(135deg,var(--white),var(--sand-2))}
       .mdDiscoverPage .mdEyebrow,.mdDiscoverPage .mdLabel,.mdDiscoverPage .mdPathContext>span:first-child{color:var(--bronze-deep)}
       .mdDiscoverPage .mdPathContext strong{color:var(--indigo)}
       .mdDiscoverPage .mdActiveChipV2{background:var(--sand);border-color:#dcc18f;color:var(--bronze-deep)}
-      .mdDiscoverPage .mdRecommended{background:var(--sand);border-color:#dfd1b5}
+      .mdDiscoverPage .mdCatalogueHead{padding:0 2px;margin-top:22px}
+      .mdDiscoverPage .mdCatalogueHead strong{font-size:14px}
+      .mdDiscoverPage .mdRecommended{background:linear-gradient(135deg,var(--sand),var(--sand-2));border-color:#dfd1b5;border-radius:18px;padding:22px}
       .mdDiscoverError{margin-top:20px;padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--white)}.mdDiscoverError h2{margin:0 0 6px}.mdDiscoverError p{margin:0 0 14px;color:var(--slate)}
-      .mdPathPrompt{margin:0 0 14px;padding:13px 15px;border:1px solid #ded6c8;border-radius:14px;background:var(--sand-2);display:flex;justify-content:space-between;gap:18px;align-items:center}.mdPathPrompt>div{display:grid;gap:3px}.mdPathPrompt strong{font-size:12px}.mdPathPrompt span{color:var(--slate);font-size:11px;line-height:1.45}.mdPathPrompt a{min-height:44px;display:inline-flex;align-items:center;color:var(--bronze-deep);font-size:11px;font-weight:800;white-space:nowrap}.mdPathPrompt a:focus-visible{outline:3px solid var(--indigo);outline-offset:3px}
-      @media(max-width:680px){.mdDiscoverControlStack{margin-top:14px}.mdDiscoverTopAction{white-space:normal;text-align:center}.mdPathPrompt{display:grid}.mdPathPrompt a{white-space:normal}}
+      .mdPathPrompt{margin:0 0 14px;padding:15px 17px;border:1px solid #ded6c8;border-radius:14px;background:var(--sand-2);display:flex;justify-content:space-between;gap:18px;align-items:center}.mdPathPrompt>div{display:grid;gap:3px}.mdPathPrompt strong{font-size:12px}.mdPathPrompt span{color:var(--slate);font-size:11px;line-height:1.45}.mdPathPrompt a{min-height:44px;display:inline-flex;align-items:center;color:var(--bronze-deep);font-size:11px;font-weight:800;white-space:nowrap}.mdPathPrompt a:focus-visible{outline:3px solid var(--indigo);outline-offset:3px}
+      @media(min-width:1500px){.mdDiscoverPage .mdProjectGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+      @media(max-width:900px){.mdDiscoverPage .mdControlsV2{padding:13px}.mdDiscoverPage .mdProjectCard{padding:18px}}
+      @media(max-width:680px){.mdDiscoverControlStack{margin-top:14px}.mdDiscoverTopAction{white-space:normal;text-align:center}.mdPathPrompt{display:grid}.mdPathPrompt a{white-space:normal}.mdDiscoverPage .mdControlsV2{padding:11px;border-radius:13px}.mdDiscoverPage .mdProjectCard{padding:16px;border-radius:15px}.mdDiscoverPage .mdProjectCard:hover{transform:none}}
+      @media(prefers-reduced-motion:reduce){.mdDiscoverPage .mdProjectCard{transition:none}.mdDiscoverPage .mdProjectCard:hover{transform:none}}
     `}</style>
   </div>;
 }

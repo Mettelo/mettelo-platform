@@ -8,6 +8,12 @@ export type ProjectExperienceRole={
   discipline?:string|null;
   skills:string[];
   openings:number;
+  responsibilities?:string[];
+  recommendedSkills?:string[];
+  experienceExpectation?:string|null;
+  weeklyCommitment?:string|null;
+  roleStatus?:string|null;
+  applicationRequirements?:string|null;
 };
 
 export type ProjectExperienceBrief={
@@ -95,10 +101,12 @@ export function buildProjectExperienceModel({project,roles,domains,tools,methods
     ...detail.importedMethods,
     ...detail.importedTools
   ]);
-  const successCriteria=unique([
+  const canonicalSuccess=unique(detail.successCriteria.map(item=>item.measurement?`${item.title} — ${item.measurement}`:item.description?`${item.title}: ${item.description}`:item.title));
+  const fallbackSuccess=unique([
     ...(brief?.successMeasures||[]),
     ...detail.deliverables.map(item=>item.acceptanceCriteria)
   ]);
+  const successCriteria=canonicalSuccess.length?canonicalSuccess:fallbackSuccess;
   const proofSignals=unique([
     ...detail.pathContexts.map(item=>item.capabilityBuilt),
     ...detail.capabilities.filter(item=>item.evidenceExpected).map(item=>item.name),

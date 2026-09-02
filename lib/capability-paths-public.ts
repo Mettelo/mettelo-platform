@@ -44,7 +44,11 @@ export async function getPublishedPathProjectPositions(slug:string):Promise<Map<
  const db=publicClient();if(!db)return new Map();
  const {data:path,error:pathError}=await db.from('capability_paths').select('id').eq('slug',slug).eq('status','published').maybeSingle();
  if(pathError||!path)return new Map();
- const {data:placements,error}=await db.from('capability_path_projects').select('project_id,position,projects!inner(id,visibility)').eq('path_id',path.id).eq('projects.visibility','public').order('position');
+ // capability_path_projects RLS already requires the Path to be published and the
+ // linked project to be public for anonymous callers. Repeating that visibility
+ // rule through a nested projects!inner join creates a second, fragile predicate
+ // and can incorrectly erase otherwise-readable canonical placements.
+ const {data:placements,error}=await db.from('capability_path_projects').select('project_id,position').eq('path_id',path.id).order('position');
  if(error)return new Map();
  return new Map((placements||[]).map(item=>[item.project_id,item.position]));
 }

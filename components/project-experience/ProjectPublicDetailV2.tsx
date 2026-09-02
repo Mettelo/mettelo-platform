@@ -31,7 +31,7 @@ function retention(value:string|null){
 function initials(value:string){return value.split(/\s+/).filter(Boolean).slice(0,2).map(item=>item[0]?.toUpperCase()).join('')||'↗'}
 
 export default function ProjectPublicDetailV2({model,canApply,ctaHref,authenticated}:Props){
-  const {project,challenge,resources,deliverables,successCriteria,timeline,capabilities,proofSignals,roles,taxonomy}=model;
+  const {project,challenge,resources,deliverables,successCriteria,acceptanceChecks,stakeholderHandover,timeline,capabilities,proofSignals,roles,taxonomy}=model;
   const workingModel=project.locationType?titleCase(project.locationType):project.location||'Project-specific';
   const statusLabel=canApply?'Recruiting now':project.status==='pilot'?'Pilot project':'Applications closed';
   const primarySource=resources[0]||null;
@@ -131,6 +131,7 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
             <aside><span>Primary outcome</span><strong>{challenge.primaryObjective||challenge.useCase||'Outcome detail pending'}</strong><p>{challenge.stakeholder?`The work is intended to support ${challenge.stakeholder}.`:'Stakeholder detail has not yet been published.'}</p></aside>
           </div>
           {(challenge.businessContext||challenge.useCase)&&<div className={styles.twoCards}>{challenge.businessContext&&<article><h3>Business context</h3><p>{challenge.businessContext}</p></article>}{challenge.useCase&&<article><h3>Primary use case</h3><p>{challenge.useCase}</p></article>}</div>}
+          {challenge.decisionToSupport&&<div className={styles.dataNote}><strong>Decision to support:</strong> {challenge.decisionToSupport}</div>}
         </section>
 
         <section id="objectives" className={styles.section} aria-labelledby="objectives-title">
@@ -142,6 +143,8 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
           {challenge.keyQuestions.length>0&&<div className={styles.questionBlock}><div className={styles.subhead}><span>Questions to answer</span><h3>The project should resolve these questions.</h3></div><div className={styles.questionGrid}>{challenge.keyQuestions.map((item,index)=><div key={`${index}:${item}`}><span>{String(index+1).padStart(2,'0')}</span><p>{item}</p></div>)}</div></div>}
 
           {(challenge.inScope.length||challenge.outOfScope.length)>0&&<div className={styles.scopeGrid}><article><span className={styles.cardLabel}>In scope</span>{challenge.inScope.length?<ul>{challenge.inScope.map(item=><li key={item}>{item}</li>)}</ul>:<p>Not explicitly defined.</p>}</article><article><span className={styles.cardLabel}>Out of scope</span>{challenge.outOfScope.length?<ul>{challenge.outOfScope.map(item=><li key={item}>{item}</li>)}</ul>:<p>Not explicitly defined.</p>}</article></div>}
+          {(challenge.constraintsTradeOffs.length||challenge.assumptions.length)>0&&<div className={styles.scopeGrid}><article><span className={styles.cardLabel}>Constraints & trade-offs</span>{challenge.constraintsTradeOffs.length?<ul>{challenge.constraintsTradeOffs.map(item=><li key={item}>{item}</li>)}</ul>:<p>Not explicitly defined.</p>}</article><article><span className={styles.cardLabel}>Explicit assumptions</span>{challenge.assumptions.length?<ul>{challenge.assumptions.map(item=><li key={item}>{item}</li>)}</ul>:<p>Not explicitly defined.</p>}</article></div>}
+          {challenge.responsibleUseRisks.length>0&&<div className={styles.dataNote}><strong>Responsible use & risks:</strong><ul>{challenge.responsibleUseRisks.map(item=><li key={item}>{item}</li>)}</ul></div>}
         </section>
 
         <section id="data" className={styles.section} aria-labelledby="data-title">
@@ -187,6 +190,8 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
           <h2 id="success-title">Know the quality bar before you start.</h2>
           <p className={styles.lead}>Completion alone is not success. The work should be defensible, understandable and useful against criteria published before delivery begins.</p>
           {successCriteria.length?<div className={styles.criteria}>{successCriteria.map(item=><div key={item}><span aria-hidden="true">✓</span><p>{item}</p></div>)}</div>:<div className={styles.empty}><strong>Success criteria are not yet published.</strong><span>Mettelo will not invent a quality bar where the canonical record is incomplete.</span></div>}
+          {acceptanceChecks.length>0&&<div className={styles.questionBlock}><div className={styles.subhead}><span>Acceptance & quality checks</span><h3>What reviewers should verify before accepting the work.</h3></div><div className={styles.questionGrid}>{acceptanceChecks.map((item,index)=><div key={`${index}:${item}`}><span>{String(index+1).padStart(2,'0')}</span><p>{item}</p></div>)}</div></div>}
+          {stakeholderHandover&&<div className={styles.dataNote}><strong>Stakeholder handover:</strong> {stakeholderHandover}</div>}
         </section>
 
         <section id="proof" className={styles.section} aria-labelledby="proof-title">

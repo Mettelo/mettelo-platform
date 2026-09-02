@@ -37,7 +37,7 @@ test.beforeAll(async()=>{
   if(domainError)throw domainError;if(roleFamilyError)throw roleFamilyError;if(capabilityError)throw capabilityError;if(toolError)throw toolError;if(methodError)throw methodError;if(!domain||!roleFamily||!tool||!method||(capabilities||[]).length!==3)throw new Error('E2E Member Discover requires the Phase 1 canonical catalogue taxonomy.');
   const {error:clearDomainError}=await db.from('profile_domain_preferences').delete().eq('user_id',memberId);if(clearDomainError)throw clearDomainError;
   const {error:domainPrefError}=await db.from('profile_domain_preferences').insert({user_id:memberId,domain_id:domain.id});if(domainPrefError)throw domainPrefError;
-  const {error:projectError}=await db.from('projects').upsert({id:projectId,slug:'e2e-member-discover-project',title,summary:'Use a deterministic member-only project to verify Discover, project detail and the internal application journey.',problem_statement:'Validate that signed-in members never need to leave My Mettelo to decide whether and how to apply.',status:'recruiting',visibility:'public',project_type:'open',applications_open:false,location:'Remote',location_type:'remote',catalogue_working_model_source:'explicit',duration_weeks:6,weekly_commitment:'5–8 hrs/week',application_deadline:null,team_size_threshold:2},{onConflict:'id'});if(projectError)throw projectError;
+  const {error:projectError}=await db.from('projects').upsert({id:projectId,slug:'e2e-member-discover-project',title,summary:'Use a deterministic member-only project to verify Discover, project detail and the internal application journey.',problem_statement:'Validate that signed-in members never need to leave My Mettelo to decide whether and how to apply.',status:'draft',visibility:'private',project_type:'open',applications_open:false,location:'Remote',location_type:'remote',catalogue_working_model_source:'explicit',duration_weeks:6,weekly_commitment:'5–8 hrs/week',application_deadline:null,team_size_threshold:2},{onConflict:'id'});if(projectError)throw projectError;
   const {error:roleError}=await db.from('project_roles').upsert({id:roleId,project_id:projectId,title:'Data Analyst',description:'Analyse the project dataset and translate validated patterns into decision-ready findings.',skills:['Data Analysis','Visualisation'],openings:2},{onConflict:'id'});if(roleError)throw roleError;
   for(const operation of [
     db.from('project_role_families').upsert({project_id:projectId,role_catalogue_id:roleFamily.id,source:'e2e_member_discover'},{onConflict:'project_id,role_catalogue_id'}),
@@ -47,7 +47,7 @@ test.beforeAll(async()=>{
     db.from('project_methods').upsert({project_id:projectId,method_id:method.id},{onConflict:'project_id,method_id'})
   ]){const {error}=await operation;if(error)throw error;}
   const {data:readiness,error:readinessError}=await db.from('project_catalogue_readiness').select('catalogue_ready,missing_requirements').eq('project_id',projectId).single();if(readinessError)throw readinessError;if(!readiness.catalogue_ready)throw new Error(`Member Discover fixture is catalogue-incomplete: ${(readiness.missing_requirements||[]).join(', ')}`);
-  const {error:intakeError}=await db.from('projects').update({applications_open:true}).eq('id',projectId);if(intakeError)throw intakeError;
+  const {error:intakeError}=await db.from('projects').update({status:'recruiting',visibility:'public',applications_open:true}).eq('id',projectId);if(intakeError)throw intakeError;
 });
 
 test.beforeEach(async()=>{await resetMemberState()});

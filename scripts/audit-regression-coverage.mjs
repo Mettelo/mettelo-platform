@@ -22,7 +22,8 @@ const projectExperienceContracts=[
   'tests/project-experience-v2-architect-builder-contract.spec.ts',
   'tests/project-experience-v2-resource-governance-contract.spec.ts',
   'tests/project-experience-v2-draft-edit-contract.spec.ts',
-  'tests/project-experience-v2-admin-draft-index-contract.spec.ts'
+  'tests/project-experience-v2-admin-draft-index-contract.spec.ts',
+  'tests/project-team-readiness-v2-contract.spec.ts'
 ];
 
 const failures=[];
@@ -56,7 +57,14 @@ const v2Files={
   revisionRoute:'app/api/architect-projects/[id]/revision/route.ts',
   resourceGovernance:'app/api/architect-project-resources/route.ts',
   atomicUpdate:'supabase/migrations/20260902122000_project_experience_draft_atomic_update.sql',
-  atomicAudit:'supabase/migrations/20260902122100_project_experience_draft_atomic_audit.sql'
+  atomicAudit:'supabase/migrations/20260902122100_project_experience_draft_atomic_audit.sql',
+  resourceAtomic:'supabase/migrations/20260902122200_project_resource_governance_atomic_review.sql',
+  teamMigration:'supabase/migrations/20260902122300_project_team_readiness_v2.sql',
+  teamReadiness:'lib/project-team-readiness.ts',
+  memberApplication:'components/MemberProjectApplicationFlow.tsx',
+  memberApplicationRoute:'app/api/project-applications/route.ts',
+  adminApplicationRoute:'app/api/admin/applications/route.ts',
+  adminTeamRoute:'app/api/admin/project-flow/route.ts'
 };
 for(const [name,file] of Object.entries(v2Files)){if(!fs.existsSync(file))failures.push(`Project Experience V2: missing ${name} implementation ${file}`)}
 
@@ -78,6 +86,13 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   const governance=fs.readFileSync(v2Files.resourceGovernance,'utf8');
   const atomicUpdate=fs.readFileSync(v2Files.atomicUpdate,'utf8');
   const atomicAudit=fs.readFileSync(v2Files.atomicAudit,'utf8');
+  const resourceAtomic=fs.readFileSync(v2Files.resourceAtomic,'utf8');
+  const teamMigration=fs.readFileSync(v2Files.teamMigration,'utf8');
+  const teamReadiness=fs.readFileSync(v2Files.teamReadiness,'utf8');
+  const memberApplication=fs.readFileSync(v2Files.memberApplication,'utf8');
+  const memberApplicationRoute=fs.readFileSync(v2Files.memberApplicationRoute,'utf8');
+  const adminApplicationRoute=fs.readFileSync(v2Files.adminApplicationRoute,'utf8');
+  const adminTeamRoute=fs.readFileSync(v2Files.adminTeamRoute,'utf8');
 
   for(const marker of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel','ProjectPublicDetailV2'])if(!publicPage.includes(marker))failures.push(`Project Experience V2: public detail is missing canonical wiring marker ${marker}`);
   for(const marker of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel','MemberProjectDetailV2'])if(!memberPage.includes(marker))failures.push(`Project Experience V2: member detail is missing canonical wiring marker ${marker}`);
@@ -110,6 +125,18 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   if(!atomicAudit.includes("'project_definition_updated'")||!atomicAudit.includes("'atomic_revision',true"))failures.push('Project Experience V2: canonical revision audit is not coupled to the database transaction');
   if(!atomicUpdate.includes('from public,anon,authenticated')||!atomicAudit.includes('from public,anon,authenticated'))failures.push('Project Experience V2: atomic RPC privileges are not revoked from browser roles');
   if(!governance.includes('if(!isAdmin)'))failures.push('Project Experience V2: resource-governance decision endpoint is not Admin restricted');
+  if(!governance.includes("db.rpc('apply_project_resource_governance_review'"))failures.push('Project Experience V2: resource governance is not delegated to the atomic review RPC');
+  if(governance.includes("db.from('project_data_sources').update("))failures.push('Project Experience V2: resource governance reintroduced route-level source mutation');
+  for(const marker of ['update public.project_data_sources','insert into public.project_data_source_governance_reviews','insert into public.project_governance_events',"'atomic_review',true",'GREEN_REQUIRES_LICENCE_EVIDENCE','from public,anon,authenticated'])if(!resourceAtomic.includes(marker))failures.push(`Project Experience V2: atomic resource review lost ${marker}`);
+
+  if(!teamMigration.includes('leadership_interest boolean not null default false'))failures.push('Project Experience V2: leadership willingness is not persisted');
+  if(!memberApplication.includes('I would be willing to lead this project team if selected.'))failures.push('Project Experience V2: application UI lost leadership willingness');
+  if(!memberApplicationRoute.includes('leadership_interest:isInterest?false:leadershipInterest'))failures.push('Project Experience V2: application endpoint does not persist leadership willingness');
+  for(const marker of ["members.every(member=>Boolean(member.project_role_id))",".from('project_experience_readiness')","if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')","leadershipInterest?60:0",'activeLeadProjects*25'])if(!teamReadiness.includes(marker))failures.push(`Project Experience V2: team readiness lost ${marker}`);
+  if(!adminApplicationRoute.includes("if(readiness.ready&&project.project_type==='open'&&!run.has_started)"))failures.push('Project Experience V2: Open Project auto-start is not gated on complete team readiness');
+  if(adminApplicationRoute.includes("if(full&&project.project_type==='open'&&!run.has_started)"))failures.push('Project Experience V2: legacy headcount-only auto-start was reintroduced');
+  if(!adminTeamRoute.includes("Project Lead can only be changed while the team is still forming."))failures.push('Project Experience V2: Admin can change leadership after team lock');
+  if(!adminTeamRoute.includes('if(!readiness.ready)return NextResponse.json'))failures.push('Project Experience V2: Admin team start can bypass readiness');
 }
 
 if(failures.length){console.error('Critical regression coverage audit failed:');failures.forEach(failure=>console.error(`- ${failure}`));process.exit(1)}

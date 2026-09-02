@@ -15,6 +15,16 @@ const journeys=[
   {name:'Mobile navigation',source:'components/MobileMenuEnhancer.tsx',contract:'tests/critical-ui.spec.ts'}
 ];
 
+const projectExperienceContracts=[
+  'tests/project-experience-v2-canonical-contract.spec.ts',
+  'tests/project-experience-v2-resource-visibility.spec.ts',
+  'tests/project-experience-v2-lab-canonical-contract.spec.ts',
+  'tests/project-experience-v2-architect-builder-contract.spec.ts',
+  'tests/project-experience-v2-resource-governance-contract.spec.ts',
+  'tests/project-experience-v2-draft-edit-contract.spec.ts',
+  'tests/project-experience-v2-admin-draft-index-contract.spec.ts'
+];
+
 const failures=[];
 for(const journey of journeys){
   for(const key of ['source','route','contract','e2e']){
@@ -27,10 +37,59 @@ for(const journey of journeys){
   }
 }
 
+for(const file of projectExperienceContracts){if(!fs.existsSync(file))failures.push(`Project Experience V2: missing blocking contract ${file}`)}
+
+const v2Files={
+  publicPage:'app/projects/[id]/page.tsx',
+  memberPage:'app/member/discover/[id]/page.tsx',
+  canonicalData:'lib/project-experience-data.ts',
+  labData:'lib/project-lab-canonical-data.ts',
+  architectCreate:'components/ArchitectProjectForm.tsx',
+  architectEdit:'components/ArchitectProjectEditForm.tsx',
+  draftRoute:'app/api/architect-projects/[id]/route.ts',
+  revisionRoute:'app/api/architect-projects/[id]/revision/route.ts',
+  resourceGovernance:'app/api/architect-project-resources/route.ts',
+  atomicUpdate:'supabase/migrations/20260902122000_project_experience_draft_atomic_update.sql',
+  atomicAudit:'supabase/migrations/20260902122100_project_experience_draft_atomic_audit.sql'
+};
+for(const [name,file] of Object.entries(v2Files)){if(!fs.existsSync(file))failures.push(`Project Experience V2: missing ${name} implementation ${file}`)}
+
+if(Object.values(v2Files).every(file=>fs.existsSync(file))){
+  const publicPage=fs.readFileSync(v2Files.publicPage,'utf8');
+  const memberPage=fs.readFileSync(v2Files.memberPage,'utf8');
+  const canonicalData=fs.readFileSync(v2Files.canonicalData,'utf8');
+  const labData=fs.readFileSync(v2Files.labData,'utf8');
+  const createForm=fs.readFileSync(v2Files.architectCreate,'utf8');
+  const editForm=fs.readFileSync(v2Files.architectEdit,'utf8');
+  const draftRoute=fs.readFileSync(v2Files.draftRoute,'utf8');
+  const revisionRoute=fs.readFileSync(v2Files.revisionRoute,'utf8');
+  const governance=fs.readFileSync(v2Files.resourceGovernance,'utf8');
+  const atomicUpdate=fs.readFileSync(v2Files.atomicUpdate,'utf8');
+  const atomicAudit=fs.readFileSync(v2Files.atomicAudit,'utf8');
+
+  if(!publicPage.includes('getProjectExperienceModel'))failures.push('Project Experience V2: public detail is not using the canonical project model');
+  if(!memberPage.includes('getProjectExperienceModel'))failures.push('Project Experience V2: member detail is not using the canonical project model');
+  if(!canonicalData.includes(".is('project_run_id',null)"))failures.push('Project Experience V2: canonical data projection does not explicitly exclude run execution rows');
+  if(!labData.includes("governanceStatus==='green'&&row.internal_storage_policy==='permitted'"))failures.push('Project Experience V2: Lab private resource links are not gated by green storage governance');
+  for(const label of ['Project basics','Problem & context','Data & resources','Deliverables & success','Skills & Proof','Roles & team','Timeline','Application settings','Lab preview']){
+    if(!createForm.includes(label))failures.push(`Project Experience V2: create builder is missing ${label}`);
+    if(!editForm.includes(label))failures.push(`Project Experience V2: edit builder is missing ${label}`);
+  }
+  if(!draftRoute.includes("saveAtomicRevision"))failures.push('Project Experience V2: canonical draft PATCH is not delegated to the atomic revision handler');
+  if(!revisionRoute.includes("db.rpc('apply_project_experience_draft_revision'"))failures.push('Project Experience V2: canonical draft revision does not use the atomic RPC');
+  if(draftRoute.includes("db.from('project_data_sources').update("))failures.push('Project Experience V2: route-level resource mutation reintroduced outside the atomic transaction');
+  if(!atomicUpdate.includes('REVIEWED_RESOURCE_REMOVAL_BLOCKED')||!atomicUpdate.includes('GREEN_RESOURCE_EDIT_BLOCKED'))failures.push('Project Experience V2: atomic resource-governance safeguards are incomplete');
+  if(!atomicUpdate.includes("update public.project_roles r set role_status='closed'"))failures.push('Project Experience V2: removed roles are not history-preserving closures');
+  if(atomicUpdate.includes('delete from public.project_roles'))failures.push('Project Experience V2: role deletion would break stable role/application history');
+  if(!atomicAudit.includes("'project_definition_updated'")||!atomicAudit.includes("'atomic_revision',true"))failures.push('Project Experience V2: canonical revision audit is not coupled to the database transaction');
+  if(!atomicUpdate.includes('from public,anon,authenticated')||!atomicAudit.includes('from public,anon,authenticated'))failures.push('Project Experience V2: atomic RPC privileges are not revoked from browser roles');
+  if(!governance.includes("if(!isAdmin)"))failures.push('Project Experience V2: resource-governance decision endpoint is not Admin restricted');
+}
+
 if(failures.length){
   console.error('Critical regression coverage audit failed:');
   failures.forEach(failure=>console.error(`- ${failure}`));
   process.exit(1);
 }
 
-console.log(`Critical regression coverage audit passed (${journeys.length} journeys).`);
+console.log(`Critical regression coverage audit passed (${journeys.length} journeys + ${projectExperienceContracts.length} Project Experience V2 contracts).`);

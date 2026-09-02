@@ -71,10 +71,14 @@
 - Total waiting/active membership in a run cannot exceed that run's required team size, even when concurrent approvals target different roles.
 - The migration normalises legacy unsafe combinations before the triggers become authoritative.
 
-## Imported catalogue correction
+## Imported catalogue contract
 - The approved Capability Paths import contains 117 Open Projects with team size 5.
 - Those projects must be `status='open'`, `visibility='public'`, `applications_open=true` when intentionally released for member applications.
-- Because the approved workbook does not define named team roles, the release may use one transparent `Project Contributor` role with 5 openings rather than inventing specialist titles.
+- Controlled workbook imports still create new canonical projects safely as `draft + private + applications closed`.
+- When a controlled import batch finishes, each **new** imported Open Project that has no explicit participation role automatically receives one transparent `Project Contributor` role with openings equal to `team_size_threshold`.
+- The automatic fallback runs only after the whole batch is marked imported, so a future importer that supplies explicit named roles is not overridden or duplicated.
+- Creating the fallback role does **not** publish or reopen the project; the same governed Admin publication checks still decide when it becomes visible and application-ready.
+- Existing/reused canonical projects are never given a fallback role by the importer.
 - The role can later be replaced or supplemented by Admin with project-specific role definitions, provided application intake is not left with insufficient team capacity.
 
 ## Blocking regression checks
@@ -92,5 +96,6 @@
 - Paused intake still allows already-received valid applications to finish review/team placement.
 - Partner team starts → applications close automatically and intake cannot be resumed.
 - Partner team full → no automatic Team 2 intake is created.
+- Future imported Open Project with team size 4 + no named role → batch commit creates one `Project Contributor` role with 4 openings while project remains private Draft.
 - Invalid direct writes are exercised against a real disposable Supabase database in the blocking regression suite.
 - Existing application, withdrawal, membership, Lab and Proof journeys remain unchanged.

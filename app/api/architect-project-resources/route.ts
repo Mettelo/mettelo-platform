@@ -4,6 +4,7 @@ import {architectContext,clean,recordGovernance} from '@/lib/project-governance'
 const decisions=new Set(['verification_required','amber','green','red']);
 const permissions=new Set(['permitted','restricted','not_permitted','unknown']);
 function httpsUrl(value:unknown){const url=clean(value,2000);return !url||/^https:\/\//i.test(url)?url:''}
+function qualityStatus(decision:string){return decision==='green'?'approved':decision==='verification_required'?'unreviewed':'issues_found'}
 
 export async function GET(){
   try{
@@ -41,7 +42,7 @@ export async function PATCH(request:Request){
       internal_storage_policy:internalStorage,
       internal_storage_url:internalStorageUrl||null,
       publish_policy:publicUseApproved?'permitted':'not_permitted',
-      quality_status:decision==='green'?'verified':decision==='red'?'rejected':'review_required'
+      quality_status:qualityStatus(decision)
     }).eq('id',source.id).is('project_run_id',null);
     if(updateError)throw updateError;
     const {error:reviewError}=await db.from('project_data_source_governance_reviews').insert({data_source_id:source.id,decision,notes:notes||null,evidence_url:evidenceUrl||null,reviewer_user_id:user.id});if(reviewError)throw reviewError;

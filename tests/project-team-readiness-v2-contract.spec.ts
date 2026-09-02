@@ -17,13 +17,15 @@ test.describe('Project Experience V2 team formation contract',()=>{
     expect(migration).toContain('leadership_interest boolean not null default false');
   });
 
-  test('automatic lead selection is deterministic, transparent and open to new members',()=>{
+  test('automatic lead selection is deterministic, transparent, opt-in and open to new members',()=>{
     const readiness=read('lib/project-team-readiness.ts');
     expect(readiness).toContain('leadershipInterest?60:0');
     expect(readiness).toContain('completedProjects*10');
     expect(readiness).toContain('activeLeadProjects*25');
     expect(readiness).toContain('const volunteers=candidates.filter(candidate=>candidate.leadershipInterest)');
-    expect(readiness).toContain("selection_policy:'interest_then_mettelo_delivery_history_then_current_lead_load_then_submission_order'");
+    expect(readiness).toContain('recommendation=volunteers[0]||null');
+    expect(readiness).toContain("selection_policy:'volunteer_interest_then_mettelo_delivery_history_then_current_lead_load_then_submission_order'");
+    expect(readiness).not.toContain('volunteers.length?volunteers:candidates');
     expect(readiness).not.toContain('experience_level');
     expect(readiness).not.toContain('current_job_title');
   });

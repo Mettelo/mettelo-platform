@@ -155,11 +155,7 @@ class Api:
 
     def request(self, method: str, path: str, payload: Any | None = None, prefer: str | None = None) -> Any:
         body = None if payload is None else json.dumps(payload).encode()
-        headers = {
-            "apikey": self.key,
-            "Authorization": f"Bearer {self.key}",
-            "Accept": "application/json",
-        }
+        headers = {"apikey": self.key, "Authorization": f"Bearer {self.key}", "Accept": "application/json"}
         if body is not None:
             headers["Content-Type"] = "application/json"
         if prefer:
@@ -191,6 +187,18 @@ class Api:
     def upsert(self, table: str, conflict: str, payload: dict[str, Any]) -> None:
         path = f"{table}?on_conflict={urllib.parse.quote(conflict)}"
         self.request("POST", path, payload, "resolution=merge-duplicates,return=minimal")
+
+
+def existing_child(rows: list[dict[str, Any]], key_field: str, key: str, title_field: str, title: str) -> dict[str, Any] | None:
+    keyed = [row for row in rows if text(row.get(key_field)) == key]
+    if len(keyed) > 1:
+        raise RuntimeError(f"Ambiguous existing canonical child key {key}")
+    if keyed:
+        return keyed[0]
+    titled = [row for row in rows if normal_title(text(row.get(title_field))) == normal_title(title)]
+    if len(titled) > 1:
+        raise RuntimeError(f"Ambiguous legacy child title {title!r}")
+    return titled[0] if titled else None
 
 
 def load_records(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
@@ -333,7 +341,7 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> s
         project_uuid = str(inserted["id"])
         action = "created"
 
-    api.upsert("project_problem_briefs", "project_id", {
+    brief = {
         "project_id": project_uuid,
         "context": r["use_case"],
         "stakeholder": r["stakeholder"],
@@ -351,36 +359,61 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> s
         "acceptance_quality_checks": r["acceptance_checks"],
         "responsible_use_risks": r["responsible_use"],
         "evidence_expectations": r["evidence"],
+        "technical_skills": r["technical_skills"],
+        "professional_skills": r["professional_skills"],
+        "canonical_methods": r["methods"],
+        "canonical_tools": r["tools"],
         "stakeholder_handover": r["handover"],
-    })
+    }
+    api.upsert("project_problem_briefs", "project_id", brief)
+
+    qid = urllib.parse.quote(project_uuid)
+    existing_deliverables = api.request("GET", f"project_deliverables?select=id,title,canonical_item_key,sort_order&project_id=eq.{qid}&project_run_id=is.null") or []
+    existing_criteria = api.request("GET", f"project_success_criteria?select=id,title,canonical_item_key,sort_order&project_id=eq.{qid}") or []
+    existing_roles = api.request("GET", f"project_roles?select=id,title,canonical_role_key&project_id=eq.{qid}") or []
+    existing_sources = api.request("GET", f"project_data_sources?select=id,name,canonical_source_key&project_id=eq.{qid}&project_run_id=is.null") or []
 
     for i, item in enumerate(r["deliverables"], 1):
-        api.upsert("project_deliverables", "project_id,canonical_item_key", {
+        key = f"{r['project_id']}:deliverable:{i:03d}"
+        payload = {
             "project_id": project_uuid,
             "project_run_id": None,
-            "canonical_item_key": f"{r['project_id']}:deliverable:{i:03d}",
+            "canonical_item_key": key,
             "title": short_title(item),
             "public_summary": item,
             "is_required": True,
             "status": "not_started",
             "sort_order": i,
-        })
+        }
+        existing = existing_child(existing_deliverables, "canonical_item_key", key, "title", payload["title"])
+        if existing:
+            api.patch("project_deliverables", "id=eq." + urllib.parse.quote(str(existing["id"])), payload)
+        else:
+            api.upsert("project_deliverables", "project_id,canonical_item_key", payload)
+
     for i, item in enumerate(r["success_criteria"], 1):
-        api.upsert("project_success_criteria", "project_id,canonical_item_key", {
+        key = f"{r['project_id']}:criterion:{i:03d}"
+        payload = {
             "project_id": project_uuid,
-            "canonical_item_key": f"{r['project_id']}:criterion:{i:03d}",
+            "canonical_item_key": key,
             "title": short_title(item),
             "description": item,
             "is_required": True,
             "visibility": "public",
             "sort_order": i,
-        })
+        }
+        existing = existing_child(existing_criteria, "canonical_item_key", key, "title", payload["title"])
+        if existing:
+            api.patch("project_success_criteria", "id=eq." + urllib.parse.quote(str(existing["id"])), payload)
+        else:
+            api.upsert("project_success_criteria", "project_id,canonical_item_key", payload)
 
     role_skills = list(dict.fromkeys(r["technical_skills"] + r["professional_skills"]))
     for i, role in enumerate(r["roles"], 1):
-        api.upsert("project_roles", "project_id,canonical_role_key", {
+        key = f"{r['project_id']}:role:{i:02d}"
+        payload = {
             "project_id": project_uuid,
-            "canonical_role_key": f"{r['project_id']}:role:{i:02d}",
+            "canonical_role_key": key,
             "title": role["name"],
             "description": role["responsibilities"][0] if role["responsibilities"] else None,
             "skills": role_skills,
@@ -389,13 +422,19 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> s
             "recommended_skills": role_skills,
             "weekly_commitment": r["weekly_commitment"] or None,
             "role_status": "open",
-        })
+        }
+        existing = existing_child(existing_roles, "canonical_role_key", key, "title", role["name"])
+        if existing:
+            api.patch("project_roles", "id=eq." + urllib.parse.quote(str(existing["id"])), payload)
+        else:
+            api.upsert("project_roles", "project_id,canonical_role_key", payload)
 
     gov = governance_status(r["preservation_class"])
-    api.upsert("project_data_sources", "project_id,canonical_source_key", {
+    source_key = f"{r['project_id']}:source:01"
+    source_payload = {
         "project_id": project_uuid,
         "project_run_id": None,
-        "canonical_source_key": f"{r['project_id']}:source:01",
+        "canonical_source_key": source_key,
         "name": r["dataset"],
         "description": r["member_dataset_scope"] or r["data_reality"],
         "source_type": r["data_reality"] or None,
@@ -409,7 +448,12 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> s
         "governance_status": gov,
         "retention_policy": "permitted" if r["may_store"] else "not_permitted",
         "internal_storage_policy": "permitted" if r["may_store"] else "not_permitted",
-    })
+    }
+    existing = existing_child(existing_sources, "canonical_source_key", source_key, "name", r["dataset"])
+    if existing:
+        api.patch("project_data_sources", "id=eq." + urllib.parse.quote(str(existing["id"])), source_payload)
+    else:
+        api.upsert("project_data_sources", "project_id,canonical_source_key", source_payload)
     return action
 
 

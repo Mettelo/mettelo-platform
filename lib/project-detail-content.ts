@@ -18,6 +18,7 @@ export type ProjectDetailDataSource={
   externalUrl:string|null;
   providerName:string|null;
   providerUrl:string|null;
+  providerLogoAssetPath:string|null;
   licenceName:string|null;
   licenceUrl:string|null;
   requiredSubset:string|null;
@@ -90,6 +91,7 @@ type PlacementRow={
   path_outcome:string|null;
 };
 
+type ProviderRow={name:unknown;website_url:unknown;logo_asset_path:unknown};
 type DataSourceRow={
   id:unknown;
   name:unknown;
@@ -98,6 +100,7 @@ type DataSourceRow={
   external_url:unknown;
   provider_name:unknown;
   provider_url:unknown;
+  provider:ProviderRow|ProviderRow[]|null;
   licence_name:unknown;
   licence_url:unknown;
   required_subset:unknown;
@@ -137,7 +140,7 @@ export async function getProjectDetailContent(projectId:string):Promise<ProjectD
 
   const [deliverablesResult,dataSourcesResult,successCriteriaResult,capabilitiesResult,placementsResult,originResult]=await Promise.all([
     db.from('project_deliverables').select('id,title,deliverable_type,acceptance_criteria,public_summary,expected_format,is_required,status,sort_order').eq('project_id',projectId).is('project_run_id',null).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
-    db.from('project_data_sources').select('id,name,description,source_type,external_url,provider_name,provider_url,licence_name,licence_url,required_subset,approximate_size,data_period,data_format,known_limitations,provenance,sensitivity,publish_policy').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
+    db.from('project_data_sources').select('id,name,description,source_type,external_url,provider_name,provider_url,provider:project_resource_providers(name,website_url,logo_asset_path),licence_name,licence_url,required_subset,approximate_size,data_period,data_format,known_limitations,provenance,sensitivity,publish_policy').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
     db.from('project_success_criteria').select('id,title,description,measurement,is_required,visibility,sort_order').eq('project_id',projectId).eq('visibility','public').order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
     db.from('project_capabilities').select('importance,evidence_expected,capabilities(name,capability_type)').eq('project_id',projectId),
     db.from('capability_path_projects').select('path_id,stage_id,position,competency_focus,capability_built,path_outcome').eq('project_id',projectId).order('position',{ascending:true}),
@@ -148,25 +151,29 @@ export async function getProjectDetailContent(projectId:string):Promise<ProjectD
     .filter(row=>row.status!=='cancelled')
     .map(row=>({id:String(row.id),title:String(row.title),deliverableType:text(row.deliverable_type),acceptanceCriteria:text(row.acceptance_criteria),publicSummary:text(row.public_summary),expectedFormat:text(row.expected_format),isRequired:Boolean(row.is_required)}));
 
-  const dataSources=((dataSourcesResult.data||[]) as DataSourceRow[])
+  const dataSources=((dataSourcesResult.data||[]) as unknown as DataSourceRow[])
     .filter(publicDataSource)
-    .map(row=>({
-      id:String(row.id),
-      name:String(row.name),
-      description:text(row.description),
-      sourceType:text(row.source_type),
-      externalUrl:text(row.external_url),
-      providerName:text(row.provider_name),
-      providerUrl:text(row.provider_url),
-      licenceName:text(row.licence_name),
-      licenceUrl:text(row.licence_url),
-      requiredSubset:text(row.required_subset),
-      approximateSize:text(row.approximate_size),
-      dataPeriod:text(row.data_period),
-      dataFormat:text(row.data_format),
-      knownLimitations:text(row.known_limitations),
-      provenance:text(row.provenance)
-    }));
+    .map(row=>{
+      const provider=oneRelation(row.provider);
+      return{
+        id:String(row.id),
+        name:String(row.name),
+        description:text(row.description),
+        sourceType:text(row.source_type),
+        externalUrl:text(row.external_url),
+        providerName:text(provider?.name)||text(row.provider_name),
+        providerUrl:text(provider?.website_url)||text(row.provider_url),
+        providerLogoAssetPath:text(provider?.logo_asset_path),
+        licenceName:text(row.licence_name),
+        licenceUrl:text(row.licence_url),
+        requiredSubset:text(row.required_subset),
+        approximateSize:text(row.approximate_size),
+        dataPeriod:text(row.data_period),
+        dataFormat:text(row.data_format),
+        knownLimitations:text(row.known_limitations),
+        provenance:text(row.provenance)
+      };
+    });
 
   const successCriteria=(successCriteriaResult.data||[]).map(row=>({id:String(row.id),title:String(row.title),description:text(row.description),measurement:text(row.measurement),isRequired:Boolean(row.is_required)}));
 

@@ -14,6 +14,7 @@ test.describe('Public Projects Filters V2',()=>{
   test('public catalogue uses the shared governed engine and public-only data boundary',()=>{
     const page=read('app/projects/page.tsx');
     const engine=read('lib/project-catalogue-filtering.ts');
+    const controls=read('components/PublicProjectFilters.tsx');
     expect(page).toContain("from '@/lib/project-catalogue-filtering'");
     expect(page).toContain(".eq('visibility','public')");
     expect(page).toContain('filterAndSortProjectCatalogue(catalogueItems,filters)');
@@ -26,6 +27,8 @@ test.describe('Public Projects Filters V2',()=>{
     expect(page).not.toContain('applicationReadiness');
     expect(engine).toContain("duration:string;");
     expect(engine).toContain('catalogueDurationOptions');
+    expect(controls).toContain("mettelo:catalogue-analytics");
+    expect(controls).toContain('publicFilterChip');
   });
 
   test('catalogue readiness is a governed publish contract rather than a UI-only warning',()=>{
@@ -62,7 +65,23 @@ test.describe('Public Projects Filters V2',()=>{
     await expect(page.locator('#level-filter')).toHaveCount(0);
   });
 
-  test('valid public filter state is URL-driven and survives refresh',async({page})=>{
+  test('public analytics boundary emits aggregate interaction data without raw search or identity',async({page})=>{
+    await page.goto('/projects#projects',{waitUntil:'networkidle'});
+    await page.evaluate(()=>{
+      const target=window as typeof window&{__catalogueAnalytics?:unknown[]};
+      target.__catalogueAnalytics=[];
+      window.addEventListener('mettelo:catalogue-analytics',event=>target.__catalogueAnalytics?.push((event as CustomEvent).detail));
+    });
+    await page.getByRole('button',{name:/Filters ·/}).click();
+    const detail=await page.evaluate(()=>(window as typeof window&{__catalogueAnalytics?:Record<string,unknown>[]}).__catalogueAnalytics?.[0]||null);
+    expect(detail).toMatchObject({event:'filter_opened',surface:'public'});
+    expect(detail).not.toHaveProperty('query');
+    expect(detail).not.toHaveProperty('value');
+    expect(detail).not.toHaveProperty('user_id');
+    expect(detail).not.toHaveProperty('email');
+  });
+
+  test('valid public filter state is URL-driven, removable and survives refresh',async({page})=>{
     await page.goto('/projects#projects',{waitUntil:'networkidle'});
     await page.getByRole('button',{name:/Filters ·/}).click();
     const dialog=page.getByRole('dialog',{name:'Filter projects'});
@@ -72,10 +91,16 @@ test.describe('Public Projects Filters V2',()=>{
     await domain.selectOption(options[0].value);
     await page.getByRole('button',{name:/Show \d+ projects?/}).click();
     await expect(page).toHaveURL(new RegExp(`domain=${encodeURIComponent(options[0].value)}`));
+    await expect(page.getByRole('link',{name:/Remove Domain:/})).toBeVisible();
     await page.reload({waitUntil:'networkidle'});
     await expect(page.getByRole('button',{name:/Filters · [1-9]/})).toBeVisible();
+    await expect(page.getByRole('link',{name:/Remove Domain:/})).toBeVisible();
     await page.getByRole('button',{name:/Filters ·/}).click();
     await expect(page.getByRole('dialog',{name:'Filter projects'}).locator('select[name="domain"]')).toHaveValue(options[0].value);
+    await page.keyboard.press('Escape');
+    await page.getByRole('link',{name:/Remove Domain:/}).click();
+    await expect(page).not.toHaveURL(/domain=/);
+    await expect(page.getByRole('button',{name:'Filters · 0'})).toBeVisible();
   });
 
   test('public filter UI reflows at supported phone/tablet widths and 200 percent text',async({page})=>{

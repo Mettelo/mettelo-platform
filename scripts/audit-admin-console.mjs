@@ -23,11 +23,11 @@ const checks=[
   ['components/PlatformSocialLinks.tsx',['platform_settings','public_read','social_instagram','social_youtube','aria-label']],
   ['supabase/migrations/20260818184000_platform_settings.sql',['platform_settings','contact_email','social_linkedin','social_x','public_read']],
   ['app/admin/project-operations/projects/page.tsx',['Admin / Projects / Projects','AdminProjectCreateButton','AdminProjectManager']],
-  ['components/AdminProjectManager.tsx',['Search by project name or partner','Team fill % ascending','Rows per page','Archive selected','Make public','Make private','No projects match these filters','rowMenu','mobileProjectList']],
+  ['components/AdminProjectManager.tsx',['Search by project name or partner','Team fill % ascending','Rows per page','Archive selected','Publish and visibility changes are managed from each project so lifecycle checks cannot be bypassed.','No projects match these filters','rowMenu','mobileProjectList']],
   ['app/admin/project-operations/projects/[id]/page.tsx',['Admin / Projects / Projects /','Project brief','BRIEF DETAILS','COHORTS','cohortGrid','APPLICATION DEADLINE','PROJECT METADATA','Applications received','Open Team Formation','AdminProjectVisibilityControl','AdminExpandableText']],
   ['components/AdminExpandableText.tsx',['Show more','Show less','aria-expanded']],
-  ['components/AdminProjectVisibilityControl.tsx',['Confirm visibility','Change visibility','removed from public discovery','Make this project']],
-  ['components/AdminProjectDetailActions.tsx',['Delete this project permanently?','applications, team members and workspace data','Edit project','Open team formation']],
+  ['components/AdminProjectVisibilityControl.tsx',['AdminStatusBadge','Visibility is controlled by Publish, Unpublish and Archive actions.','visibilityControl']],
+  ['components/AdminProjectDetailActions.tsx',['Delete this project permanently?','Editing content cannot accidentally publish, close or reopen a project.','Team formation','Start Partner project','Publish as Pilot','Pause intake','Resume intake']],
   ['app/admin/project-operations/applications/page.tsx',['Admin / Projects / Applications','focusProjectId','query.eq(\'project_id\',focusProjectId)','AdminApplicationQueue']],
   ['components/AdminApplicationQueue.tsx',['Current applications','All statuses','Filter applications by status','Rows per page','Previous','Next','No applications match your filters','applicationTable','applicationMobileList']],
   ['app/admin/project-operations/team-formation/page.tsx',['Admin / Projects / Team Formation','AdminTeamFormation']],
@@ -35,7 +35,7 @@ const checks=[
   ['app/admin/opportunity-sources/page.tsx',['AdminOpportunitySources']],
   ['components/AdminOpportunitySources.tsx',['AUTOMATION HEALTH','sourceAlert','Sync all official sources','Search by company name','Auto-publish','Never synced','Advanced: add a specific official employer source','sourceTable','sourceMobileList']],
   ['app/api/admin/opportunity-sources/route.ts',['export async function DELETE','organisation_name','source_key','employer_domain']],
-  ['app/api/admin/projects/route.ts',['updated_by_user_id:user.id','applications, team activity or evidence']],
+  ['app/api/admin/projects/route.ts',['updated_by_user_id:user.id','applications, team activity or evidence','lifecycle-controlled','publicationReadiness']],
   ['app/admin/team-formation/page.tsx',["redirect('/admin/project-operations/team-formation')"]],
   ['app/admin/applications/page.tsx',["redirect('/admin/project-operations/applications')"]],
   ['supabase/migrations/20260816021000_admin_project_updated_by.sql',['updated_by_user_id']],
@@ -49,6 +49,8 @@ for(const [file,needles] of checks){
   if(file==='components/AdminApplicationQueue.tsx'||file==='components/AdminTeamFormation.tsx'){
     if(text.includes('select multiple')){console.error(`FAIL ${file}: status filters must not use native multi-select controls`);failed=true;ok=false;}
   }
+  if(file==='components/AdminProjectManager.tsx'&&(text.includes('Make public')||text.includes('Make private')||text.includes('bulkVisibility('))){console.error('FAIL components/AdminProjectManager.tsx: bulk visibility must not bypass governed lifecycle actions');failed=true;ok=false;}
+  if(file==='components/AdminProjectVisibilityControl.tsx'&&text.includes("fetch('/api/admin/projects'")){console.error('FAIL components/AdminProjectVisibilityControl.tsx: visibility display must not write lifecycle state directly');failed=true;ok=false;}
   if(ok){console.log(`PASS ${file}`);passed++;}
 }
 if(failed)process.exit(1);

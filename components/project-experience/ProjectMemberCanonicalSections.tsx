@@ -1,0 +1,72 @@
+import type {ProjectExperienceModel} from '@/lib/project-experience-model';
+
+type Props={model:ProjectExperienceModel};
+
+function titleCase(value:string|null|undefined){return value?value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase()):''}
+function milestoneWindow(start:number|null,end:number|null){
+  if(start&&end&&start!==end)return`Weeks ${start}–${end}`;
+  if(start||end)return`Week ${start||end}`;
+  return'Project timeline';
+}
+
+export default function ProjectMemberCanonicalSections({model}:Props){
+  const {challenge,resources,deliverables,successCriteria,timeline,capabilities,proofSignals}=model;
+  return <>
+    <section className="pdv2Section" aria-labelledby="member-challenge-heading">
+      <div className="pdv2Eyebrow">01 · THE CHALLENGE</div>
+      <h2 id="member-challenge-heading">What problem are you joining the team to solve?</h2>
+      <p>{challenge.problemStatement||model.project.summary}</p>
+      {(challenge.businessContext||challenge.stakeholder||challenge.useCase)&&<div className="pdv2RoleGrid">
+        {challenge.businessContext&&<article className="pdv2Role"><h3>Business context</h3><p>{challenge.businessContext}</p></article>}
+        {challenge.stakeholder&&<article className="pdv2Role"><h3>Who is affected</h3><p>{challenge.stakeholder}</p></article>}
+        {challenge.useCase&&<article className="pdv2Role"><h3>Primary use case</h3><p>{challenge.useCase}</p></article>}
+      </div>}
+    </section>
+
+    <section className="pdv2Section" aria-labelledby="member-objective-heading">
+      <div className="pdv2Eyebrow">02 · OBJECTIVES & SCOPE</div>
+      <h2 id="member-objective-heading">What the work needs to achieve.</h2>
+      {challenge.primaryObjective?<p><strong>Primary objective:</strong> {challenge.primaryObjective}</p>:<div className="pdv2Empty" role="status"><strong>Primary objective not yet published.</strong><span>Mettelo will not infer an objective from incomplete project content.</span></div>}
+      {challenge.supportingObjectives.length>0&&<div className="pdv2Timeline">{challenge.supportingObjectives.map((item,index)=><div key={item}><span>{index+1}</span><p><strong>Supporting objective</strong>{item}</p></div>)}</div>}
+      {(challenge.inScope.length>0||challenge.outOfScope.length>0)&&<div className="pdv2RoleGrid">
+        {challenge.inScope.length>0&&<article className="pdv2Role"><h3>In scope</h3><div className="pdv2Pills">{challenge.inScope.map(item=><span className="pdv2Pill" key={item}>{item}</span>)}</div></article>}
+        {challenge.outOfScope.length>0&&<article className="pdv2Role"><h3>Out of scope</h3><div className="pdv2Pills">{challenge.outOfScope.map(item=><span className="pdv2Pill" key={item}>{item}</span>)}</div></article>}
+      </div>}
+      {challenge.keyQuestions.length>0&&<div className="pdv2Timeline">{challenge.keyQuestions.map((item,index)=><div key={item}><span>{index+1}</span><p><strong>Question the team must answer</strong>{item}</p></div>)}</div>}
+    </section>
+
+    <section className="pdv2Section" aria-labelledby="member-resources-heading">
+      <div className="pdv2Eyebrow">03 · DATA & RESOURCES</div>
+      <h2 id="member-resources-heading">What you will work with.</h2>
+      <p>This decision surface shows only project resources approved for member/public presentation. Accepted-team private links remain protected inside Mettelo Lab.</p>
+      {resources.length?<div className="pdv2RoleGrid">{resources.map(resource=><article className="pdv2Role" key={resource.id}><h3>{resource.name}</h3>{resource.description&&<p>{resource.description}</p>}<div className="pdv2Pills">{resource.sourceType&&<span className="pdv2Pill">{titleCase(resource.sourceType)}</span>}{resource.dataFormat&&<span className="pdv2Pill">{resource.dataFormat}</span>}{resource.providerName&&<span className="pdv2Pill">{resource.providerName}</span>}</div>{resource.licenceName&&<p><strong>Licence:</strong> {resource.licenceName}</p>}{resource.requiredSubset&&<p><strong>Required subset:</strong> {resource.requiredSubset}</p>}{resource.knownLimitations&&<p><strong>Known limitations:</strong> {resource.knownLimitations}</p>}{resource.externalUrl&&<a className="pdv2TextLink" href={resource.externalUrl} target="_blank" rel="noreferrer">View original source ↗</a>}</article>)}</div>:<div className="pdv2Empty" role="status"><strong>No approved member-facing resource has been published yet.</strong><span>Restricted resource links are never used as a fallback.</span></div>}
+    </section>
+
+    <section className="pdv2Section" aria-labelledby="member-deliverables-heading">
+      <div className="pdv2Eyebrow">04 · DELIVERABLES</div>
+      <h2 id="member-deliverables-heading">What the team is expected to produce.</h2>
+      {deliverables.length?<div className="pdv2RoleGrid">{deliverables.map((item,index)=><article className="pdv2Role" key={item.id}><div className="pdv2RoleTop"><h3>{item.title}</h3><span className="pdv2RoleStatus">{item.isRequired?'Required':'Optional'}</span></div>{item.publicSummary&&<p>{item.publicSummary}</p>}{item.expectedFormat&&<p><strong>Expected format:</strong> {item.expectedFormat}</p>}{item.acceptanceCriteria&&<p><strong>Acceptance:</strong> {item.acceptanceCriteria}</p>}<div className="pdv2RoleMeta">Deliverable {index+1}</div></article>)}</div>:<div className="pdv2Empty" role="status"><strong>Detailed deliverables have not been published.</strong><span>This remains a project-readiness gap rather than being filled with generic assumptions.</span></div>}
+    </section>
+
+    <section className="pdv2Section" aria-labelledby="member-success-heading">
+      <div className="pdv2Eyebrow">05 · SUCCESS CRITERIA</div>
+      <h2 id="member-success-heading">Know the quality bar before you commit.</h2>
+      {successCriteria.length?<div className="pdv2Timeline">{successCriteria.map((item,index)=><div key={item}><span>{index+1}</span><p><strong>Success criterion</strong>{item}</p></div>)}</div>:<div className="pdv2Empty" role="status"><strong>Success criteria are not yet published.</strong><span>Mettelo will not invent a quality standard where the canonical project record is incomplete.</span></div>}
+    </section>
+
+    <section className="pdv2Section" aria-labelledby="member-proof-heading">
+      <div className="pdv2Eyebrow">06 · CAPABILITY & PROOF</div>
+      <h2 id="member-proof-heading">What contribution could become credible evidence.</h2>
+      <p>These are configured evidence opportunities, not automatic Proof awards. Contribution must still be completed and verified.</p>
+      {proofSignals.length?<div className="pdv2RoleGrid">{proofSignals.map(item=><article className="pdv2Role" key={item}><h3>{item}</h3><p>Potential evidence signal if your own contribution is completed and verified under Mettelo Proof rules.</p></article>)}</div>:<div className="pdv2Empty" role="status"><strong>Evidence expectations are not yet configured.</strong><span>General skills are not presented as Proof promises.</span></div>}
+      <div className="pdv2RoleGrid"><article className="pdv2Role"><h3>Technical capability</h3><div className="pdv2Pills">{capabilities.technical.length?capabilities.technical.map(item=><span className="pdv2Pill" key={item}>{item}</span>):<span className="pdv2Pill">Not yet mapped</span>}</div></article><article className="pdv2Role"><h3>Professional capability</h3><div className="pdv2Pills">{capabilities.professional.length?capabilities.professional.map(item=><span className="pdv2Pill" key={item}>{item}</span>):<span className="pdv2Pill">Not yet mapped</span>}</div></article></div>
+    </section>
+
+    <section className="pdv2Section" aria-labelledby="member-timeline-heading">
+      <div className="pdv2Eyebrow">07 · DELIVERY JOURNEY</div>
+      <h2 id="member-timeline-heading">The planned route from start to handover.</h2>
+      <p>This is the approved project plan. Live execution state remains inside the authorised Lab workspace.</p>
+      {timeline.length?<div className="pdv2Timeline">{timeline.map((item,index)=><div key={item.id}><span>{index+1}</span><p><strong>{milestoneWindow(item.weekStart,item.weekEnd)} · {item.title}</strong>{item.description||'Milestone detail pending.'}{item.expectedOutput&&<><br/><b>Expected output:</b> {item.expectedOutput}</>}</p></div>)}</div>:<div className="pdv2Empty" role="status"><strong>A detailed project timeline has not been published yet.</strong><span>Live Lab tasks are not exposed as a substitute for canonical planning.</span></div>}
+    </section>
+  </>;
+}

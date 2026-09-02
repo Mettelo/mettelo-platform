@@ -15,9 +15,14 @@ const legacyNavigation="['lib/member-navigation.ts',[\"label:'My Work'\",\"label
 const governedNavigation="['lib/member-navigation.ts',[\"label:'My Work'\",\"label:'Home'\",\"label:'Projects'\",\"label:'Applications'\",\"label:'Proof'\",\"label:'Profile'\",\"label:'Direction & Discovery'\",\"label:'Capability Paths'\",\"label:'Discover'\",\"label:'Recommended'\",\"label:'Saved'\",\"label:'Opportunities & Community'\",\"label:'Opportunities'\",\"label:'Events'\",\"label:'Spotlight'\",'mobilePersistentNav','mobileMoreNav',\"href:'/member/discover'\",\"href:'/member/paths'\"]],";
 if(!source.includes(legacyNavigation))throw new Error('Phase 2 member navigation audit contract changed unexpectedly; review before updating this compatibility audit.');
 
+const legacyPublicDetail="['app/projects/[id]/page.tsx',['What this project is solving','Know what you are committing to','AVAILABLE ROLES','EXPECTED PROOF','Application deadline','ProjectApplicationForm','Roles pending','roles.length>0']],";
+const decisionPublicDetail="['app/projects/[id]/page.tsx',['PUBLIC PROJECT DETAIL','BEFORE YOU APPLY','ProjectDecisionSections','Project roles','From project discovery to verified contribution','Applications close','Apply for a role','Continue in My Mettelo','No participation roles are published yet.','roles.length>0']],";
+if(!source.includes(legacyPublicDetail))throw new Error('Phase 2 public project detail audit contract changed unexpectedly; review before updating this compatibility audit.');
+
 const transformed=source
   .replace(legacyAvailability,governedAvailability)
-  .replace(legacyNavigation,governedNavigation);
+  .replace(legacyNavigation,governedNavigation)
+  .replace(legacyPublicDetail,decisionPublicDetail);
 const tempPath=path.resolve(`.tmp-phase2-member-projects-${process.pid}.mjs`);
 try{
   fs.writeFileSync(tempPath,transformed,'utf8');

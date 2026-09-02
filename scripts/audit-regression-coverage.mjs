@@ -112,7 +112,7 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
 
   for(const marker of ['responsibilities','recommended_skills','experience_expectation','weekly_commitment','application_requirements'])if(!memberPage.includes(marker))failures.push(`Project Experience V2: Public to Member role continuity lost ${marker}`);
   for(const marker of ['role.responsibilities','role.recommendedSkills','role.experienceExpectation','role.weeklyCommitment','role.applicationRequirements','pdv2RoleDetails'])if(!memberComponent.includes(marker))failures.push(`Project Experience V2: member role decision UI lost rich role marker ${marker}`);
-  for(const marker of ['pdv2RoleDetails','pdv2RoleDetail','@media(max-width:680px)'])if(!memberStyles.includes(marker))failures.push(`Project Experience V2: member rich-role responsive treatment lost ${marker}`);
+  for(const marker of ['pdv2RoleDetails','pdv2RoleDetail','grid-template-columns:minmax(0,1.25fr) 390px','@media(max-width:760px)','@media(max-width:520px)','prefers-reduced-motion','focus-visible'])if(!memberStyles.includes(marker))failures.push(`Project Experience V2: advanced Member responsive treatment lost ${marker}`);
 
   for(const label of ['Project basics','Problem & context','Data & resources','Deliverables & success','Skills & Proof','Roles & team','Timeline','Application settings','Lab preview']){
     if(!createForm.includes(label))failures.push(`Project Experience V2: create builder is missing ${label}`);

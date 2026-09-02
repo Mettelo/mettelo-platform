@@ -83,17 +83,20 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     const run=membership?.project_runs||null;
     const state=resolveMemberProjectState({project,application,membership,run,applicationReady,hasAvailableRole:sharedAvailability.available&&availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
     const displayRoles=projectAcceptsApplications(project)&&availabilityKnown?availableRoles:roles;
+    const displayRoleTitles=displayRoles.map(role=>role.title);
     const roleFamilies=uniqueFacets((project.project_role_families||[]).flatMap(row=>{const value=relationOne(row.project_role_catalogue);return value?[{slug:value.slug,label:value.title}]:[]}));
     const capabilities=uniqueFacets((project.project_capabilities||[]).flatMap(row=>{const value=relationOne(row.capabilities);return value?[{slug:value.slug,label:value.name,aliases:aliasesByCapability.get(value.id)||[]}]:[]}));
     const domains=uniqueFacets((project.project_domains||[]).flatMap(row=>{const value=relationOne(row.domains);return value?[{slug:value.slug,label:value.name}]:[]}));
     const tools=uniqueFacets((project.project_tools||[]).flatMap(row=>{const value=relationOne(row.tools);return value?[{slug:value.slug,label:value.name}]:[]}));
     const methods=uniqueFacets((project.project_methods||[]).flatMap(row=>{const value=relationOne(row.methods);return value?[{slug:value.slug,label:value.name}]:[]}));
     const primaryContext=contexts.find(context=>context.isPrimary)||contexts[0]||null;
+    const workFacet=workingModelFacet(project.location_type);
     return [{
       id:project.id,title:project.title,summary:project.summary,state,stateLabel:memberProjectStateLabel(state),action:memberProjectCatalogueAction(state,project.id),saved:saved.has(project.id),
-      workingModel:project.location_type||project.location||null,durationWeeks:project.duration_weeks,commitment:project.weekly_commitment,deadline:project.application_deadline,createdAt:project.created_at,
-      roles:displayRoles.map(role=>role.title),roleFamilies,capabilities,domains,tools,methods,
-      commitmentFacet:normalizeCommitment(project.weekly_commitment),workingModelFacet:workingModelFacet(project.location_type),projectTypeFacet:projectTypeFacet(project.project_type),stageFacet:projectStageFacet(project.status),
+      workingModel:workFacet?.label||project.location||null,durationWeeks:project.duration_weeks,commitment:project.weekly_commitment,deadline:project.application_deadline,createdAt:project.created_at,
+      roles:displayRoleTitles,roleFamilies,capabilities,domains,tools,methods,
+      commitmentFacet:normalizeCommitment(project.weekly_commitment),workingModelFacet:workFacet,projectTypeFacet:projectTypeFacet(project.project_type),stageFacet:projectStageFacet(project.status),
+      searchExtra:[...displayRoleTitles,primaryContext?.pathName||'',primaryContext?.stageName||''],
       pathContext:primaryContext?{name:primaryContext.pathName,position:primaryContext.position,stage:primaryContext.stageName,isPrimary:primaryContext.isPrimary}:null
     }];
   });

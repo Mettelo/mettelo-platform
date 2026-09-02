@@ -1,6 +1,10 @@
 import {expect,test,type Page} from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const projectId='00000000-0000-4000-8000-00000000e2e1';
+const root=process.cwd();
+function read(relative:string){return fs.readFileSync(path.join(root,relative),'utf8')}
 
 async function noOverflow(page:Page,label:string){
   const size=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
@@ -8,6 +12,33 @@ async function noOverflow(page:Page,label:string){
 }
 
 test.describe('Project Experience V2 advanced public Project Detail',()=>{
+  test('catalogue editing and Admin publication share governed V2 readiness',()=>{
+    const panel=read('components/ArchitectCatalogueClassificationPanel.tsx');
+    const editPage=read('app/member/architect-projects/[id]/edit/page.tsx');
+    const route=read('app/api/architect-projects/[id]/catalogue/route.ts');
+    const migration=read('supabase/migrations/20260902122400_project_catalogue_classification_atomic_revision.sql');
+    const admin=read('app/api/admin/project-governance/route.ts');
+    expect(editPage).toContain('ArchitectCatalogueClassificationPanel');
+    expect(panel).toContain('/api/architect-projects/${projectId}/catalogue');
+    expect(panel).toContain('Skills / capabilities remain in Step 5');
+    expect(route).toContain("roles.includes('creating_architect')");
+    expect(route).toContain("db.rpc('apply_project_catalogue_classification_revision'");
+    expect(route).not.toContain("db.from('project_domains').delete(");
+    expect(route).not.toContain("db.from('project_role_families').delete(");
+    expect(route).not.toContain("db.from('project_tools').delete(");
+    expect(migration).toContain('create or replace function public.apply_project_catalogue_classification_revision');
+    expect(migration).toContain("catalogue_working_model_source='explicit'");
+    expect(migration).toContain("'project_catalogue_classification_updated'");
+    expect(migration).toContain("'atomic_catalogue_revision',true");
+    expect(migration).toContain('from public,anon,authenticated');
+    expect(migration).toContain('to service_role,postgres');
+    expect(admin).toContain(".from('project_experience_readiness').select('publication_ready,missing_requirements,publication_blockers,resource_governance_ready')");
+    expect(admin).toContain("if(!experience?.publication_ready)");
+    expect(admin).toContain('requireProjectCatalogueReady(db,projectId)');
+    expect(admin.indexOf("if(!experience?.publication_ready)")).toBeLessThan(admin.indexOf("status:'recruiting',visibility:'public'"));
+    expect(admin.indexOf("if(!catalogue.ok)")).toBeLessThan(admin.indexOf("status:'recruiting',visibility:'public'"));
+  });
+
   test('the canonical public page preserves the approved decision-led information architecture',async({page})=>{
     await page.setViewportSize({width:1440,height:1000});
     await page.goto(`/projects/${projectId}`,{waitUntil:'networkidle'});

@@ -6,6 +6,20 @@ const root=process.cwd();
 function read(relative:string){return fs.readFileSync(path.join(root,relative),'utf8')}
 
 test.describe('Project Experience V2 canonical planning contract',()=>{
+  test('public project route renders the canonical advanced experience instead of a parallel legacy page',()=>{
+    const route=read('app/projects/[id]/page.tsx');
+
+    expect(route).toContain("import ProjectPublicDetailV2 from '@/components/project-experience/ProjectPublicDetailV2'");
+    expect(route).toContain("import {getProjectExperiencePlanning} from '@/lib/project-experience-data'");
+    expect(route).toContain("import {buildProjectExperienceModel} from '@/lib/project-experience-model'");
+    expect(route).toContain('getProjectDetailContent(project.id)');
+    expect(route).toContain('getProjectExperiencePlanning(project.id)');
+    expect(route).toContain('buildProjectExperienceModel({');
+    expect(route).toContain('return <ProjectPublicDetailV2');
+    expect(route).not.toContain('const styles=`');
+    expect(route).not.toContain('<ProjectDecisionSections');
+  });
+
   test('project timeline is derived from canonical milestones, not live Lab tasks',()=>{
     const planning=read('lib/project-experience-data.ts');
     const model=read('lib/project-experience-model.ts');

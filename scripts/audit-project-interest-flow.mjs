@@ -6,7 +6,20 @@ const forbid=(path,needles)=>{const source=read(path);const found=needles.filter
 // Canonical interest + application domain remains one endpoint.
 expect('components/SubmissionForm.tsx',["'/api/project-applications'","application_kind:'interest'",'requested_role:data.role','contribution_statement:data.contribution']);
 expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application'",".not('status','in','(declined,withdrawn)')",'loadProjectRoleUsage(termsDb,projectId,project.project_type)','already participated in this canonical project','That project role has filled','terms_accepted_at','notifyAdmins','notifyUser']);
-expect('app/api/admin/applications/route.ts',['loadProjectRoleUsage(db,application.project_id,project.project_type)','already has participation history for this canonical project',".from('project_members').insert",'No existing cohort history was overwritten.','Two approvals can race when no forming Open cohort exists','compare-and-set update makes exactly one concurrent request the kickoff winner',".eq('status','forming').eq('has_started',false).select('id').maybeSingle()"]);
+expect('app/api/admin/applications/route.ts',[
+  'loadProjectRoleUsage(db,application.project_id,project.project_type)',
+  'already has participation history for this canonical project',
+  ".from('project_members')",
+  '.insert({',
+  'No existing cohort history was overwritten.',
+  'Concurrent approvals may both observe no forming cohort',
+  'if(!concurrentRun)throw createError',
+  'run=concurrentRun',
+  'const {data:startedRun,error:startError}=await db',
+  ".eq('status','forming')",
+  ".eq('has_started',false)",
+  "if(startedRun){"
+]);
 forbid('app/api/admin/applications/route.ts',[".from('project_members').upsert"]);
 expect('lib/project-role-capacity.ts',[".eq('status','forming')",".eq('has_started',false)",".eq('project_run_id',run.id)",".in('membership_status',['waiting','active'])",".eq('project_id',projectId)"]);
 expect('supabase/migrations/20260901193000_project_lifecycle_invariants.sql',['pg_advisory_xact_lock','Project cohort capacity exceeded','Project role capacity exceeded for this cohort','Application-open projects require complete decision content and team size','Application-open projects require enough role capacity for the full team','Partner Projects support one engagement run only','Projects with operational history cannot return to Draft']);

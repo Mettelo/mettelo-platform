@@ -1,4 +1,4 @@
-import {projectAcceptsApplications as lifecycleAcceptsApplications} from './project-lifecycle-policy';
+import {projectAcceptsApplications as lifecycleAcceptsApplications,projectApplicationDeadlinePassed} from './project-lifecycle-policy';
 
 export type MemberProjectState=
   |'open_eligible'
@@ -23,8 +23,9 @@ const applicationInReview=new Set(['in_review','shortlisted']);
 const applicationForming=new Set(['approved','accepted','waiting_for_team']);
 
 export function projectAcceptsApplications(project:ProjectInput,now=Date.now()){
-  if(project.application_deadline&&new Date(project.application_deadline).getTime()<=now)return false;
-  return lifecycleAcceptsApplications({project_type:project.project_type||'open',status:project.status,applications_open:project.applications_open??false,visibility:project.visibility||'public'});
+  const projectType=project.project_type||'open';
+  if(projectApplicationDeadlinePassed({project_type:projectType,application_deadline:project.application_deadline},now))return false;
+  return lifecycleAcceptsApplications({project_type:projectType,status:project.status,applications_open:project.applications_open??false,visibility:project.visibility||'public'});
 }
 
 export function resolveMemberProjectState(input:ResolveMemberProjectStateInput):MemberProjectState{

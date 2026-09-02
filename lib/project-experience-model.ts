@@ -28,6 +28,15 @@ export type ProjectExperienceBrief={
   successMeasures?:string[];
 };
 
+export type ProjectExperienceMilestone={
+  id:string;
+  title:string;
+  description:string|null;
+  weekStart:number|null;
+  weekEnd:number|null;
+  expectedOutput:string|null;
+};
+
 export type ProjectExperienceProject={
   id:string;
   title:string;
@@ -66,6 +75,7 @@ export type ProjectExperienceModel={
   resources:ProjectDetailDataSource[];
   deliverables:ProjectDetailDeliverable[];
   successCriteria:string[];
+  timeline:ProjectExperienceMilestone[];
   capabilities:{technical:string[];professional:string[];methodsAndTools:string[]};
   proofSignals:string[];
   pathContexts:ProjectDetailPathContext[];
@@ -80,13 +90,14 @@ type Input={
   methods:ProjectExperienceTaxonomy[];
   detail:ProjectDetailContent;
   brief?:ProjectExperienceBrief|null;
+  milestones?:ProjectExperienceMilestone[];
 };
 
 function unique(values:(string|null|undefined)[]){
   return [...new Set(values.map(value=>value?.trim()||'').filter(Boolean))];
 }
 
-export function buildProjectExperienceModel({project,roles,domains,tools,methods,detail,brief}:Input):ProjectExperienceModel{
+export function buildProjectExperienceModel({project,roles,domains,tools,methods,detail,brief,milestones=[]}:Input):ProjectExperienceModel{
   const technical=unique([
     ...detail.technicalSkills,
     ...detail.capabilities.filter(item=>item.type==='technical').map(item=>item.name)
@@ -132,6 +143,7 @@ export function buildProjectExperienceModel({project,roles,domains,tools,methods
     resources:detail.dataSources,
     deliverables:detail.deliverables,
     successCriteria,
+    timeline:milestones,
     capabilities:{technical,professional,methodsAndTools},
     proofSignals,
     pathContexts:detail.pathContexts,

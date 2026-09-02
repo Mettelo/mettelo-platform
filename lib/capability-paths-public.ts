@@ -6,6 +6,7 @@ export type PublicCapabilityPathStage={id:string;slug:string;name:string;descrip
 export type PublicCapabilityPathProject={path_id:string;project_id:string;stage_id:string;position:number;competency_focus:string;capability_built:string;prerequisite_project_id:string|null;prerequisite_mode:'recommended'|'required';path_outcome:string|null;placement_type:'recommended'|'required'|'optional';project:{id:string;slug:string;title:string;summary:string;status:string;project_type:string;location:string|null;location_type:string|null;difficulty_level:string|null;application_deadline:string|null;project_roles?:{id:string;openings:number}[]}|null};
 export type PublicCapabilityPathDetail=PublicCapabilityPath & {stages:PublicCapabilityPathStage[];placements:PublicCapabilityPathProject[]};
 type PublicPathStat={path_id:string;stage_count:number;total_project_count:number;public_project_count:number};
+type PublishedPathPositionIndex=Map<string,Map<string,number>>;
 
 function publicClient(){return createPublicSupabaseClient()}
 
@@ -40,17 +41,35 @@ export async function getPublishedCapabilityPath(slug:string):Promise<PublicCapa
  return {...path,stage_count:Number(stat?.stage_count||(stages||[]).length),project_count:Number(stat?.total_project_count||enriched.length),public_project_count:Number(stat?.public_project_count||enriched.length),stages:(stages||[]) as PublicCapabilityPathStage[],placements:enriched} as PublicCapabilityPathDetail;
 }
 
-export async function getPublishedPathProjectPositions(slug:string):Promise<Map<string,number>>{
+let publishedPathPositionsInFlight:Promise<PublishedPathPositionIndex>|null=null;
+
+async function loadPublishedPathPositionIndex():Promise<PublishedPathPositionIndex>{
  const db=publicClient();if(!db)return new Map();
- const {data:path,error:pathError}=await db.from('capability_paths').select('id').eq('slug',slug).eq('status','published').maybeSingle();
- if(pathError||!path)return new Map();
- // capability_path_projects RLS already requires the Path to be published and the
- // linked project to be public for anonymous callers. Repeating that visibility
- // rule through a nested projects!inner join creates a second, fragile predicate
- // and can incorrectly erase otherwise-readable canonical placements.
- const {data:placements,error}=await db.from('capability_path_projects').select('project_id,position').eq('path_id',path.id).order('position');
+ const {data:paths,error:pathError}=await db.from('capability_paths').select('id,slug').eq('status','published');
+ if(pathError||!paths?.length)return new Map();
+ const slugById=new Map(paths.map(path=>[path.id,path.slug]));
+ const {data:placements,error}=await db.from('capability_path_projects').select('path_id,project_id,position').in('path_id',[...slugById.keys()]).order('position');
  if(error)return new Map();
- return new Map((placements||[]).map(item=>[item.project_id,item.position]));
+ const index:PublishedPathPositionIndex=new Map();
+ for(const placement of placements||[]){
+  const slug=slugById.get(placement.path_id);if(!slug)continue;
+  let positions=index.get(slug);if(!positions){positions=new Map();index.set(slug,positions)}
+  positions.set(placement.project_id,placement.position);
+ }
+ return index;
+}
+
+export async function getPublishedPathProjectPositions(slug:string):Promise<Map<string,number>>{
+ // /projects resolves every published Path at once. Deduplicate that burst into one
+ // visibility-safe placements query so a larger Path catalogue cannot exhaust the
+ // anonymous PostgREST pool and silently turn one Path into an empty filter result.
+ if(!publishedPathPositionsInFlight){
+  const request=loadPublishedPathPositionIndex();
+  publishedPathPositionsInFlight=request;
+  request.then(()=>{if(publishedPathPositionsInFlight===request)publishedPathPositionsInFlight=null},()=>{if(publishedPathPositionsInFlight===request)publishedPathPositionsInFlight=null});
+ }
+ const index=await publishedPathPositionsInFlight;
+ return new Map(index.get(slug)||[]);
 }
 
 export async function getProjectCapabilityPathPlacements(projectId:string){

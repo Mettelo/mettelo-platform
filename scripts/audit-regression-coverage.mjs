@@ -45,6 +45,8 @@ const v2Files={
   publicStyles:'components/project-experience/ProjectPublicDetailV2.module.css',
   publicDetailContent:'lib/project-detail-content.ts',
   memberPage:'app/member/discover/[id]/page.tsx',
+  memberComponent:'components/project-experience/MemberProjectDetailV2.tsx',
+  memberStyles:'components/project-experience/MemberProjectDetailV2.module.css',
   canonicalData:'lib/project-experience-data.ts',
   labData:'lib/project-lab-canonical-data.ts',
   architectCreate:'components/ArchitectProjectForm.tsx',
@@ -63,6 +65,8 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   const publicStyles=fs.readFileSync(v2Files.publicStyles,'utf8');
   const publicDetailContent=fs.readFileSync(v2Files.publicDetailContent,'utf8');
   const memberPage=fs.readFileSync(v2Files.memberPage,'utf8');
+  const memberComponent=fs.readFileSync(v2Files.memberComponent,'utf8');
+  const memberStyles=fs.readFileSync(v2Files.memberStyles,'utf8');
   const canonicalData=fs.readFileSync(v2Files.canonicalData,'utf8');
   const labData=fs.readFileSync(v2Files.labData,'utf8');
   const createForm=fs.readFileSync(v2Files.architectCreate,'utf8');
@@ -106,6 +110,10 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   if(publicDetailContent.includes('internal_storage_url'))failures.push('Project Experience V2: private stored-copy URL leaked into public resource projection');
   for(const marker of ['grid-template-columns:minmax(0,1.38fr) 390px','grid-template-columns:repeat(4,1fr)','position:sticky','@media(max-width:760px)','@media(max-width:520px)','prefers-reduced-motion','focus-visible'])if(!publicStyles.includes(marker))failures.push(`Project Experience V2: advanced responsive/accessibility styling lost ${marker}`);
 
+  for(const marker of ['responsibilities','recommended_skills','experience_expectation','weekly_commitment','application_requirements'])if(!memberPage.includes(marker))failures.push(`Project Experience V2: Public to Member role continuity lost ${marker}`);
+  for(const marker of ['role.responsibilities','role.recommendedSkills','role.experienceExpectation','role.weeklyCommitment','role.applicationRequirements','pdv2RoleDetails'])if(!memberComponent.includes(marker))failures.push(`Project Experience V2: member role decision UI lost rich role marker ${marker}`);
+  for(const marker of ['pdv2RoleDetails','pdv2RoleDetail','@media(max-width:680px)'])if(!memberStyles.includes(marker))failures.push(`Project Experience V2: member rich-role responsive treatment lost ${marker}`);
+
   for(const label of ['Project basics','Problem & context','Data & resources','Deliverables & success','Skills & Proof','Roles & team','Timeline','Application settings','Lab preview']){
     if(!createForm.includes(label))failures.push(`Project Experience V2: create builder is missing ${label}`);
     if(!editForm.includes(label))failures.push(`Project Experience V2: edit builder is missing ${label}`);
@@ -127,4 +135,4 @@ if(failures.length){
   process.exit(1);
 }
 
-console.log(`Critical regression coverage audit passed (${journeys.length} journeys + ${projectExperienceContracts.length} Project Experience V2 contracts + advanced public redesign).`);
+console.log(`Critical regression coverage audit passed (${journeys.length} journeys + ${projectExperienceContracts.length} Project Experience V2 contracts + advanced Public/Member redesign).`);

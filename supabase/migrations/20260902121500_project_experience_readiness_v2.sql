@@ -1,10 +1,9 @@
 -- Project Experience V2 — differentiated completeness/readiness model.
 --
--- A single boolean is not enough for Project Architect/Admin review. The review
--- surface needs to distinguish critical missing content, quality gaps, resource
--- verification work, publication blockers and Lab configuration readiness.
--- This remains an additive/read-only projection; lifecycle enforcement stays in
--- the existing Project Architect governance service.
+-- Critical content and V2 quality requirements are both blocking for a project to
+-- leave draft governance. Resource verification is separately visible, but it is
+-- also a publication/Lab-start blocker. This keeps the 10-step builder enforceable
+-- instead of presenting completeness as advisory copy only.
 
 create or replace view public.project_experience_readiness
 with (security_invoker=true)
@@ -60,27 +59,31 @@ with assessed as (
     ],null)::text[] as lab_missing
   from public.projects p
   left join public.project_problem_briefs pb on pb.project_id=p.id
+), readiness as (
+  select
+    *,
+    critical_missing || quality_gaps as definition_blockers,
+    cardinality(verification_required)=0 and cardinality(red_resource_blockers)=0 as resources_clear
+  from assessed
 )
 select
   project_id,
   slug,
   title,
-  cardinality(critical_missing)=0 as experience_ready,
-  critical_missing as missing_requirements,
+  cardinality(definition_blockers)=0 as experience_ready,
+  definition_blockers as missing_requirements,
   critical_missing,
   quality_gaps,
   verification_required,
   red_resource_blockers,
-  critical_missing || verification_required || red_resource_blockers as publication_blockers,
+  definition_blockers || verification_required || red_resource_blockers as publication_blockers,
   lab_missing,
-  cardinality(critical_missing)=0 as public_detail_ready,
-  cardinality(critical_missing)=0 as application_ready,
-  cardinality(verification_required)=0 and cardinality(red_resource_blockers)=0 as resource_governance_ready,
-  cardinality(critical_missing)=0
-    and cardinality(verification_required)=0
-    and cardinality(red_resource_blockers)=0 as publication_ready,
-  cardinality(lab_missing)=0 as lab_ready
-from assessed;
+  cardinality(definition_blockers)=0 as public_detail_ready,
+  cardinality(definition_blockers)=0 as application_ready,
+  resources_clear as resource_governance_ready,
+  cardinality(definition_blockers)=0 and resources_clear as publication_ready,
+  cardinality(lab_missing)=0 and resources_clear as lab_ready
+from readiness;
 
 grant select on public.project_experience_readiness to authenticated;
 grant select on public.project_experience_readiness to service_role;

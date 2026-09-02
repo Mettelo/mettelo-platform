@@ -1,5 +1,6 @@
 import {notFound} from 'next/navigation';
 import ProjectPublicDetailV2 from '@/components/project-experience/ProjectPublicDetailV2';
+import polish from '@/components/project-experience/ProjectExperiencePolish.module.css';
 import {projectAcceptsApplications} from '@/lib/member-project-journey';
 import {getProjectDetailContent} from '@/lib/project-detail-content';
 import {getProjectExperiencePlanning} from '@/lib/project-experience-data';
@@ -23,9 +24,6 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   const publicDb=createPublicSupabaseClient();
   if(!publicDb)notFound();
 
-  // Resolve the long-lived public project shape first so previews remain usable
-  // during the V2 schema/app rollout. Rich role-definition fields are layered on
-  // server-side only when the additive V2 migration is available.
   const projectResult=await publicDb
     .from('projects')
     .select('id,title,summary,problem_statement,status,project_type,applications_open,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,team_size_threshold,project_roles(id,title,description,skills,openings,discipline),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))')
@@ -63,5 +61,5 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   const signinHref=`/signin?next=${encodeURIComponent(memberProjectHref)}`;
   const ctaHref=user?memberProjectHref:signinHref;
 
-  return <ProjectPublicDetailV2 model={model} canApply={canApply} ctaHref={ctaHref} authenticated={Boolean(user)}/>;
+  return <div className={`${polish.host} ${polish.publicHost}`}><ProjectPublicDetailV2 model={model} canApply={canApply} ctaHref={ctaHref} authenticated={Boolean(user)}/></div>;
 }

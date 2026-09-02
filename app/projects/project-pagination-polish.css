@@ -1,0 +1,57 @@
+.projectsDiscovery .pagination{
+  width:min(100%,680px);
+  margin:30px auto 0;
+  padding:12px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:14px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:linear-gradient(180deg,var(--white),var(--sand-2));
+  box-shadow:var(--shadow-sm);
+}
+.projectsDiscovery .pagination>span{
+  min-width:0;
+  text-align:center;
+  color:var(--slate);
+  font-family:var(--font-mono),ui-monospace,monospace;
+  font-size:.72rem;
+  font-weight:700;
+  letter-spacing:.035em;
+}
+.projectsDiscovery .pagination>.button{
+  min-width:124px;
+  min-height:46px;
+  padding:10px 16px;
+  border-color:#cfc7ba;
+  border-radius:11px;
+  background:var(--white);
+  color:var(--ink);
+  box-shadow:none;
+  white-space:nowrap;
+}
+.projectsDiscovery .pagination>.button:hover:not(.isDisabled){
+  transform:none;
+  border-color:var(--bronze);
+  background:var(--sand);
+  color:var(--bronze-deep);
+}
+.projectsDiscovery .pagination>.button:focus-visible{outline:3px solid rgba(42,47,82,.28);outline-offset:3px}
+.projectsDiscovery .pagination>.button.isDisabled{pointer-events:none;opacity:.42}
+
+@media(max-width:560px){
+  .projectsDiscovery .pagination{grid-template-columns:1fr 1fr;gap:9px;padding:10px;margin-top:22px}
+  .projectsDiscovery .pagination>span{grid-column:1/-1;grid-row:1;padding:4px 0 7px}
+  .projectsDiscovery .pagination>.button{width:100%;min-width:0;white-space:normal;text-align:center}
+  .projectsDiscovery .pagination>.button:first-child{grid-column:1;grid-row:2}
+  .projectsDiscovery .pagination>.button:last-child{grid-column:2;grid-row:2}
+}
+
+@media(max-width:360px){
+  .projectsDiscovery .pagination{grid-template-columns:1fr}
+  .projectsDiscovery .pagination>span,.projectsDiscovery .pagination>.button:first-child,.projectsDiscovery .pagination>.button:last-child{grid-column:1}
+  .projectsDiscovery .pagination>span{grid-row:1}
+  .projectsDiscovery .pagination>.button:first-child{grid-row:2}
+  .projectsDiscovery .pagination>.button:last-child{grid-row:3}
+}

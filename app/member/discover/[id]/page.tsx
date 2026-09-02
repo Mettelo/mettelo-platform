@@ -9,11 +9,14 @@ import {getProjectExperiencePlanning} from '@/lib/project-experience-data';
 import {buildProjectExperienceModel} from '@/lib/project-experience-model';
 import {getProjectExperienceRoleDetails} from '@/lib/project-experience-role-data';
 import MemberProjectDetailV2 from '@/components/project-experience/MemberProjectDetailV2';
+import polish from '@/components/project-experience/ProjectExperiencePolish.module.css';
 
 export const dynamic='force-dynamic';
 
 type Role={id:string;title:string;description:string|null;skills:string[]|null;openings:number;discipline:string|null};
 type TaxonomyRef={slug:string;name:string};
+type RoleFamilyCatalogue={slug:string;title:string;description:string|null};
+type RoleFamilyRelation={project_role_catalogue:RoleFamilyCatalogue|RoleFamilyCatalogue[]|null};
 type Project={id:string;title:string;summary:string;problem_statement:string|null;status:string;project_type:string|null;visibility:string;partner_name:string|null;location:string|null;location_type:string|null;difficulty_level:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;applications_open:boolean|null;team_size_threshold:number|null;starts_at:string|null;ends_at:string|null;project_roles:Role[]|null;project_domains:{domains:TaxonomyRef|null}[]|null;project_tools:{tools:TaxonomyRef|null}[]|null;project_methods:{methods:TaxonomyRef|null}[]|null};
 type Application={id:string;status:string;project_run_id:string|null};
 type Membership={membership_status:string;project_run_id:string|null;project_runs:{status:string}|null};
@@ -21,6 +24,7 @@ type Membership={membership_status:string;project_run_id:string|null;project_run
 function relationValues(rows:{domains?:TaxonomyRef|null;tools?:TaxonomyRef|null;methods?:TaxonomyRef|null}[]|null|undefined,key:'domains'|'tools'|'methods'){
   return (rows||[]).map(row=>row[key]).filter((value):value is TaxonomyRef=>Boolean(value));
 }
+function relationOne<T>(value:T|T[]|null|undefined):T|null{return Array.isArray(value)?value[0]||null:value||null}
 
 export default async function MemberProjectDetailPage({params}:{params:Promise<{id:string}>}){
   const {id}=await params;
@@ -28,10 +32,10 @@ export default async function MemberProjectDetailPage({params}:{params:Promise<{
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)redirect(`/signin?next=${encodeURIComponent(`/member/discover/${id}`)}`);
 
-  // Resolve the long-lived member project shape first. Rich V2 role fields are
-  // layered through a rollout-safe server loader so the page remains functional
-  // if an application preview reaches a database just before the additive schema.
-  const [projectResult,applicationsResult,membershipResult,savedResult,profileResult,domainPrefs,toolPrefs,detail,planning,roleDetails]=await Promise.all([
+  // Keep project identity/lifecycle readable even while optional Catalogue V2
+  // relationships are rolling out. Contribution areas are loaded separately so a
+  // missing enrichment table can never blank the canonical project page.
+  const [projectResult,applicationsResult,membershipResult,savedResult,profileResult,domainPrefs,toolPrefs,detail,planning,roleDetails,roleFamiliesResult]=await Promise.all([
     supabase.from('projects').select('id,title,summary,problem_statement,status,project_type,visibility,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,applications_open,team_size_threshold,starts_at,ends_at,project_roles(id,title,description,skills,openings,discipline),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))').eq('id',id).in('visibility',['public','members']).maybeSingle(),
     supabase.from('project_applications').select('id,status,project_run_id').eq('project_id',id).eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}).limit(10),
     supabase.from('project_members').select('membership_status,project_run_id,project_runs(status)').eq('project_id',id).eq('user_id',user.id).in('membership_status',['waiting','active','completed']).order('joined_at',{ascending:false}).limit(1).maybeSingle(),
@@ -41,7 +45,8 @@ export default async function MemberProjectDetailPage({params}:{params:Promise<{
     supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id),
     getProjectDetailContent(id),
     getProjectExperiencePlanning(id),
-    getProjectExperienceRoleDetails(id)
+    getProjectExperienceRoleDetails(id),
+    supabase.from('project_role_families').select('project_role_catalogue(slug,title,description)').eq('project_id',id)
   ]);
 
   if(projectResult.error||!projectResult.data)notFound();
@@ -72,6 +77,11 @@ export default async function MemberProjectDetailPage({params}:{params:Promise<{
     return{id:role.id,title:role.title,description:role.description,skills:role.skills||[],openings:role.openings,remaining:availabilityKnown?Math.max(0,role.openings-used):null,available:availabilityKnown&&used<role.openings,responsibilities:rich?.responsibilities||[],recommendedSkills:rich?.recommendedSkills||[],experienceExpectation:rich?.experienceExpectation||null,weeklyCommitment:rich?.weeklyCommitment||null,applicationRequirements:rich?.applicationRequirements||null};
   });
 
+  if(roleFamiliesResult.error)console.warn('member project contribution-area enrichment unavailable',roleFamiliesResult.error.message);
+  const contributionMap=new Map<string,RoleFamilyCatalogue>();
+  for(const row of (roleFamiliesResult.data||[]) as unknown as RoleFamilyRelation[]){const value=relationOne(row.project_role_catalogue);if(value&&!contributionMap.has(value.slug))contributionMap.set(value.slug,value)}
+  const contributionAreas=[...contributionMap.values()].sort((a,b)=>a.title.localeCompare(b.title));
+
   const domains=relationValues(project.project_domains,'domains');
   const tools=relationValues(project.project_tools,'tools');
   const methods=relationValues(project.project_methods,'methods');
@@ -81,5 +91,5 @@ export default async function MemberProjectDetailPage({params}:{params:Promise<{
     domains,tools,methods,detail,brief:planning.brief,milestones:planning.milestones
   });
 
-  return <MemberProjectDetailV2 model={model} state={state} stateLabel={memberProjectStateLabel(state)} stateCopy={memberProjectStateCopy(state)} primaryAction={memberProjectPrimaryAction(state,project.id)} applicationReady={applicationReady} profileCompletion={memberReadiness.profileCompletion.percentage} applicationMissing={memberReadiness.applicationReadiness.missing.map(item=>item.label)} roleAvailabilityKnown={availabilityKnown} saved={Boolean(savedResult.data)} roles={displayRoles}/>;
+  return <div className={`${polish.host} ${polish.memberHost}`}><MemberProjectDetailV2 model={model} state={state} stateLabel={memberProjectStateLabel(state)} stateCopy={memberProjectStateCopy(state)} primaryAction={memberProjectPrimaryAction(state,project.id)} applicationReady={applicationReady} profileCompletion={memberReadiness.profileCompletion.percentage} applicationMissing={memberReadiness.applicationReadiness.missing.map(item=>item.label)} roleAvailabilityKnown={availabilityKnown} saved={Boolean(savedResult.data)} roles={displayRoles} contributionAreas={contributionAreas}/></div>;
 }

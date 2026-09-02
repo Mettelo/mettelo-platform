@@ -1,0 +1,105 @@
+.host > *{
+  --px-ink:var(--ink);
+  --px-ink2:var(--ink-2);
+  --px-ink3:var(--indigo);
+  --px-paper:var(--paper);
+  --px-paper2:var(--sand-2);
+  --px-sand:var(--sand);
+  --px-sand2:#ead9b9;
+  --px-line:var(--line);
+  --px-line-dark:#cfc5b4;
+  --px-muted:var(--slate);
+  --px-signal:var(--bronze);
+  --px-success:var(--green);
+  --mp-ink:var(--ink);
+  --mp-ink2:var(--indigo);
+  --mp-paper:var(--paper);
+  --mp-paper2:var(--sand-2);
+  --mp-sand:var(--sand);
+  --mp-line:var(--line);
+  --mp-muted:var(--slate);
+  --mp-success:var(--green);
+}
+
+.memberHost > *{width:100%;max-width:none;margin-left:0;margin-right:0}
+.publicHost > *{width:min(1240px,calc(100% - 40px));margin-left:auto;margin-right:auto}
+.host > *::before{background:radial-gradient(circle at 86% 7%,rgba(198,137,42,.12),transparent 27%),radial-gradient(circle at 8% 45%,rgba(42,47,82,.09),transparent 34%)}
+
+.host > * > header{align-items:stretch}
+.memberHost > * > header{grid-template-columns:minmax(0,1.58fr) 350px!important;gap:22px!important;padding:4px 0 30px!important}
+.publicHost > * > header{grid-template-columns:minmax(0,1.56fr) 360px!important;gap:24px!important;padding:24px 0 32px!important}
+.host > * > header > div:first-child{background:linear-gradient(138deg,var(--ink) 0%,var(--ink-2) 48%,var(--indigo) 100%);box-shadow:0 18px 50px rgba(16,19,29,.11)}
+.host > * > header > div:first-child::after{background:radial-gradient(circle,rgba(198,137,42,.96) 0 9%,transparent 10% 100%);box-shadow:60px 52px 0 -46px rgba(224,173,89,.36),-46px 84px 0 -46px rgba(255,255,255,.17)}
+.memberHost > * > header > div:first-child{min-height:420px!important;padding:30px 32px!important;border-radius:24px!important}
+.publicHost > * > header > div:first-child{min-height:500px!important;padding:34px 36px!important;border-radius:26px!important}
+.memberHost > * > header > div:first-child h1{max-width:840px!important;margin-top:54px!important;font-size:clamp(40px,4.6vw,64px)!important;line-height:.98!important;letter-spacing:-.052em!important}
+.publicHost > * > header > div:first-child h1{max-width:850px!important;margin-top:58px!important;font-size:clamp(44px,5.2vw,72px)!important;line-height:.97!important;letter-spacing:-.052em!important}
+.memberHost > * > header > div:first-child > p{max-width:760px!important;font-size:15.5px!important;line-height:1.62!important}
+.publicHost > * > header > div:first-child > p{max-width:760px!important;font-size:17px!important;line-height:1.64!important}
+
+.host > * > header > aside{border-color:var(--line)!important;background:rgba(255,255,255,.94)!important;box-shadow:0 12px 32px rgba(16,19,29,.06)!important;border-radius:24px!important;padding:22px!important}
+.host > * > header > aside h2{font-size:clamp(24px,2vw,29px)!important;line-height:1.08!important}
+.host > * > header > aside > p{font-size:13px!important;line-height:1.58!important}
+.host > * > header > aside a{border-radius:10px!important;box-shadow:none!important}
+.memberHost > * > header > aside dl{margin-top:12px!important}
+.memberHost > * > header > aside dl > div{padding-top:11px!important;padding-bottom:11px!important}
+.memberHost > * > header > aside dl dt{color:var(--bronze-deep)!important}
+.memberHost > * > header > aside dl dd{font-size:11px!important;line-height:1.4!important}
+
+.host :global(.pdv2Eyebrow),.host :global(.pdv2RoleDetail>span){color:var(--bronze-deep)}
+.host :global(.pdv2Button){border-color:#c9c2b6;background:var(--white);color:var(--ink)}
+.host :global(.pdv2Button:hover){border-color:var(--bronze);background:var(--sand-2)}
+.host :global(.pdv2Section){border-color:var(--line)!important;background:rgba(255,255,255,.9)!important;box-shadow:0 8px 26px rgba(16,19,29,.025)}
+.host :global(.pdv2Section h2){max-width:850px!important}
+.host :global(.pdv2Role){border-color:var(--line)}
+.host :global(.pdv2RoleSelected){border-color:var(--indigo);box-shadow:inset 0 0 0 1px var(--indigo),0 8px 18px rgba(42,47,82,.08)}
+.host :global(.ppv2Side) a:focus-visible,.host :global(.pdv2Button:focus-visible),.host a:focus-visible,.host button:focus-visible{outline-color:var(--indigo)}
+
+.memberHost :global(.pdv2Layout){grid-template-columns:minmax(0,1fr)!important;gap:0!important;margin-top:0!important}
+.memberHost :global(.pdv2RoleGridInformational){grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}
+.memberHost :global(.pdv2RoleInformational){position:relative;padding:18px!important;border-top:3px solid var(--bronze)!important;border-radius:14px!important;background:linear-gradient(180deg,#fff 0%,var(--sand-2) 150%)!important;box-shadow:0 8px 20px rgba(16,19,29,.035)!important}
+.memberHost :global(.pdv2RoleInformational h3){font-size:17px!important;line-height:1.2!important}
+.memberHost :global(.pdv2RoleInformational p){max-width:40ch;color:var(--slate)!important;font-size:11.5px!important;line-height:1.55!important}
+.memberHost :global(.pdv2RoleInformational .pdv2RoleStatus){max-width:110px;color:var(--bronze-deep)!important;white-space:normal!important;text-align:right!important;line-height:1.35!important}
+.memberHost :global(.pdv2LearningBand){display:grid;grid-template-columns:minmax(220px,.72fr) minmax(0,1.28fr);gap:22px;align-items:start;margin-top:20px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--sand-2)}
+.memberHost :global(.pdv2LearningBand > div:first-child > strong){display:block;margin-top:7px;font-family:var(--font-space-grotesk),Inter,sans-serif;font-size:16px;line-height:1.3}
+.memberHost :global(.pdv2LearningChips){display:flex;gap:7px;flex-wrap:wrap}
+.memberHost :global(.pdv2LearningChips span){display:inline-flex;align-items:center;min-height:30px;padding:5px 9px;border:1px solid #d8c9ae;border-radius:999px;background:#fff;color:#514838;font-size:10px;font-weight:800}
+.memberHost :global(.pdv2SaveUtility){margin-top:2px;padding-top:3px}
+.memberHost :global(.pdv2SaveUtility .mdSaveButton){min-height:40px!important;padding:0 2px!important;justify-content:flex-start!important;border-color:transparent!important;background:transparent!important;color:var(--slate)!important;font-size:11px!important}
+.memberHost :global(.pdv2SaveUtility .mdSaveButton:hover){color:var(--ink)!important;background:var(--sand-2)!important}
+
+.publicHost :global(.ppv2Layout){grid-template-columns:220px minmax(0,1fr)!important;gap:42px!important}
+.publicHost :global(.ppv2Side){min-width:0}
+.publicHost :global(.ppv2Side) a{border-radius:8px}
+
+@media(max-width:1180px){
+  .memberHost > * > header,.publicHost > * > header{grid-template-columns:minmax(0,1fr) 330px!important}
+  .memberHost :global(.pdv2RoleGridInformational){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .publicHost :global(.ppv2Layout){grid-template-columns:200px minmax(0,1fr)!important;gap:32px!important}
+}
+
+@media(max-width:980px){
+  .memberHost > * > header,.publicHost > * > header{grid-template-columns:1fr!important}
+  .host > * > header > aside{min-height:auto!important}
+  .publicHost :global(.ppv2Layout){grid-template-columns:1fr!important;gap:0!important}
+  .publicHost :global(.ppv2Side){display:none!important}
+}
+
+@media(max-width:760px){
+  .host{min-width:0}
+  .host > *{max-width:100%}
+  .publicHost > *{width:min(100%,calc(100% - 24px))}
+  .memberHost > * > header,.publicHost > * > header{gap:16px!important;padding:2px 0 22px!important}
+  .memberHost > * > header > div:first-child,.publicHost > * > header > div:first-child{min-height:0!important;padding:24px 21px 26px!important;border-radius:20px!important}
+  .memberHost > * > header > div:first-child h1,.publicHost > * > header > div:first-child h1{margin-top:48px!important;font-size:clamp(38px,12vw,50px)!important}
+  .memberHost > * > header > aside,.publicHost > * > header > aside{padding:19px!important;border-radius:20px!important}
+  .memberHost :global(.pdv2RoleGridInformational){grid-template-columns:1fr!important}
+  .memberHost :global(.pdv2LearningBand){grid-template-columns:1fr;gap:14px;padding:15px}
+}
+
+@media(max-width:420px){
+  .memberHost > * > header > div:first-child h1,.publicHost > * > header > div:first-child h1{font-size:38px!important}
+  .host > * > header > aside h2{font-size:24px!important}
+  .memberHost :global(.pdv2RoleInformational){padding:15px!important}
+}

@@ -42,6 +42,7 @@ test('commitment normalization collapses semantic text variants without rewritin
   expect(normalizeCommitment('5-7 hours')).toEqual({slug:'5-7-hours',label:'5–7 hours'});
   expect(normalizeCommitment('5–7 hours')).toEqual({slug:'5-7-hours',label:'5–7 hours'});
   expect(normalizeCommitment('5–7 hours per member for 5 weeks')).toEqual({slug:'5-7-hours',label:'5–7 hours'});
+  expect(normalizeCommitment('5–8 hrs/week')).toEqual({slug:'5-8-hours',label:'5–8 hours'});
   expect(normalizeCommitment('1')).toEqual({slug:'1-hours',label:'1 hour'});
   expect(normalizeCommitment('not specified')).toBeNull();
 });

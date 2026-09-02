@@ -69,28 +69,48 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
     if(recommendation){
       const selected=members.find(member=>member.user_id===recommendation?.userId);
       if(selected){
-        const {error}=await db.from('project_members').update({team_role:'project_lead'}).eq('id',selected.id).eq('team_role','contributor');
+        const {data:assigned,error}=await db
+          .from('project_members')
+          .update({team_role:'project_lead'})
+          .eq('id',selected.id)
+          .eq('team_role','contributor')
+          .select('id')
+          .maybeSingle();
         if(error)throw error;
-        leadAssignedNow=true;
-        await db.from('project_activity_log').insert({
-          project_id:projectId,
-          project_run_id:runId,
-          event_type:'project_lead_auto_assigned',
-          actor_type:'system',
-          from_status:'forming',
-          to_status:'forming',
-          metadata:{
-            user_id:recommendation.userId,
-            leadership_interest:recommendation.leadershipInterest,
-            completed_projects:recommendation.completedProjects,
-            active_lead_projects:recommendation.activeLeadProjects,
-            leadership_readiness_score:recommendation.score,
-            volunteers_available:volunteers.length,
-            candidate_count:candidates.length,
-            selection_policy:'volunteer_interest_then_mettelo_delivery_history_then_current_lead_load_then_submission_order'
-          }
-        });
-        leads=[{...selected,team_role:'project_lead'}];
+        if(assigned){
+          leadAssignedNow=true;
+          await db.from('project_activity_log').insert({
+            project_id:projectId,
+            project_run_id:runId,
+            event_type:'project_lead_auto_assigned',
+            actor_type:'system',
+            from_status:'forming',
+            to_status:'forming',
+            metadata:{
+              user_id:recommendation.userId,
+              leadership_interest:recommendation.leadershipInterest,
+              completed_projects:recommendation.completedProjects,
+              active_lead_projects:recommendation.activeLeadProjects,
+              leadership_readiness_score:recommendation.score,
+              volunteers_available:volunteers.length,
+              candidate_count:candidates.length,
+              selection_policy:'volunteer_interest_then_mettelo_delivery_history_then_current_lead_load_then_submission_order'
+            }
+          });
+          leads=[{...selected,team_role:'project_lead'}];
+        }else{
+          // A concurrent approval may have completed the same deterministic lead
+          // assignment first. Re-read authority so only the winning request logs or
+          // notifies, while every caller receives the real current readiness state.
+          const {data:currentLeads,error:leadError}=await db
+            .from('project_members')
+            .select('id,user_id,project_role_id,team_role,membership_status,joined_at')
+            .eq('project_run_id',runId)
+            .eq('team_role','project_lead')
+            .in('membership_status',['waiting','active']);
+          if(leadError)throw leadError;
+          leads=(currentLeads||[]) as MemberRow[];
+        }
       }
     }
   }

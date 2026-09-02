@@ -28,16 +28,22 @@ update public.projects
 set application_deadline=null, updated_at=now()
 where project_type='open' and application_deadline is not null;
 
--- No project may advertise live applications when its configured roles cannot
--- fill the required team. Admin can repair the role configuration and resume intake.
+-- No project may advertise live applications when its required decision content or
+-- configured team role capacity is incomplete. Admin can repair and resume intake.
 update public.projects p
 set applications_open=false, updated_at=now()
 where p.applications_open=true
-  and coalesce((
-    select sum(greatest(r.openings,0))
-    from public.project_roles r
-    where r.project_id=p.id
-  ),0) < greatest(coalesce(p.team_size_threshold,1),1);
+  and (
+    nullif(btrim(coalesce(p.title,'')),'') is null
+    or nullif(btrim(coalesce(p.summary,'')),'') is null
+    or nullif(btrim(coalesce(p.problem_statement,'')),'') is null
+    or coalesce(p.team_size_threshold,0)<1
+    or coalesce((
+      select sum(greatest(r.openings,0))
+      from public.project_roles r
+      where r.project_id=p.id
+    ),0) < greatest(coalesce(p.team_size_threshold,1),1)
+  );
 
 create or replace function public.enforce_project_lifecycle_invariants()
 returns trigger
@@ -83,10 +89,17 @@ begin
   end if;
 
   if new.applications_open=true then
+    if nullif(btrim(coalesce(new.title,'')),'') is null
+      or nullif(btrim(coalesce(new.summary,'')),'') is null
+      or nullif(btrim(coalesce(new.problem_statement,'')),'') is null
+      or coalesce(new.team_size_threshold,0)<1 then
+      raise exception using errcode='23514', message='Application-open projects require complete decision content and team size';
+    end if;
+
     select coalesce(sum(greatest(r.openings,0)),0)::integer into configured_capacity
     from public.project_roles r
     where r.project_id=new.id;
-    if configured_capacity<greatest(coalesce(new.team_size_threshold,1),1) then
+    if configured_capacity<greatest(new.team_size_threshold,1) then
       raise exception using errcode='23514', message='Application-open projects require enough role capacity for the full team';
     end if;
   end if;
@@ -117,7 +130,7 @@ $$;
 
 drop trigger if exists trg_enforce_project_lifecycle_invariants on public.projects;
 create trigger trg_enforce_project_lifecycle_invariants
-before insert or update of project_type,status,visibility,applications_open,partner_name,application_deadline,team_size_threshold
+before insert or update of project_type,status,visibility,applications_open,partner_name,application_deadline,team_size_threshold,title,summary,problem_statement
 on public.projects
 for each row execute function public.enforce_project_lifecycle_invariants();
 

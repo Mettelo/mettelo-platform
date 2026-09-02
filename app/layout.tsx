@@ -25,6 +25,7 @@ import './public-responsive-reflow.css';
 import './mobile-stability.css';
 import './public-mobile-menu-restore.css';
 import './public-mobile-drawer-v3.css';
+import './public-shell-reflow.css';
 import './admin-mobile-shell.css';
 import './admin-tablet-containment.css';
 

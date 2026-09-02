@@ -13,25 +13,31 @@ export default async function ProjectLabCanonicalBrief({projectId}:Props){
   const definition=await getProjectLabCanonicalData(projectId);
   if(!definition)return null;
   const {project,brief,resources,deliverables,successCriteria,timeline,proofSignals}=definition;
+  const methodsAndTools=[...new Set([...(brief?.methods||[]),...(brief?.tools||[])])];
 
   return <section className={styles.brief} id="project-brief" data-lab-home-section aria-labelledby="canonical-project-brief-title">
     <header className={styles.header}>
       <div><span className={styles.eyebrow}>CANONICAL PROJECT BRIEF</span><h3 id="canonical-project-brief-title">What your team is here to solve and deliver</h3><p>This is the approved project definition shared across Mettelo. Live tasks, workstreams and delivery status remain separate execution records for your team.</p></div>
-      <span className={styles.sourceBadge}>One project source</span>
+      <span className={styles.sourceBadge}>{project.canonicalProjectKey||'One project source'}</span>
     </header>
 
     <div className={styles.grid}>
       <article className={styles.card}><span className={styles.label}>Problem Statement</span><h4>{project.title}</h4><p>{project.problemStatement||project.summary}</p></article>
       <article className={styles.card}><span className={styles.label}>Business Context</span><h4>Why the work matters</h4><p>{brief?.businessContext||'Business context has not yet been published in the canonical project brief.'}</p></article>
-      <article className={styles.card}><span className={styles.label}>Primary Use Case</span><h4>What decision or action the work supports</h4><p>{brief?.useCase||'A primary use case has not yet been published.'}</p></article>
+      <article className={styles.card}><span className={styles.label}>Primary Use Case</span><h4>What action the work supports</h4><p>{brief?.useCase||'A primary use case has not yet been published.'}</p></article>
+      <article className={styles.card}><span className={styles.label}>Decision to Support</span><h4>What decision the work must inform</h4><p>{brief?.decisionToSupport||'A decision to support has not yet been published.'}</p></article>
       <article className={styles.card}><span className={styles.label}>Primary Objective</span><h4>What the team needs to achieve</h4><p>{brief?.primaryObjective||'A primary objective has not yet been published.'}</p></article>
+      <article className={styles.card}><span className={styles.label}>Delivery Commitment</span><h4>{project.durationWeeks?`${project.durationWeeks} weeks`:'Duration pending'} · {project.teamSize?`${project.teamSize} participant${project.teamSize===1?'':'s'}`:'Team size pending'}</h4><p>{project.weeklyCommitment||'Weekly commitment has not yet been published.'}{project.difficultyLevel?` · ${project.difficultyLevel}`:''}</p></article>
     </div>
 
-    {(brief?.supportingObjectives.length||brief?.keyQuestions.length||brief?.inScope.length||brief?.outOfScope.length)?<div className={styles.definitionGrid}>
+    {(brief?.supportingObjectives.length||brief?.keyQuestions.length||brief?.inScope.length||brief?.outOfScope.length||brief?.constraintsTradeOffs.length||brief?.assumptions.length||brief?.responsibleUseRisks.length)?<div className={styles.definitionGrid}>
       {brief?.supportingObjectives.length?<DefinitionList title="Supporting objectives" items={brief.supportingObjectives}/>:null}
       {brief?.keyQuestions.length?<DefinitionList title="Key questions" items={brief.keyQuestions}/>:null}
       {brief?.inScope.length?<DefinitionList title="In scope" items={brief.inScope}/>:null}
       {brief?.outOfScope.length?<DefinitionList title="Out of scope" items={brief.outOfScope}/>:null}
+      {brief?.constraintsTradeOffs.length?<DefinitionList title="Constraints & trade-offs" items={brief.constraintsTradeOffs}/>:null}
+      {brief?.assumptions.length?<DefinitionList title="Explicit assumptions" items={brief.assumptions}/>:null}
+      {brief?.responsibleUseRisks.length?<DefinitionList title="Responsible use & risks" items={brief.responsibleUseRisks}/>:null}
     </div>:null}
 
     <div className={styles.sectionHead}><div><span className={styles.eyebrow}>APPROVED RESOURCES</span><h4>Project data and working resources</h4></div><p>Private stored-copy links appear only inside authorised Lab access. Original-source attribution remains visible for traceability.</p></div>
@@ -41,6 +47,19 @@ export default async function ProjectLabCanonicalBrief({projectId}:Props){
     <div className={styles.twoColumns}>
       <div><h5 className={styles.subheading}>Deliverables</h5>{deliverables.length?<ol className={styles.list}>{deliverables.map(item=><li key={item.id}><div><strong>{item.title}</strong>{item.publicSummary&&<p>{item.publicSummary}</p>}{item.expectedFormat&&<small>Expected format · {item.expectedFormat}</small>}{item.acceptanceCriteria&&<small>Acceptance · {item.acceptanceCriteria}</small>}</div><span>{item.isRequired?'Required':'Optional'}</span></li>)}</ol>:<Empty title="Deliverables are not yet defined." copy="This remains a project-readiness gap; Lab does not invent delivery requirements."/>}</div>
       <div><h5 className={styles.subheading}>Success criteria</h5>{successCriteria.length?<ol className={styles.criteria}>{successCriteria.map(item=><li key={item.id}><span aria-hidden="true">✓</span><div><strong>{item.title}</strong>{item.description&&<p>{item.description}</p>}{item.measurement&&<small>{item.measurement}</small>}</div></li>)}</ol>:<Empty title="Success criteria are not yet defined." copy="The team should not infer a quality bar from file completion alone."/>}</div>
+    </div>
+
+    {(brief?.acceptanceChecks.length||brief?.stakeholderHandover)?<div className={styles.definitionGrid}>
+      {brief?.acceptanceChecks.length?<DefinitionList title="Acceptance / quality checks" items={brief.acceptanceChecks}/>:null}
+      {brief?.stakeholderHandover?<article className={styles.definition}><h5>Stakeholder handover</h5><p>{brief.stakeholderHandover}</p></article>:null}
+    </div>:null}
+
+    <div className={styles.sectionHead}><div><span className={styles.eyebrow}>CAPABILITY & EVIDENCE</span><h4>What the work can demonstrate</h4></div><p>These are evidence opportunities. Participation alone does not create verified Mettelo Proof.</p></div>
+    <div className={styles.definitionGrid}>
+      {brief?.technicalSkills.length?<DefinitionList title="Technical capability" items={brief.technicalSkills}/>:null}
+      {brief?.professionalSkills.length?<DefinitionList title="Professional capability" items={brief.professionalSkills}/>:null}
+      {methodsAndTools.length?<DefinitionList title="Methods & tools" items={methodsAndTools}/>:null}
+      {brief?.capabilityOutcome?<article className={styles.definition}><h5>Capability outcome</h5><p>{brief.capabilityOutcome}</p></article>:null}
     </div>
 
     <div className={styles.sectionHead}><div><span className={styles.eyebrow}>PLANNED JOURNEY</span><h4>Canonical phases and Proof potential</h4></div><p>The plan below is project-level intent. Your live Lab milestones and tasks show actual execution progress.</p></div>

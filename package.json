@@ -38,7 +38,7 @@
     "audit:profile-schema": "node scripts/audit-profile-schema-contract.mjs",
     "audit:member-readiness": "node scripts/audit-member-readiness-phase1.mjs",
     "audit:member-profile-readiness-v2": "node scripts/audit-member-profile-readiness-v2.mjs",
-    "audit:regression-coverage": "node scripts/audit-regression-coverage.mjs && npm run audit:profile-schema && npm run audit:member-readiness && npm run audit:member-profile-readiness-v2 && npm run audit:capability-paths",
+    "audit:regression-coverage": "node scripts/audit-regression-coverage.mjs && npm run audit:profile-schema && npm run audit:member-readiness && npm run audit:member-profile-readiness-v2 && npm run audit:capability-paths && playwright test tests/project-catalogue-filtering.spec.ts --project=chromium",
     "test:forms": "playwright test tests/form-route-contracts.spec.ts tests/form-data-architecture.spec.ts --project=chromium",
     "test:regression": "playwright test tests/form-route-contracts.spec.ts tests/form-data-architecture.spec.ts tests/critical-ui.spec.ts tests/auth-account-ui.spec.ts tests/footer-opportunity-link.spec.ts tests/public-design-hardening.spec.ts tests/public-recursive-responsive.spec.ts tests/mobile-stability.spec.ts tests/public-mobile-drawer-v3.spec.ts tests/member-readiness-domain.spec.ts tests/capability-paths-phase-1-db.spec.ts tests/project-lifecycle-policy-db.spec.ts --project=chromium",
     "test:project-catalogue-phase1": "node scripts/setup-local-e2e-catalogue.mjs && playwright test tests/project-catalogue-filters-phase-1-db.spec.ts --project=chromium",

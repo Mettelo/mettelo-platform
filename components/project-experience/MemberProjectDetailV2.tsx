@@ -8,7 +8,20 @@ import type {MemberProjectState} from '@/lib/member-project-journey';
 import type {ProjectExperienceModel} from '@/lib/project-experience-model';
 import styles from './MemberProjectDetailV2.module.css';
 
-type Role={id:string;title:string;description:string|null;skills:string[];openings:number;remaining:number|null;available:boolean};
+type Role={
+  id:string;
+  title:string;
+  description:string|null;
+  skills:string[];
+  openings:number;
+  remaining:number|null;
+  available:boolean;
+  responsibilities:string[];
+  recommendedSkills:string[];
+  experienceExpectation:string|null;
+  weeklyCommitment:string|null;
+  applicationRequirements:string|null;
+};
 type Props={
   model:ProjectExperienceModel;
   state:MemberProjectState;
@@ -23,7 +36,12 @@ type Props={
   roles:Role[];
 };
 
-function date(value:string|null){return value?new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric'}).format(new Date(value)):'Not published'}
+function date(value:string|null){
+  if(!value)return'Not published';
+  const parsed=new Date(value);
+  if(Number.isNaN(parsed.getTime()))return'Not published';
+  return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric'}).format(parsed);
+}
 function openStatus(state:MemberProjectState,deadline:string|null){
   if(state!=='open_eligible')return null;
   if(!deadline)return'Open for applications';
@@ -83,7 +101,20 @@ export default function MemberProjectDetailV2({model,state,stateLabel,stateCopy,
           <div className="pdv2Eyebrow">08 · CHOOSE YOUR CONTRIBUTION</div>
           <h2 id="member-roles-heading">Open project roles</h2>
           <p>Choose the responsibility you can realistically own. Capacity is checked against the existing project-role service before application.</p>
-          {roles.length?<div className="pdv2RoleGrid">{roles.map(role=><article className={`pdv2Role${selectedRole===role.id?' pdv2RoleSelected':''}${!role.available?' pdv2RoleClosed':''}`} key={role.id}><div className="pdv2RoleTop"><div><h3>{role.title}</h3>{role.description&&<p>{role.description}</p>}</div><span className="pdv2RoleStatus">{role.available?'Available':'Unavailable'}</span></div>{role.skills.length>0&&<div className="pdv2Pills">{role.skills.slice(0,8).map(skill=><span className="pdv2Pill" key={skill}>{skill}</span>)}</div>}<div className="pdv2RoleMeta">{role.remaining!==null&&<span>{role.remaining} of {role.openings} place{role.openings===1?'':'s'} remaining</span>}</div>{state==='open_eligible'&&<button className="pdv2Button" type="button" disabled={!role.available} aria-pressed={selectedRole===role.id} onClick={()=>setSelectedRole(role.id)}>{selectedRole===role.id?'Selected':'Select this role'}</button>}</article>)}</div>:<div className="pdv2Empty" role="status"><strong>No participation roles are published yet.</strong><span>The project remains reviewable, but application stays unavailable until a real role exists.</span></div>}
+          {roles.length?<div className="pdv2RoleGrid">{roles.map(role=><article className={`pdv2Role${selectedRole===role.id?' pdv2RoleSelected':''}${!role.available?' pdv2RoleClosed':''}`} key={role.id}>
+            <div className="pdv2RoleTop"><div><h3>{role.title}</h3>{role.description&&<p>{role.description}</p>}</div><span className="pdv2RoleStatus">{role.available?'Available':'Unavailable'}</span></div>
+            {role.skills.length>0&&<div className="pdv2Pills">{role.skills.slice(0,8).map(skill=><span className="pdv2Pill" key={skill}>{skill}</span>)}</div>}
+            <div className="pdv2RoleMeta">{role.remaining!==null&&<span>{role.remaining} of {role.openings} place{role.openings===1?'':'s'} remaining</span>}</div>
+
+            {(role.responsibilities.length>0||role.experienceExpectation||role.weeklyCommitment||role.applicationRequirements||role.recommendedSkills.length>0)&&<div className="pdv2RoleDetails">
+              {role.responsibilities.length>0&&<div className="pdv2RoleDetail"><span>Responsibilities</span><ul>{role.responsibilities.slice(0,4).map(item=><li key={item}>{item}</li>)}</ul></div>}
+              {(role.experienceExpectation||role.weeklyCommitment)&&<div className="pdv2RoleDetail"><span>Role expectation</span>{role.experienceExpectation&&<p>{role.experienceExpectation}</p>}{role.weeklyCommitment&&<p><strong>Commitment:</strong> {role.weeklyCommitment}</p>}</div>}
+              {role.recommendedSkills.length>0&&<div className="pdv2RoleDetail"><span>Recommended skills</span><div className="pdv2Pills">{role.recommendedSkills.slice(0,6).map(skill=><span className="pdv2Pill" key={skill}>{skill}</span>)}</div></div>}
+              {role.applicationRequirements&&<div className="pdv2RoleDetail"><span>Application requirement</span><p>{role.applicationRequirements}</p></div>}
+            </div>}
+
+            {state==='open_eligible'&&<button className="pdv2Button" type="button" disabled={!role.available} aria-pressed={selectedRole===role.id} onClick={()=>setSelectedRole(role.id)}>{selectedRole===role.id?'Selected':'Select this role'}</button>}
+          </article>)}</div>:<div className="pdv2Empty" role="status"><strong>No participation roles are published yet.</strong><span>The project remains reviewable, but application stays unavailable until a real role exists.</span></div>}
           {!roleAvailabilityKnown&&<div className="pdv2Empty" role="status"><strong>Role capacity could not be confirmed safely.</strong><span>Applying is temporarily unavailable until Mettelo can confirm capacity.</span></div>}
         </section>
 
@@ -95,11 +126,11 @@ export default function MemberProjectDetailV2({model,state,stateLabel,stateCopy,
       </div>
 
       <aside className={styles.side} aria-label="Project actions">
-        {state==='open_eligible'&&<section className={styles.sideCard}><div className={styles.eyebrow}>SELECTED ROLE</div><h3>{selected?.title||'Choose an available role'}</h3><p>You can change your role before submitting the application.</p><Link className={`${styles.primaryButton}${selected?'':` ${styles.disabled}`}`} aria-disabled={!selected} tabIndex={selected?undefined:-1} href={selected?applyHref:'#'}>{selected?`Apply as ${selected.title}`:'Choose a role to apply'}</Link></section>}
+        {state==='open_eligible'&&<section className={styles.sideCard}><div className={styles.eyebrow}>SELECTED ROLE</div><h3>{selected?.title||'Choose an available role'}</h3><p>{selected?.weeklyCommitment?`Role commitment: ${selected.weeklyCommitment}`:'You can change your role before submitting the application.'}</p><Link className={`${styles.primaryButton}${selected?'':` ${styles.disabled}`}`} aria-disabled={!selected} tabIndex={selected?undefined:-1} href={selected?applyHref:'#'}>{selected?`Apply as ${selected.title}`:'Choose a role to apply'}</Link></section>}
         <section className={styles.sideCard}><div className={styles.eyebrow}>PROJECT LINKS</div><Link href={`/projects/${project.id}`}>View public project page ↗</Link><Link href="/member/discover">Back to Discover</Link><Link href="/member/recommended">Recommended for you</Link></section>
       </aside>
     </main>
 
-    {state==='open_eligible'&&<div className={styles.mobileCta}><div><strong>{selected?.title||'Choose a role'}</strong><span>{project.weeklyCommitment||'Review commitment before applying'}</span></div><Link className={`${styles.primaryButton}${selected?'':` ${styles.disabled}`}`} aria-disabled={!selected} tabIndex={selected?undefined:-1} href={selected?applyHref:'#'}>Apply</Link></div>}
+    {state==='open_eligible'&&<div className={styles.mobileCta}><div><strong>{selected?.title||'Choose a role'}</strong><span>{selected?.weeklyCommitment||project.weeklyCommitment||'Review commitment before applying'}</span></div><Link className={`${styles.primaryButton}${selected?'':` ${styles.disabled}`}`} aria-disabled={!selected} tabIndex={selected?undefined:-1} href={selected?applyHref:'#'}>Apply</Link></div>}
   </div>;
 }

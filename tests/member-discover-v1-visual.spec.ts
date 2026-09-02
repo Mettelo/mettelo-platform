@@ -67,7 +67,7 @@ test('Discover and member project detail preserve the approved responsive intern
 
 test('Discover Filters V2 exposes governed facets and keyboard capability selection',async({page})=>{
   test.setTimeout(120_000);await signIn(page);await page.setViewportSize({width:390,height:844});await page.goto('/member/discover',{waitUntil:'networkidle'});
-  const trigger=page.getByRole('button',{name:'Filters · 0'});await expect(trigger).toBeVisible();await trigger.click();
+  const trigger=page.locator('button.mdFilterTriggerV2');await expect(trigger).toBeVisible();await expect(trigger).toHaveAccessibleName('Filters · 0');await trigger.click();
   const dialog=page.getByRole('dialog',{name:'Filter projects'});await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel('Role')).toContainText('Data Analyst');
   await expect(dialog.getByLabel('Domain')).toContainText('Cross-industry / Open Data');

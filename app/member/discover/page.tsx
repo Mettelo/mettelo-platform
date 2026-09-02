@@ -7,6 +7,7 @@ import MemberDiscoverCatalogue from '@/components/MemberDiscoverCatalogue';
 import MemberDiscoverPagination from '@/components/MemberDiscoverPagination';
 import MemberCapabilityPathFilters from '@/components/MemberCapabilityPathFilters';
 import MemberPageHeader from '@/components/MemberPageHeader';
+import DiscoverFilterEscapeBridge from '@/components/DiscoverFilterEscapeBridge';
 import {memberProjectCatalogueAction,memberProjectStateLabel,projectAcceptsApplications,resolveMemberProjectState} from '@/lib/member-project-journey';
 import {resolveProjectPublicAvailability} from '@/lib/project-public-availability';
 import {getMemberCapabilityPathProgress,getMemberProjectPathContexts} from '@/lib/member-capability-paths';
@@ -103,6 +104,7 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
 
   const pathAction=<a className="mdButton mdDiscoverTopAction" href="/member/paths">{pathProgress.length?'Manage Paths':'Explore Paths'}</a>;
   return <div className="mdDiscoverPage">
+    <DiscoverFilterEscapeBridge/>
     <MemberPageHeader eyebrow="DIRECTION & DISCOVERY · PROJECTS" title="Discover projects" description="Explore the full project catalogue. Use a Capability Path when you want direction, without limiting what you can discover." actions={<>{pathAction}<a className="mdButton mdDiscoverTopAction" href="/member/recommended">Recommended for you</a></>}/>
     <div className="mdDiscoverControlStack">
       {pathProgress.length?<MemberCapabilityPathFilters paths={pathProgress} selectedPath={selectedPath} selectedStage={selectedStage}/>:<aside className="mdPathPrompt"><div><strong>Want a clearer route through the catalogue?</strong><span>Follow a Capability Path to add sequence and stage context while keeping Discover broad.</span></div><a href="/member/paths">Explore Paths →</a></aside>}

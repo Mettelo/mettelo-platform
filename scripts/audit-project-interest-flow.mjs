@@ -5,7 +5,7 @@ const forbid=(path,needles)=>{const source=read(path);const found=needles.filter
 
 // Canonical interest + application domain remains one endpoint.
 expect('components/SubmissionForm.tsx',["'/api/project-applications'","application_kind:'interest'",'requested_role:data.role','contribution_statement:data.contribution']);
-expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application'",".not('status','in','(declined,withdrawn)')",'loadProjectRoleUsage(termsDb,projectId,project.project_type)','already participated in this canonical project','That project role has filled','terms_accepted_at','notifyAdmins','notifyUser']);
+expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application",".not('status','in','(declined,withdrawn)')",'loadProjectRoleUsage(termsDb,projectId,project.project_type)','already participated in this canonical project','That project role has filled','terms_accepted_at','notifyAdmins','notifyUser']);
 expect('app/api/admin/applications/route.ts',[
   'loadProjectRoleUsage(db,application.project_id,project.project_type)',
   'already has participation history for this canonical project',
@@ -47,7 +47,8 @@ expect('supabase/migrations/20260902122350_project_team_single_lead_invariant.sq
 // Authenticated Discover must stay in My Mettelo and use real project-domain data only.
 expect('lib/member-navigation.ts',["{label:'Discover',href:'/member/discover'","{label:'Saved',href:'/member/saved'"]);
 expect('components/MemberAppShell.tsx',["href=\"/member/discover\"","isActive('/member/discover')",'hasProjectBreadcrumb']);
-expect('app/member/discover/page.tsx',[".from('projects')","project_roles(id,title,skills,openings)",".from('project_applications')",".from('project_members')",".from('saved_projects')",'calculateMemberReadiness','applicationReadiness.ready','resolveMemberProjectState','memberProjectCatalogueAction']);
+expect('app/member/discover/page.tsx',['loadMemberDiscoverProjects',".from('project_applications')",".from('project_members')",".from('saved_projects')",'calculateMemberReadiness','applicationReadiness.ready','resolveMemberProjectState','memberProjectCatalogueAction']);
+expect('lib/member-discover-project-loader.ts',[".from('projects')",'project_roles(id,title,skills,openings)','PRIMARY_SELECT','CORE_FACET_SELECT','MINIMAL_SELECT']);
 forbid('app/member/discover/page.tsx',['career_roles','career_applications','/careers/','PROFILE_APPLICATION_READY']);
 expect('components/MemberDiscoverCatalogue.tsx',['Search projects, skills or topics','All roles','Skill / capability','Search capabilities','All domains','All tools','Any commitment','Any working model','Any project type','Any project stage','Discover is broad. Recommended is personalised.','Recommended uses your profile and primary Capability Path where relevant.','View Recommended','mdFilterDialog','showModal()','aria-haspopup="dialog"']);
 

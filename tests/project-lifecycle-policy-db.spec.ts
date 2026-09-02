@@ -62,6 +62,9 @@ test('project lifecycle database invariants fail closed and future imports becom
     const {error:publishError}=await db.from('projects').update({status:'open',visibility:'public',applications_open:true}).eq('id',openProjectId);
     await noError(publishError,'publish application-ready open project');
 
+    const {error:contentDriftError}=await db.from('projects').update({problem_statement:''}).eq('id',openProjectId);
+    expect(contentDriftError,'live project cannot lose required decision content').not.toBeNull();
+
     const {error:teamSizeDriftError}=await db.from('projects').update({team_size_threshold:4}).eq('id',openProjectId);
     expect(teamSizeDriftError,'live project team size cannot exceed configured role capacity').not.toBeNull();
 

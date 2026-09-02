@@ -47,6 +47,9 @@ using (
   exists(select 1 from public.projects p where p.id=project_methods.project_id)
 );
 
+-- PostgREST embedded role-family reads also require object-level SELECT on the referenced catalogue.
+-- RLS on project_role_catalogue remains authoritative and exposes only active entries to non-admin users.
+grant select on public.project_role_catalogue to anon,authenticated;
 grant select on public.project_role_families to anon,authenticated;
 grant select on public.project_capabilities to anon,authenticated;
 grant select on public.project_domains to anon,authenticated;

@@ -11,6 +11,10 @@ type PageItem=number|'ellipsis-start'|'ellipsis-end';
 function projectCards(grid:HTMLElement){
   return Array.from(grid.children).filter((child):child is HTMLElement=>child instanceof HTMLElement&&child.classList.contains('mdProjectCard'));
 }
+function setCardHidden(item:HTMLElement,hidden:boolean){
+  item.hidden=hidden;
+  if(hidden)item.style.display='none';else item.style.removeProperty('display');
+}
 
 function pageItems(current:number,total:number):PageItem[]{
   if(total<=7)return Array.from({length:total},(_,index)=>index+1);
@@ -35,7 +39,7 @@ export default function MemberDiscoverPagination(){
     let activeGrid:HTMLElement|null=null;
     let previousSignature='';
 
-    const restore=(grid:HTMLElement|null)=>{if(grid)projectCards(grid).forEach(item=>{item.hidden=false})};
+    const restore=(grid:HTMLElement|null)=>{if(grid)projectCards(grid).forEach(item=>setCardHidden(item,false))};
     const sync=(resetWhenChanged=false)=>{
       const grid=document.querySelector<HTMLElement>('.mdProjectGrid');
       const gridChanged=grid!==activeGrid;
@@ -53,7 +57,7 @@ export default function MemberDiscoverPagination(){
       pageRef.current=nextPage;
       setPage(nextPage);
       setCount(items.length);
-      items.forEach((item,index)=>{item.hidden=index<(nextPage-1)*PAGE_SIZE||index>=nextPage*PAGE_SIZE});
+      items.forEach((item,index)=>setCardHidden(item,index<(nextPage-1)*PAGE_SIZE||index>=nextPage*PAGE_SIZE));
     };
     const resetForRefinement=()=>{pageRef.current=1;setPage(1);requestAnimationFrame(()=>sync(false))};
 
@@ -78,7 +82,7 @@ export default function MemberDiscoverPagination(){
     const target=Math.max(1,Math.min(pages,nextPage));
     pageRef.current=target;
     setPage(target);
-    items.forEach((item,index)=>{item.hidden=index<(target-1)*PAGE_SIZE||index>=target*PAGE_SIZE});
+    items.forEach((item,index)=>setCardHidden(item,index<(target-1)*PAGE_SIZE||index>=target*PAGE_SIZE));
     const anchor=document.querySelector<HTMLElement>('.mdCatalogueHead');
     const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     anchor?.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});

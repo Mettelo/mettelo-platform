@@ -27,6 +27,9 @@ export type ProjectDetailDataSource={
   dataFormat:string|null;
   knownLimitations:string|null;
   provenance:string|null;
+  governanceStatus:string|null;
+  governanceVerifiedAt:string|null;
+  retentionPolicy:string|null;
 };
 
 export type ProjectDetailSuccessCriterion={
@@ -111,6 +114,9 @@ type DataSourceRow={
   provenance:unknown;
   sensitivity:unknown;
   publish_policy:unknown;
+  governance_status:unknown;
+  governance_verified_at:unknown;
+  retention_policy:unknown;
 };
 
 function strings(value:unknown){
@@ -123,14 +129,14 @@ function text(value:unknown){return typeof value==='string'&&value.trim()?value.
 /**
  * Project Detail is a discovery surface, not a Lab authorization boundary.
  *
- * This loader uses the service-role client because canonical project template
- * records are protected by member-oriented RLS. Service-role access must never
- * make internal/restricted resources public. A resource is therefore eligible
- * for Project Detail only when both its data classification and explicit publish
- * policy say it is public. Defaults remain deny-by-default.
+ * The service-role client is used because canonical project templates are protected
+ * by member-oriented RLS. Public projection is therefore deny-by-default: a source
+ * appears only when it is classified public, explicitly permitted for publication
+ * and has a GREEN governance decision. Internal storage URLs and review evidence are
+ * deliberately never selected here.
  */
 function publicDataSource(row:DataSourceRow){
-  return row.sensitivity==='public'&&row.publish_policy==='permitted';
+  return row.sensitivity==='public'&&row.publish_policy==='permitted'&&row.governance_status==='green';
 }
 
 export async function getProjectDetailContent(projectId:string):Promise<ProjectDetailContent>{
@@ -140,7 +146,7 @@ export async function getProjectDetailContent(projectId:string):Promise<ProjectD
 
   const [deliverablesResult,dataSourcesResult,successCriteriaResult,capabilitiesResult,placementsResult,originResult]=await Promise.all([
     db.from('project_deliverables').select('id,title,deliverable_type,acceptance_criteria,public_summary,expected_format,is_required,status,sort_order').eq('project_id',projectId).is('project_run_id',null).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
-    db.from('project_data_sources').select('id,name,description,source_type,external_url,provider_name,provider_url,provider:project_resource_providers(name,website_url,logo_asset_path),licence_name,licence_url,required_subset,approximate_size,data_period,data_format,known_limitations,provenance,sensitivity,publish_policy').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
+    db.from('project_data_sources').select('id,name,description,source_type,external_url,provider_name,provider_url,provider:project_resource_providers(name,website_url,logo_asset_path),licence_name,licence_url,required_subset,approximate_size,data_period,data_format,known_limitations,provenance,sensitivity,publish_policy,governance_status,governance_verified_at,retention_policy').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
     db.from('project_success_criteria').select('id,title,description,measurement,is_required,visibility,sort_order').eq('project_id',projectId).eq('visibility','public').order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
     db.from('project_capabilities').select('importance,evidence_expected,capabilities(name,capability_type)').eq('project_id',projectId),
     db.from('capability_path_projects').select('path_id,stage_id,position,competency_focus,capability_built,path_outcome').eq('project_id',projectId).order('position',{ascending:true}),
@@ -171,7 +177,10 @@ export async function getProjectDetailContent(projectId:string):Promise<ProjectD
         dataPeriod:text(row.data_period),
         dataFormat:text(row.data_format),
         knownLimitations:text(row.known_limitations),
-        provenance:text(row.provenance)
+        provenance:text(row.provenance),
+        governanceStatus:text(row.governance_status),
+        governanceVerifiedAt:text(row.governance_verified_at),
+        retentionPolicy:text(row.retention_policy)
       };
     });
 

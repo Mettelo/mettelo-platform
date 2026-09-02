@@ -1,3 +1,5 @@
+'use client';
+
 import AdminStatusBadge from './AdminStatusBadge';
 
 export default function AdminProjectVisibilityControl({visibility}:{projectId:string;visibility:string}){

@@ -30,7 +30,7 @@ The phase is not successful if the UI can display more filter options while most
 ### Roles
 `project_role_catalogue` remains the canonical role-family vocabulary.
 
-`project_roles` gains an optional canonical role-family reference so project-specific role titles can remain human-readable while filtering uses a stable role family.
+Projects map to one or more stable canonical role families through `project_role_families`. Existing `project_roles` remain the project-specific contribution roles shown to users, so a project can retain precise role titles while catalogue filtering uses governed role families without forcing a one-to-one mapping.
 
 ### Skills / capabilities
 Use the existing `capabilities` and `project_capabilities` model rather than introducing a parallel skills table.

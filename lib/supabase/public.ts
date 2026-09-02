@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const TRANSIENT_PUBLIC_READ_STATUSES=new Set([429,502,503,504]);
+const TRANSIENT_PUBLIC_READ_STATUSES=new Set([429,500,502,503,504]);
+const PUBLIC_READ_MAX_ATTEMPTS=3;
 
 function requestMethod(input:RequestInfo|URL,init?:RequestInit){
   if(init?.method)return init.method.toUpperCase();
@@ -11,17 +12,23 @@ function requestMethod(input:RequestInfo|URL,init?:RequestInit){
 async function resilientPublicFetch(input:RequestInfo|URL,init?:RequestInit){
   const method=requestMethod(input,init);
   const retryable=method==='GET'||method==='HEAD';
-  try{
-    const response=await fetch(input,init);
-    if(!retryable||!TRANSIENT_PUBLIC_READ_STATUSES.has(response.status))return response;
-  }catch(error){
-    if(!retryable)throw error;
+  if(!retryable)return fetch(input,init);
+
+  let lastError:unknown=null;
+  for(let attempt=1;attempt<=PUBLIC_READ_MAX_ATTEMPTS;attempt+=1){
+    try{
+      const response=await fetch(input,init);
+      if(!TRANSIENT_PUBLIC_READ_STATUSES.has(response.status)||attempt===PUBLIC_READ_MAX_ATTEMPTS)return response;
+    }catch(error){
+      lastError=error;
+      if(attempt===PUBLIC_READ_MAX_ATTEMPTS)throw error;
+    }
+    // Read-only anonymous catalogue/path requests can briefly lose PostgREST or
+    // connection-pool capacity under long browser suites and production bursts.
+    // Retry with a tiny bounded backoff; mutations are never retried here.
+    await new Promise(resolve=>setTimeout(resolve,75*attempt));
   }
-  // Anonymous catalogue/path reads are intentionally retryable once. Long E2E and
-  // production traffic can briefly exhaust PostgREST/pool capacity; one transient
-  // read failure must not turn a healthy public catalogue into an unavailable page.
-  await new Promise(resolve=>setTimeout(resolve,75));
-  return fetch(input,init);
+  throw lastError instanceof Error?lastError:new Error('Public read failed after bounded retries.');
 }
 
 export function createPublicSupabaseClient(){

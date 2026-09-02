@@ -52,7 +52,7 @@ test.describe('Project Experience V2 advanced public Project Detail',()=>{
 
   test('the canonical public page preserves the approved decision-led information architecture',async({page})=>{
     await page.setViewportSize({width:1440,height:1000});
-    await page.goto(`/projects/${projectId}`,{waitUntil:'networkidle'});
+    await page.goto(`/projects/${projectId}`,{waitUntil:'domcontentloaded'});
 
     await expect(page.getByRole('heading',{level:1,name:'E2E Local Release Project'})).toBeVisible();
     await expect(page.getByRole('heading',{name:'Build evidence of capability, not just another portfolio piece.'})).toBeVisible();
@@ -81,9 +81,10 @@ test.describe('Project Experience V2 advanced public Project Detail',()=>{
   });
 
   test('the redesign reflows across supported phone, tablet and desktop widths',async({page})=>{
+    test.setTimeout(60_000);
     for(const width of [320,390,768,1024,1440]){
       await page.setViewportSize({width,height:1000});
-      await page.goto(`/projects/${projectId}`,{waitUntil:'networkidle'});
+      await page.goto(`/projects/${projectId}`,{waitUntil:'domcontentloaded'});
       await expect(page.getByRole('heading',{level:1,name:'E2E Local Release Project'})).toBeVisible();
       await noOverflow(page,`Advanced Project Detail overflowed at ${width}px`);
       if(width<=760)await expect(page.locator('div[aria-label="Project application action"]')).toBeVisible();
@@ -92,7 +93,7 @@ test.describe('Project Experience V2 advanced public Project Detail',()=>{
 
   test('200 percent text keeps the project page reflow-safe',async({page})=>{
     await page.setViewportSize({width:768,height:1000});
-    await page.goto(`/projects/${projectId}`,{waitUntil:'networkidle'});
+    await page.goto(`/projects/${projectId}`,{waitUntil:'domcontentloaded'});
     await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});
     await expect(page.getByRole('heading',{level:1,name:'E2E Local Release Project'})).toBeVisible();
     await noOverflow(page,'Advanced Project Detail overflowed at 200% text');

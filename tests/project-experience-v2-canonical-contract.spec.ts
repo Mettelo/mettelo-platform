@@ -20,19 +20,41 @@ test.describe('Project Experience V2 canonical planning contract',()=>{
     expect(route).not.toContain('<ProjectDecisionSections');
   });
 
-  test('project timeline is derived from canonical milestones, not live Lab tasks',()=>{
+  test('member project route consumes the same canonical model without replacing eligibility and capacity authority',()=>{
+    const route=read('app/member/discover/[id]/page.tsx');
+    const member=read('components/project-experience/MemberProjectDetailV2.tsx');
+
+    expect(route).toContain("import {getProjectExperiencePlanning} from '@/lib/project-experience-data'");
+    expect(route).toContain("import {buildProjectExperienceModel} from '@/lib/project-experience-model'");
+    expect(route).toContain("import MemberProjectDetailV2 from '@/components/project-experience/MemberProjectDetailV2'");
+    expect(route).toContain('calculateMemberReadiness');
+    expect(route).toContain('loadProjectRoleUsage');
+    expect(route).toContain('resolveMemberProjectState');
+    expect(route).toContain('getProjectDetailContent(id)');
+    expect(route).toContain('getProjectExperiencePlanning(id)');
+    expect(route).toContain('buildProjectExperienceModel({');
+    expect(route).toContain('return <MemberProjectDetailV2');
+    expect(member).toContain('ProjectMemberCanonicalSections');
+    expect(member).toContain('/apply?role=');
+    expect(member).toContain('SaveProjectButton');
+  });
+
+  test('project timeline is derived only from canonical project milestones, never live Lab execution state',()=>{
     const planning=read('lib/project-experience-data.ts');
     const model=read('lib/project-experience-model.ts');
     const publicDetail=read('components/project-experience/ProjectPublicDetailV2.tsx');
+    const memberDetail=read('components/project-experience/ProjectMemberCanonicalSections.tsx');
 
     expect(planning).toContain("db.from('project_milestones')");
     expect(planning).toContain('week_start,week_end,expected_output');
+    expect(planning).toContain(".is('project_run_id',null)");
     expect(planning).not.toContain("db.from('project_tasks')");
     expect(model).toContain('timeline:ProjectExperienceMilestone[]');
     expect(model).toContain('timeline:milestones');
     expect(publicDetail).toContain('07 · Project timeline');
     expect(publicDetail).toContain('This is the published project plan, not live Lab task status.');
     expect(publicDetail).toContain('Mettelo does not expose live Lab task state as a substitute for an approved project plan.');
+    expect(memberDetail).toContain('Live execution state remains inside the authorised Lab workspace.');
   });
 
   test('Proof potential requires explicit evidence expectations on both public project presentations',()=>{

@@ -121,7 +121,7 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
     <div id="project-content" className={styles.contentGrid}>
       <aside className={styles.sectionNav} aria-label="On this project page"><div><span>On this page</span>{sectionLinks.map(([id,label])=><a key={id} href={`#${id}`}>{label}</a>)}</div></aside>
 
-      <main className={styles.content}>
+      <div className={styles.content}>
         <section id="challenge" className={styles.section} aria-labelledby="challenge-title">
           <span className={styles.kicker}>01 · The challenge</span>
           <h2 id="challenge-title">Start with the decision, not the dataset.</h2>
@@ -233,7 +233,7 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
             <div><Link href={ctaHref}>{canApply?'Apply for a role →':'Open in My Mettelo →'}</Link><small>{authenticated?'Your project context is preserved.':'Sign in or create an account to continue.'}</small></div>
           </div>
         </section>
-      </main>
+      </div>
     </div>
 
     <div className={styles.mobileCta} aria-label="Project application action"><Link href={ctaHref}>{canApply?'Apply for a role':'Open in My Mettelo'}</Link></div>

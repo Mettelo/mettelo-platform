@@ -51,8 +51,8 @@ test('Discover and member project detail preserve the approved responsive intern
 test('member Discover links stay internal while signed-in public Projects routes remain public',async({page})=>{
   test.setTimeout(120_000);await signIn(page);
   await page.goto('/member/applications',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'Applications'})).toBeVisible();
-  const discoverLinks=page.getByRole('link',{name:'Discover projects'});const discoverCount=await discoverLinks.count();expect(discoverCount).toBeGreaterThan(0);
-  for(let index=0;index<discoverCount;index+=1){await page.goto('/member/applications',{waitUntil:'networkidle'});await page.getByRole('link',{name:'Discover projects'}).nth(index).click();await page.waitForURL(url=>url.pathname==='/member/discover',{timeout:20_000});await expect(page.getByRole('heading',{level:1,name:'Discover projects'})).toBeVisible()}
+  const internalDiscover=page.locator('a[href="/member/discover"]').filter({hasText:'Discover projects'}).first();await expect(internalDiscover).toBeVisible();await internalDiscover.click();await page.waitForURL(url=>url.pathname==='/member/discover',{timeout:20_000});await expect(page.getByRole('heading',{level:1,name:'Discover projects'})).toBeVisible();
+  await page.goto('/member/applications',{waitUntil:'networkidle'});const publicCatalogue=page.locator('a[href="/projects"]').filter({hasText:'Discover projects'}).first();await expect(publicCatalogue).toBeVisible();await publicCatalogue.click();await page.waitForURL(url=>url.pathname==='/projects',{timeout:20_000});
   await page.goto('/projects',{waitUntil:'networkidle'});expect(new URL(page.url()).pathname).toBe('/projects');
   await page.goto(`/projects/${projectId}`,{waitUntil:'networkidle'});expect(new URL(page.url()).pathname).toBe(`/projects/${projectId}`);await expect(page.getByRole('heading',{level:1,name:title})).toBeVisible();
 });

@@ -1,53 +1,124 @@
-import Link from 'next/link';
 import {notFound} from 'next/navigation';
-import {createPublicSupabaseClient} from '@/lib/supabase/public';
-import {createServerSupabaseClient} from '@/lib/supabase/server';
+import ProjectPublicDetailV2 from '@/components/project-experience/ProjectPublicDetailV2';
 import {projectAcceptsApplications} from '@/lib/member-project-journey';
 import {getProjectDetailContent} from '@/lib/project-detail-content';
-import ProjectDecisionSections from '@/components/ProjectDecisionSections';
+import {getProjectExperiencePlanning} from '@/lib/project-experience-data';
+import {buildProjectExperienceModel} from '@/lib/project-experience-model';
+import {createPublicSupabaseClient} from '@/lib/supabase/public';
+import {createServerSupabaseClient} from '@/lib/supabase/server';
 
 export const dynamic='force-dynamic';
 
-type Role={id:string;title:string;description:string|null;skills:string[]|null;openings:number;discipline:string|null};
+type Role={
+  id:string;
+  title:string;
+  description:string|null;
+  skills:string[]|null;
+  openings:number;
+  discipline:string|null;
+};
+
 type TaxonomyRef={slug:string;name:string};
-type Project={id:string;title:string;summary:string;problem_statement:string|null;status:string;project_type:string|null;applications_open:boolean|null;partner_name:string|null;location:string|null;location_type:string|null;difficulty_level:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;team_size_threshold:number|null;project_roles:Role[]|null;project_domains:{domains:TaxonomyRef|null}[]|null;project_tools:{tools:TaxonomyRef|null}[]|null;project_methods:{methods:TaxonomyRef|null}[]|null};
-function titleCase(value:string){return value.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}
-function date(value:string|null){return value?new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric'}).format(new Date(value)):'Not published'}
 
-export default async function ProjectDetailPage({params}:{params:Promise<{id:string}>}){
-  const {id}=await params;const publicDb=createPublicSupabaseClient();if(!publicDb)notFound();
-  const [projectResult,detail]=await Promise.all([
-    publicDb.from('projects').select('id,title,summary,problem_statement,status,project_type,applications_open,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,team_size_threshold,project_roles(id,title,description,skills,openings,discipline),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))').eq('id',id).eq('visibility','public').maybeSingle(),
-    getProjectDetailContent(id)
-  ]);
-  if(projectResult.error||!projectResult.data)notFound();const project=projectResult.data as unknown as Project;
-  const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();
-  const roles=project.project_roles||[];const canApply=projectAcceptsApplications(project)&&roles.length>0;
-  const domains=(project.project_domains||[]).map(row=>row.domains).filter((value):value is TaxonomyRef=>Boolean(value));
-  const tools=(project.project_tools||[]).map(row=>row.tools).filter((value):value is TaxonomyRef=>Boolean(value));
-  const methods=(project.project_methods||[]).map(row=>row.methods).filter((value):value is TaxonomyRef=>Boolean(value));
-  const memberProjectHref=`/member/discover/${project.id}`;const signinHref=`/signin?next=${encodeURIComponent(memberProjectHref)}`;const decisionHref=user?memberProjectHref:signinHref;
-  const workingModel=project.location_type?titleCase(project.location_type):project.location||'Project-specific';
-  const statusLabel=canApply?'Applications open':project.status==='pilot'?'Pilot project':'Applications closed';
+type Project={
+  id:string;
+  title:string;
+  summary:string;
+  problem_statement:string|null;
+  status:string;
+  project_type:string|null;
+  applications_open:boolean|null;
+  partner_name:string|null;
+  location:string|null;
+  location_type:string|null;
+  difficulty_level:string|null;
+  duration_weeks:number|null;
+  weekly_commitment:string|null;
+  application_deadline:string|null;
+  team_size_threshold:number|null;
+  project_roles:Role[]|null;
+  project_domains:{domains:TaxonomyRef|null}[]|null;
+  project_tools:{tools:TaxonomyRef|null}[]|null;
+  project_methods:{methods:TaxonomyRef|null}[]|null;
+};
 
-  return <div className="ppv2Page">
-    <a className="ppv2Skip" href="#public-project-main">Skip to project details</a>
-    <nav className="ppv2Breadcrumb" aria-label="Breadcrumb"><Link href="/projects">Projects</Link><span aria-hidden="true">/</span><strong>{project.title}</strong></nav>
-
-    <header className="ppv2Hero" aria-labelledby="public-project-title"><div className="ppv2Lead"><div className="ppv2Eyebrow">PUBLIC PROJECT DETAIL</div><h1 id="public-project-title">{project.title}</h1><p>{project.summary}</p>{project.partner_name&&<p className="ppv2Partner">In partnership with <strong>{project.partner_name}</strong></p>}<div className="ppv2Pills"><span className={`ppv2Pill ${canApply?'ppv2Open':''}`}>{statusLabel}</span>{project.duration_weeks&&<span className="ppv2Pill">{project.duration_weeks} {project.duration_weeks===1?'week':'weeks'}</span>}{project.weekly_commitment&&<span className="ppv2Pill">{project.weekly_commitment}</span>}<span className="ppv2Pill">{workingModel}</span>{project.difficulty_level&&<span className="ppv2Pill">{titleCase(project.difficulty_level)}</span>}</div></div>
-      <aside className="ppv2Decision" aria-labelledby="public-decision-title"><div className="ppv2Eyebrow">BEFORE YOU APPLY</div><h2 id="public-decision-title">{canApply?'Is this project right for you?':'Review this project'}</h2><p>{canApply?'Understand the problem, expected outputs, quality bar and role before starting an application.':'You can review the full brief now. Applications remain unavailable until the project has an open role and valid application state.'}</p><dl><div><dt>Duration</dt><dd>{project.duration_weeks?`${project.duration_weeks} ${project.duration_weeks===1?'week':'weeks'}`:'Not published'}</dd></div><div><dt>Commitment</dt><dd>{project.weekly_commitment||'Not published'}</dd></div><div><dt>Published roles</dt><dd>{roles.length}</dd></div><div><dt>Applications close</dt><dd>{date(project.application_deadline)}</dd></div></dl><Link className="ppv2Button ppv2Primary" href={decisionHref}>{canApply?'Apply for a role':'Continue in My Mettelo'}</Link><Link className="ppv2Button" href="/projects">Browse other projects</Link>{!user&&<small>Sign in returns you to this same project.</small>}</aside>
-    </header>
-
-    <div id="public-project-main" className="ppv2Layout"><div><ProjectDecisionSections summary={project.summary} problemStatement={project.problem_statement} detail={detail} domains={domains} tools={tools} methods={methods}/>
-      <section className="ppv2Section" aria-labelledby="public-roles-heading"><div className="ppv2Eyebrow">08 · CONTRIBUTION</div><h2 id="public-roles-heading">Project roles</h2><p>Roles describe the responsibility a contributor is expected to own. Availability is confirmed in My Mettelo before application.</p>{roles.length?<div className="ppv2Roles">{roles.map(role=><article key={role.id}><div><h3>{role.title}</h3>{role.discipline&&<span>{role.discipline}</span>}</div>{role.description&&<p>{role.description}</p>}<div className="ppv2Pills"><span className="ppv2Pill">{role.openings} place{role.openings===1?'':'s'}</span>{(role.skills||[]).slice(0,6).map(skill=><span className="ppv2Pill" key={skill}>{skill}</span>)}</div></article>)}</div>:<div className="ppv2Empty" role="status"><strong>No participation roles are published yet.</strong><span>This project can still be explored, but it is not application-ready.</span></div>}</section>
-      <section className="ppv2Section" aria-labelledby="public-journey-heading"><div className="ppv2Eyebrow">09 · WHAT HAPPENS NEXT</div><h2 id="public-journey-heading">From project discovery to verified contribution</h2><ol className="ppv2Journey"><li><strong>Review the brief</strong><span>Understand the problem, deliverables, data, quality bar and role.</span></li><li><strong>Apply in My Mettelo</strong><span>Select one available role and submit project-specific evidence.</span></li><li><strong>Track the decision</strong><span>Applications owns review and next steps.</span></li><li><strong>Join the confirmed project</strong><span>Projects becomes the source of truth once your place is confirmed.</span></li><li><strong>Deliver in Mettelo Lab</strong><span>Complete work with your team and create contribution evidence.</span></li></ol></section>
-    </div>
-    <aside className="ppv2Side"><section className="ppv2SideCard"><div className="ppv2Eyebrow">PROJECT SUMMARY</div><dl><div><dt>Status</dt><dd>{statusLabel}</dd></div><div><dt>Working model</dt><dd>{workingModel}</dd></div><div><dt>Team size</dt><dd>{project.team_size_threshold?`${project.team_size_threshold} members`:'Not published'}</dd></div></dl><Link className="ppv2Button ppv2Primary" href={decisionHref}>{canApply?'Apply for a role':'Open in My Mettelo'}</Link></section></aside></div>
-
-    <style>{styles}</style>
-  </div>;
+function relationValues(rows:{domains?:TaxonomyRef|null;tools?:TaxonomyRef|null;methods?:TaxonomyRef|null}[]|null|undefined,key:'domains'|'tools'|'methods'){
+  return (rows||[]).map(row=>row[key]).filter((value):value is TaxonomyRef=>Boolean(value));
 }
 
-const styles=`
-.ppv2Page{width:min(100%,1180px);margin:0 auto;padding:0 20px 80px;color:#111318}.ppv2Skip{position:absolute;left:12px;top:-80px;z-index:100;background:#111318;color:#fff;padding:10px 14px;border-radius:8px}.ppv2Skip:focus{top:12px}.ppv2Breadcrumb{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:22px 0;color:#68727d;font-size:11px}.ppv2Breadcrumb a{color:inherit;text-underline-offset:3px}.ppv2Breadcrumb strong{color:#111318;overflow-wrap:anywhere}.ppv2Hero{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:32px;padding:8px 0 30px;border-bottom:1px solid #d8dde3}.ppv2Eyebrow{font-family:var(--font-plex-mono),ui-monospace,monospace;text-transform:uppercase;letter-spacing:.11em;font-size:10px;color:#72551e;font-weight:750}.ppv2Lead h1{margin:8px 0 12px;font-family:var(--font-space-grotesk),Inter,sans-serif;font-size:clamp(40px,5.5vw,64px);line-height:1;letter-spacing:-.048em;overflow-wrap:anywhere}.ppv2Lead>p{max-width:820px;margin:0;color:#59636f;font-size:15px;line-height:1.65}.ppv2Partner{margin-top:10px!important}.ppv2Pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}.ppv2Pill{display:inline-flex;align-items:center;min-height:30px;padding:5px 9px;border:1px solid #d8dde3;border-radius:999px;background:#f7f8f9;color:#46515e;font-size:10px;font-weight:800}.ppv2Open{background:#edf8f1;color:#185b3c;border-color:#cce5d6}.ppv2Decision,.ppv2Section,.ppv2SideCard{background:#fff;border:1px solid #d8dde3;border-radius:16px;padding:18px}.ppv2Decision{display:grid;gap:11px;align-content:start;position:sticky;top:92px}.ppv2Decision h2{margin:0;font-size:21px}.ppv2Decision>p,.ppv2Section>p{margin:0;color:#59636f;font-size:12px;line-height:1.58}.ppv2Decision dl,.ppv2SideCard dl{margin:0}.ppv2Decision dl>div,.ppv2SideCard dl>div{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid #eceef0}.ppv2Decision dt,.ppv2SideCard dt{color:#68727d;font-size:10px}.ppv2Decision dd,.ppv2SideCard dd{margin:0;text-align:right;font-size:11px;font-weight:800}.ppv2Decision small{color:#68727d;font-size:10px}.ppv2Button{min-height:44px;padding:0 14px;border:1px solid #b8c0c9;border-radius:10px;background:#fff;color:#111318;display:inline-flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;font-size:12px;font-weight:850}.ppv2Primary{background:#111318;border-color:#111318;color:#fff}.ppv2Layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px;margin-top:20px;align-items:start}.ppv2Layout>div{display:grid;gap:16px}.ppv2Side{position:sticky;top:92px}.ppv2SideCard{display:grid;gap:10px}.ppv2Section h2{margin:6px 0 8px;font-family:var(--font-space-grotesk),Inter,sans-serif;font-size:26px;letter-spacing:-.03em}.ppv2Roles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.ppv2Roles article{border:1px solid #d8dde3;border-radius:13px;padding:14px}.ppv2Roles h3{margin:0;font-size:15px}.ppv2Roles article>div>span{display:block;margin-top:3px;color:#68727d;font-size:10px}.ppv2Roles p{margin:7px 0 0;color:#59636f;font-size:11.5px;line-height:1.5}.ppv2Empty{margin-top:13px;padding:14px;border:1px dashed #b8c0c9;border-radius:12px;background:#fafafa}.ppv2Empty strong,.ppv2Empty span{display:block}.ppv2Empty strong{font-size:12px}.ppv2Empty span{margin-top:4px;color:#68727d;font-size:11px}.ppv2Journey{display:grid;gap:11px;margin:14px 0 0;padding-left:20px}.ppv2Journey li{padding-left:5px}.ppv2Journey strong,.ppv2Journey span{display:block}.ppv2Journey strong{font-size:12px}.ppv2Journey span{margin-top:2px;color:#59636f;font-size:11.5px}.ppv2Button:focus-visible,.ppv2Breadcrumb a:focus-visible{outline:3px solid #173f8f;outline-offset:3px}@media(max-width:980px){.ppv2Hero{grid-template-columns:1fr}.ppv2Decision{position:static}.ppv2Layout{grid-template-columns:1fr}.ppv2Side{position:static}}@media(max-width:680px){.ppv2Page{padding:0 16px 70px}.ppv2Lead h1{font-size:38px}.ppv2Roles{grid-template-columns:1fr}.ppv2Decision,.ppv2Section,.ppv2SideCard{padding:16px}}
-`;
+export default async function ProjectDetailPage({params}:{params:Promise<{id:string}>}){
+  const {id}=await params;
+  const publicDb=createPublicSupabaseClient();
+  if(!publicDb)notFound();
+
+  // Establish that this is a genuinely public project first. Canonical planning
+  // content is then projected server-side through explicit public-safe loaders;
+  // no private resource link or governance evidence is read by the component.
+  const projectResult=await publicDb
+    .from('projects')
+    .select('id,title,summary,problem_statement,status,project_type,applications_open,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,team_size_threshold,project_roles(id,title,description,skills,openings,discipline),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))')
+    .eq('id',id)
+    .eq('visibility','public')
+    .maybeSingle();
+
+  if(projectResult.error||!projectResult.data)notFound();
+  const project=projectResult.data as unknown as Project;
+
+  const [detail,planning,auth]=await Promise.all([
+    getProjectDetailContent(project.id),
+    getProjectExperiencePlanning(project.id),
+    createServerSupabaseClient()
+  ]);
+  const {data:{user}}=await auth.auth.getUser();
+
+  const roles=project.project_roles||[];
+  const canApply=projectAcceptsApplications(project)&&roles.length>0;
+  const domains=relationValues(project.project_domains,'domains');
+  const tools=relationValues(project.project_tools,'tools');
+  const methods=relationValues(project.project_methods,'methods');
+
+  const model=buildProjectExperienceModel({
+    project:{
+      id:project.id,
+      title:project.title,
+      summary:project.summary,
+      problemStatement:project.problem_statement,
+      status:project.status,
+      projectType:project.project_type,
+      applicationsOpen:project.applications_open,
+      partnerName:project.partner_name,
+      location:project.location,
+      locationType:project.location_type,
+      difficultyLevel:project.difficulty_level,
+      durationWeeks:project.duration_weeks,
+      weeklyCommitment:project.weekly_commitment,
+      applicationDeadline:project.application_deadline,
+      teamSizeThreshold:project.team_size_threshold
+    },
+    roles:roles.map(role=>({
+      id:role.id,
+      title:role.title,
+      description:role.description,
+      discipline:role.discipline,
+      skills:(role.skills||[]).filter(Boolean),
+      openings:role.openings
+    })),
+    domains,
+    tools,
+    methods,
+    detail,
+    brief:planning.brief,
+    milestones:planning.milestones
+  });
+
+  const memberProjectHref=`/member/discover/${project.id}`;
+  const signinHref=`/signin?next=${encodeURIComponent(memberProjectHref)}`;
+  const ctaHref=user?memberProjectHref:signinHref;
+
+  return <ProjectPublicDetailV2
+    model={model}
+    canApply={canApply}
+    ctaHref={ctaHref}
+    authenticated={Boolean(user)}
+  />;
+}

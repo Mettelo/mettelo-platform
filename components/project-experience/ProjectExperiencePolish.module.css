@@ -1,0 +1,40 @@
+.host > *{
+  --px-ink:var(--ink);
+  --px-ink2:var(--ink-2);
+  --px-ink3:var(--indigo);
+  --px-paper:var(--paper);
+  --px-paper2:var(--sand-2);
+  --px-sand:var(--sand);
+  --px-sand2:#ead9b9;
+  --px-line:var(--line);
+  --px-line-dark:#cfc5b4;
+  --px-muted:var(--slate);
+  --px-signal:var(--bronze);
+  --px-success:var(--green);
+  --mp-ink:var(--ink);
+  --mp-ink2:var(--indigo);
+  --mp-paper:var(--paper);
+  --mp-paper2:var(--sand-2);
+  --mp-sand:var(--sand);
+  --mp-line:var(--line);
+  --mp-muted:var(--slate);
+  --mp-success:var(--green);
+}
+
+.memberHost > *{margin-left:0;margin-right:0}
+.host > *::before{background:radial-gradient(circle at 86% 7%,rgba(198,137,42,.12),transparent 27%),radial-gradient(circle at 8% 45%,rgba(42,47,82,.09),transparent 34%)}
+.host > * > header > div:first-child{background:linear-gradient(138deg,var(--ink) 0%,var(--ink-2) 48%,var(--indigo) 100%);box-shadow:0 18px 50px rgba(16,19,29,.11)}
+.host > * > header > div:first-child::after{background:radial-gradient(circle,rgba(198,137,42,.96) 0 9%,transparent 10% 100%);box-shadow:60px 52px 0 -46px rgba(224,173,89,.36),-46px 84px 0 -46px rgba(255,255,255,.17)}
+.host > * > header > aside{border-color:var(--line);background:rgba(255,255,255,.92);box-shadow:0 10px 30px rgba(16,19,29,.055)}
+.host :global(.pdv2Eyebrow),.host :global(.pdv2RoleDetail>span){color:var(--bronze-deep)}
+.host :global(.pdv2Button){border-color:#c9c2b6;background:var(--white);color:var(--ink)}
+.host :global(.pdv2Button:hover){border-color:var(--bronze);background:var(--sand-2)}
+.host :global(.pdv2Section){border-color:var(--line);background:rgba(255,255,255,.88)}
+.host :global(.pdv2Role){border-color:var(--line)}
+.host :global(.pdv2RoleSelected){border-color:var(--indigo);box-shadow:inset 0 0 0 1px var(--indigo),0 8px 18px rgba(42,47,82,.08)}
+.host :global(.ppv2Side) a:focus-visible,.host :global(.pdv2Button:focus-visible),.host a:focus-visible,.host button:focus-visible{outline-color:var(--indigo)}
+
+@media(max-width:760px){
+  .host{min-width:0}
+  .host > *{max-width:100%}
+}

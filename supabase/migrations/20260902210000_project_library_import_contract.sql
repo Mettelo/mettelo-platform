@@ -66,8 +66,10 @@ create unique index if not exists project_deliverables_canonical_item_uidx
   on public.project_deliverables(project_id,canonical_item_key)
   where canonical_item_key is not null;
 
--- Production does not yet have a canonical success-criteria table. This is planning
--- metadata only and is intentionally separate from run-scoped task/deliverable state.
+-- Production does not yet have a canonical success-criteria table. Clean/local
+-- migration histories may already contain the earlier Project Experience V2
+-- version, so create the table when absent and then add every canonical column
+-- idempotently before creating indexes.
 create table if not exists public.project_success_criteria (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references public.projects(id) on delete cascade,
@@ -81,6 +83,15 @@ create table if not exists public.project_success_criteria (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table public.project_success_criteria
+  add column if not exists description text,
+  add column if not exists measurement text,
+  add column if not exists is_required boolean not null default true,
+  add column if not exists visibility text not null default 'public',
+  add column if not exists sort_order integer not null default 0,
+  add column if not exists canonical_item_key text,
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now();
 create unique index if not exists project_success_criteria_canonical_item_uidx
   on public.project_success_criteria(project_id,canonical_item_key)
   where canonical_item_key is not null;

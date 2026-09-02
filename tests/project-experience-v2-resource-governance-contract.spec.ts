@@ -8,26 +8,30 @@ function read(relative:string){return fs.readFileSync(path.join(root,relative),'
 test.describe('Project Experience V2 resource governance contract',()=>{
   test('resource governance mutations are Admin-only',()=>{
     const route=read('app/api/architect-project-resources/route.ts');
-    expect(route.match(/if\(!ctx\.isAdmin\)/g)?.length||0).toBeGreaterThanOrEqual(1);
+    expect(route).toContain("if(!ctx.isAdmin)return NextResponse.json({error:'Admin access is required for resource governance.'},{status:403})");
     expect(route).toContain("if(!isAdmin)return NextResponse.json({error:'Admin access is required to approve project resources.'},{status:403})");
-    expect(route).toContain("project_run_id',null");
+    expect(route).toContain(".is('project_run_id',null)");
   });
 
   test('green and public-source approval require explicit evidence-compatible conditions',()=>{
     const route=read('app/api/architect-project-resources/route.ts');
-    expect(route).toContain("decision==='green'&&(!source.external_url||!source.licence_name)");
+    expect(route).toContain("decision==='green'&&(!source.external_url||!source.licence_name||(!source.licence_url&&!evidenceUrl))");
     expect(route).toContain("publicUseApproved&&(decision!=='green'||source.sensitivity!=='public')");
     expect(route).toContain("publish_policy:publicUseApproved?'permitted':'not_permitted'");
-    expect(route).toContain("qualityStatus(decision)");
-    expect(route).toContain("decision==='green'?'approved':decision==='verification_required'?'unreviewed':'issues_found'");
   });
 
-  test('governance decisions leave an auditable source review and project event',()=>{
+  test('governance decision is atomic across source state, review evidence and project audit',()=>{
     const route=read('app/api/architect-project-resources/route.ts');
-    expect(route).toContain("db.from('project_data_source_governance_reviews').insert");
-    expect(route).toContain("eventType:'resource_governance_reviewed'");
-    expect(route).toContain('reviewer_user_id:user.id');
-    expect(route).toContain('governance_verified_by:user.id');
+    const migration=read('supabase/migrations/20260902122200_project_resource_governance_atomic_review.sql');
+    expect(route).toContain("db.rpc('apply_project_resource_governance_review'");
+    expect(route).not.toContain("db.from('project_data_sources').update(");
+    expect(route).not.toContain("db.from('project_data_source_governance_reviews').insert");
+    expect(migration).toContain('update public.project_data_sources');
+    expect(migration).toContain('insert into public.project_data_source_governance_reviews');
+    expect(migration).toContain('insert into public.project_governance_events');
+    expect(migration).toContain("'atomic_review',true");
+    expect(migration).toContain('GREEN_REQUIRES_LICENCE_EVIDENCE');
+    expect(migration).toContain('from public,anon,authenticated');
   });
 
   test('public project projection never selects private storage fields',()=>{

@@ -17,6 +17,17 @@ test.describe('Project Experience V2 team formation contract',()=>{
     expect(migration).toContain('leadership_interest boolean not null default false');
   });
 
+  test('admin selection review exposes leadership willingness before approval',()=>{
+    const page=read('app/admin/project-operations/applications/page.tsx');
+    const queue=read('components/AdminApplicationQueue.tsx');
+    expect(page).toContain('availability,leadership_interest,application_kind');
+    expect(page).toContain('leadership_interest:row.leadership_interest===true');
+    expect(queue).toContain('leadership_interest:boolean');
+    expect(queue).toContain('Willing to lead');
+    expect(queue).toContain('Willing to be considered for Project Lead if selected.');
+    expect(queue).toContain('Not volunteering for automatic Project Lead selection.');
+  });
+
   test('automatic lead selection is deterministic, transparent, opt-in and open to new members',()=>{
     const readiness=read('lib/project-team-readiness.ts');
     expect(readiness).toContain('leadershipInterest?60:0');

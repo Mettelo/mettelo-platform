@@ -79,7 +79,7 @@ export async function getProjectLabCanonicalData(projectId:string):Promise<LabCa
   const [projectResult,briefResult,resourceResult,deliverableResult,successResult,milestoneResult,capabilityResult]=await Promise.all([
     db.from('projects').select('id,title,summary,problem_statement,canonical_project_key,difficulty_level,duration_weeks,weekly_commitment,team_size_threshold').eq('id',projectId).maybeSingle(),
     db.from('project_problem_briefs').select('context,stakeholder,primary_use_case,primary_objective,supporting_objectives,key_questions,in_scope,out_of_scope,decision_to_support,constraints_trade_offs,explicit_assumptions,acceptance_quality_checks,responsible_use_risks,evidence_expectations,technical_skills,professional_skills,canonical_methods,canonical_tools,stakeholder_handover,capability_outcome').eq('project_id',projectId).maybeSingle(),
-    db.from('project_data_sources').select('id,name,description,source_type,external_url,provider_name,provider:project_resource_providers(name),licence_name,required_subset,data_period,data_format,sensitivity,governance_status,internal_storage_policy,internal_storage_url').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
+    db.from('project_data_sources').select('id,name,description,source_type,external_url,provider_name,licence_name,required_subset,data_period,data_format,sensitivity,governance_status,internal_storage_policy,internal_storage_url').eq('project_id',projectId).is('project_run_id',null).order('created_at',{ascending:true}),
     db.from('project_deliverables').select('id,title,public_summary,expected_format,acceptance_criteria,is_required,status,sort_order').eq('project_id',projectId).is('project_run_id',null).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
     db.from('project_success_criteria').select('id,title,description,measurement,is_required,sort_order').eq('project_id',projectId).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
     db.from('project_milestones').select('id,title,description,week_start,week_end,expected_output,sort_order').eq('project_id',projectId).is('project_run_id',null).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
@@ -113,7 +113,6 @@ export async function getProjectLabCanonicalData(projectId:string):Promise<LabCa
   }:null;
 
   const resources=(resourceResult.data||[]).map(row=>{
-    const provider=oneRelation(row.provider as {name:unknown}|{name:unknown}[]|null);
     const governanceStatus=String(row.governance_status||'unreviewed');
     const storagePermitted=governanceStatus==='green'&&row.internal_storage_policy==='permitted';
     return{
@@ -122,7 +121,7 @@ export async function getProjectLabCanonicalData(projectId:string):Promise<LabCa
       description:text(row.description),
       sourceType:text(row.source_type),
       externalUrl:text(row.external_url),
-      providerName:text(provider?.name)||text(row.provider_name),
+      providerName:text(row.provider_name),
       licenceName:text(row.licence_name),
       requiredSubset:text(row.required_subset),
       dataPeriod:text(row.data_period),

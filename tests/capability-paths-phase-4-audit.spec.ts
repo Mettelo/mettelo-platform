@@ -61,7 +61,8 @@ test.describe('Capability Paths Phase 4 member contract',()=>{
  });
  test('portfolio and Lab show compact Path context while team formation remains canonical',()=>{
   hasAll(portfolioStrip,['PRIMARY DIRECTION','projects completed','with Verified Proof','View Path',"pathname!=='/member/projects'"]);
-  expect(projectsLayout).toContain('MemberProjectsCapabilityPathStrip');
+  expect(projectsLayout).not.toContain('MemberProjectsCapabilityPathStrip');
+  expect(projectsPage).toContain('MemberProjectsCapabilityPathStrip');
   hasAll(projectsPage,['PREPARING TO START','Team forming','team_size_threshold','places filled','Mettelo Lab will only open when the project is ready']);
   hasAll(labContext,['WHY THIS PROJECT MATTERS','capabilityBuilt','competencyFocus','Verified Proof exists']);expect(labSurface).toContain('MetteloLabCapabilityPathContext');
  });

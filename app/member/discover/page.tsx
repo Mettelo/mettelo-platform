@@ -3,6 +3,7 @@ import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
 import {loadProjectRoleUsageBulk,type RoleUsage} from '@/lib/project-role-capacity';
 import {calculateMemberReadiness} from '@/lib/member-readiness';
+import {loadMemberDiscoverProjects} from '@/lib/member-discover-project-loader';
 import MemberDiscoverCatalogue from '@/components/MemberDiscoverCatalogue';
 import MemberDiscoverPagination from '@/components/MemberDiscoverPagination';
 import MemberCapabilityPathFilters from '@/components/MemberCapabilityPathFilters';
@@ -21,7 +22,7 @@ type CapabilityRelation={capabilities:{id:string;slug:string;name:string}|{id:st
 type DomainRelation={domains:{slug:string;name:string}|{slug:string;name:string}[]|null};
 type ToolRelation={tools:{slug:string;name:string}|{slug:string;name:string}[]|null};
 type MethodRelation={methods:{slug:string;name:string}|{slug:string;name:string}[]|null};
-type Project={id:string;slug:string;title:string;summary:string;status:string;project_type:string|null;location:string|null;location_type:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;applications_open:boolean|null;created_at:string;project_roles:Role[]|null;project_role_families:RoleFamilyRelation[]|null;project_capabilities:CapabilityRelation[]|null;project_domains:DomainRelation[]|null;project_tools:ToolRelation[]|null;project_methods:MethodRelation[]|null};
+type Project={id:string;slug:string;title:string;summary:string;status:string;project_type:string|null;location:string|null;location_type:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;applications_open:boolean|null;created_at:string;project_roles:Role[]|null;project_role_families?:RoleFamilyRelation[]|null;project_capabilities?:CapabilityRelation[]|null;project_domains?:DomainRelation[]|null;project_tools?:ToolRelation[]|null;project_methods?:MethodRelation[]|null};
 type Application={id:string;project_id:string;status:string;project_run_id:string|null};
 type Membership={project_id:string;project_run_id:string|null;membership_status:string;project_runs:{status:string}|null};
 type Saved={project_id:string};
@@ -43,7 +44,7 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).maybeSingle(),
     supabase.from('profile_domain_preferences').select('domain_id').eq('user_id',user.id),
     supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id),
-    supabase.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,duration_weeks,weekly_commitment,application_deadline,applications_open,created_at,project_roles(id,title,skills,openings),project_role_families(project_role_catalogue(slug,title)),project_capabilities(capabilities(id,slug,name)),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))').in('visibility',['public','members']).in('status',['pilot','recruiting','open','forming','active','review','completed']).order('created_at',{ascending:false}).limit(200),
+    loadMemberDiscoverProjects(supabase),
     supabase.from('project_applications').select('id,project_id,status,project_run_id').eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}),
     supabase.from('project_members').select('project_id,project_run_id,membership_status,project_runs(status)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']),
     supabase.from('saved_projects').select('project_id').eq('user_id',user.id),
@@ -51,8 +52,8 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     supabase.from('capability_aliases').select('alias,capability_id')
   ]);
 
-  if(projectsResult.error)console.error('member Discover project query failed',projectsResult.error);
-  if(capabilityAliasesResult.error)console.error('member Discover capability alias query failed',capabilityAliasesResult.error);
+  if(projectsResult.error)console.error('member Discover project query failed after all fallbacks',projectsResult.error);
+  if(capabilityAliasesResult.error)console.warn('member Discover capability aliases unavailable; continuing without aliases',capabilityAliasesResult.error.message);
   const profile=profileResult.data as Record<string,unknown>|null;
   const memberReadiness=calculateMemberReadiness({profile:profile||{},domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0});
   const applicationReady=memberReadiness.applicationReadiness.ready;
@@ -111,7 +112,20 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
       {projectsResult.error?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Nothing has been changed. Refresh this page to try the member catalogue again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<><MemberDiscoverCatalogue projects={items}/><MemberDiscoverPagination/></>}
     </div>
     <style>{`
-      .mdDiscoverPage{width:min(100%,1240px);margin:0;min-width:0;color:#111318}.mdDiscoverControlStack{margin-top:18px}.mdDiscoverTopAction{white-space:nowrap}.mdDiscoverError{margin-top:20px;padding:22px;border:1px solid #d8dde3;border-radius:14px;background:#fff}.mdDiscoverError h2{margin:0 0 6px}.mdDiscoverError p{margin:0 0 14px;color:#59636f}.mdPathPrompt{margin:0 0 14px;padding:13px 15px;border:1px solid #ded6c8;border-radius:14px;background:#fbf7ee;display:flex;justify-content:space-between;gap:18px;align-items:center}.mdPathPrompt>div{display:grid;gap:3px}.mdPathPrompt strong{font-size:12px}.mdPathPrompt span{color:#59636f;font-size:11px;line-height:1.45}.mdPathPrompt a{min-height:44px;display:inline-flex;align-items:center;color:#8b5a17;font-size:11px;font-weight:800;white-space:nowrap}.mdPathPrompt a:focus-visible{outline:3px solid #173f8f;outline-offset:3px}@media(max-width:680px){.mdDiscoverControlStack{margin-top:14px}.mdDiscoverTopAction{white-space:normal;text-align:center}.mdPathPrompt{display:grid}.mdPathPrompt a{white-space:normal}}
+      .mdDiscoverPage{width:min(100%,1240px);margin:0;min-width:0;color:var(--ink)}
+      .mdDiscoverControlStack{margin-top:18px}.mdDiscoverTopAction{white-space:nowrap}
+      .mdDiscoverPage .mdButtonPrimary{background:var(--ink);border-color:var(--ink);color:var(--white)}
+      .mdDiscoverPage .mdButton:not(.mdButtonPrimary){border-color:#cfc7ba;background:var(--white);color:var(--ink)}
+      .mdDiscoverPage .mdButton:hover{border-color:var(--bronze);background:var(--sand);color:var(--bronze-deep)}
+      .mdDiscoverPage .mdProjectCard,.mdDiscoverPage .mdControlsV2,.mdDiscoverPage .mdEmpty{border-color:var(--line)}
+      .mdDiscoverPage .mdCardOpen{background:linear-gradient(135deg,var(--white),var(--sand-2))}
+      .mdDiscoverPage .mdEyebrow,.mdDiscoverPage .mdLabel,.mdDiscoverPage .mdPathContext>span:first-child{color:var(--bronze-deep)}
+      .mdDiscoverPage .mdPathContext strong{color:var(--indigo)}
+      .mdDiscoverPage .mdActiveChipV2{background:var(--sand);border-color:#dcc18f;color:var(--bronze-deep)}
+      .mdDiscoverPage .mdRecommended{background:var(--sand);border-color:#dfd1b5}
+      .mdDiscoverError{margin-top:20px;padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--white)}.mdDiscoverError h2{margin:0 0 6px}.mdDiscoverError p{margin:0 0 14px;color:var(--slate)}
+      .mdPathPrompt{margin:0 0 14px;padding:13px 15px;border:1px solid #ded6c8;border-radius:14px;background:var(--sand-2);display:flex;justify-content:space-between;gap:18px;align-items:center}.mdPathPrompt>div{display:grid;gap:3px}.mdPathPrompt strong{font-size:12px}.mdPathPrompt span{color:var(--slate);font-size:11px;line-height:1.45}.mdPathPrompt a{min-height:44px;display:inline-flex;align-items:center;color:var(--bronze-deep);font-size:11px;font-weight:800;white-space:nowrap}.mdPathPrompt a:focus-visible{outline:3px solid var(--indigo);outline-offset:3px}
+      @media(max-width:680px){.mdDiscoverControlStack{margin-top:14px}.mdDiscoverTopAction{white-space:normal;text-align:center}.mdPathPrompt{display:grid}.mdPathPrompt a{white-space:normal}}
     `}</style>
   </div>;
 }

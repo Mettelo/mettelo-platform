@@ -4,6 +4,8 @@ import {createClient,type SupabaseClient} from '@supabase/supabase-js';
 const url=process.env.E2E_SUPABASE_URL?.trim();
 const serviceKey=process.env.E2E_SUPABASE_SERVICE_ROLE_KEY?.trim();
 const anonKey=process.env.E2E_SUPABASE_ANON_KEY?.trim();
+const memberEmail=process.env.E2E_MEMBER_EMAIL?.trim();
+const memberPassword=process.env.E2E_MEMBER_PASSWORD?.trim();
 const localHost=url?new URL(url).hostname:'';
 const canRun=Boolean(url&&serviceKey&&anonKey&&['127.0.0.1','localhost'].includes(localHost));
 
@@ -155,24 +157,40 @@ test('Phase 1 canonical vocabulary is normalized and extensible without frontend
   }
 });
 
-test('Phase 1 RLS does not reveal member-only catalogue facets to anonymous users',async()=>{
+test('Phase 1 RLS hides member-only facets from anonymous users and exposes them to signed-in members',async()=>{
   test.skip(!canRun,'Runs only against the disposable isolated Supabase release-gate database.');
+  test.skip(!memberEmail||!memberPassword,'Member E2E credentials are required for authenticated member-visibility coverage.');
   const service=createClient(url!,serviceKey!,{auth:{persistSession:false,autoRefreshToken:false}});
   const anon=createClient(url!,anonKey!,{auth:{persistSession:false,autoRefreshToken:false}});
+  const member=createClient(url!,anonKey!,{auth:{persistSession:false,autoRefreshToken:false}});
   await deleteFixture(service,memberOnlyProjectId);
   try{
     await insertCompleteFixture(service,memberOnlyProjectId,'members');
-    const [{data:families,error:familyError},{data:capabilities,error:capabilityError},{data:readiness,error:readinessError}]=await Promise.all([
+    const [{data:anonFamilies,error:anonFamilyError},{data:anonCapabilities,error:anonCapabilityError},{data:anonReadiness,error:anonReadinessError}]=await Promise.all([
       anon.from('project_role_families').select('project_id').eq('project_id',memberOnlyProjectId),
       anon.from('project_capabilities').select('project_id').eq('project_id',memberOnlyProjectId),
       anon.from('project_catalogue_readiness').select('project_id').eq('project_id',memberOnlyProjectId)
     ]);
-    await expectNoError(familyError,'anonymous role-family visibility check');
-    await expectNoError(capabilityError,'anonymous capability visibility check');
-    await expectNoError(readinessError,'anonymous readiness visibility check');
-    expect(families).toEqual([]);
-    expect(capabilities).toEqual([]);
-    expect(readiness).toEqual([]);
+    await expectNoError(anonFamilyError,'anonymous role-family visibility check');
+    await expectNoError(anonCapabilityError,'anonymous capability visibility check');
+    await expectNoError(anonReadinessError,'anonymous readiness visibility check');
+    expect(anonFamilies).toEqual([]);
+    expect(anonCapabilities).toEqual([]);
+    expect(anonReadiness).toEqual([]);
+
+    const {error:signInError}=await member.auth.signInWithPassword({email:memberEmail!,password:memberPassword!});
+    await expectNoError(signInError,'sign in ordinary member for member-visible project facet check');
+    const [{data:memberFamilies,error:memberFamilyError},{data:memberCapabilities,error:memberCapabilityError},{data:memberReadiness,error:memberReadinessError}]=await Promise.all([
+      member.from('project_role_families').select('project_id').eq('project_id',memberOnlyProjectId),
+      member.from('project_capabilities').select('project_id').eq('project_id',memberOnlyProjectId),
+      member.from('project_catalogue_readiness').select('project_id,catalogue_ready').eq('project_id',memberOnlyProjectId)
+    ]);
+    await expectNoError(memberFamilyError,'signed-in member role-family visibility check');
+    await expectNoError(memberCapabilityError,'signed-in member capability visibility check');
+    await expectNoError(memberReadinessError,'signed-in member readiness visibility check');
+    expect(memberFamilies).toHaveLength(1);
+    expect(memberCapabilities).toHaveLength(3);
+    expect(memberReadiness).toEqual([{project_id:memberOnlyProjectId,catalogue_ready:true}]);
   }finally{
     await deleteFixture(service,memberOnlyProjectId);
   }

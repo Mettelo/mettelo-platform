@@ -45,7 +45,10 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
   let leadAssignedNow=false;
   let recommendation:Candidate|null=null;
 
-  if(assignLead&&full&&responsibilityCoverageReady&&labReady&&leads.length===0&&members.length){
+  // Leadership can be formed as soon as the selected team and responsibilities are
+  // complete. Automatic assignment is opt-in only: if nobody volunteered, Mettelo
+  // leaves the team forming for an explicit Admin / Project Architect decision.
+  if(assignLead&&full&&responsibilityCoverageReady&&leads.length===0&&members.length){
     const userIds=members.map(member=>member.user_id);
     const [{data:applications},{data:history}]=await Promise.all([
       db.from('project_applications').select('user_id,leadership_interest,submitted_at').eq('project_run_id',runId).in('user_id',userIds),
@@ -61,9 +64,8 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
       return{userId:member.user_id,leadershipInterest,completedProjects,activeLeadProjects,submittedAt:iso(application?.submitted_at||member.joined_at),score};
     });
     const volunteers=candidates.filter(candidate=>candidate.leadershipInterest);
-    const pool=volunteers.length?volunteers:candidates;
-    pool.sort((a,b)=>b.score-a.score||b.completedProjects-a.completedProjects||a.activeLeadProjects-b.activeLeadProjects||a.submittedAt.localeCompare(b.submittedAt)||a.userId.localeCompare(b.userId));
-    recommendation=pool[0]||null;
+    volunteers.sort((a,b)=>b.score-a.score||b.completedProjects-a.completedProjects||a.activeLeadProjects-b.activeLeadProjects||a.submittedAt.localeCompare(b.submittedAt)||a.userId.localeCompare(b.userId));
+    recommendation=volunteers[0]||null;
     if(recommendation){
       const selected=members.find(member=>member.user_id===recommendation?.userId);
       if(selected){
@@ -85,7 +87,7 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
             leadership_readiness_score:recommendation.score,
             volunteers_available:volunteers.length,
             candidate_count:candidates.length,
-            selection_policy:'interest_then_mettelo_delivery_history_then_current_lead_load_then_submission_order'
+            selection_policy:'volunteer_interest_then_mettelo_delivery_history_then_current_lead_load_then_submission_order'
           }
         });
         leads=[{...selected,team_role:'project_lead'}];

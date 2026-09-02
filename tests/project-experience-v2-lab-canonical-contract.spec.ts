@@ -15,6 +15,13 @@ test.describe('Project Experience V2 Lab canonical contract',()=>{
     expect(loader).toContain("internal_storage_url");
   });
 
+  test('private working-copy links require both accepted membership and green storage governance',()=>{
+    const loader=read('lib/project-lab-canonical-data.ts');
+    expect(loader).toContain('governance_status,internal_storage_policy,internal_storage_url');
+    expect(loader).toContain("governanceStatus==='green'&&row.internal_storage_policy==='permitted'");
+    expect(loader).toContain('internalStorageUrl:storagePermitted?text(row.internal_storage_url):null');
+  });
+
   test('canonical Lab definitions exclude all run-scoped execution rows',()=>{
     const loader=read('lib/project-lab-canonical-data.ts');
     expect(loader).toContain("db.from('project_data_sources')");

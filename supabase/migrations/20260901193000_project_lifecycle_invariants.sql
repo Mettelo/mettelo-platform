@@ -70,6 +70,26 @@ begin
     raise exception 'Archived projects must be private';
   end if;
 
+  -- Returning to Draft is only an authoring correction before operational history.
+  -- Once members/applications/delivery evidence exist, Pause or Archive preserves truth.
+  if tg_op='UPDATE' and new.status='draft' and old.status<>'draft' and (
+    exists(select 1 from public.project_applications a where a.project_id=new.id and a.status not in ('declined','withdrawn'))
+    or exists(select 1 from public.project_members m where m.project_id=new.id)
+    or exists(select 1 from public.project_runs r where r.project_id=new.id and r.has_started=true)
+    or exists(select 1 from public.contributions c where c.project_id=new.id)
+  ) then
+    raise exception 'Projects with operational history cannot return to Draft';
+  end if;
+
+  -- Archiving is permanent catalogue retirement, not a way to strand live work.
+  if tg_op='UPDATE' and new.status='archived' and old.status<>'archived' and (
+    exists(select 1 from public.project_applications a where a.project_id=new.id and a.status in ('submitted','in_review','shortlisted','approved','accepted','waiting_for_team'))
+    or exists(select 1 from public.project_members m where m.project_id=new.id and m.membership_status in ('waiting','active'))
+    or exists(select 1 from public.project_runs r where r.project_id=new.id and r.has_started=true and r.status not in ('completed','cancelled'))
+  ) then
+    raise exception 'Projects with pending applications or live teams cannot be archived';
+  end if;
+
   return new;
 end;
 $$;

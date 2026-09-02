@@ -1,5 +1,6 @@
 import {notFound} from 'next/navigation';
 import ProjectPublicDetailV2 from '@/components/project-experience/ProjectPublicDetailV2';
+import polish from '@/components/project-experience/ProjectExperiencePolish.module.css';
 import {projectAcceptsApplications} from '@/lib/member-project-journey';
 import {getProjectDetailContent} from '@/lib/project-detail-content';
 import {getProjectExperiencePlanning} from '@/lib/project-experience-data';
@@ -63,5 +64,5 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   const signinHref=`/signin?next=${encodeURIComponent(memberProjectHref)}`;
   const ctaHref=user?memberProjectHref:signinHref;
 
-  return <ProjectPublicDetailV2 model={model} canApply={canApply} ctaHref={ctaHref} authenticated={Boolean(user)}/>;
+  return <div className={polish.host}><ProjectPublicDetailV2 model={model} canApply={canApply} ctaHref={ctaHref} authenticated={Boolean(user)}/></div>;
 }

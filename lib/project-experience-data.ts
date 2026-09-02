@@ -1,14 +1,5 @@
 import {serviceDb} from '@/lib/project-flow';
-import type {ProjectExperienceBrief} from '@/lib/project-experience-model';
-
-export type ProjectExperienceMilestone={
-  id:string;
-  title:string;
-  description:string|null;
-  weekStart:number|null;
-  weekEnd:number|null;
-  expectedOutput:string|null;
-};
+import type {ProjectExperienceBrief,ProjectExperienceMilestone} from '@/lib/project-experience-model';
 
 function text(value:unknown){return typeof value==='string'&&value.trim()?value.trim():null}
 function stringArray(value:unknown){return Array.isArray(value)?value.filter((item):item is string=>typeof item==='string'&&Boolean(item.trim())).map(item=>item.trim()):[]}

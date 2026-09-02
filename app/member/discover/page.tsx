@@ -7,22 +7,30 @@ import MemberDiscoverCatalogue from '@/components/MemberDiscoverCatalogue';
 import MemberDiscoverPagination from '@/components/MemberDiscoverPagination';
 import MemberCapabilityPathFilters from '@/components/MemberCapabilityPathFilters';
 import MemberPageHeader from '@/components/MemberPageHeader';
+import DiscoverFilterEscapeBridge from '@/components/DiscoverFilterEscapeBridge';
 import {memberProjectCatalogueAction,memberProjectStateLabel,projectAcceptsApplications,resolveMemberProjectState} from '@/lib/member-project-journey';
 import {resolveProjectPublicAvailability} from '@/lib/project-public-availability';
 import {getMemberCapabilityPathProgress,getMemberProjectPathContexts} from '@/lib/member-capability-paths';
+import {normalizeCommitment,projectStageFacet,projectTypeFacet,workingModelFacet,type CatalogueFacet} from '@/lib/project-catalogue-filtering';
 
 export const dynamic='force-dynamic';
 
 type Role={id:string;title:string;skills:string[]|null;openings:number};
-type Project={id:string;slug:string;title:string;summary:string;status:string;project_type:string|null;location:string|null;location_type:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;applications_open:boolean|null;created_at:string;project_roles:Role[]|null};
+type RoleFamilyRelation={project_role_catalogue:{slug:string;title:string}|{slug:string;title:string}[]|null};
+type CapabilityRelation={capabilities:{id:string;slug:string;name:string}|{id:string;slug:string;name:string}[]|null};
+type DomainRelation={domains:{slug:string;name:string}|{slug:string;name:string}[]|null};
+type ToolRelation={tools:{slug:string;name:string}|{slug:string;name:string}[]|null};
+type MethodRelation={methods:{slug:string;name:string}|{slug:string;name:string}[]|null};
+type Project={id:string;slug:string;title:string;summary:string;status:string;project_type:string|null;location:string|null;location_type:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;applications_open:boolean|null;created_at:string;project_roles:Role[]|null;project_role_families:RoleFamilyRelation[]|null;project_capabilities:CapabilityRelation[]|null;project_domains:DomainRelation[]|null;project_tools:ToolRelation[]|null;project_methods:MethodRelation[]|null};
 type Application={id:string;project_id:string;status:string;project_run_id:string|null};
 type Membership={project_id:string;project_run_id:string|null;membership_status:string;project_runs:{status:string}|null};
 type Saved={project_id:string};
+type Alias={alias:string;capability_id:string};
 type Search={path?:string|string[];stage?:string|string[]};
 
-function titleCase(value:string){return value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase())}
-function workingModel(project:Project){return project.location_type?titleCase(project.location_type):project.location||null}
 function one(value:string|string[]|undefined){return Array.isArray(value)?value[0]||'':value||''}
+function relationOne<T>(value:T|T[]|null|undefined):T|null{return Array.isArray(value)?value[0]||null:value||null}
+function uniqueFacets(values:CatalogueFacet[]){const map=new Map<string,CatalogueFacet>();for(const item of values)if(!map.has(item.slug))map.set(item.slug,item);return[...map.values()].sort((a,b)=>a.label.localeCompare(b.label))}
 
 export default async function MemberDiscoverPage({searchParams}:{searchParams?:Promise<Search>}){
   const params=await searchParams||{};
@@ -31,18 +39,20 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)redirect('/signin?next=%2Fmember%2Fdiscover');
 
-  const [profileResult,domainPrefs,toolPrefs,projectsResult,applicationsResult,membershipsResult,savedResult,pathProgress]=await Promise.all([
+  const [profileResult,domainPrefs,toolPrefs,projectsResult,applicationsResult,membershipsResult,savedResult,pathProgress,capabilityAliasesResult]=await Promise.all([
     supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).maybeSingle(),
     supabase.from('profile_domain_preferences').select('domain_id').eq('user_id',user.id),
     supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id),
-    supabase.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,duration_weeks,weekly_commitment,application_deadline,applications_open,created_at,project_roles(id,title,skills,openings)').in('visibility',['public','members']).in('status',['pilot','recruiting','open','forming','active','review','completed']).order('created_at',{ascending:false}).limit(200),
+    supabase.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,duration_weeks,weekly_commitment,application_deadline,applications_open,created_at,project_roles(id,title,skills,openings),project_role_families(project_role_catalogue(slug,title)),project_capabilities(capabilities(id,slug,name)),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))').in('visibility',['public','members']).in('status',['pilot','recruiting','open','forming','active','review','completed']).order('created_at',{ascending:false}).limit(200),
     supabase.from('project_applications').select('id,project_id,status,project_run_id').eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}),
     supabase.from('project_members').select('project_id,project_run_id,membership_status,project_runs(status)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']),
     supabase.from('saved_projects').select('project_id').eq('user_id',user.id),
-    getMemberCapabilityPathProgress(supabase,user.id)
+    getMemberCapabilityPathProgress(supabase,user.id),
+    supabase.from('capability_aliases').select('alias,capability_id')
   ]);
 
   if(projectsResult.error)console.error('member Discover project query failed',projectsResult.error);
+  if(capabilityAliasesResult.error)console.error('member Discover capability alias query failed',capabilityAliasesResult.error);
   const profile=profileResult.data as Record<string,unknown>|null;
   const memberReadiness=calculateMemberReadiness({profile:profile||{},domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0});
   const applicationReady=memberReadiness.applicationReadiness.ready;
@@ -50,6 +60,8 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
   const applications=(applicationsResult.data||[]) as unknown as Application[];
   const memberships=(membershipsResult.data||[]) as unknown as Membership[];
   const saved=new Set(((savedResult.data||[]) as Saved[]).map(row=>row.project_id));
+  const aliasesByCapability=new Map<string,string[]>();
+  for(const row of (capabilityAliasesResult.data||[]) as Alias[]){const current=aliasesByCapability.get(row.capability_id)||[];current.push(row.alias);aliasesByCapability.set(row.capability_id,current)}
   const latestApplication=new Map<string,Application>();
   for(const item of applications){if(!latestApplication.has(item.project_id))latestApplication.set(item.project_id,item)}
   const membershipByProject=new Map(memberships.map(item=>[item.project_id,item]));
@@ -72,13 +84,27 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     const run=membership?.project_runs||null;
     const state=resolveMemberProjectState({project,application,membership,run,applicationReady,hasAvailableRole:sharedAvailability.available&&availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
     const displayRoles=projectAcceptsApplications(project)&&availabilityKnown?availableRoles:roles;
-    const skills=[...new Set(displayRoles.flatMap(role=>role.skills||[]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    const displayRoleTitles=displayRoles.map(role=>role.title);
+    const roleFamilies=uniqueFacets((project.project_role_families||[]).flatMap(row=>{const value=relationOne(row.project_role_catalogue);return value?[{slug:value.slug,label:value.title}]:[]}));
+    const capabilities=uniqueFacets((project.project_capabilities||[]).flatMap(row=>{const value=relationOne(row.capabilities);return value?[{slug:value.slug,label:value.name,aliases:aliasesByCapability.get(value.id)||[]}]:[]}));
+    const domains=uniqueFacets((project.project_domains||[]).flatMap(row=>{const value=relationOne(row.domains);return value?[{slug:value.slug,label:value.name}]:[]}));
+    const tools=uniqueFacets((project.project_tools||[]).flatMap(row=>{const value=relationOne(row.tools);return value?[{slug:value.slug,label:value.name}]:[]}));
+    const methods=uniqueFacets((project.project_methods||[]).flatMap(row=>{const value=relationOne(row.methods);return value?[{slug:value.slug,label:value.name}]:[]}));
     const primaryContext=contexts.find(context=>context.isPrimary)||contexts[0]||null;
-    return [{id:project.id,title:project.title,summary:project.summary,state,stateLabel:memberProjectStateLabel(state),action:memberProjectCatalogueAction(state,project.id),saved:saved.has(project.id),workingModel:workingModel(project),durationWeeks:project.duration_weeks,commitment:project.weekly_commitment,deadline:project.application_deadline,createdAt:project.created_at,roles:displayRoles.map(role=>role.title),skills,pathContext:primaryContext?{name:primaryContext.pathName,position:primaryContext.position,stage:primaryContext.stageName,isPrimary:primaryContext.isPrimary}:null}];
+    const workFacet=workingModelFacet(project.location_type);
+    return [{
+      id:project.id,title:project.title,summary:project.summary,state,stateLabel:memberProjectStateLabel(state),action:memberProjectCatalogueAction(state,project.id),saved:saved.has(project.id),
+      workingModel:workFacet?.label||project.location||null,durationWeeks:project.duration_weeks,commitment:project.weekly_commitment,deadline:project.application_deadline,createdAt:project.created_at,
+      roles:displayRoleTitles,roleFamilies,capabilities,domains,tools,methods,
+      commitmentFacet:normalizeCommitment(project.weekly_commitment),workingModelFacet:workFacet,projectTypeFacet:projectTypeFacet(project.project_type),stageFacet:projectStageFacet(project.status),
+      searchExtra:[...displayRoleTitles,primaryContext?.pathName||'',primaryContext?.stageName||''],
+      pathContext:primaryContext?{name:primaryContext.pathName,position:primaryContext.position,stage:primaryContext.stageName,isPrimary:primaryContext.isPrimary}:null
+    }];
   });
 
   const pathAction=<a className="mdButton mdDiscoverTopAction" href="/member/paths">{pathProgress.length?'Manage Paths':'Explore Paths'}</a>;
   return <div className="mdDiscoverPage">
+    <DiscoverFilterEscapeBridge/>
     <MemberPageHeader eyebrow="DIRECTION & DISCOVERY · PROJECTS" title="Discover projects" description="Explore the full project catalogue. Use a Capability Path when you want direction, without limiting what you can discover." actions={<>{pathAction}<a className="mdButton mdDiscoverTopAction" href="/member/recommended">Recommended for you</a></>}/>
     <div className="mdDiscoverControlStack">
       {pathProgress.length?<MemberCapabilityPathFilters paths={pathProgress} selectedPath={selectedPath} selectedStage={selectedStage}/>:<aside className="mdPathPrompt"><div><strong>Want a clearer route through the catalogue?</strong><span>Follow a Capability Path to add sequence and stage context while keeping Discover broad.</span></div><a href="/member/paths">Explore Paths →</a></aside>}

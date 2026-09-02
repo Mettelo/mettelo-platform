@@ -21,10 +21,23 @@ let memberId='';
 test.beforeAll(async()=>{
   const db=localDb();const account=credentials();const {data:list,error:listError}=await db.auth.admin.listUsers({page:1,perPage:1000});if(listError)throw listError;const user=list.users.find(item=>item.email?.toLowerCase()===account.email.toLowerCase());if(!user)throw new Error('E2E member identity not found.');memberId=user.id;
   const {error:profileError}=await db.from('profiles').update({profile_readiness:100,skills:['Data Analysis','Research'],preferred_roles:[]}).eq('id',memberId);if(profileError)throw profileError;
+  const [{data:roleFamily,error:roleFamilyError},{data:domain,error:domainError},{data:capabilities,error:capabilityError}]=await Promise.all([
+    db.from('project_role_catalogue').select('id,slug').eq('slug','data-analyst').eq('active',true).single(),
+    db.from('domains').select('id,slug').eq('slug','cross-industry-open-data').eq('is_active',true).single(),
+    db.from('capabilities').select('id,slug').in('slug',['data-analysis','data-quality','stakeholder-communication']).eq('is_active',true)
+  ]);
+  if(roleFamilyError)throw roleFamilyError;if(domainError)throw domainError;if(capabilityError)throw capabilityError;if(!roleFamily||!domain||(capabilities||[]).length!==3)throw new Error('Recommended fixture requires canonical role, domain and three governed capabilities.');
   for(let index=0;index<projectIds.length;index++){
-    const {error:projectError}=await db.from('projects').upsert({id:projectIds[index],slug:`e2e-recommended-project-${index+1}`,title:projectTitles[index],summary:'A deterministic member project using Data Analysis to test truthful relevance, internal routing and responsive recommendation cards.',problem_statement:'Use governed Data Analysis evidence to produce a practical, decision-ready recommendation.',status:'recruiting',visibility:'public',project_type:'open',applications_open:false,location:'Remote',location_type:'remote',duration_weeks:6,weekly_commitment:'4–6 hours/week',application_deadline:null,team_size_threshold:2},{onConflict:'id'});if(projectError)throw projectError;
-    const {error:roleError}=await db.from('project_roles').upsert({id:roleIds[index],project_id:projectIds[index],title:'Data Analyst',description:'Use Data Analysis to turn evidence into a practical recommendation.',skills:['Data Analysis'],openings:2},{onConflict:'id'});if(roleError)throw roleError;
-    const {error:intakeError}=await db.from('projects').update({applications_open:true}).eq('id',projectIds[index]);if(intakeError)throw intakeError;
+    const projectId=projectIds[index];
+    const {error:projectError}=await db.from('projects').upsert({id:projectId,slug:`e2e-recommended-project-${index+1}`,title:projectTitles[index],summary:'A deterministic member project using Data Analysis to test truthful relevance, internal routing and responsive recommendation cards.',problem_statement:'Use governed Data Analysis evidence to produce a practical, decision-ready recommendation.',status:'recruiting',visibility:'public',project_type:'open',applications_open:false,location:'Remote',location_type:'remote',catalogue_working_model_source:'explicit',duration_weeks:6,weekly_commitment:'4–6 hours/week',application_deadline:null,team_size_threshold:2},{onConflict:'id'});if(projectError)throw projectError;
+    const {error:roleError}=await db.from('project_roles').upsert({id:roleIds[index],project_id:projectId,title:'Data Analyst',description:'Use Data Analysis to turn evidence into a practical recommendation.',skills:['Data Analysis'],openings:2},{onConflict:'id'});if(roleError)throw roleError;
+    const [{error:familyError},{error:projectCapabilityError},{error:projectDomainError}]=await Promise.all([
+      db.from('project_role_families').upsert({project_id:projectId,role_catalogue_id:roleFamily.id,source:'e2e_fixture'},{onConflict:'project_id,role_catalogue_id'}),
+      db.from('project_capabilities').upsert((capabilities||[]).map(item=>({project_id:projectId,capability_id:item.id,importance:'core',evidence_expected:true})),{onConflict:'project_id,capability_id'}),
+      db.from('project_domains').upsert({project_id:projectId,domain_id:domain.id,is_primary:true},{onConflict:'project_id,domain_id'})
+    ]);
+    if(familyError)throw familyError;if(projectCapabilityError)throw projectCapabilityError;if(projectDomainError)throw projectDomainError;
+    const {error:intakeError}=await db.from('projects').update({applications_open:true}).eq('id',projectId);if(intakeError)throw intakeError;
   }
   await db.from('project_applications').delete().in('project_id',[...projectIds]).eq('user_id',memberId);await db.from('project_members').delete().in('project_id',[...projectIds]).eq('user_id',memberId);await db.from('saved_projects').delete().in('project_id',[...projectIds]).eq('user_id',memberId);
   const eventRows=[

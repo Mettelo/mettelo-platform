@@ -8,12 +8,14 @@ const canRun=Boolean(url&&serviceKey&&['127.0.0.1','localhost'].includes(localHo
 
 const openProjectId='00000000-0000-4000-8000-00000000e3e1';
 const partnerProjectId='00000000-0000-4000-8000-00000000e3e2';
+const importedProjectId='00000000-0000-4000-8000-00000000e3e3';
 const openRunId='00000000-0000-4000-8000-00000000e3a1';
 const partnerRun1Id='00000000-0000-4000-8000-00000000e3a2';
 const partnerRun2Id='00000000-0000-4000-8000-00000000e3a3';
 const roleAId='00000000-0000-4000-8000-00000000e3b1';
 const roleBId='00000000-0000-4000-8000-00000000e3b2';
 const partnerRoleId='00000000-0000-4000-8000-00000000e3b3';
+const importBatchId='00000000-0000-4000-8000-00000000e3c1';
 
 async function noError(error:{message:string}|null,label:string){expect(error,`${label}: ${error?.message||''}`).toBeNull()}
 
@@ -25,13 +27,19 @@ async function createDisposableUser(db:ReturnType<typeof createClient>,suffix:st
   return data.user!.id;
 }
 
-test('project lifecycle database invariants fail closed under direct and over-capacity writes',async()=>{
+test('project lifecycle database invariants fail closed and future imports become configuration-ready',async()=>{
   test.skip(!canRun,'Runs only against the disposable isolated Supabase release-gate database.');
   const db=createClient(url!,serviceKey!,{auth:{persistSession:false,autoRefreshToken:false}});
   const users:string[]=[];
 
   try{
-    await db.from('projects').delete().in('id',[openProjectId,partnerProjectId]);
+    await db.from('capability_path_import_project_origins').delete().eq('batch_id',importBatchId);
+    await db.from('capability_path_import_batches').delete().eq('id',importBatchId);
+    await db.from('projects').update({applications_open:false}).in('id',[openProjectId,partnerProjectId]);
+    await db.from('project_members').delete().eq('project_id',openProjectId);
+    await db.from('project_runs').delete().in('project_id',[openProjectId,partnerProjectId]);
+    await db.from('project_roles').delete().in('project_id',[openProjectId,partnerProjectId,importedProjectId]);
+    await db.from('projects').delete().in('id',[openProjectId,partnerProjectId,importedProjectId]);
 
     const {error:openProjectError}=await db.from('projects').insert({
       id:openProjectId,slug:'e2e-continuous-open-project',title:'E2E Continuous Open Project',summary:'Disposable lifecycle reliability project.',problem_statement:'Prove lifecycle and capacity invariants.',status:'draft',visibility:'private',project_type:'open',applications_open:false,team_size_threshold:3,project_type_review_required:false
@@ -99,11 +107,32 @@ test('project lifecycle database invariants fail closed under direct and over-ca
     await noError(partnerPublishError,'publish partner intake');
     const {error:partnerActiveOpenError}=await db.from('projects').update({status:'active',applications_open:true}).eq('id',partnerProjectId);
     expect(partnerActiveOpenError,'active partner engagement must reject open intake').not.toBeNull();
+
+    // Future controlled imports create a private Draft first. Marking the batch
+    // imported creates a transparent default role only if no explicit role exists.
+    const {error:importedProjectError}=await db.from('projects').insert({
+      id:importedProjectId,slug:'e2e-imported-open-project',title:'E2E Imported Open Project',summary:'Disposable imported project.',problem_statement:'Prove future import role defaults.',status:'draft',visibility:'private',project_type:'open',applications_open:false,team_size_threshold:4,project_type_review_required:false
+    });
+    await noError(importedProjectError,'create imported draft project');
+    const {error:batchError}=await db.from('capability_path_import_batches').insert({id:importBatchId,batch_key:'e2e-lifecycle-default-role',source_filename:'e2e-lifecycle.xlsx',source_sha256:'e3e1e3e1e3e1e3e1e3e1e3e1e3e1e3e1e3e1e3e1e3e1e3e1e3e1e3e1e3e1e3e1',source_version:'e2e',importer_version:'capability-paths-v1',status:'approved'});
+    await noError(batchError,'create disposable import batch');
+    const {error:originError}=await db.from('capability_path_import_project_origins').insert({batch_id:importBatchId,project_id:importedProjectId,source_project_key:'E2E-IMPORT-001',was_existing:false});
+    await noError(originError,'create import project origin');
+    const {error:markImportedError}=await db.from('capability_path_import_batches').update({status:'imported',imported_at:new Date().toISOString()}).eq('id',importBatchId);
+    await noError(markImportedError,'mark import batch complete');
+    const {data:defaultRoles,error:defaultRoleError}=await db.from('project_roles').select('title,openings').eq('project_id',importedProjectId);
+    await noError(defaultRoleError,'read imported default role');
+    expect(defaultRoles).toEqual([{title:'Project Contributor',openings:4}]);
+    const {data:importedProject}=await db.from('projects').select('status,visibility,applications_open').eq('id',importedProjectId).single();
+    expect(importedProject).toMatchObject({status:'draft',visibility:'private',applications_open:false});
   }finally{
+    await db.from('projects').update({applications_open:false}).in('id',[openProjectId,partnerProjectId]);
     await db.from('project_members').delete().eq('project_id',openProjectId);
+    await db.from('capability_path_import_project_origins').delete().eq('batch_id',importBatchId);
+    await db.from('capability_path_import_batches').delete().eq('id',importBatchId);
     await db.from('project_runs').delete().in('project_id',[openProjectId,partnerProjectId]);
-    await db.from('project_roles').delete().in('project_id',[openProjectId,partnerProjectId]);
-    await db.from('projects').delete().in('id',[openProjectId,partnerProjectId]);
+    await db.from('project_roles').delete().in('project_id',[openProjectId,partnerProjectId,importedProjectId]);
+    await db.from('projects').delete().in('id',[openProjectId,partnerProjectId,importedProjectId]);
     await Promise.all(users.map(userId=>db.auth.admin.deleteUser(userId)));
   }
 });

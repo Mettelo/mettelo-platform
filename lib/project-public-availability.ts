@@ -1,10 +1,10 @@
-import {projectAcceptsApplications} from './project-lifecycle-policy';
+import {projectAcceptsApplications,projectApplicationDeadlinePassed} from './project-lifecycle-policy';
 
 export type PublicProjectAvailabilityInput={status:string;project_type:string;application_deadline:string|null;role_count:number;occupied_role_count?:number;capacity_known?:boolean;applications_open?:boolean|null;visibility?:string|null};
 export type PublicProjectAvailabilityState='open_for_application'|'register_interest'|'roles_preparing'|'roles_filled'|'applications_closed'|'deadline_passed'|'active'|'in_review'|'completed'|'unavailable';
 export type PublicProjectAvailability={state:PublicProjectAvailabilityState;label:string;available:boolean;acceptingInterest:boolean;copy:string};
 export function resolveProjectPublicAvailability(project:PublicProjectAvailabilityInput):PublicProjectAvailability{
-  const deadlinePassed=project.application_deadline?new Date(project.application_deadline).getTime()<Date.now():false;
+  const deadlinePassed=projectApplicationDeadlinePassed({project_type:project.project_type,application_deadline:project.application_deadline});
   const statusAccepting=projectAcceptsApplications({project_type:project.project_type,status:project.status,applications_open:project.applications_open??false,visibility:project.visibility||'public'});
   const lifecycleCouldAccept=!['draft','completed','archived','cancelled'].includes(project.status);
   const capacityKnown=project.capacity_known===true,occupied=Math.max(0,Number(project.occupied_role_count)||0),advertised=Math.max(0,Number(project.role_count)||0);

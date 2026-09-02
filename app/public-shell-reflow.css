@@ -1,0 +1,27 @@
+/* Shared public-shell reflow hardening.
+   Keep footer content inside the viewport when text is enlarged without
+   changing the approved desktop information architecture. */
+@media(max-width:1180px){
+  footer .footerGrid{
+    grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,.75fr))!important;
+  }
+  footer .footerGrid>*{min-width:0}
+  footer .footerLinksColumn>a{max-width:100%;overflow-wrap:anywhere}
+  footer .footerNewsletterColumn{min-width:0}
+}
+
+/* At tablet/reflow widths, two shrinkable columns give enlarged text enough
+   room to wrap instead of increasing the document width. */
+@media(max-width:900px){
+  footer .footerGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  footer .footerBrandColumn,
+  footer .footerNewsletterColumn{grid-column:1/-1}
+}
+
+@media(max-width:520px){
+  footer .footerGrid{grid-template-columns:minmax(0,1fr)!important}
+  footer .footerBrandColumn,
+  footer .footerNewsletterColumn{grid-column:auto}
+}

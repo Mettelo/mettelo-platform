@@ -36,20 +36,16 @@ export const DEFAULT_PROJECT_CATALOGUE_FILTERS:ProjectCatalogueFilters={
   query:'',role:'all',capability:'all',domain:'all',tool:'all',commitment:'all',workingModel:'all',projectType:'all',stage:'all',sort:'recent'
 };
 
-function slugify(value:string){
-  return value.toLowerCase().trim().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-}
-
 export function normalizeCommitment(value:string|null|undefined):CatalogueFacet|null{
   const raw=value?.trim();
   if(!raw)return null;
   const normalized=raw.replace(/[–—]/g,'-').replace(/\s+/g,' ');
-  const range=normalized.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*hours?/i);
+  const range=normalized.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i);
   if(range){
     const min=range[1],max=range[2];
     return{slug:`${min}-${max}-hours`,label:`${min}–${max} hours`};
   }
-  const single=normalized.match(/^\s*(\d+(?:\.\d+)?)\s*(?:hours?)?(?:\s|$)/i);
+  const single=normalized.match(/^\s*(\d+(?:\.\d+)?)\s*(?:(?:hours?|hrs?))?(?:\s|$)/i);
   if(single){
     const amount=single[1];
     return{slug:`${amount}-hours`,label:`${amount} ${Number(amount)===1?'hour':'hours'}`};

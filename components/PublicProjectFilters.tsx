@@ -31,7 +31,6 @@ export default function PublicProjectFilters({values,activeCount,resultCount,rol
       <label className="publicSortControl"><span>Sort</span><select name="sort" defaultValue={values.sort} onChange={event=>event.currentTarget.form?.requestSubmit()}>{Object.entries(sortLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
       <button className="publicSearchSubmit" type="submit">Search</button>
     </div>
-    {values.role!=='all'&&<input type="hidden" name="role" value={values.role}/>} {values.skill!=='all'&&<input type="hidden" name="skill" value={values.skill}/>} {values.domain!=='all'&&<input type="hidden" name="domain" value={values.domain}/>} {values.tool!=='all'&&<input type="hidden" name="tool" value={values.tool}/>} {values.commitment!=='all'&&<input type="hidden" name="commitment" value={values.commitment}/>} {values.working!=='all'&&<input type="hidden" name="working" value={values.working}/>} {values.type!=='all'&&<input type="hidden" name="type" value={values.type}/>} {values.stage!=='all'&&<input type="hidden" name="stage" value={values.stage}/>} {values.duration!=='all'&&<input type="hidden" name="duration" value={values.duration}/>} {values.path!=='all'&&<input type="hidden" name="path" value={values.path}/>} 
     {activeCount>0&&<div className="publicActiveSummary" aria-label="Current project filters"><span>{activeCount} active filter{activeCount===1?'':'s'}</span><a href="/projects#projects">Clear all</a></div>}
 
     <dialog ref={dialog} className="publicFilterDialog" onClose={()=>{setCapabilityOpen(false);requestAnimationFrame(()=>trigger.current?.focus())}} aria-labelledby="public-filter-title" aria-describedby="public-filter-description">
@@ -58,7 +57,6 @@ export default function PublicProjectFilters({values,activeCount,resultCount,rol
           <label><span>Capability Path</span><select name="path" defaultValue={values.path}><option value="all">All Capability Paths</option>{paths.map(item=><option key={item.slug} value={item.slug}>{item.label}</option>)}</select></label>
         </div></fieldset>
 
-        <input type="hidden" name="sort" value={values.sort}/><input type="hidden" name="q" value={values.q}/>
         <div className="publicFilterActions"><a href="/projects#projects" className="button ghost">Clear all</a><button className="button dark" type="submit">Show {resultCount} project{resultCount===1?'':'s'}</button></div>
       </section>
     </dialog>

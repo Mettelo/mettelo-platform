@@ -118,8 +118,8 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
       <div><span>Data</span><strong>{primarySource?'Verified public source':'Public source pending'}</strong><small>{primarySource?(primarySource.providerName||primarySource.name):'Private resources are never exposed as fallback'}</small></div>
     </section>
 
-    <div id="project-content" className={styles.contentGrid}>
-      <aside className={styles.sectionNav} aria-label="On this project page"><div><span>On this page</span>{sectionLinks.map(([id,label])=><a key={id} href={`#${id}`}>{label}</a>)}</div></aside>
+    <div id="project-content" className={`${styles.contentGrid} ppv2Layout`}>
+      <nav className={`${styles.sectionNav} ppv2Side`} aria-label="On this project page"><div><span>On this page</span>{sectionLinks.map(([id,label])=><a key={id} href={`#${id}`}>{label}</a>)}</div></nav>
 
       <div className={styles.content}>
         <section id="challenge" className={styles.section} aria-labelledby="challenge-title">

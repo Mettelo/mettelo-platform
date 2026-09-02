@@ -2,6 +2,7 @@ import {expect,test} from '@playwright/test';
 import fs from 'node:fs';
 
 const projects=fs.readFileSync('app/projects/page.tsx','utf8');
+const publicFilters=fs.readFileSync('components/PublicProjectFilters.tsx','utf8');
 const index=fs.readFileSync('app/projects/paths/page.tsx','utf8');
 const detail=fs.readFileSync('app/projects/paths/[slug]/page.tsx','utf8');
 const data=fs.readFileSync('lib/capability-paths-public.ts','utf8');
@@ -13,10 +14,10 @@ function hasAll(source:string,values:string[]){for(const value of values)expect(
 
 test.describe('Capability Paths Phase 3 public contract',()=>{
  test('public Paths are additive to the existing Projects system',()=>{
-  hasAll(projects,['PublicCapabilityPathsSection','Capability Path','name="path"','All Capability Paths','project_domains','project_tools','difficulty_level','statusFilter']);
-  expect(projects).toContain("getPublishedPathProjectPositions(pathFilter)");
-  expect(projects).toContain('pathPositions.has(p.id)');
-  expect(projects).toContain('Ordered by position in');
+  hasAll(projects,['PublicCapabilityPathsSection','PublicProjectFilters','getPublishedCapabilityPaths','getPublishedPathProjectPositions','pathOptions','selectedPath','item.pathSlugs.includes(selectedPath)','project_domains','project_tools']);
+  hasAll(publicFilters,['name="path"','All Capability Paths','Capability Path']);
+  expect(projects).toContain('paths={pathOptions}');
+  expect(projects).toContain("if(selectedPath!=='all')query.set('path',selectedPath)");
  });
 
  test('only published Paths and public projects are exposed through the public data layer',()=>{

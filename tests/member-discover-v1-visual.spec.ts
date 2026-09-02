@@ -30,8 +30,9 @@ test.beforeAll(async()=>{
   const {data:domain,error:domainError}=await db.from('domains').select('id').eq('is_active',true).limit(1).maybeSingle();if(domainError)throw domainError;if(!domain)throw new Error('E2E canonical readiness fixture requires at least one active domain.');
   const {error:clearDomainError}=await db.from('profile_domain_preferences').delete().eq('user_id',memberId);if(clearDomainError)throw clearDomainError;
   const {error:domainPrefError}=await db.from('profile_domain_preferences').insert({user_id:memberId,domain_id:domain.id});if(domainPrefError)throw domainPrefError;
-  const {error:projectError}=await db.from('projects').upsert({id:projectId,slug:'e2e-member-discover-project',title,summary:'Use a deterministic member-only project to verify Discover, project detail and the internal application journey.',problem_statement:'Validate that signed-in members never need to leave My Mettelo to decide whether and how to apply.',status:'recruiting',visibility:'public',project_type:'open',applications_open:true,location:'Remote',location_type:'remote',duration_weeks:6,weekly_commitment:'5–8 hrs/week',application_deadline:'2099-08-24T23:59:59.000Z'},{onConflict:'id'});if(projectError)throw projectError;
+  const {error:projectError}=await db.from('projects').upsert({id:projectId,slug:'e2e-member-discover-project',title,summary:'Use a deterministic member-only project to verify Discover, project detail and the internal application journey.',problem_statement:'Validate that signed-in members never need to leave My Mettelo to decide whether and how to apply.',status:'recruiting',visibility:'public',project_type:'open',applications_open:false,location:'Remote',location_type:'remote',duration_weeks:6,weekly_commitment:'5–8 hrs/week',application_deadline:null,team_size_threshold:2},{onConflict:'id'});if(projectError)throw projectError;
   const {error:roleError}=await db.from('project_roles').upsert({id:roleId,project_id:projectId,title:'Data Analyst',description:'Analyse the project dataset and translate validated patterns into decision-ready findings.',skills:['Data Analysis','Visualisation'],openings:2},{onConflict:'id'});if(roleError)throw roleError;
+  const {error:intakeError}=await db.from('projects').update({applications_open:true}).eq('id',projectId);if(intakeError)throw intakeError;
 });
 
 test.beforeEach(async()=>{await resetMemberState()});
@@ -49,13 +50,13 @@ test('Discover and member project detail preserve the approved responsive intern
   }
 });
 
-test('member Discover links stay internal while signed-in public Projects routes remain public',async({page})=>{
+test('all signed-in public project entry points converge into My Mettelo Discover',async({page})=>{
   test.setTimeout(120_000);await signIn(page);
   await page.goto('/member/applications',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{level:1,name:'Applications'})).toBeVisible();
-  const internalDiscover=page.locator('a[href="/member/discover"]').filter({hasText:'Discover projects'}).first();await expect(internalDiscover).toBeVisible();await internalDiscover.click();await page.waitForURL(url=>url.pathname==='/member/discover',{timeout:20_000});await expect(page.getByRole('heading',{level:1,name:'Discover projects'})).toBeVisible();
-  await page.goto('/member/applications',{waitUntil:'networkidle'});const publicCatalogue=page.locator('a[href="/projects"]').filter({hasText:'Discover projects'}).first();await expect(publicCatalogue).toBeVisible();await publicCatalogue.click();await page.waitForURL(url=>url.pathname==='/projects',{timeout:20_000});
-  await page.goto('/projects',{waitUntil:'networkidle'});expect(new URL(page.url()).pathname).toBe('/projects');
-  await page.goto(`/projects/${projectId}`,{waitUntil:'networkidle'});expect(new URL(page.url()).pathname).toBe(`/projects/${projectId}`);await expect(page.getByRole('heading',{level:1,name:title})).toBeVisible();
+  const discoverLinks=page.getByRole('link',{name:'Discover projects'});const discoverCount=await discoverLinks.count();expect(discoverCount).toBeGreaterThan(0);
+  for(let index=0;index<discoverCount;index+=1){await page.goto('/member/applications',{waitUntil:'networkidle'});await page.getByRole('link',{name:'Discover projects'}).nth(index).click();await page.waitForURL(url=>url.pathname==='/member/discover',{timeout:20_000});await expect(page.getByRole('heading',{level:1,name:'Discover projects'})).toBeVisible()}
+  await page.goto('/projects',{waitUntil:'networkidle'});await page.waitForURL(url=>url.pathname==='/member/discover',{timeout:20_000});
+  await page.goto(`/projects/${projectId}`,{waitUntil:'networkidle'});await page.waitForURL(url=>url.pathname===`/member/discover/${projectId}`,{timeout:20_000});await expect(page.getByText('MEMBER PROJECT DETAIL',{exact:true})).toBeVisible();
 });
 
 test('signed-out project catalogue and detail remain public, then Apply preserves intent into the member flow',async({page})=>{

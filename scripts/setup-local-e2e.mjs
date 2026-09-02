@@ -41,24 +41,31 @@ const projectId='00000000-0000-4000-8000-00000000e2e1';
 const team1RunId='00000000-0000-4000-8000-00000000e211';
 const team2RunId='00000000-0000-4000-8000-00000000e212';
 const projectRoleId='00000000-0000-4000-8000-00000000e2a1';
-const {error:projectError}=await db.from('projects').upsert({
+
+// Seed the fixture through the same safe lifecycle ordering as production:
+// private Draft first, then sufficient role capacity, then open public intake.
+const {error:projectDraftError}=await db.from('projects').upsert({
   id:projectId,
   slug:'e2e-local-release-project',
   title:'E2E Local Release Project',
   summary:'Disposable local project used only by the GitHub Actions release gate.',
   problem_statement:'Verify browser to API to database submission behavior without hosted staging infrastructure.',
-  status:'active',
-  visibility:'public',
+  status:'draft',
+  visibility:'private',
   project_type:'open',
-  applications_open:true,
+  applications_open:false,
+  team_size_threshold:5,
   project_type_review_required:false,
   location:'CI',
   weekly_commitment:'E2E only'
 },{onConflict:'id'});
-if(projectError)throw projectError;
+if(projectDraftError)throw projectDraftError;
 
-const {error:roleError}=await db.from('project_roles').upsert({id:projectRoleId,project_id:projectId,title:'Data Analyst',discipline:'Data & AI',description:'Deterministic E2E project role.',skills:[],openings:1},{onConflict:'id'});
+const {error:roleError}=await db.from('project_roles').upsert({id:projectRoleId,project_id:projectId,title:'Data Analyst',discipline:'Data & AI',description:'Deterministic E2E project role.',skills:[],openings:5},{onConflict:'id'});
 if(roleError)throw roleError;
+
+const {error:projectOpenError}=await db.from('projects').update({status:'active',visibility:'public',applications_open:true}).eq('id',projectId);
+if(projectOpenError)throw projectOpenError;
 
 const {error:runError}=await db.from('project_runs').upsert([
   {id:team1RunId,project_id:projectId,run_number:1,status:'active',team_size_threshold:5,required_team_size:5,has_started:true,started_at:new Date().toISOString()},

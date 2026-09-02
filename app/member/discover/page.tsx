@@ -1,9 +1,9 @@
 import {redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
+import {loadProjectRoleUsageBulk,type RoleUsage} from '@/lib/project-role-capacity';
 import {calculateMemberReadiness} from '@/lib/member-readiness';
 import MemberDiscoverCatalogue from '@/components/MemberDiscoverCatalogue';
-import MemberDiscoverPagination from '@/components/MemberDiscoverPagination';
 import MemberCapabilityPathFilters from '@/components/MemberCapabilityPathFilters';
 import MemberPageHeader from '@/components/MemberPageHeader';
 import {memberProjectCatalogueAction,memberProjectStateLabel,projectAcceptsApplications,resolveMemberProjectState} from '@/lib/member-project-journey';
@@ -17,7 +17,6 @@ type Project={id:string;slug:string;title:string;summary:string;status:string;pr
 type Application={id:string;project_id:string;status:string;project_run_id:string|null};
 type Membership={project_id:string;project_run_id:string|null;membership_status:string;project_runs:{status:string}|null};
 type Saved={project_id:string};
-type CapacityRow={project_id:string;project_role_id:string|null};
 type Search={path?:string|string[];stage?:string|string[]};
 
 function titleCase(value:string){return value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase())}
@@ -54,22 +53,18 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
   for(const item of applications){if(!latestApplication.has(item.project_id))latestApplication.set(item.project_id,item)}
   const membershipByProject=new Map(memberships.map(item=>[item.project_id,item]));
   const db=serviceDb();
-  let capacityRows:CapacityRow[]=[];
-  let availabilityKnown=false;
-  if(db&&projects.length){
-    const result=await db.from('project_members').select('project_id,project_role_id').in('project_id',projects.map(item=>item.id)).in('membership_status',['waiting','active']);
-    if(!result.error){capacityRows=(result.data||[]) as CapacityRow[];availabilityKnown=true}else console.error('member Discover capacity lookup failed',result.error);
-  }
-  const filledByRole=new Map<string,number>();
-  for(const row of capacityRows){if(row.project_role_id)filledByRole.set(row.project_role_id,(filledByRole.get(row.project_role_id)||0)+1)}
+  let usageByProject=new Map<string,RoleUsage>();
+  if(db&&projects.length)usageByProject=await loadProjectRoleUsageBulk(db,projects.map(project=>({id:project.id,project_type:project.project_type})));
   const pathContexts=await getMemberProjectPathContexts(supabase,user.id,projects.map(item=>item.id));
   const items=projects.flatMap(project=>{
     const contexts=pathContexts.get(project.id)||[];
     if(selectedPath&&!contexts.some(context=>context.pathSlug===selectedPath&&(!selectedStage||context.stageName===selectedStage)))return [];
+    const usage=usageByProject.get(project.id)||{known:false,filled:new Map<string,number>()};
+    const availabilityKnown=usage.known;
     const roles=project.project_roles||[];
-    const availableRoles=roles.filter(role=>availabilityKnown?((filledByRole.get(role.id)||0)<role.openings):true);
+    const availableRoles=roles.filter(role=>availabilityKnown?((usage.filled.get(role.id)||0)<role.openings):true);
     const roleCount=roles.reduce((sum,role)=>sum+Math.max(0,Number(role.openings)||0),0);
-    const occupiedRoleCount=roles.reduce((sum,role)=>sum+Math.min(Math.max(0,Number(role.openings)||0),filledByRole.get(role.id)||0),0);
+    const occupiedRoleCount=roles.reduce((sum,role)=>sum+Math.min(Math.max(0,Number(role.openings)||0),usage.filled.get(role.id)||0),0);
     const sharedAvailability=resolveProjectPublicAvailability({status:project.status,project_type:project.project_type||'open',application_deadline:project.application_deadline,applications_open:project.applications_open,role_count:roleCount,occupied_role_count:occupiedRoleCount,capacity_known:availabilityKnown});
     const application=latestApplication.get(project.id)||null;
     const membership=membershipByProject.get(project.id)||null;
@@ -86,7 +81,7 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     <MemberPageHeader eyebrow="DIRECTION & DISCOVERY · PROJECTS" title="Discover projects" description="Explore the full project catalogue. Use a Capability Path when you want direction, without limiting what you can discover." actions={<>{pathAction}<a className="mdButton mdDiscoverTopAction" href="/member/recommended">Recommended for you</a></>}/>
     <div className="mdDiscoverControlStack">
       {pathProgress.length?<MemberCapabilityPathFilters paths={pathProgress} selectedPath={selectedPath} selectedStage={selectedStage}/>:<aside className="mdPathPrompt"><div><strong>Want a clearer route through the catalogue?</strong><span>Follow a Capability Path to add sequence and stage context while keeping Discover broad.</span></div><a href="/member/paths">Explore Paths →</a></aside>}
-      {projectsResult.error?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Nothing has been changed. Refresh this page to try the member catalogue again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<><MemberDiscoverCatalogue projects={items}/><MemberDiscoverPagination/></>}
+      {projectsResult.error?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Nothing has been changed. Refresh this page to try the member catalogue again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<MemberDiscoverCatalogue projects={items}/>} 
     </div>
     <style>{`
       .mdDiscoverPage{width:min(100%,1240px);margin:0;min-width:0;color:#111318}.mdDiscoverControlStack{margin-top:18px}.mdDiscoverTopAction{white-space:nowrap}.mdDiscoverError{margin-top:20px;padding:22px;border:1px solid #d8dde3;border-radius:14px;background:#fff}.mdDiscoverError h2{margin:0 0 6px}.mdDiscoverError p{margin:0 0 14px;color:#59636f}.mdPathPrompt{margin:0 0 14px;padding:13px 15px;border:1px solid #ded6c8;border-radius:14px;background:#fbf7ee;display:flex;justify-content:space-between;gap:18px;align-items:center}.mdPathPrompt>div{display:grid;gap:3px}.mdPathPrompt strong{font-size:12px}.mdPathPrompt span{color:#59636f;font-size:11px;line-height:1.45}.mdPathPrompt a{min-height:44px;display:inline-flex;align-items:center;color:#8b5a17;font-size:11px;font-weight:800;white-space:nowrap}.mdPathPrompt a:focus-visible{outline:3px solid #173f8f;outline-offset:3px}@media(max-width:680px){.mdDiscoverControlStack{margin-top:14px}.mdDiscoverTopAction{white-space:normal;text-align:center}.mdPathPrompt{display:grid}.mdPathPrompt a{white-space:normal}}

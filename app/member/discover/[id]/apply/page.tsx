@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {notFound,redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
+import {loadProjectRoleUsage} from '@/lib/project-role-capacity';
 import {calculateMemberReadiness} from '@/lib/member-readiness';
 import {memberProjectPrimaryAction,resolveMemberProjectState} from '@/lib/member-project-journey';
 import MemberProjectApplicationFlow from '@/components/MemberProjectApplicationFlow';
@@ -28,7 +29,7 @@ export default async function MemberProjectApplyPage({params,searchParams}:{para
   const memberReadiness=calculateMemberReadiness({profile:profile||{},domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0});
   const applicationReady=memberReadiness.applicationReadiness.ready;
   const applications=(applicationsResult.data||[]) as Application[];const application=applications.find(item=>!['declined','withdrawn'].includes(item.status))||null;const membership=(membershipResult.data||null) as unknown as Membership|null;
-  const roles=project.project_roles||[];const db=serviceDb();let availabilityKnown=false;const filled=new Map<string,number>();if(db){const result=await db.from('project_members').select('project_role_id').eq('project_id',id).in('membership_status',['waiting','active']);if(!result.error){for(const row of result.data||[]){if(row.project_role_id)filled.set(row.project_role_id,(filled.get(row.project_role_id)||0)+1)}availabilityKnown=true}else console.error('member apply role capacity lookup failed',result.error)}
+  const roles=project.project_roles||[];const db=serviceDb();let availabilityKnown=false;let filled=new Map<string,number>();if(db){const usage=await loadProjectRoleUsage(db,id,project.project_type);availabilityKnown=usage.known;filled=usage.filled;if(!usage.known)console.error('member apply role capacity lookup failed')}
   const availableRoles=roles.filter(role=>availabilityKnown&&(filled.get(role.id)||0)<role.openings);const state=resolveMemberProjectState({project,application,membership,run:membership?.project_runs||null,applicationReady,hasAvailableRole:availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
   if(state!=='open_eligible'){const action=memberProjectPrimaryAction(state,id);redirect(action?.href||`/member/discover/${id}`)}
   const initialRoleId=requestedRole&&availableRoles.some(role=>role.id===requestedRole)?requestedRole:(availableRoles[0]?.id||'');const initialAvailability=typeof profile?.weekly_capacity==='string'?profile.weekly_capacity:'';const initialPortfolioUrl=[profile?.portfolio_url,profile?.github_url,profile?.linkedin_url].find(value=>typeof value==='string'&&value.trim()) as string|undefined;

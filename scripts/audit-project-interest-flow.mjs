@@ -12,7 +12,7 @@ expect('app/api/admin/applications/route.ts',[
   ".from('project_members')",
   '.insert({',
   'No existing cohort history was overwritten.',
-  'Concurrent approvals may both observe no forming cohort',
+  'if(createError){const {data:concurrentRun}=await db',
   'if(!concurrentRun)throw createError',
   'run=concurrentRun',
   'const {data:startedRun,error:startError}=await db',

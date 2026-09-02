@@ -44,6 +44,7 @@ returns trigger
 language plpgsql
 set search_path=public
 as $$
+declare configured_capacity integer;
 begin
   if new.project_type not in ('open','partner') then
     raise exception 'Project type must be open or partner';
@@ -81,6 +82,15 @@ begin
     raise exception 'Archived projects must be private';
   end if;
 
+  if new.applications_open=true then
+    select coalesce(sum(greatest(r.openings,0)),0)::integer into configured_capacity
+    from public.project_roles r
+    where r.project_id=new.id;
+    if configured_capacity<greatest(coalesce(new.team_size_threshold,1),1) then
+      raise exception using errcode='23514', message='Application-open projects require enough role capacity for the full team';
+    end if;
+  end if;
+
   -- Returning to Draft is only an authoring correction before operational history.
   -- Once members/applications/delivery evidence exist, Pause or Archive preserves truth.
   if tg_op='UPDATE' and new.status='draft' and old.status<>'draft' and (
@@ -107,7 +117,7 @@ $$;
 
 drop trigger if exists trg_enforce_project_lifecycle_invariants on public.projects;
 create trigger trg_enforce_project_lifecycle_invariants
-before insert or update of project_type,status,visibility,applications_open,partner_name,application_deadline
+before insert or update of project_type,status,visibility,applications_open,partner_name,application_deadline,team_size_threshold
 on public.projects
 for each row execute function public.enforce_project_lifecycle_invariants();
 

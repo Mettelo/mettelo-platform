@@ -14,6 +14,10 @@ alter table public.project_problem_briefs
   add column if not exists acceptance_quality_checks jsonb not null default '[]'::jsonb,
   add column if not exists responsible_use_risks jsonb not null default '[]'::jsonb,
   add column if not exists evidence_expectations jsonb not null default '[]'::jsonb,
+  add column if not exists technical_skills jsonb not null default '[]'::jsonb,
+  add column if not exists professional_skills jsonb not null default '[]'::jsonb,
+  add column if not exists canonical_methods jsonb not null default '[]'::jsonb,
+  add column if not exists canonical_tools jsonb not null default '[]'::jsonb,
   add column if not exists stakeholder_handover text,
   add column if not exists capability_outcome text;
 
@@ -27,6 +31,14 @@ alter table public.project_problem_briefs drop constraint if exists project_prob
 alter table public.project_problem_briefs add constraint project_problem_briefs_responsible_use_risks_array check (jsonb_typeof(responsible_use_risks)='array');
 alter table public.project_problem_briefs drop constraint if exists project_problem_briefs_evidence_expectations_array;
 alter table public.project_problem_briefs add constraint project_problem_briefs_evidence_expectations_array check (jsonb_typeof(evidence_expectations)='array');
+alter table public.project_problem_briefs drop constraint if exists project_problem_briefs_technical_skills_array;
+alter table public.project_problem_briefs add constraint project_problem_briefs_technical_skills_array check (jsonb_typeof(technical_skills)='array');
+alter table public.project_problem_briefs drop constraint if exists project_problem_briefs_professional_skills_array;
+alter table public.project_problem_briefs add constraint project_problem_briefs_professional_skills_array check (jsonb_typeof(professional_skills)='array');
+alter table public.project_problem_briefs drop constraint if exists project_problem_briefs_canonical_methods_array;
+alter table public.project_problem_briefs add constraint project_problem_briefs_canonical_methods_array check (jsonb_typeof(canonical_methods)='array');
+alter table public.project_problem_briefs drop constraint if exists project_problem_briefs_canonical_tools_array;
+alter table public.project_problem_briefs add constraint project_problem_briefs_canonical_tools_array check (jsonb_typeof(canonical_tools)='array');
 
 -- Stable child keys make the controlled importer repeatable without deleting
 -- operational history or recreating canonical child records on every run.

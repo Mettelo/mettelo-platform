@@ -54,8 +54,42 @@ def slugify(value: str) -> str:
     return raw[:120] or "project"
 
 
+def canonical_slug(title: str, project_id: str) -> str:
+    suffix = project_id.lower()
+    base = slugify(title)
+    max_base = max(1, 120 - len(suffix) - 1)
+    return f"{base[:max_base].rstrip('-')}-{suffix}"
+
+
 def normal_title(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip().casefold()
+
+
+def normal_difficulty(value: Any) -> str:
+    raw = text(value).casefold()
+    if "advanced" in raw:
+        return "advanced"
+    if "intermediate" in raw or "applied" in raw:
+        return "intermediate"
+    return "entry"
+
+
+def normal_source_type(source: Any, url: Any) -> str:
+    raw = f"{text(source)} {text(url)}".casefold()
+    if "kaggle" in raw:
+        return "kaggle"
+    if "huggingface" in raw or "hugging face" in raw:
+        return "hugging_face"
+    if "github" in raw:
+        return "github"
+    if "api" in raw or "open-meteo" in raw:
+        return "api"
+    if any(token in raw for token in (
+        "gov.uk", "data.gov", "statistics.gov", "ons.gov", "nhs", "worldbank",
+        "world bank", "opendata", "open data", "archive.ics.uci", "uci machine learning",
+    )):
+        return "public_portal"
+    return "external_website"
 
 
 def list_items(value: Any) -> list[str]:
@@ -222,6 +256,8 @@ def load_records(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
             issues.append(f"DUPLICATE_PROJECT_ID:{pid}:row={row_num}")
         seen.add(pid)
         get = lambda k: row[pos[k]]
+        title = text(get("Project Title"))
+        data_link = text(get("Data Link"))
         roles = parse_roles(get("Team / Roles"), get("Role Responsibilities"))
         deliverables = list_items(get("Specific Deliverables"))
         criteria = list_items(get("Success Criteria"))
@@ -231,17 +267,20 @@ def load_records(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
             issues.append(f"MISSING_SUCCESS_CRITERIA:{pid}")
         if not roles:
             issues.append(f"MISSING_ROLES:{pid}")
+        if not data_link.lower().startswith("https://"):
+            issues.append(f"INVALID_DATA_LINK:{pid}")
         team_size = sum(int(r["capacity"]) for r in roles)
         if team_size not in {1, 3, 4, 5}:
             issues.append(f"INVALID_TEAM_SIZE:{pid}:{team_size}")
         records.append({
             "project_id": pid,
-            "title": text(get("Project Title")),
-            "slug": slugify(text(get("Project Title"))),
+            "title": title,
+            "slug": canonical_slug(title, pid),
             "domain": text(get("Industry / Domain")),
             "dataset": text(get("Dataset")),
             "source": text(get("Source")),
-            "data_link": text(get("Data Link")),
+            "source_type": normal_source_type(get("Source"), data_link),
+            "data_link": data_link,
             "licence": text(get("Licence / Reuse")),
             "data_reality": text(get("Data Reality")),
             "stakeholder": text(get("Stakeholder")),
@@ -256,7 +295,7 @@ def load_records(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
             "roles": roles,
             "tools": csv_items(get("Tools")),
             "methods": csv_items(get("Methods")),
-            "difficulty": text(get("Difficulty")),
+            "difficulty": normal_difficulty(get("Difficulty")),
             "duration": text(get("Duration")),
             "duration_weeks": duration_weeks(get("Duration")),
             "weekly_commitment": text(get("Weekly Commitment")),
@@ -385,9 +424,11 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> s
             "project_run_id": None,
             "canonical_item_key": key,
             "title": short_title(item),
+            "deliverable_type": "canonical",
+            "acceptance_criteria": item,
             "public_summary": item,
             "is_required": True,
-            "status": "not_started",
+            "status": "planned",
             "sort_order": i,
         }
         existing = existing_child(existing_deliverables, "canonical_item_key", key, "title", payload["title"])
@@ -442,8 +483,8 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> s
         "canonical_source_key": source_key,
         "name": r["dataset"],
         "description": r["member_dataset_scope"] or r["data_reality"],
-        "source_type": r["data_reality"] or None,
-        "external_url": r["data_link"] or None,
+        "source_type": r["source_type"],
+        "external_url": r["data_link"],
         "provider_name": r["source"] or None,
         "licence_name": r["licence"] or None,
         "required_subset": r["member_dataset_scope"] or r["preserve_scope"] or None,
@@ -472,7 +513,7 @@ def main() -> int:
     raw = args.workbook.read_bytes()
     records, issues = load_records(args.workbook)
     duplicate_ids = [x for x in issues if x.startswith("DUPLICATE_PROJECT_ID")]
-    required_failures = [x for x in issues if x.startswith(("MISSING_", "INVALID_TEAM_SIZE"))]
+    required_failures = [x for x in issues if x.startswith(("MISSING_", "INVALID_TEAM_SIZE", "INVALID_DATA_LINK"))]
     report: dict[str, Any] = {
         "source": str(args.workbook),
         "source_sha256": hashlib.sha256(raw).hexdigest(),
@@ -525,7 +566,7 @@ def main() -> int:
         if not api:
             raise SystemExit("--apply requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY")
         if duplicate_ids or required_failures or report["ambiguous_matches"]:
-            raise SystemExit("Apply blocked: resolve duplicate/required-field/team-size/ambiguous-match issues in the dry-run report first.")
+            raise SystemExit("Apply blocked: resolve duplicate/required-field/team-size/data-link/ambiguous-match issues in the dry-run report first.")
         counts = {"updated": 0, "created": 0}
         for r in records:
             match, _ = matches[r["project_id"]]

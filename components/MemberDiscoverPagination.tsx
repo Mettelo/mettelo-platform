@@ -5,6 +5,10 @@ import {createPortal} from 'react-dom';
 
 const PAGE_SIZE=12;
 
+function projectCards(grid:HTMLElement){
+  return Array.from(grid.children).filter((child):child is HTMLElement=>child instanceof HTMLElement&&child.classList.contains('mdProjectCard'));
+}
+
 export default function MemberDiscoverPagination(){
   const [page,setPage]=useState(1);
   const [count,setCount]=useState(0);
@@ -14,32 +18,42 @@ export default function MemberDiscoverPagination(){
   useEffect(()=>{pageRef.current=page},[page]);
 
   useEffect(()=>{
-    const grid=document.querySelector<HTMLElement>('.mdProjectGrid');
-    if(!grid){setCount(0);return}
     const paginationHost=document.createElement('div');
     paginationHost.dataset.discoverPaginationHost='true';
-    grid.insertAdjacentElement('afterend',paginationHost);
     setHost(paginationHost);
 
+    let activeGrid:HTMLElement|null=null;
     let previousSignature='';
-    const cards=()=>Array.from(grid.children).filter((child):child is HTMLElement=>child instanceof HTMLElement&&child.classList.contains('mdProjectCard'));
-    const apply=(requestedPage=pageRef.current,resetWhenChanged=false)=>{
-      const items=cards();
+
+    const restore=(grid:HTMLElement|null)=>{if(grid)projectCards(grid).forEach(item=>{item.hidden=false})};
+    const sync=(resetWhenChanged=false)=>{
+      const grid=document.querySelector<HTMLElement>('.mdProjectGrid');
+      const gridChanged=grid!==activeGrid;
+      if(gridChanged){restore(activeGrid);activeGrid=grid;previousSignature=''}
+      if(!grid){if(paginationHost.isConnected)paginationHost.remove();pageRef.current=1;setPage(1);setCount(0);return}
+      if(paginationHost.parentElement!==grid.parentElement||paginationHost.previousElementSibling!==grid)grid.insertAdjacentElement('afterend',paginationHost);
+
+      const items=projectCards(grid);
       const signature=items.map(item=>item.querySelector('h2')?.textContent||'').join('|');
-      const changed=previousSignature!==''&&signature!==previousSignature;
+      const changed=gridChanged||(previousSignature!==''&&signature!==previousSignature);
       previousSignature=signature;
       const totalPages=Math.max(1,Math.ceil(items.length/PAGE_SIZE));
-      const nextPage=Math.max(1,Math.min(totalPages,resetWhenChanged&&changed?1:requestedPage));
+      const requested=resetWhenChanged&&changed?1:pageRef.current;
+      const nextPage=Math.max(1,Math.min(totalPages,requested));
       pageRef.current=nextPage;
       setPage(nextPage);
       setCount(items.length);
       items.forEach((item,index)=>{item.hidden=index<(nextPage-1)*PAGE_SIZE||index>=nextPage*PAGE_SIZE});
     };
 
-    apply(pageRef.current);
-    const observer=new MutationObserver(()=>apply(pageRef.current,true));
-    observer.observe(grid,{childList:true});
-    return()=>{observer.disconnect();cards().forEach(item=>{item.hidden=false});paginationHost.remove();setHost(null)};
+    sync();
+    const root=document.querySelector<HTMLElement>('.mdDiscoverControlStack')||document.body;
+    const observer=new MutationObserver(records=>{
+      if(records.every(record=>paginationHost.contains(record.target)))return;
+      sync(true);
+    });
+    observer.observe(root,{childList:true,subtree:true});
+    return()=>{observer.disconnect();restore(activeGrid);paginationHost.remove()};
   },[]);
 
   const pages=Math.max(1,Math.ceil(count/PAGE_SIZE));
@@ -48,7 +62,7 @@ export default function MemberDiscoverPagination(){
   function go(nextPage:number){
     const grid=document.querySelector<HTMLElement>('.mdProjectGrid');
     if(!grid)return;
-    const items=Array.from(grid.children).filter((child):child is HTMLElement=>child instanceof HTMLElement&&child.classList.contains('mdProjectCard'));
+    const items=projectCards(grid);
     const target=Math.max(1,Math.min(pages,nextPage));
     pageRef.current=target;
     setPage(target);

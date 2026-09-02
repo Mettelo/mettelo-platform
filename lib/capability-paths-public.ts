@@ -41,7 +41,12 @@ export async function getPublishedCapabilityPath(slug:string):Promise<PublicCapa
 }
 
 export async function getPublishedPathProjectPositions(slug:string):Promise<Map<string,number>>{
- const path=await getPublishedCapabilityPath(slug);return new Map((path?.placements||[]).filter(item=>item.project).map(item=>[item.project_id,item.position]));
+ const db=publicClient();if(!db)return new Map();
+ const {data:path,error:pathError}=await db.from('capability_paths').select('id').eq('slug',slug).eq('status','published').maybeSingle();
+ if(pathError||!path)return new Map();
+ const {data:placements,error}=await db.from('capability_path_projects').select('project_id,position,projects!inner(id,visibility)').eq('path_id',path.id).eq('projects.visibility','public').order('position');
+ if(error)return new Map();
+ return new Map((placements||[]).map(item=>[item.project_id,item.position]));
 }
 
 export async function getProjectCapabilityPathPlacements(projectId:string){

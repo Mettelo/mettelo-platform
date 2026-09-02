@@ -9,6 +9,7 @@ import {getProjectExperiencePlanning} from '@/lib/project-experience-data';
 import {buildProjectExperienceModel} from '@/lib/project-experience-model';
 import {getProjectExperienceRoleDetails} from '@/lib/project-experience-role-data';
 import MemberProjectDetailV2 from '@/components/project-experience/MemberProjectDetailV2';
+import polish from '@/components/project-experience/ProjectExperiencePolish.module.css';
 
 export const dynamic='force-dynamic';
 
@@ -81,5 +82,5 @@ export default async function MemberProjectDetailPage({params}:{params:Promise<{
     domains,tools,methods,detail,brief:planning.brief,milestones:planning.milestones
   });
 
-  return <MemberProjectDetailV2 model={model} state={state} stateLabel={memberProjectStateLabel(state)} stateCopy={memberProjectStateCopy(state)} primaryAction={memberProjectPrimaryAction(state,project.id)} applicationReady={applicationReady} profileCompletion={memberReadiness.profileCompletion.percentage} applicationMissing={memberReadiness.applicationReadiness.missing.map(item=>item.label)} roleAvailabilityKnown={availabilityKnown} saved={Boolean(savedResult.data)} roles={displayRoles}/>;
+  return <div className={`${polish.host} ${polish.memberHost}`}><MemberProjectDetailV2 model={model} state={state} stateLabel={memberProjectStateLabel(state)} stateCopy={memberProjectStateCopy(state)} primaryAction={memberProjectPrimaryAction(state,project.id)} applicationReady={applicationReady} profileCompletion={memberReadiness.profileCompletion.percentage} applicationMissing={memberReadiness.applicationReadiness.missing.map(item=>item.label)} roleAvailabilityKnown={availabilityKnown} saved={Boolean(savedResult.data)} roles={displayRoles}/></div>;
 }

@@ -5,6 +5,7 @@ const read=(path)=>fs.readFileSync(path,'utf8');
 
 const publicLoader=read('lib/project-detail-content.ts');
 const labLoader=read('lib/project-lab-canonical-data.ts');
+const labBrief=read('components/project-experience/ProjectLabCanonicalBrief.tsx');
 const publicPage=read('components/project-experience/ProjectPublicDetailV2.tsx');
 const memberPage=read('components/project-experience/MemberProjectDetailV2.tsx');
 const publicRoute=read('app/projects/[id]/page.tsx');
@@ -15,6 +16,7 @@ const migration=read('supabase/migrations/20260902210000_project_library_import_
 const templateMigration=read('supabase/migrations/20260902214500_project_library_template_rows.sql');
 const governanceMigration=read('supabase/migrations/20260903083000_project_library_governance_metadata.sql');
 const phase7Migration=read('supabase/migrations/20260903133000_project_library_phase7_publish_discovery.sql');
+const phase8Migration=read('supabase/migrations/20260903140000_project_library_phase8_trigger_security_hardening.sql');
 
 const publicSelects=[...publicLoader.matchAll(/\.select\((['"`])([\s\S]*?)\1\)/g)].map(match=>match[2]);
 for(const token of ['external_url','provider_url','licence_url','internal_storage_url','internal_storage_policy','legal_review_basis','preservation_action']){
@@ -23,8 +25,38 @@ for(const token of ['external_url','provider_url','licence_url','internal_storag
 for(const token of ['externalUrl:null','providerUrl:null','licenceUrl:null']){
   if(!publicLoader.includes(token))fail(`public discovery loader must hard-null ${token}`);
 }
-if(!labLoader.includes(".in('membership_status',['active','completed'])"))fail('Lab loader must require active/completed project membership');
-if(!labLoader.includes("governanceStatus==='green'&&row.internal_storage_policy==='permitted'"))fail('Lab stored-copy URL must require green governance plus storage permission');
+
+// Phase 8: authorised Lab projection must gate before service-role reads.
+for(const token of [
+  "if(!user)return null",
+  "const isAdmin=user.app_metadata?.role==='admin'",
+  ".in('membership_status',['active','completed'])",
+  "if(!membership)return null",
+  'const db=serviceDb()',
+  "governanceStatus==='green'&&row.internal_storage_policy==='permitted'",
+  ".is('project_run_id',null)"
+]){
+  if(!labLoader.includes(token))fail(`Lab canonical loader missing Phase 8 guard ${token}`);
+}
+if(labLoader.indexOf('const db=serviceDb()')<labLoader.indexOf('if(!membership)return null'))fail('Lab service-role client must only be created after non-admin membership authorisation');
+for(const token of ['internalStorageUrl:storagePermitted?text(row.internal_storage_url):null','proofSignals=[...new Set','Potential evidence']){
+  if(token==='Potential evidence'){
+    if(!labBrief.includes(token))fail('Lab UI must state that configured capability signals are potential evidence, not automatic Proof');
+  }else if(!labLoader.includes(token))fail(`Lab canonical loader missing ${token}`);
+}
+for(const token of ['resource.internalStorageUrl&&<a','resource.externalUrl&&<a','Private stored-copy links appear only inside authorised Lab access']){
+  if(!labBrief.includes(token))fail(`Lab canonical brief missing governed resource presentation ${token}`);
+}
+for(const token of [
+  "alter function public.project_problem_brief_skip_noop_update()",
+  "set search_path = ''",
+  'revoke all on function public.project_problem_brief_skip_noop_update()',
+  'from public, anon, authenticated',
+  'grant execute on function public.project_problem_brief_skip_noop_update()',
+  'to postgres, service_role'
+]){
+  if(!phase8Migration.includes(token))fail(`Phase 8 trigger hardening missing ${token}`);
+}
 
 for(const route of [publicRoute,memberRoute]){
   for(const token of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel']){

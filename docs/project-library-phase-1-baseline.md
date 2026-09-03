@@ -99,4 +99,4 @@ This implementation must use existing Mettelo GitHub, Supabase and Vercel infras
 
 ## Phase gate
 
-Phase 1 is PASS when the branch head containing this document and the removal of the compressed bridge passes the relevant PR CI checks. Phase 2 must not mutate canonical production project content.
+The exact phase-completion branch head is recorded in the PR #199 description after the final Phase 1 commit. Phase 1 is PASS only when that head passes the relevant PR CI checks. Phase 2 must not mutate canonical production project content.

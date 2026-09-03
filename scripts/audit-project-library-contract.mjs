@@ -17,6 +17,7 @@ const templateMigration=read('supabase/migrations/20260902214500_project_library
 const governanceMigration=read('supabase/migrations/20260903083000_project_library_governance_metadata.sql');
 const phase7Migration=read('supabase/migrations/20260903133000_project_library_phase7_publish_discovery.sql');
 const phase8Migration=read('supabase/migrations/20260903140000_project_library_phase8_trigger_security_hardening.sql');
+const phase8PrivateImportMigration=read('supabase/migrations/20260903141000_project_library_phase8_private_import_rls.sql');
 
 const publicSelects=[...publicLoader.matchAll(/\.select\((['"`])([\s\S]*?)\1\)/g)].map(match=>match[2]);
 for(const token of ['external_url','provider_url','licence_url','internal_storage_url','internal_storage_policy','legal_review_basis','preservation_action']){
@@ -56,6 +57,14 @@ for(const token of [
   'to postgres, service_role'
 ]){
   if(!phase8Migration.includes(token))fail(`Phase 8 trigger hardening missing ${token}`);
+}
+for(const token of [
+  'alter table if exists private_import.project_identity_baseline enable row level security',
+  'alter table if exists private_import.project_library_stage enable row level security',
+  'revoke all on schema private_import from public, anon, authenticated',
+  'revoke all on all tables in schema private_import from public, anon, authenticated'
+]){
+  if(!phase8PrivateImportMigration.includes(token))fail(`Phase 8 private import hardening missing ${token}`);
 }
 
 for(const route of [publicRoute,memberRoute]){

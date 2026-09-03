@@ -55,7 +55,7 @@
 .host :global(.pdv2RoleSelected){border-color:var(--indigo);box-shadow:inset 0 0 0 1px var(--indigo),0 8px 18px rgba(42,47,82,.08)}
 .host :global(.ppv2Side) a:focus-visible,.host :global(.pdv2Button:focus-visible),.host a:focus-visible,.host button:focus-visible{outline-color:var(--indigo)}
 
-.memberHost :global(.pdv2Layout){grid-template-columns:minmax(0,1fr)!important;gap:0!important;margin-top:0!important}
+.memberHost :global(.pdv2Layout){grid-template-columns:100%!important;gap:0!important;margin-top:0!important}
 .memberHost :global(.pdv2RoleGridInformational){grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}
 .memberHost :global(.pdv2RoleInformational){position:relative;padding:18px!important;border-top:3px solid var(--bronze)!important;border-radius:14px!important;background:linear-gradient(180deg,#fff 0%,var(--sand-2) 150%)!important;box-shadow:0 8px 20px rgba(16,19,29,.035)!important}
 .memberHost :global(.pdv2RoleInformational h3){font-size:17px!important;line-height:1.2!important}

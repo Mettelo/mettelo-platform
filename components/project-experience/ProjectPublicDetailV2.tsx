@@ -58,7 +58,7 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
       <div><span>Evidence</span><strong>{proofConfigured?`${proofSignals.length} evidence areas`:'Mapping pending'}</strong></div>
     </section>
 
-    <main id="project-content" className={styles.content}>
+    <div id="project-content" className={styles.content}>
       <section className={styles.section} aria-labelledby="challenge-title">
         <span className={styles.kicker}>01 · Understand the challenge</span><h2 id="challenge-title">What decision does this project need to improve?</h2>
         <p className={styles.lead}>{short(challenge.problemStatement||project.summary,520)}</p>
@@ -98,8 +98,8 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
       </section>
 
       <section className={styles.applySection} aria-labelledby="apply-title"><div><span className={styles.kicker}>Before you apply</span><h2 id="apply-title">Know the expectation before you commit.</h2><p>{fitCopy}</p></div><div><Link className={styles.primaryButton} href={ctaHref}>{canApply?'Continue to apply':'Open in My Mettelo'}</Link><small>{authenticated?'Your project context is preserved.':'Sign in or create an account to continue.'}</small></div></section>
-    </main>
+    </div>
 
-    <div className={styles.mobileCta}><Link href={ctaHref}>{canApply?'Continue to apply':'Open in My Mettelo'}</Link></div>
+    <div className={styles.mobileCta} aria-label="Project application action"><Link href={ctaHref}>{canApply?'Continue to apply':'Open in My Mettelo'}</Link></div>
   </div>;
 }

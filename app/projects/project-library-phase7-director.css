@@ -1,0 +1,6 @@
+/* Phase 7 Director-approved public catalogue density.
+   Public project cards use three columns on desktop for faster comparison.
+   Existing tablet/mobile rules remain authoritative below 981px. */
+@media (min-width:981px){
+  .publicProjectGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+}

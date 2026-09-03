@@ -26,6 +26,18 @@ export type ProjectExperienceBrief={
   inScope?:string[];
   outOfScope?:string[];
   successMeasures?:string[];
+  decisionToSupport?:string|null;
+  constraintsTradeOffs?:string[];
+  assumptions?:string[];
+  acceptanceChecks?:string[];
+  responsibleUseRisks?:string[];
+  evidenceExpectations?:string[];
+  technicalSkills?:string[];
+  professionalSkills?:string[];
+  methods?:string[];
+  tools?:string[];
+  stakeholderHandover?:string|null;
+  capabilityOutcome?:string|null;
 };
 
 export type ProjectExperienceMilestone={
@@ -67,14 +79,20 @@ export type ProjectExperienceModel={
     stakeholder:string|null;
     useCase:string|null;
     primaryObjective:string|null;
+    decisionToSupport:string|null;
     supportingObjectives:string[];
     keyQuestions:string[];
     inScope:string[];
     outOfScope:string[];
+    constraintsTradeOffs:string[];
+    assumptions:string[];
+    responsibleUseRisks:string[];
   };
   resources:ProjectDetailDataSource[];
   deliverables:ProjectDetailDeliverable[];
   successCriteria:string[];
+  acceptanceChecks:string[];
+  stakeholderHandover:string|null;
   timeline:ProjectExperienceMilestone[];
   capabilities:{technical:string[];professional:string[];methodsAndTools:string[]};
   proofSignals:string[];
@@ -99,14 +117,18 @@ function unique(values:(string|null|undefined)[]){
 
 export function buildProjectExperienceModel({project,roles,domains,tools,methods,detail,brief,milestones=[]}:Input):ProjectExperienceModel{
   const technical=unique([
+    ...(brief?.technicalSkills||[]),
     ...detail.technicalSkills,
     ...detail.capabilities.filter(item=>item.type==='technical').map(item=>item.name)
   ]);
   const professional=unique([
+    ...(brief?.professionalSkills||[]),
     ...detail.professionalSkills,
     ...detail.capabilities.filter(item=>item.type==='professional').map(item=>item.name)
   ]);
   const methodsAndTools=unique([
+    ...(brief?.methods||[]),
+    ...(brief?.tools||[]),
     ...methods.map(item=>item.name),
     ...tools.map(item=>item.name),
     ...detail.importedMethods,
@@ -118,12 +140,13 @@ export function buildProjectExperienceModel({project,roles,domains,tools,methods
     ...detail.deliverables.map(item=>item.acceptanceCriteria)
   ]);
   const successCriteria=canonicalSuccess.length?canonicalSuccess:fallbackSuccess;
-  // Proof potential must be explicitly configured. General taxonomy, profile-facing
-  // skills and Capability Path context can describe learning direction, but they must
-  // not imply that a project is designed to generate verified evidence for a capability.
-  const proofSignals=unique(
-    detail.capabilities.filter(item=>item.evidenceExpected).map(item=>item.name)
-  ).slice(0,6);
+  // Evidence expectations are opportunities, not verified Proof. They can be
+  // published as configured evidence areas while the review/verification gate
+  // remains unchanged.
+  const proofSignals=unique([
+    ...(brief?.evidenceExpectations||[]),
+    ...detail.capabilities.filter(item=>item.evidenceExpected).map(item=>item.name)
+  ]).slice(0,12);
 
   return{
     project,
@@ -135,14 +158,20 @@ export function buildProjectExperienceModel({project,roles,domains,tools,methods
       stakeholder:brief?.stakeholder?.trim()||null,
       useCase:brief?.useCase?.trim()||null,
       primaryObjective:brief?.primaryObjective?.trim()||null,
+      decisionToSupport:brief?.decisionToSupport?.trim()||null,
       supportingObjectives:unique(brief?.supportingObjectives||[]),
       keyQuestions:unique(brief?.keyQuestions||[]),
       inScope:unique(brief?.inScope||[]),
-      outOfScope:unique(brief?.outOfScope||[])
+      outOfScope:unique(brief?.outOfScope||[]),
+      constraintsTradeOffs:unique(brief?.constraintsTradeOffs||[]),
+      assumptions:unique(brief?.assumptions||[]),
+      responsibleUseRisks:unique(brief?.responsibleUseRisks||[])
     },
     resources:detail.dataSources,
     deliverables:detail.deliverables,
     successCriteria,
+    acceptanceChecks:unique(brief?.acceptanceChecks||[]),
+    stakeholderHandover:brief?.stakeholderHandover?.trim()||null,
     timeline:milestones,
     capabilities:{technical,professional,methodsAndTools},
     proofSignals,

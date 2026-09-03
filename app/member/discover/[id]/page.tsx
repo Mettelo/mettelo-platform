@@ -13,11 +13,11 @@ import polish from '@/components/project-experience/ProjectExperiencePolish.modu
 
 export const dynamic='force-dynamic';
 
-type Role={id:string;title:string;description:string|null;skills:string[]|null;openings:number;discipline:string|null};
+type Role={id:string;title:string;description:string|null;skills:string[]|null;openings:number;discipline:string|null;canonical_role_key:string|null};
 type TaxonomyRef={slug:string;name:string};
 type RoleFamilyCatalogue={slug:string;title:string;description:string|null};
 type RoleFamilyRelation={project_role_catalogue:RoleFamilyCatalogue|RoleFamilyCatalogue[]|null};
-type Project={id:string;title:string;summary:string;problem_statement:string|null;status:string;project_type:string|null;visibility:string;partner_name:string|null;location:string|null;location_type:string|null;difficulty_level:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;applications_open:boolean|null;team_size_threshold:number|null;starts_at:string|null;ends_at:string|null;project_roles:Role[]|null;project_domains:{domains:TaxonomyRef|null}[]|null;project_tools:{tools:TaxonomyRef|null}[]|null;project_methods:{methods:TaxonomyRef|null}[]|null};
+type Project={id:string;canonical_project_key:string|null;title:string;summary:string;problem_statement:string|null;status:string;project_type:string|null;visibility:string;partner_name:string|null;location:string|null;location_type:string|null;difficulty_level:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;applications_open:boolean|null;team_size_threshold:number|null;starts_at:string|null;ends_at:string|null;project_roles:Role[]|null;project_domains:{domains:TaxonomyRef|null}[]|null;project_tools:{tools:TaxonomyRef|null}[]|null;project_methods:{methods:TaxonomyRef|null}[]|null};
 type Application={id:string;status:string;project_run_id:string|null};
 type Membership={membership_status:string;project_run_id:string|null;project_runs:{status:string}|null};
 
@@ -36,7 +36,7 @@ export default async function MemberProjectDetailPage({params}:{params:Promise<{
   // relationships are rolling out. Contribution areas are loaded separately so a
   // missing enrichment table can never blank the canonical project page.
   const [projectResult,applicationsResult,membershipResult,savedResult,profileResult,domainPrefs,toolPrefs,detail,planning,roleDetails,roleFamiliesResult]=await Promise.all([
-    supabase.from('projects').select('id,title,summary,problem_statement,status,project_type,visibility,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,applications_open,team_size_threshold,starts_at,ends_at,project_roles(id,title,description,skills,openings,discipline),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))').eq('id',id).in('visibility',['public','members']).maybeSingle(),
+    supabase.from('projects').select('id,canonical_project_key,title,summary,problem_statement,status,project_type,visibility,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,applications_open,team_size_threshold,starts_at,ends_at,project_roles(id,title,description,skills,openings,discipline,canonical_role_key),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))').eq('id',id).in('visibility',['public','members']).maybeSingle(),
     supabase.from('project_applications').select('id,status,project_run_id').eq('project_id',id).eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}).limit(10),
     supabase.from('project_members').select('membership_status,project_run_id,project_runs(status)').eq('project_id',id).eq('user_id',user.id).in('membership_status',['waiting','active','completed']).order('joined_at',{ascending:false}).limit(1).maybeSingle(),
     supabase.from('saved_projects').select('project_id').eq('project_id',id).eq('user_id',user.id).maybeSingle(),
@@ -58,7 +58,13 @@ export default async function MemberProjectDetailPage({params}:{params:Promise<{
   const memberReadiness=calculateMemberReadiness({profile:profile||{},domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0});
   const applicationReady=memberReadiness.applicationReadiness.ready;
 
-  const roles=(project.project_roles||[]).filter(role=>{const status=roleDetails.get(role.id)?.roleStatus;return status!=='closed'&&status!=='filled'});
+  // Canonical projects preserve their legacy role rows for historical application
+  // and membership foreign keys. Those rows are not the current project definition.
+  // Discovery therefore renders canonical roles only, without deleting history.
+  const rolePool=project.canonical_project_key
+    ?(project.project_roles||[]).filter(role=>Boolean(role.canonical_role_key))
+    :(project.project_roles||[]);
+  const roles=rolePool.filter(role=>{const status=roleDetails.get(role.id)?.roleStatus;return status!=='closed'&&status!=='filled'});
   const db=serviceDb();
   let availabilityKnown=false;
   let filled=new Map<string,number>();

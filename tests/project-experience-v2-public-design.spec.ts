@@ -55,28 +55,22 @@ test.describe('Project Experience V2 advanced public Project Detail',()=>{
     await page.goto(`/projects/${projectId}`,{waitUntil:'domcontentloaded'});
 
     await expect(page.getByRole('heading',{level:1,name:'E2E Local Release Project'})).toBeVisible();
-    await expect(page.getByRole('heading',{name:'Build evidence of capability, not just another portfolio piece.'})).toBeVisible();
-    await expect(page.getByText('Problem',{exact:true}).first()).toBeVisible();
-    await expect(page.getByText('Output',{exact:true}).first()).toBeVisible();
-    await expect(page.getByText('Proof',{exact:true}).first()).toBeVisible();
-    await expect(page.getByText('Data',{exact:true}).first()).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Decide whether this is the right project for you.'})).toBeVisible();
+    for(const label of ['Decision','Outputs','Roles','Evidence'])await expect(page.getByText(label,{exact:true}).first()).toBeVisible();
 
     for(const heading of [
-      'Start with the decision, not the dataset.',
-      'Clear objectives. Room for judgement.',
-      'Know what you are working with—and where it came from.',
-      'Professional outputs, not tick-box files.',
-      'Know the quality bar before you start.',
-      'Capability becomes more valuable when there is evidence behind it.',
-      'A structured route from ambiguity to handover.',
-      'Choose where you can contribute—and where you want to stretch.',
+      'What decision does this project need to improve?',
+      'Know what the team will work with.',
+      'Professional outputs with a clear purpose.',
+      'Know how good work will be judged.',
+      'What this work can help you practise and evidence.',
+      'Choose where you can contribute.',
+      'From application to handover.',
       'Know the expectation before you commit.'
     ])await expect(page.getByRole('heading',{name:heading})).toBeVisible();
 
-    const onThisPage=page.getByRole('navigation',{name:'On this project page'});
-    await expect(onThisPage).toBeVisible();
-    await expect(onThisPage.getByRole('link',{name:'Data & source'})).toHaveAttribute('href','#data');
-    await expect(page.getByText(/Evidence expectations pending|Mettelo Proof potential/).first()).toBeVisible();
+    await expect(page.getByText('These are evidence opportunities, not automatic Proof awards. Your own contribution must still be completed and verified.')).toBeVisible();
+    await expect(page.locator('#project-content')).toBeVisible();
     await noOverflow(page,'Advanced Project Detail overflowed at desktop width');
   });
 

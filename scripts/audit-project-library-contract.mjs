@@ -40,7 +40,7 @@ for(const token of ['challenge.decisionToSupport','challenge.constraintsTradeOff
 for(const token of ['model','roles','contributionAreas','primaryAction']){
   if(!memberPage.includes(token))fail(`member project detail does not preserve ${token}`);
 }
-if(!memberPage.includes('Project journey'))fail('member project detail must preserve the five-step Project journey');
+if(!memberPage.includes('Your project journey'))fail('member project detail must preserve the five-step Project journey');
 
 for(const token of ["visibility = 'public'","status = 'open'","applications_open = true",'project_identity_baseline']){
   if(!phase7Migration.includes(token))fail(`Phase 7 publication migration missing ${token}`);

@@ -1,5 +1,6 @@
 import {createClient,type SupabaseClient} from '@supabase/supabase-js';
 import {expect,test,type BrowserContext,type Page} from '@playwright/test';
+import {PROJECT_PARTICIPATION_TERMS_VERSION} from '../lib/project-participation-terms';
 
 const runId=`e2e-${process.env.GITHUB_RUN_ID||Date.now()}-${Math.random().toString(36).slice(2,8)}`;
 const marker=`[E2E:${runId}]`;
@@ -131,7 +132,7 @@ test.describe.serial('staging submission journeys',()=>{
     await adminContext.close();
   });
 
-  test('project interest persists, appears in the admin queue and creates notifications',async({browser})=>{
+  test('project interest requires and records the current inline participation terms',async({browser})=>{
     const db=serviceDb();
     const memberEmail=required('E2E_MEMBER_EMAIL');
     const {data:users,error:userError}=await db.auth.admin.listUsers({page:1,perPage:1000});if(userError)throw userError;
@@ -146,15 +147,24 @@ test.describe.serial('staging submission journeys',()=>{
     const memberContext=await browser.newContext({baseURL:baseURL()});
     const memberPage=await newAppContext(memberContext);
     await signIn(memberPage,memberEmail,required('E2E_MEMBER_PASSWORD'),'/projects');
-    const response=await memberPage.evaluate(async payload=>{
+    const missingTerms=await memberPage.evaluate(async payload=>{
       const result=await fetch('/api/project-applications',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
       return{status:result.status,body:await result.json()};
     },{project_id:project.id,application_kind:'interest',requested_role:'Quality assurance',contribution_statement:`${marker} can protect the project application workflow from regressions.`,availability:'E2E only'});
+    expect(missingTerms.status,JSON.stringify(missingTerms.body)).toBe(400);
+    expect(String(missingTerms.body.error||'')).toContain('Participation Terms');
+
+    const response=await memberPage.evaluate(async payload=>{
+      const result=await fetch('/api/project-applications',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+      return{status:result.status,body:await result.json()};
+    },{project_id:project.id,application_kind:'interest',requested_role:'Quality assurance',contribution_statement:`${marker} can protect the project application workflow from regressions.`,availability:'E2E only',terms_accepted:true,terms_version:PROJECT_PARTICIPATION_TERMS_VERSION});
     expect(response.status,JSON.stringify(response.body)).toBe(200);
     const applicationId=String(response.body.application?.id||'');expect(applicationId).not.toBe('');created.projectApplicationIds.push(applicationId);
     await memberContext.close();
 
-    await poll('project application database row',async()=>{const {data,error}=await db.from('project_applications').select('id,status').eq('id',applicationId).maybeSingle();if(error)throw error;return data;});
+    const persisted=await poll('project application database row',async()=>{const {data,error}=await db.from('project_applications').select('id,status,terms_accepted_at,terms_version').eq('id',applicationId).maybeSingle();if(error)throw error;return data;});
+    expect(persisted.terms_accepted_at).toBeTruthy();
+    expect(persisted.terms_version).toBe(PROJECT_PARTICIPATION_TERMS_VERSION);
     await poll('member/admin project notification',async()=>{const {data,error}=await db.from('notifications').select('id').eq('application_id',applicationId).limit(1);if(error)throw error;return data?.[0]||null;});
 
     const adminContext=await browser.newContext({baseURL:baseURL()});

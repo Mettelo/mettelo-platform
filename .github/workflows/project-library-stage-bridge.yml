@@ -15,7 +15,7 @@ jobs:
       - name: Stage existing protected project library payload
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body --silent --show-error --max-time 120 \
+          response=$(curl --silent --show-error --max-time 120 \
             'https://aconptuqupsgznyrxhrh.supabase.co/functions/v1/project-library-protected-loader?token=mettelo-stage-bridge-199')
           echo "$response"
           echo "$response" | grep -q '"ok":true'

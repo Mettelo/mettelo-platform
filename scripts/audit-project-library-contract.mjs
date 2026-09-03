@@ -30,7 +30,9 @@ for(const route of [publicRoute,memberRoute]){
   for(const token of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel']){
     if(!route.includes(token))fail(`project detail route missing canonical projection dependency ${token}`);
   }
-  if(!route.includes('project_roles(id,title,description,skills,openings,discipline)'))fail('project detail route must load actual project roles');
+  if(!route.includes('project_roles(id,title,description,skills,openings,discipline,canonical_role_key)'))fail('project detail route must load canonical project-role identity');
+  if(!route.includes('project.canonical_project_key'))fail('canonical project detail must distinguish preserved legacy roles from canonical roles');
+  if(!route.includes('canonical_role_key'))fail('canonical project detail must filter to canonical roles');
   if(route.includes('Project Contributor'))fail('project detail route must not invent generic Project Contributor roles');
 }
 

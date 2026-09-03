@@ -7,8 +7,10 @@ const publicLoader=read('lib/project-detail-content.ts');
 const labLoader=read('lib/project-lab-canonical-data.ts');
 const publicPage=read('components/project-experience/ProjectPublicDetailV2.tsx');
 const importer=read('scripts/import-project-library.py');
+const governanceReconciler=read('scripts/reconcile-project-library-governance.py');
 const migration=read('supabase/migrations/20260902210000_project_library_import_contract.sql');
 const templateMigration=read('supabase/migrations/20260902214500_project_library_template_rows.sql');
+const governanceMigration=read('supabase/migrations/20260903083000_project_library_governance_metadata.sql');
 
 const publicSelects=[...publicLoader.matchAll(/\.select\((['"`])([\s\S]*?)\1\)/g)].map(match=>match[2]);
 for(const token of ['external_url','internal_storage_url']){
@@ -30,10 +32,23 @@ for(const token of ['canonical_project_key','canonical_item_key','canonical_role
 for(const token of ['project_deliverables_run_or_canonical_check','project_data_sources_run_or_canonical_check','project_data_sources_actor_or_canonical_check']){
   if(!templateMigration.includes(token))fail(`template-row migration missing ${token}`);
 }
+for(const token of ['career_domain_path','target_role','path_stage','competency_focus','capability_built','prerequisite_prior_project','path_outcome','content_quality_status','director_review_note','may_redistribute','commercial_reuse','attribution_required','recommended_archive_format','preservation_action','legal_review_basis','last_classification_review','preservation_mode']){
+  if(!governanceMigration.includes(token))fail(`governance metadata migration missing ${token}`);
+}
+
 if(!importer.includes('project_payload(r, False)'))fail('importer must distinguish existing project updates');
 if(!importer.includes('payload["role_status"] = "open"'))fail('new roles must receive explicit open status');
-if(!importer.includes('project_roles?select=id,title,canonical_role_key,role_status'))fail('importer must read existing role status before reconciliation');
+if(!importer.includes('existing_roles = api.request'))fail('importer must read existing roles before reconciliation');
 if(!importer.includes('canonical_slug(title, pid)'))fail('new project slugs must retain workbook Project ID identity');
 if(!importer.includes('INVALID_DATA_LINK'))fail('importer must fail closed on invalid dataset links');
+
+for(const token of ['06_DATASET_PRESERVATION','07_SOURCES','08_PROJECT_REVIEW','09_DIRECTOR_QUALITY_AUDIT']){
+  if(!governanceReconciler.includes(token))fail(`governance reconciler must validate ${token}`);
+}
+for(const token of ['stale_children','project_deliverables','project_success_criteria','project_roles','project_data_sources']){
+  if(!governanceReconciler.includes(token))fail(`governance reconciler missing stale canonical child protection for ${token}`);
+}
+if(!governanceReconciler.includes('project_run_id=is.null'))fail('stale reconciliation must remain template-scoped and preserve run history');
+if(!governanceReconciler.includes('WRITE_AUTHORIZATION_PHRASE'))fail('governance apply must require explicit production authorization');
 
 if(!process.exitCode)console.log('Project Library contract audit passed.');

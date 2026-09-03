@@ -1,0 +1,21 @@
+name: Project Library Stage Bridge
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  stage:
+    if: github.event.pull_request.number == 199
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stage existing protected project library payload
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body --silent --show-error --max-time 120 \
+            'https://aconptuqupsgznyrxhrh.supabase.co/functions/v1/project-library-protected-loader?token=mettelo-stage-bridge-199')
+          echo "$response"
+          echo "$response" | grep -q '"ok":true'

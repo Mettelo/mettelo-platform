@@ -4,8 +4,10 @@ const expect=(path,needles)=>{const source=read(path);const missing=needles.filt
 const forbid=(path,needles)=>{const source=read(path);const found=needles.filter(needle=>source.includes(needle));if(found.length)throw new Error(path+' contains forbidden '+found.join(', '));};
 
 // Canonical interest + application domain remains one endpoint.
-expect('components/SubmissionForm.tsx',["'/api/project-applications'","application_kind:'interest'",'requested_role:data.role','contribution_statement:data.contribution']);
-expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application",".not('status','in','(declined,withdrawn)')",'loadProjectRoleUsage(termsDb,projectId,project.project_type)','already participated in this canonical project','That project role has filled','terms_accepted_at','notifyAdmins','notifyUser']);
+expect('components/SubmissionForm.tsx',["'/api/project-applications'","application_kind:'interest'",'requested_role:data.role','contribution_statement:data.contribution','PROJECT_PARTICIPATION_TERMS_SUMMARY','Read full participation terms','I have read and agree to the Mettelo Project Participation Terms.','terms_accepted:true','terms_version:PROJECT_PARTICIPATION_TERMS_VERSION','projectInterest&&!acceptedTerms']);
+expect('lib/project-participation-terms.ts',['PROJECT_PARTICIPATION_TERMS_VERSION','PROJECT_PARTICIPATION_TERMS_SUMMARY','PROJECT_PARTICIPATION_TERMS_FULL','Participation alone does not automatically create verified Mettelo Proof']);
+expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application",".not('status','in','(declined,withdrawn)')",'loadProjectRoleUsage(termsDb,projectId,project.project_type)','already participated in this canonical project','That project role has filled','terms_accepted_at','termsVersion!==PROJECT_PARTICIPATION_TERMS_VERSION','terms_version:isInterest?PROJECT_PARTICIPATION_TERMS_VERSION:null','notifyAdmins','notifyUser']);
+expect('supabase/migrations/20260903215500_project_interest_inline_terms.sql',['add column if not exists terms_version text','Version identifier of inline Mettelo Project Participation Terms']);
 expect('app/api/admin/applications/route.ts',[
   'loadProjectRoleUsage(db,application.project_id,project.project_type)',
   'already has participation history for this canonical project',

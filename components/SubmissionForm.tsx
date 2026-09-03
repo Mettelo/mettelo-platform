@@ -62,7 +62,7 @@ export default function SubmissionForm({formType,children,submitLabel,className=
       </dialog>
     </section>}
     <button className="button dark" type="submit" disabled={status==='submitting'||(projectInterest&&!acceptedTerms)} style={{width:'100%',marginTop:20}}>
-      {status==='submitting'?'Submitting…':submitLabel}
+      {status==='submitting'?'Submitting…':projectInterest?'Submit interest':submitLabel}
     </button>
     <div className={`formStatus ${status}`} role="status" aria-live="polite">{message}</div>
     {projectInterest&&<style jsx>{`

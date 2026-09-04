@@ -89,8 +89,11 @@ for(const token of ['challenge.decisionToSupport','challenge.constraintsTradeOff
 for(const token of ['model','roles','contributionAreas','primaryAction']){
   if(!memberExperience.includes(token))fail(`member project detail does not preserve ${token}`);
 }
-for(const marker of ['01 — Apply','02 — Team formation','03 — Project delivery','04 — Evidence review','05 — Handover']){
+for(const marker of ['<strong>Apply</strong>','<strong>Team formation</strong>','<strong>Project delivery</strong>','<strong>Evidence review</strong>','<strong>Handover</strong>']){
   if(!memberBody.includes(marker))fail(`member project detail must preserve five-step Project journey marker ${marker}`);
+}
+for(const marker of ['>01</span>','>02</span>','>03</span>','>04</span>','>05</span>']){
+  if(!memberBody.includes(marker))fail(`member project detail must preserve numbered five-step Project journey marker ${marker}`);
 }
 
 for(const token of ["visibility = 'public'","status = 'open'","applications_open = true",'project_identity_baseline']){

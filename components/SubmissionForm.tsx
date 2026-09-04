@@ -22,7 +22,7 @@ export default function SubmissionForm({formType,children,submitLabel,className=
 
   async function submit(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
-    if(projectInterest&&!acceptedTerms){setStatus('error');setMessage('Please read and agree to the Mettelo Project Participation Terms before submitting your interest.');return}
+    if(projectInterest&&!acceptedTerms){setStatus('error');setMessage('Please read, understand and agree to the Mettelo Project Participation Terms before submitting your interest.');return}
     setStatus('submitting');
     setMessage('');
     const form=event.currentTarget;
@@ -51,7 +51,7 @@ export default function SubmissionForm({formType,children,submitLabel,className=
       <button className="projectInterestTermsLink" type="button" onClick={()=>termsDialog.current?.showModal()}>Read full participation terms</button>
       <label className="projectInterestTermsCheck">
         <input type="checkbox" checked={acceptedTerms} onChange={event=>setAcceptedTerms(event.target.checked)} required/>
-        <span>I have read and agree to the Mettelo Project Participation Terms.</span>
+        <span>I have read, understood and agree to the Mettelo Project Participation Terms.</span>
       </label>
       <dialog ref={termsDialog} className="projectInterestTermsDialog" aria-labelledby="project-interest-full-terms-title" onClick={event=>{if(event.target===event.currentTarget)event.currentTarget.close()}}>
         <div className="projectInterestTermsDialogCard">

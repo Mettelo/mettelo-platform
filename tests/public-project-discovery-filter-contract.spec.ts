@@ -72,9 +72,9 @@ test.describe('Public Projects approved discovery filters',()=>{
   test('desktop matches approved quick-filter hierarchy and filter drawer',async({page})=>{
     await page.setViewportSize({width:1440,height:900});
     await page.goto('/projects#projects',{waitUntil:'networkidle'});
-    await expect(page.getByLabel('Career or role')).toBeVisible();
-    await expect(page.getByLabel('Experience level')).toBeVisible();
-    await expect(page.getByLabel('Work format')).toBeVisible();
+    await expect(page.getByLabel('Career or role',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Experience level',{exact:true})).toBeVisible();
+    await expect(page.getByLabel('Work format',{exact:true})).toBeVisible();
     const sort=page.getByLabel('Sort',{exact:true});
     await expectVisibleNativeLabelledSelect(sort);
     await expect(sort.locator('option')).toHaveText(['Recommended','Newest','Closing soon','Shortest project','Lowest weekly commitment']);
@@ -102,7 +102,7 @@ test.describe('Public Projects approved discovery filters',()=>{
   test('mobile uses approved Filters count, sort control and bottom-sheet behaviour',async({page})=>{
     await page.setViewportSize({width:390,height:844});
     await page.goto('/projects#projects',{waitUntil:'networkidle'});
-    await expect(page.getByLabel('Career or role')).toBeHidden();
+    await expect(page.getByLabel('Career or role',{exact:true})).toBeHidden();
     const trigger=page.getByRole('button',{name:'Filters · 0'});
     await expect(trigger).toBeVisible();
     await expect(page.getByLabel('Sort projects')).toBeVisible();

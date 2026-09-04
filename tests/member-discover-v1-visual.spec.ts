@@ -72,12 +72,11 @@ test('Discover Filters V2 exposes governed facets and keyboard capability select
   await expect(dialog.getByLabel('Role')).toContainText('Data Analyst');
   await expect(dialog.getByLabel('Domain')).toContainText('Cross-industry / Open Data');
   await expect(dialog.getByLabel('Tool / technology')).toContainText('Python');
-  await expect(dialog.getByLabel('Commitment')).toContainText('5–8 hours');
+  await expect(dialog.getByLabel('Commitment')).toContainText('5–7 hours/week');
   await expect(dialog.getByLabel('Working model')).toContainText('Remote');
   await expect(dialog.getByLabel('Project type')).toContainText('Open Project');
   await expect(dialog.getByLabel('Project stage')).toContainText('Recruiting');
   const sort=dialog.getByLabel('Sort projects');for(const label of ['Recently added','Closing soon','Shortest duration','Longest duration'])await expect(sort).toContainText(label);
-
   const capability=dialog.getByRole('combobox',{name:'Skill / capability'});await capability.fill('data anal');await expect(capability).toHaveAttribute('aria-expanded','true');await expect(dialog.getByRole('option',{name:'Data Analysis'})).toBeVisible();await capability.press('Enter');await expect(capability).toHaveValue('Data Analysis');
   await dialog.getByRole('button',{name:/Show \d+ projects?/}).click();await expect(trigger).toHaveAccessibleName('Filters · 1');
   const chip=page.getByRole('button',{name:'Remove Skill: Data Analysis filter'});await expect(chip).toBeVisible();await chip.click();await expect(trigger).toHaveAccessibleName('Filters · 0');

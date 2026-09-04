@@ -1,0 +1,219 @@
+/* Opportunity detail responsive contract.
+   Imported after opportunities.css so this file is the final authority for the detail page.
+   Preserve desktop two-column behaviour, but collapse decisively before tablet/phone widths. */
+
+.opportunityDetailHero .shell,
+.opportunityDetailBody,
+.opportunityDetailGrid,
+.opportunityDetailMain,
+.opportunityApplyPanel,
+.opportunityFactsPanel{
+  min-width:0;
+}
+
+.opportunityDetailGrid > div,
+.opportunityDetailBody > *,
+.opportunityDetailSection,
+.opportunityDetailSection p,
+.opportunityDetailOrg,
+.opportunityDetailGrid h1{
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+
+@media (max-width: 860px){
+  .opportunityDetailHero{
+    padding-top:32px;
+  }
+
+  .opportunityDetailHero .shell,
+  .softSection .shell.opportunityDetailBody{
+    width:min(100% - 32px, 1180px);
+    margin-inline:auto;
+  }
+
+  .opportunityDetailGrid,
+  .opportunityDetailBody{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:24px;
+  }
+
+  .opportunityApplyPanel,
+  .opportunityFactsPanel{
+    position:static !important;
+    top:auto !important;
+    width:100%;
+  }
+
+  .opportunityApplyPanel{
+    margin-top:4px;
+  }
+
+  .opportunityDetailGrid h1{
+    max-width:100%;
+    font-size:clamp(2.4rem,7vw,3.7rem);
+    line-height:1;
+    letter-spacing:-.04em;
+  }
+
+  .opportunityTopline{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:flex-start;
+    gap:8px;
+    max-width:100%;
+  }
+
+  .opportunityTopline .chip,
+  .opportunityTopline .metaPill{
+    max-width:100%;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+
+  .opportunityApplyPanel .button,
+  .opportunityApplyPanel .saveOpportunity,
+  .opportunityApplyPanel .saveOpportunity .button{
+    width:100%;
+  }
+
+  .opportunityDetailSection{
+    padding:24px;
+  }
+
+  .detailFacts{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
+
+@media (max-width: 560px){
+  .opportunityDetailHero{
+    padding-top:24px;
+    padding-bottom:28px;
+  }
+
+  .opportunityDetailHero .shell,
+  .softSection .shell.opportunityDetailBody{
+    width:calc(100% - 28px);
+  }
+
+  .opportunityBack{
+    margin-bottom:20px;
+    font-size:.94rem;
+  }
+
+  .opportunityDetailGrid{
+    gap:20px;
+  }
+
+  .opportunityDetailGrid h1{
+    margin:12px 0 12px;
+    font-size:clamp(2.15rem,11vw,3rem);
+    line-height:1.01;
+    letter-spacing:-.04em;
+  }
+
+  .opportunityDetailOrg{
+    margin-bottom:16px;
+    font-size:.98rem;
+    line-height:1.45;
+  }
+
+  .opportunityDetailHero .heroLead{
+    font-size:1rem;
+    line-height:1.62;
+  }
+
+  .opportunityTopline{
+    gap:6px;
+  }
+
+  .opportunityTopline .chip,
+  .opportunityTopline .metaPill{
+    min-height:29px;
+    padding:6px 9px;
+    font-size:.7rem;
+    line-height:1.25;
+  }
+
+  .opportunityApplyPanel,
+  .opportunityFactsPanel{
+    padding:20px;
+    border-radius:18px;
+  }
+
+  .opportunityApplyPanel h3{
+    margin:14px 0 8px;
+    font-size:1.45rem;
+    line-height:1.15;
+  }
+
+  .opportunityApplyPanel p{
+    margin-bottom:18px;
+    font-size:.94rem;
+    line-height:1.58;
+  }
+
+  .opportunityApplyPanel .button{
+    min-height:50px;
+    white-space:normal;
+    text-align:center;
+    line-height:1.25;
+  }
+
+  .softSection{
+    padding-top:30px;
+  }
+
+  .opportunityDetailBody{
+    gap:18px;
+  }
+
+  .opportunityDetailSection{
+    padding:20px;
+    border-radius:16px;
+  }
+
+  .opportunityDetailSection h2{
+    margin:9px 0 14px;
+    font-size:1.55rem;
+    line-height:1.12;
+  }
+
+  .opportunityDetailSection h3{
+    margin-top:20px;
+  }
+
+  .opportunityDetailSection p{
+    font-size:.96rem;
+    line-height:1.68;
+  }
+
+  .detailFacts{
+    gap:10px;
+  }
+
+  .detailFacts > div{
+    padding:13px;
+  }
+}
+
+@media (max-width: 360px){
+  .opportunityDetailHero .shell,
+  .softSection .shell.opportunityDetailBody{
+    width:calc(100% - 24px);
+  }
+
+  .opportunityDetailGrid h1{
+    font-size:2.05rem;
+  }
+
+  .opportunityApplyPanel,
+  .opportunityFactsPanel,
+  .opportunityDetailSection{
+    padding:18px;
+  }
+}

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 const read=path=>fs.readFileSync(path,'utf8');const checks=[];const expect=(name,ok)=>checks.push({name,ok:Boolean(ok)});
-const opportunity=read('app/opportunities/[id]/page.tsx'),saved=read('app/member/saved-opportunities/page.tsx'),savedApi=read('app/api/opportunities/saved/route.ts'),reminder=read('app/api/cron/saved-opportunity-reminders/route.ts'),calendar=read('app/events/[slug]/calendar/route.ts'),event=read('app/events/[slug]/page.tsx'),search=read('app/search/page.tsx'),migration=read('supabase/migrations/20260816103000_phase7_opportunity_reminder_preferences.sql');
+const opportunity=read('app/opportunities/[id]/page.tsx'),opportunityResponsive=read('app/opportunities/opportunity-detail-responsive.css'),saved=read('app/member/saved-opportunities/page.tsx'),savedApi=read('app/api/opportunities/saved/route.ts'),reminder=read('app/api/cron/saved-opportunity-reminders/route.ts'),calendar=read('app/events/[slug]/calendar/route.ts'),event=read('app/events/[slug]/page.tsx'),search=read('app/search/page.tsx'),migration=read('supabase/migrations/20260816103000_phase7_opportunity_reminder_preferences.sql');
 expect('Opportunity detail names external application channel',opportunity.includes('Apply on employer website')&&opportunity.includes('Application channel:')&&opportunity.includes('Mettelo does not receive or track'));
 expect('Saved opportunities preserve changed or closed context',saved.includes('Closed / changed')&&saved.includes('Status update:')&&saved.includes('reminders_enabled'));
 expect('Saved role API exposes member reminder preference',savedApi.includes('export async function PATCH')&&savedApi.includes('reminders_enabled'));
@@ -11,5 +11,6 @@ expect('Public event calendar route emits ICS',calendar.includes('BEGIN:VCALENDA
 expect('Discovery covers Phase 7 public surfaces',['people','proof','showcase','spotlight','projects','opportunities','content'].every(value=>search.includes(`'${value}'`)));
 expect('Discovery applies public and consent gates',search.includes(".eq('is_public',true)")&&search.includes(".eq('consent_status','granted')")&&search.includes(".eq('access_level','public')"));
 expect('Discovery results expose ranking context',search.includes('context:')&&search.includes('ranked results')&&search.includes('Matched supporting details'));
-expect('Phase 7 new surfaces include mobile responsive rules',[opportunity,saved,event,search].every(text=>text.includes('max-width:480px')));
+expect('Opportunity detail responsive contract is imported',opportunity.includes("import '../opportunity-detail-responsive.css'"));
+expect('Phase 7 new surfaces include mobile responsive rules',opportunityResponsive.includes('@media (max-width: 560px)')&&[saved,event,search].every(text=>text.includes('max-width:480px')));
 const failed=checks.filter(check=>!check.ok);for(const check of checks)console.log(`${check.ok?'PASS':'FAIL'} ${check.name}`);if(failed.length)process.exit(1);console.log(`Phase 7 discovery audit passed (${checks.length} checks).`);

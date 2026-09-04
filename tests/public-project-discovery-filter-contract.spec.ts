@@ -83,7 +83,8 @@ test.describe('Public Projects approved discovery filters',()=>{
     await trigger.click();
     const dialog=page.getByRole('dialog',{name:'Filter projects'});
     await expect(dialog).toBeVisible();
-    await expect(page.getByRole('button',{name:'Close filters'})).toBeFocused();
+    const close=page.getByRole('button',{name:'Close filters'});
+    await expect(close).toBeFocused();
     for(const name of ['role','experience','path','format','commitment','duration','working','domain','tool','type','availability']){
       await expectVisibleNativeLabelledSelect(dialog.locator(`select[name="${name}"]`));
     }
@@ -95,6 +96,11 @@ test.describe('Public Projects approved discovery filters',()=>{
     if(await dialog.getByRole('option').count())await capability.press('Enter');
     await page.keyboard.press('Escape');
     if(await dialog.isVisible())await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+
+    await trigger.click();
+    await expect(dialog).toBeVisible();
+    await close.click();
     await expect(dialog).toBeHidden();
     await expect(trigger).toBeFocused();
   });

@@ -75,7 +75,7 @@ test.describe('Public Projects approved discovery filters',()=>{
     await expect(page.getByLabel('Career or role',{exact:true})).toBeVisible();
     await expect(page.getByLabel('Experience level',{exact:true})).toBeVisible();
     await expect(page.getByLabel('Work format',{exact:true})).toBeVisible();
-    const sort=page.getByLabel('Sort',{exact:true});
+    const sort=page.locator('.pfSort select');
     await expectVisibleNativeLabelledSelect(sort);
     await expect(sort.locator('option')).toHaveText(['Recommended','Newest','Closing soon','Shortest project','Lowest weekly commitment']);
     const trigger=page.getByRole('button',{name:'More filters'});

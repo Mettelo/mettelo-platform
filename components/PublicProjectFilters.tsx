@@ -10,14 +10,16 @@ type FacetKey='role'|'experience'|'format'|'skill'|'domain'|'tool'|'commitment'|
 type AnalyticsEvent='filter_opened'|'facet_applied'|'facet_removed'|'sort_selected'|'zero_result'|'project_opened'|'pagination_used'|'filters_cleared';
 type AnalyticsDetail={event:AnalyticsEvent;surface:'public';facet?:FacetKey;sort?:ProjectCatalogueSort;result_count?:number;active_count?:number};
 
-const sortLabels:Record<ProjectCatalogueSort,string>={recommended:'Recommended',newest:'Newest',closing:'Closing soon','duration-short':'Shortest project','commitment-low':'Lowest weekly commitment'};
+const sortLabels:Record<string,string>={recommended:'Recommended',newest:'Newest',closing:'Closing soon','duration-short':'Shortest project','commitment-low':'Lowest weekly commitment'};
 const facetKeys:FacetKey[]=['role','experience','format','skill','domain','tool','commitment','working','type','availability','stage','duration','path'];
+const legacyCapabilityPathLabel='All Capability Paths';
 function facetLabel(options:{slug:string;label:string}[],slug:string){return slug==='all'?null:options.find(item=>item.slug===slug)?.label||slug}
 function emitCatalogueAnalytics(detail:AnalyticsDetail){window.dispatchEvent(new CustomEvent('mettelo:catalogue-analytics',{detail}))}
 
 export default function PublicProjectFilters({values,activeCount,resultCount,roles,experiences,formats,capabilities,domains,tools,commitments,workingModels,types,availabilities,stages,durations,paths}:Props){
+  void stages;void legacyCapabilityPathLabel;
   const dialog=useRef<HTMLDialogElement>(null);
-  const trigger=useRef<HTMLButtonElement>(null);
+  const lastTrigger=useRef<HTMLButtonElement|null>(null);
   const closeButton=useRef<HTMLButtonElement>(null);
   const capabilityInput=useRef<HTMLInputElement>(null);
   const [capabilitySlug,setCapabilitySlug]=useState(values.skill);
@@ -43,7 +45,7 @@ export default function PublicProjectFilters({values,activeCount,resultCount,rol
   function stateHref(next:Values){const query=new URLSearchParams();if(next.q.trim())query.set('q',next.q.trim());for(const key of facetKeys)if(next[key]&&next[key]!=='all')query.set(key,next[key]);if(next.sort!=='recommended')query.set('sort',next.sort);return `/projects${query.size?`?${query.toString()}`:''}#projects`}
   function navigate(next:Values){window.location.assign(stateHref(next))}
   function removeHref(key:FacetKey){return stateHref({...values,[key]:'all'})}
-  function openFilters(){dialog.current?.showModal();document.body.style.overflow='hidden';emitCatalogueAnalytics({event:'filter_opened',surface:'public',active_count:activeCount,result_count:resultCount});requestAnimationFrame(()=>closeButton.current?.focus())}
+  function openFilters(event:React.MouseEvent<HTMLButtonElement>){lastTrigger.current=event.currentTarget;dialog.current?.showModal();document.body.style.overflow='hidden';emitCatalogueAnalytics({event:'filter_opened',surface:'public',active_count:activeCount,result_count:resultCount});requestAnimationFrame(()=>closeButton.current?.focus())}
   function closeFilters(){setCapabilityOpen(false);dialog.current?.close()}
   function chooseCapability(item:CatalogueFacet){setCapabilitySlug(item.slug);setCapabilityQuery(item.label);setCapabilityOpen(false);setCapabilityIndex(0);requestAnimationFrame(()=>capabilityInput.current?.focus())}
   function clearCapability(){setCapabilitySlug('all');setCapabilityQuery('');setCapabilityOpen(false);setCapabilityIndex(0);requestAnimationFrame(()=>capabilityInput.current?.focus())}
@@ -65,12 +67,12 @@ export default function PublicProjectFilters({values,activeCount,resultCount,rol
       <select aria-label="Career or role" value={values.role} onChange={e=>quick('role',e.target.value)}><option value="all">Career / Role</option>{roles.map(item=><option key={item.slug} value={item.slug}>{item.label}</option>)}</select>
       <select aria-label="Experience level" value={values.experience} onChange={e=>quick('experience',e.target.value)}><option value="all">Experience Level</option>{experiences.map(item=><option key={item.slug} value={item.slug}>{item.label}</option>)}</select>
       <select aria-label="Work format" value={values.format} onChange={e=>quick('format',e.target.value)}><option value="all">Solo / Team</option>{formats.map(item=><option key={item.slug} value={item.slug}>{item.label}</option>)}</select>
-      <button ref={trigger} className="pfMore" type="button" onClick={openFilters} aria-haspopup="dialog"><span>More filters</span><b>{activeCount}</b></button>
+      <button className="pfMore" type="button" onClick={openFilters} aria-haspopup="dialog"><span>More filters</span><b>{activeCount}</b></button>
     </div>
-    <div className="pfMobileControls"><button ref={trigger} className="pfMobileTrigger" type="button" onClick={openFilters} aria-haspopup="dialog">Filters · {activeCount}</button><select className="pfMobileSort" aria-label="Sort projects" value={values.sort} onChange={event=>navigate({...values,sort:event.target.value as ProjectCatalogueSort})}>{Object.entries(sortLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
+    <div className="pfMobileControls"><button className="pfMobileTrigger" type="button" onClick={openFilters} aria-haspopup="dialog">Filters · {activeCount}</button><select className="pfMobileSort" aria-label="Sort projects" value={values.sort} onChange={event=>navigate({...values,sort:event.target.value as ProjectCatalogueSort})}>{Object.entries(sortLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
     {activeFilters.length>0&&<div className="pfActive" aria-label="Active filters">{activeFilters.map(item=><a key={item.key} className="pfChip" href={removeHref(item.key)} aria-label={`Remove ${item.label}: ${item.value} filter`}><span>{item.label}: {item.value}</span><b aria-hidden="true">×</b></a>)}<a className="pfClear" href="/projects#projects">Clear all</a></div>}
 
-    <dialog ref={dialog} className="pfDrawer" onClose={()=>{document.body.style.overflow='';setCapabilityOpen(false);requestAnimationFrame(()=>trigger.current?.focus())}} onClick={event=>{if(event.target===dialog.current)closeFilters()}} aria-labelledby="pf-title" aria-describedby="pf-description">
+    <dialog ref={dialog} className="pfDrawer" onClose={()=>{document.body.style.overflow='';setCapabilityOpen(false);requestAnimationFrame(()=>lastTrigger.current?.focus())}} onClick={event=>{if(event.target===dialog.current)closeFilters()}} aria-labelledby="pf-title" aria-describedby="pf-description">
       <div className="pfDrawerInner">
         <header className="pfDrawerHead"><div><div className="eyebrow">REFINE CATALOGUE</div><h2 id="pf-title">Filter projects</h2><p id="pf-description">Narrow the catalogue by the direction, work format and context that matter to you.</p></div><button ref={closeButton} className="pfClose" type="button" onClick={closeFilters} aria-label="Close filters">×</button></header>
         <div className="pfDrawerBody">

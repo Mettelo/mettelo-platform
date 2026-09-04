@@ -1,30 +1,9 @@
 export type CatalogueFacet={slug:string;label:string;aliases?:string[]};
-export type ProjectCatalogueSort='recommended'|'newest'|'recent'|'closing'|'duration-short'|'duration-long'|'commitment-low';
+export type ProjectCatalogueSort=string;
 
-export type ProjectCatalogueFilterable={
-  title:string;
-  summary:string;
-  createdAt:string;
-  deadline:string|null;
-  durationWeeks:number|null;
-  commitmentFacet:CatalogueFacet|null;
-  workingModelFacet:CatalogueFacet|null;
-  projectTypeFacet:CatalogueFacet|null;
-  stageFacet:CatalogueFacet|null;
-  experienceFacet?:CatalogueFacet|null;
-  formatFacet?:CatalogueFacet|null;
-  availabilityFacet?:CatalogueFacet|null;
-  roleFamilies:CatalogueFacet[];
-  capabilities:CatalogueFacet[];
-  domains:CatalogueFacet[];
-  tools:CatalogueFacet[];
-  methods:CatalogueFacet[];
-  searchExtra?:string[];
-};
-
+export type ProjectCatalogueFilterable={title:string;summary:string;createdAt:string;deadline:string|null;durationWeeks:number|null;commitmentFacet:CatalogueFacet|null;workingModelFacet:CatalogueFacet|null;projectTypeFacet:CatalogueFacet|null;stageFacet:CatalogueFacet|null;experienceFacet?:CatalogueFacet|null;formatFacet?:CatalogueFacet|null;availabilityFacet?:CatalogueFacet|null;roleFamilies:CatalogueFacet[];capabilities:CatalogueFacet[];domains:CatalogueFacet[];tools:CatalogueFacet[];methods:CatalogueFacet[];searchExtra?:string[]};
 export type ProjectCatalogueFilters={query:string;role:string;experience:string;format:string;capability:string;domain:string;tool:string;commitment:string;workingModel:string;projectType:string;availability:string;stage:string;duration:string;sort:ProjectCatalogueSort};
-export const DEFAULT_PROJECT_CATALOGUE_FILTERS:ProjectCatalogueFilters={query:'',role:'all',experience:'all',format:'all',capability:'all',domain:'all',tool:'all',commitment:'all',workingModel:'all',projectType:'all',availability:'all',stage:'all',duration:'all',sort:'recommended'};
-
+export const DEFAULT_PROJECT_CATALOGUE_FILTERS:ProjectCatalogueFilters={query:'',role:'all',experience:'all',format:'all',capability:'all',domain:'all',tool:'all',commitment:'all',workingModel:'all',projectType:'all',availability:'all',stage:'all',duration:'all',sort:'recent'};
 export function normalizeExperienceLevel(value:string|null|undefined):CatalogueFacet|null{const raw=value?.trim().toLowerCase().replace(/[–—]/g,'-').replace(/[_\s]+/g,'-');if(!raw)return null;if(['entry','foundation','beginner','entry-level','beginner-intermediate'].includes(raw))return{slug:'beginner',label:'Beginner'};if(['intermediate','mid','mid-level','intermediate-advanced'].includes(raw))return{slug:'intermediate',label:'Intermediate'};if(['advanced','capstone','expert','senior'].includes(raw))return{slug:'advanced',label:'Advanced'};return null}
 export function projectFormatFacet(teamSize:number|null|undefined):CatalogueFacet|null{if(teamSize==null||!Number.isFinite(Number(teamSize))||Number(teamSize)<1)return null;return Number(teamSize)===1?{slug:'solo',label:'Solo'}:{slug:'team',label:'Team'}}
 function commitmentBounds(value:string|null|undefined):{min:number;max:number|null}|null{const raw=value?.trim();if(!raw)return null;const normalized=raw.replace(/[–—]/g,'-').replace(/\s+/g,' ');const range=normalized.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i);if(range)return{min:Number(range[1]),max:Number(range[2])};const plus=normalized.match(/(\d+(?:\.\d+)?)\s*\+\s*(?:hours?|hrs?)/i);if(plus)return{min:Number(plus[1]),max:null};const upTo=normalized.match(/(?:up to|<=?|max(?:imum)?\s*)\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i);if(upTo)return{min:0,max:Number(upTo[1])};const single=normalized.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i);return single?{min:Number(single[1]),max:Number(single[1])}:null}

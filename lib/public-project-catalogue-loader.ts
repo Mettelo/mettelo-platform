@@ -1,4 +1,5 @@
 import {createPublicSupabaseClient} from '@/lib/supabase/public';
+import {normalizeCareerRole,normalizeCapability} from '@/lib/project-catalogue-taxonomy';
 
 const PROJECT_STATUSES=['pilot','recruiting','open','forming','active','review','completed'];
 const BATCH_SIZE=200;
@@ -10,18 +11,23 @@ type PublicDb=NonNullable<ReturnType<typeof createPublicSupabaseClient>>;
 type RoleRow={title?:string|null;canonical_role_key?:string|null;skills?:string[]|null};
 type ProjectRow=Record<string,unknown>&{project_roles?:RoleRow[]|null;project_capabilities?:unknown[]|null};
 
-function slugify(value:string){return value.trim().toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')}
 function cleanSkill(value:string){return value.trim().replace(/[.]+$/,'').replace(/\s+/g,' ')}
 function enrichDiscoveryFacets(row:ProjectRow){
   const roles=Array.isArray(row.project_roles)?row.project_roles:[];
   const roleMap=new Map<string,{project_role_catalogue:{slug:string;title:string}}>();
   const skillMap=new Map<string,{capabilities:{id:string;slug:string;name:string}}>();
   for(const role of roles){
-    const title=String(role.title||'').trim();
-    const key=String(role.canonical_role_key||'').trim();
-    const slug=slugify(key||title);
-    if(slug&&title&&!roleMap.has(slug))roleMap.set(slug,{project_role_catalogue:{slug,title}});
-    for(const raw of Array.isArray(role.skills)?role.skills:[]){const name=cleanSkill(String(raw));const skillSlug=slugify(name);if(skillSlug&&!skillMap.has(skillSlug))skillMap.set(skillSlug,{capabilities:{id:`role-skill:${skillSlug}`,slug:skillSlug,name}})}
+    // Career taxonomy is deliberately separate from the project-facing role title.
+    // Only an explicitly recognized canonical_role_key may populate Career / Role.
+    // A granular title such as "Agricultural/Extension Analyst" remains visible on
+    // the project card but cannot silently create a new career filter value.
+    const canonical=normalizeCareerRole(role.canonical_role_key);
+    if(canonical&&!roleMap.has(canonical.slug))roleMap.set(canonical.slug,{project_role_catalogue:{slug:canonical.slug,title:canonical.label}});
+    for(const raw of Array.isArray(role.skills)?role.skills:[]){
+      const name=cleanSkill(String(raw));
+      const capability=normalizeCapability(name);
+      if(capability&&!skillMap.has(capability.slug))skillMap.set(capability.slug,{capabilities:{id:`role-skill:${capability.slug}`,slug:capability.slug,name:capability.label}});
+    }
   }
   const canonicalCapabilities=Array.isArray(row.project_capabilities)?row.project_capabilities:[];
   return {...row,project_role_families:[...roleMap.values()],project_capabilities:canonicalCapabilities.length?canonicalCapabilities:[...skillMap.values()]};

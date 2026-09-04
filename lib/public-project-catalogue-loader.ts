@@ -17,11 +17,10 @@ function enrichDiscoveryFacets(row:ProjectRow){
   const roleMap=new Map<string,{project_role_catalogue:{slug:string;title:string}}>();
   const skillMap=new Map<string,{capabilities:{id:string;slug:string;name:string}}>();
   for(const role of roles){
-    // Career taxonomy is deliberately separate from the project-facing role title.
-    // Only an explicitly recognized canonical_role_key may populate Career / Role.
-    // A granular title such as "Agricultural/Extension Analyst" remains visible on
-    // the project card but cannot silently create a new career filter value.
-    const canonical=normalizeCareerRole(role.canonical_role_key);
+    // Project-facing titles remain untouched. Career / Role receives only values
+    // that exactly resolve to the controlled career taxonomy. Imported per-project
+    // identifiers may resolve if they are genuinely canonical; granular titles do not.
+    const canonical=normalizeCareerRole(role.title)||normalizeCareerRole(role.canonical_role_key);
     if(canonical&&!roleMap.has(canonical.slug))roleMap.set(canonical.slug,{project_role_catalogue:{slug:canonical.slug,title:canonical.label}});
     for(const raw of Array.isArray(role.skills)?role.skills:[]){
       const name=cleanSkill(String(raw));

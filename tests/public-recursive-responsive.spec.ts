@@ -151,7 +151,7 @@ test.describe('recursive public responsive coverage',()=>{
       const contentBox=await content.boundingBox();
       expect(contentBox,`project detail content should render at ${viewport.width}x${viewport.height}`).not.toBeNull();
       if(contentBox)expect(contentBox.width).toBeLessThanOrEqual(viewport.width+1);
-      await expect(page.locator('div[aria-label="Project application action"]')).toBeVisible();
+      await expect(page.getByRole('link',{name:'Continue to apply',exact:true}).last()).toBeVisible();
     }
   });
 

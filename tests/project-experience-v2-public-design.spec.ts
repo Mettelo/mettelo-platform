@@ -11,7 +11,7 @@ async function noOverflow(page:Page,label:string){
   expect(size.scrollWidth,label).toBeLessThanOrEqual(size.clientWidth);
 }
 
-test.describe('Project Experience V2 advanced public Project Detail',()=>{
+test.describe('Project Experience advanced public Project Detail',()=>{
   test('catalogue editing and Admin publication share governed V2 readiness',()=>{
     const panel=read('components/ArchitectCatalogueClassificationPanel.tsx');
     const editPage=read('app/member/architect-projects/[id]/edit/page.tsx');
@@ -39,49 +39,43 @@ test.describe('Project Experience V2 advanced public Project Detail',()=>{
     expect(admin.indexOf("if(!catalogue.ok)")).toBeLessThan(admin.indexOf("status:'recruiting',visibility:'public'"));
   });
 
-  test('project detail components do not create nested main landmarks',()=>{
+  test('project detail wrappers delegate to V3 bodies without nested main landmarks',()=>{
     const rootLayout=read('app/layout.tsx');
-    const publicDetail=read('components/project-experience/ProjectPublicDetailV2.tsx');
-    const memberDetail=read('components/project-experience/MemberProjectDetailV2.tsx');
+    const publicWrapper=read('components/project-experience/ProjectPublicDetailV2.tsx');
+    const publicBody=read('components/project-experience/ProjectPublicDetailBodyV3.tsx');
+    const memberWrapper=read('components/project-experience/MemberProjectDetailV2.tsx');
+    const memberBody=read('components/project-experience/MemberProjectDetailBodyV3.tsx');
     expect(rootLayout).toContain('<main id="main-content">');
-    expect(publicDetail).not.toContain('<main');
-    expect(memberDetail).not.toContain('<main');
-    expect(publicDetail).toContain('id="project-content"');
-    expect(memberDetail).toContain('id="member-project-main"');
+    for(const source of [publicWrapper,publicBody,memberWrapper,memberBody])expect(source).not.toContain('<main');
+    expect(publicWrapper).toContain('ProjectPublicDetailBodyV3');
+    expect(memberWrapper).toContain('MemberProjectDetailBodyV3');
+    expect(publicBody).toContain('id="project-content"');
+    expect(memberBody).toContain('id="member-project-main"');
   });
 
-  test('the canonical public page preserves the approved decision-led information architecture',async({page})=>{
+  test('the canonical public page preserves the approved V3 decision-led information architecture',async({page})=>{
     await page.setViewportSize({width:1440,height:1000});
     await page.goto(`/projects/${projectId}`,{waitUntil:'domcontentloaded'});
 
     await expect(page.getByRole('heading',{level:1,name:'E2E Local Release Project'})).toBeVisible();
     await expect(page.getByRole('heading',{name:'Decide whether this is the right project for you.'})).toBeVisible();
-    for(const label of ['Decision','Outputs','Roles','Evidence'])await expect(page.getByText(label,{exact:true}).first()).toBeVisible();
+    const sections=page.getByRole('navigation',{name:'Project sections'});
+    for(const label of ['Overview','Deliverables','Success standards','Contribution areas'])await expect(sections.getByRole('link',{name:label,exact:true})).toBeVisible();
 
-    for(const heading of [
-      'What decision does this project need to improve?',
-      'Know what the team will work with.',
-      'Professional outputs with a clear purpose.',
-      'Know how good work will be judged.',
-      'What this work can help you practise and evidence.',
-      'Choose where you can contribute.',
-      'From application to handover.',
-      'Know the expectation before you commit.'
-    ])await expect(page.getByRole('heading',{name:heading})).toBeVisible();
-
-    await expect(page.getByText('These are evidence opportunities, not automatic Proof awards. Your own contribution must still be completed and verified.')).toBeVisible();
+    for(const heading of ['Project overview','Project deliverables','Success standards','How you can contribute'])await expect(page.getByRole('heading',{name:heading,exact:true})).toBeVisible();
+    await expect(page.getByText('Project-specific criteria are grouped into scannable review dimensions; the complete quality bar remains available below.')).toBeVisible();
     await expect(page.locator('#project-content')).toBeVisible();
     await noOverflow(page,'Advanced Project Detail overflowed at desktop width');
   });
 
-  test('the redesign reflows across supported phone, tablet and desktop widths',async({page})=>{
+  test('the V3 redesign reflows across supported phone, tablet and desktop widths',async({page})=>{
     test.setTimeout(60_000);
     for(const width of [320,390,768,1024,1440]){
       await page.setViewportSize({width,height:1000});
       await page.goto(`/projects/${projectId}`,{waitUntil:'domcontentloaded'});
       await expect(page.getByRole('heading',{level:1,name:'E2E Local Release Project'})).toBeVisible();
       await noOverflow(page,`Advanced Project Detail overflowed at ${width}px`);
-      if(width<=760)await expect(page.locator('div[aria-label="Project application action"]')).toBeVisible();
+      if(width<=700)await expect(page.getByRole('link',{name:'Continue to apply',exact:true}).last()).toBeVisible();
     }
   });
 

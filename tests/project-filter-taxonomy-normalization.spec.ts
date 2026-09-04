@@ -19,6 +19,10 @@ test.describe('project discovery taxonomy normalization',()=>{
     expect(normalizeTool('postgres')?.label).toBe('PostgreSQL');
     expect(normalizeTool('Git / GitHub')?.label).toBe('GitHub');
     expect(normalizeIndustry('banking')?.label).toBe('Financial Services');
+    expect(normalizeIndustry('Finance & FinTech')?.label).toBe('Financial Services');
+    expect(normalizeIndustry('Marketing & Customer Analytics')?.label).toBe('Marketing & Media');
+    expect(normalizeIndustry('Transport, Logistics & Supply Chain')?.label).toBe('Transport & Logistics');
+    expect(normalizeIndustry('Cross-industry / Open Data')?.label).toBe('Cross-industry');
     expect(normalizeIndustry('public sector')?.label).toBe('Government & Public Services');
     expect(normalizeCapability('data visualization')?.label).toBe('Data visualisation');
     expect(normalizeCapability('retrieval augmented generation')?.label).toBe('RAG');
@@ -32,6 +36,16 @@ test.describe('project discovery taxonomy normalization',()=>{
     expect(durationFacet(3)?.slug).toBe('short');
     expect(durationFacet(6)?.slug).toBe('standard');
     expect(durationFacet(8)?.slug).toBe('extended');
+  });
+
+  test('requires Admin project roles to carry a controlled career classification',async()=>{
+    const manager=await readFile('components/AdminProjectRoleManager.tsx','utf8');
+    const route=await readFile('app/api/admin/project-roles/route.ts','utf8');
+    expect(manager).toContain('CANONICAL_CAREER_ROLES');
+    expect(manager).toContain('name="career_role"');
+    expect(route).toContain("normalizeCareerRole(String(body.career_role||''))");
+    expect(route).toContain('canonical_role_key:canonicalCareer.slug');
+    expect(route).toContain('Choose a valid canonical Career / Role classification.');
   });
 });
 

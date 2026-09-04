@@ -7,7 +7,11 @@ const publicLoader=read('lib/project-detail-content.ts');
 const labLoader=read('lib/project-lab-canonical-data.ts');
 const labBrief=read('components/project-experience/ProjectLabCanonicalBrief.tsx');
 const publicPage=read('components/project-experience/ProjectPublicDetailV2.tsx');
+const publicBody=read('components/project-experience/ProjectPublicDetailBodyV3.tsx');
 const memberPage=read('components/project-experience/MemberProjectDetailV2.tsx');
+const memberBody=read('components/project-experience/MemberProjectDetailBodyV3.tsx');
+const publicExperience=`${publicPage}\n${publicBody}`;
+const memberExperience=`${memberPage}\n${memberBody}`;
 const publicRoute=read('app/projects/[id]/page.tsx');
 const memberRoute=read('app/member/discover/[id]/page.tsx');
 const importer=read('scripts/import-project-library.py');
@@ -77,13 +81,17 @@ for(const route of [publicRoute,memberRoute]){
   if(route.includes('Project Contributor'))fail('project detail route must not invent generic Project Contributor roles');
 }
 
+if(!publicPage.includes('ProjectPublicDetailBodyV3'))fail('public project detail wrapper must render the approved V3 body');
+if(!memberPage.includes('MemberProjectDetailBodyV3'))fail('member project detail wrapper must render the approved V3 body');
 for(const token of ['challenge.decisionToSupport','challenge.constraintsTradeOffs','challenge.assumptions','challenge.responsibleUseRisks','acceptanceChecks','stakeholderHandover','deliverables','successCriteria','capabilities','proofSignals','roles']){
-  if(!publicPage.includes(token))fail(`public project detail does not render ${token}`);
+  if(!publicExperience.includes(token))fail(`public project detail does not render ${token}`);
 }
 for(const token of ['model','roles','contributionAreas','primaryAction']){
-  if(!memberPage.includes(token))fail(`member project detail does not preserve ${token}`);
+  if(!memberExperience.includes(token))fail(`member project detail does not preserve ${token}`);
 }
-if(!memberPage.includes('Your project journey'))fail('member project detail must preserve the five-step Project journey');
+for(const marker of ['01 — Apply','02 — Team formation','03 — Project delivery','04 — Evidence review','05 — Handover']){
+  if(!memberBody.includes(marker))fail(`member project detail must preserve five-step Project journey marker ${marker}`);
+}
 
 for(const token of ["visibility = 'public'","status = 'open'","applications_open = true",'project_identity_baseline']){
   if(!phase7Migration.includes(token))fail(`Phase 7 publication migration missing ${token}`);

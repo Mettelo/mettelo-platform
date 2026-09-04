@@ -36,12 +36,12 @@ export const CANONICAL_INDUSTRIES:CatalogueFacet[]=[
 ];
 const industryAliases:Record<string,string[]>={
   'technology-saas':['technology','software','saas','information technology','it services','digital platforms'],
-  'financial-services':['financial services','finance','banking','fintech','insurance','payments','wealth management','capital markets'],
+  'financial-services':['financial services','finance','banking','fintech','finance fintech','finance & fintech','finance-fintech','insurance','payments','wealth management','capital markets'],
   'healthcare-life-sciences':['healthcare','health','life sciences','pharmaceuticals','pharma','biotech','clinical','public health'],
   'retail-ecommerce':['retail','ecommerce','e-commerce','consumer retail'],
-  'marketing-media':['marketing','advertising','media','digital marketing','communications'],
-  'government-public-services':['government','public services','public sector','local government','civil service'],
-  'transport-logistics':['transport','transportation','logistics','supply chain','mobility','freight'],
+  'marketing-media':['marketing','advertising','media','digital marketing','communications','marketing & customer analytics','marketing customer analytics'],
+  'government-public-services':['government','public services','public sector','government public sector','government & public sector','local government','civil service'],
+  'transport-logistics':['transport','transportation','logistics','supply chain','transport, logistics & supply chain','transport logistics supply chain','mobility','freight'],
   manufacturing:['manufacturing','industrial manufacturing','production'],
   'energy-utilities':['energy','utilities','power','electricity','water utilities','oil and gas'],
   'environment-sustainability':['environment','environmental','sustainability','climate','conservation','natural resources'],
@@ -50,7 +50,7 @@ const industryAliases:Record<string,string[]>={
   'real-estate-built-environment':['real estate','property','construction','built environment','housing'],
   'agriculture-food':['agriculture','agri-food','food','food supply','farming','agritech','aquaculture'],
   'research-science':['research','science','scientific research','laboratory'],
-  'cross-industry':['cross-industry','cross industry','general','multi-industry']
+  'cross-industry':['cross-industry','cross industry','cross-industry / open data','cross industry open data','open data','general','multi-industry']
 };
 const industryLookup=new Map<string,CatalogueFacet>();
 for(const item of CANONICAL_INDUSTRIES){for(const alias of [item.slug,item.label,...(industryAliases[item.slug]||[])])industryLookup.set(key(alias),item)}

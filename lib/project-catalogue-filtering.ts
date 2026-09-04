@@ -1,160 +1,44 @@
 export type CatalogueFacet={slug:string;label:string;aliases?:string[]};
-export type ProjectCatalogueSort='recent'|'closing'|'duration-short'|'duration-long';
+export type ProjectCatalogueSort=string;
 
-export type ProjectCatalogueFilterable={
-  title:string;
-  summary:string;
-  createdAt:string;
-  deadline:string|null;
-  durationWeeks:number|null;
-  commitmentFacet:CatalogueFacet|null;
-  workingModelFacet:CatalogueFacet|null;
-  projectTypeFacet:CatalogueFacet|null;
-  stageFacet:CatalogueFacet|null;
-  roleFamilies:CatalogueFacet[];
-  capabilities:CatalogueFacet[];
-  domains:CatalogueFacet[];
-  tools:CatalogueFacet[];
-  methods:CatalogueFacet[];
-  searchExtra?:string[];
-};
+export const CATALOGUE_EXPERIENCE_OPTIONS:CatalogueFacet[]=[{slug:'beginner',label:'Beginner'},{slug:'intermediate',label:'Intermediate'},{slug:'advanced',label:'Advanced'}];
+export const CATALOGUE_FORMAT_OPTIONS:CatalogueFacet[]=[{slug:'solo',label:'Solo'},{slug:'team',label:'Team'}];
+export const CATALOGUE_COMMITMENT_OPTIONS:CatalogueFacet[]=[{slug:'up-to-3-hours',label:'Up to 3 hours/week'},{slug:'3-5-hours',label:'3–5 hours/week'},{slug:'5-7-hours',label:'5–7 hours/week'},{slug:'7-10-hours',label:'7–10 hours/week'},{slug:'10-plus-hours',label:'10+ hours/week'}];
+export const CATALOGUE_DURATION_OPTIONS:CatalogueFacet[]=[{slug:'short',label:'Short · up to 3 weeks'},{slug:'standard',label:'Standard · 4–6 weeks'},{slug:'extended',label:'Extended · 7+ weeks'}];
+export const CATALOGUE_WORKING_MODEL_OPTIONS:CatalogueFacet[]=[{slug:'remote',label:'Remote'},{slug:'hybrid',label:'Hybrid'},{slug:'onsite',label:'On-site'}];
+export const CATALOGUE_PROJECT_SOURCE_OPTIONS:CatalogueFacet[]=[{slug:'open',label:'Mettelo Open Projects'},{slug:'partner',label:'Partner Projects'}];
+export const CATALOGUE_AVAILABILITY_OPTIONS:CatalogueFacet[]=[{slug:'open-to-join',label:'Open to join'},{slug:'team-forming',label:'Team forming'},{slug:'in-progress',label:'In progress'},{slug:'completed',label:'Completed'}];
 
-export type ProjectCatalogueFilters={
-  query:string;
-  role:string;
-  capability:string;
-  domain:string;
-  tool:string;
-  commitment:string;
-  workingModel:string;
-  projectType:string;
-  stage:string;
-  duration:string;
-  sort:ProjectCatalogueSort;
-};
-
-export const DEFAULT_PROJECT_CATALOGUE_FILTERS:ProjectCatalogueFilters={
-  query:'',role:'all',capability:'all',domain:'all',tool:'all',commitment:'all',workingModel:'all',projectType:'all',stage:'all',duration:'all',sort:'recent'
-};
-
-export function normalizeCommitment(value:string|null|undefined):CatalogueFacet|null{
-  const raw=value?.trim();
-  if(!raw)return null;
-  const normalized=raw.replace(/[–—]/g,'-').replace(/\s+/g,' ');
-  const range=normalized.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i);
-  if(range){
-    const min=range[1],max=range[2];
-    return{slug:`${min}-${max}-hours`,label:`${min}–${max} hours`};
-  }
-  const single=normalized.match(/^\s*(\d+(?:\.\d+)?)\s*(?:(?:hours?|hrs?))?(?:\s|$)/i);
-  if(single){
-    const amount=single[1];
-    return{slug:`${amount}-hours`,label:`${amount} ${Number(amount)===1?'hour':'hours'}`};
-  }
-  return null;
-}
-
-export function durationFacet(value:number|null|undefined):CatalogueFacet|null{
-  if(!value||value<=0)return null;
-  return{slug:`${value}-weeks`,label:`${value} ${value===1?'week':'weeks'}`};
-}
-
-export function workingModelFacet(value:string|null|undefined):CatalogueFacet|null{
-  const key=value?.trim().toLowerCase().replace(/[_\s]+/g,'-');
-  if(!key)return null;
-  if(key==='remote')return{slug:'remote',label:'Remote'};
-  if(key==='hybrid')return{slug:'hybrid',label:'Hybrid'};
-  if(['onsite','on-site'].includes(key))return{slug:'onsite',label:'On-site'};
-  return null;
-}
-
-export function projectTypeFacet(value:string|null|undefined):CatalogueFacet|null{
-  const key=value?.trim().toLowerCase();
-  if(key==='open')return{slug:'open',label:'Open Project'};
-  if(key==='partner')return{slug:'partner',label:'Partner Project'};
-  return null;
-}
-
-export function projectStageFacet(value:string|null|undefined):CatalogueFacet|null{
-  const key=value?.trim().toLowerCase();
-  const labels:Record<string,string>={pilot:'Pilot',recruiting:'Recruiting',open:'Open',forming:'Team forming',active:'Active',review:'In review',completed:'Completed'};
-  return key&&labels[key]?{slug:key,label:labels[key]}:null;
-}
-
-function facetText(facet:CatalogueFacet){
-  return[facet.label,facet.slug,...(facet.aliases||[])].join(' ');
-}
-
-export function catalogueSearchText(item:ProjectCatalogueFilterable){
-  return[
-    item.title,item.summary,
-    ...item.roleFamilies.map(facetText),
-    ...item.capabilities.map(facetText),
-    ...item.domains.map(facetText),
-    ...item.tools.map(facetText),
-    ...item.methods.map(facetText),
-    item.commitmentFacet?facetText(item.commitmentFacet):'',
-    item.workingModelFacet?facetText(item.workingModelFacet):'',
-    item.projectTypeFacet?facetText(item.projectTypeFacet):'',
-    item.stageFacet?facetText(item.stageFacet):'',
-    durationFacet(item.durationWeeks)?facetText(durationFacet(item.durationWeeks)!):'',
-    ...(item.searchExtra||[])
-  ].join(' ').toLowerCase();
-}
-
+export type ProjectCatalogueFilterable={title:string;summary:string;createdAt:string;deadline:string|null;durationWeeks:number|null;commitmentFacet:CatalogueFacet|null;workingModelFacet:CatalogueFacet|null;projectTypeFacet:CatalogueFacet|null;stageFacet:CatalogueFacet|null;experienceFacet?:CatalogueFacet|null;formatFacet?:CatalogueFacet|null;availabilityFacet?:CatalogueFacet|null;roleFamilies:CatalogueFacet[];capabilities:CatalogueFacet[];domains:CatalogueFacet[];tools:CatalogueFacet[];methods:CatalogueFacet[];searchExtra?:string[]};
+export type ProjectCatalogueFilters={query:string;role:string;experience:string;format:string;capability:string;domain:string;tool:string;commitment:string;workingModel:string;projectType:string;availability:string;stage:string;duration:string;sort:ProjectCatalogueSort};
+export const DEFAULT_PROJECT_CATALOGUE_FILTERS:ProjectCatalogueFilters={query:'',role:'all',experience:'all',format:'all',capability:'all',domain:'all',tool:'all',commitment:'all',workingModel:'all',projectType:'all',availability:'all',stage:'all',duration:'all',sort:'recent'};
+export function normalizeExperienceLevel(value:string|null|undefined):CatalogueFacet|null{const raw=value?.trim().toLowerCase().replace(/[–—]/g,'-').replace(/[_\s]+/g,'-');if(!raw)return null;if(['entry','foundation','beginner','entry-level','beginner-intermediate'].includes(raw))return CATALOGUE_EXPERIENCE_OPTIONS[0];if(['intermediate','mid','mid-level','intermediate-advanced'].includes(raw))return CATALOGUE_EXPERIENCE_OPTIONS[1];if(['advanced','capstone','expert','senior'].includes(raw))return CATALOGUE_EXPERIENCE_OPTIONS[2];return null}
+export function projectFormatFacet(teamSize:number|null|undefined):CatalogueFacet|null{if(teamSize==null||!Number.isFinite(Number(teamSize))||Number(teamSize)<1)return null;return Number(teamSize)===1?CATALOGUE_FORMAT_OPTIONS[0]:CATALOGUE_FORMAT_OPTIONS[1]}
+function commitmentBounds(value:string|null|undefined):{min:number;max:number|null}|null{const raw=value?.trim();if(!raw)return null;const normalized=raw.replace(/[–—]/g,'-').replace(/\s+/g,' ');const range=normalized.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i);if(range)return{min:Number(range[1]),max:Number(range[2])};const plus=normalized.match(/(\d+(?:\.\d+)?)\s*\+\s*(?:hours?|hrs?)/i);if(plus)return{min:Number(plus[1]),max:null};const upTo=normalized.match(/(?:up to|<=?|max(?:imum)?\s*)\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i);if(upTo)return{min:0,max:Number(upTo[1])};const single=normalized.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i);return single?{min:Number(single[1]),max:Number(single[1])}:null}
+export function normalizeCommitment(value:string|null|undefined):CatalogueFacet|null{const bounds=commitmentBounds(value);if(!bounds)return null;const representative=bounds.max==null?bounds.min:(bounds.min+bounds.max)/2;if(representative<=3)return CATALOGUE_COMMITMENT_OPTIONS[0];if(representative<=5)return CATALOGUE_COMMITMENT_OPTIONS[1];if(representative<=7)return CATALOGUE_COMMITMENT_OPTIONS[2];if(representative<=10)return CATALOGUE_COMMITMENT_OPTIONS[3];return CATALOGUE_COMMITMENT_OPTIONS[4]}
+export function durationFacet(value:number|null|undefined):CatalogueFacet|null{if(!value||value<=0)return null;if(value<=3)return CATALOGUE_DURATION_OPTIONS[0];if(value<=6)return CATALOGUE_DURATION_OPTIONS[1];return CATALOGUE_DURATION_OPTIONS[2]}
+export function workingModelFacet(value:string|null|undefined):CatalogueFacet|null{const key=value?.trim().toLowerCase().replace(/[_\s]+/g,'-');if(!key)return null;if(key==='remote')return CATALOGUE_WORKING_MODEL_OPTIONS[0];if(key==='hybrid')return CATALOGUE_WORKING_MODEL_OPTIONS[1];if(['onsite','on-site'].includes(key))return CATALOGUE_WORKING_MODEL_OPTIONS[2];return null}
+export function projectTypeFacet(value:string|null|undefined):CatalogueFacet|null{const key=value?.trim().toLowerCase();if(key==='open')return CATALOGUE_PROJECT_SOURCE_OPTIONS[0];if(key==='partner')return CATALOGUE_PROJECT_SOURCE_OPTIONS[1];return null}
+export function projectStageFacet(value:string|null|undefined):CatalogueFacet|null{const key=value?.trim().toLowerCase();const labels:Record<string,string>={pilot:'Pilot',recruiting:'Recruiting',open:'Open',forming:'Team forming',active:'Active',review:'In review',completed:'Completed'};return key&&labels[key]?{slug:key,label:labels[key]}:null}
+export function projectAvailabilityFacet(input:{status:string|null|undefined;applicationsOpen?:boolean|null;deadline?:string|null;hasCapacity?:boolean|null}):CatalogueFacet|null{const status=input.status?.trim().toLowerCase();if(!status)return null;if(status==='completed')return CATALOGUE_AVAILABILITY_OPTIONS[3];if(['active','review'].includes(status))return CATALOGUE_AVAILABILITY_OPTIONS[2];if(status==='forming')return CATALOGUE_AVAILABILITY_OPTIONS[1];const deadlinePassed=input.deadline?new Date(input.deadline).getTime()<Date.now():false;if(['pilot','recruiting','open'].includes(status)&&input.applicationsOpen!==false&&!deadlinePassed&&input.hasCapacity!==false)return CATALOGUE_AVAILABILITY_OPTIONS[0];return{slug:'not-open',label:'Not currently open'}}
+function facetText(facet:CatalogueFacet){return[facet.label,facet.slug,...(facet.aliases||[])].join(' ')}
+export function catalogueSearchText(item:ProjectCatalogueFilterable){return[item.title,item.summary,...item.roleFamilies.map(facetText),...item.capabilities.map(facetText),...item.domains.map(facetText),...item.tools.map(facetText),...item.methods.map(facetText),item.experienceFacet?facetText(item.experienceFacet):'',item.formatFacet?facetText(item.formatFacet):'',item.commitmentFacet?facetText(item.commitmentFacet):'',item.workingModelFacet?facetText(item.workingModelFacet):'',item.projectTypeFacet?facetText(item.projectTypeFacet):'',item.availabilityFacet?facetText(item.availabilityFacet):'',item.stageFacet?facetText(item.stageFacet):'',durationFacet(item.durationWeeks)?facetText(durationFacet(item.durationWeeks)!):'',...(item.searchExtra||[])].join(' ').toLowerCase()}
 function hasFacet(values:CatalogueFacet[],slug:string){return slug==='all'||values.some(item=>item.slug===slug)}
-function hasSingle(value:CatalogueFacet|null,slug:string){return slug==='all'||value?.slug===slug}
+function hasSingle(value:CatalogueFacet|null|undefined,slug:string){return slug==='all'||value?.slug===slug}
 function timestamp(value:string|null){if(!value)return null;const n=new Date(value).getTime();return Number.isFinite(n)?n:null}
 function recentTieBreak(a:ProjectCatalogueFilterable,b:ProjectCatalogueFilterable){return(timestamp(b.createdAt)||0)-(timestamp(a.createdAt)||0)||a.title.localeCompare(b.title)}
-
-export function filterAndSortProjectCatalogue<T extends ProjectCatalogueFilterable>(projects:T[],filters:ProjectCatalogueFilters):T[]{
-  const q=filters.query.trim().toLowerCase();
-  const filtered=projects.filter(item=>(!q||catalogueSearchText(item).includes(q))
-    &&hasFacet(item.roleFamilies,filters.role)
-    &&hasFacet(item.capabilities,filters.capability)
-    &&hasFacet(item.domains,filters.domain)
-    &&hasFacet(item.tools,filters.tool)
-    &&hasSingle(item.commitmentFacet,filters.commitment)
-    &&hasSingle(item.workingModelFacet,filters.workingModel)
-    &&hasSingle(item.projectTypeFacet,filters.projectType)
-    &&hasSingle(item.stageFacet,filters.stage)
-    &&hasSingle(durationFacet(item.durationWeeks),filters.duration));
-
-  return[...filtered].sort((a,b)=>{
-    if(filters.sort==='closing'){
-      const ad=timestamp(a.deadline),bd=timestamp(b.deadline);
-      if(ad===null&&bd!==null)return 1;
-      if(ad!==null&&bd===null)return-1;
-      if(ad!==null&&bd!==null&&ad!==bd)return ad-bd;
-      return recentTieBreak(a,b);
-    }
-    if(filters.sort==='duration-short'||filters.sort==='duration-long'){
-      const ad=a.durationWeeks,bd=b.durationWeeks;
-      if(ad===null&&bd!==null)return 1;
-      if(ad!==null&&bd===null)return-1;
-      if(ad!==null&&bd!==null&&ad!==bd)return filters.sort==='duration-short'?ad-bd:bd-ad;
-      return recentTieBreak(a,b);
-    }
-    return recentTieBreak(a,b);
-  });
+function commitmentRank(item:ProjectCatalogueFilterable){const index=item.commitmentFacet?CATALOGUE_COMMITMENT_OPTIONS.findIndex(option=>option.slug===item.commitmentFacet?.slug):-1;return index===-1?Number.MAX_SAFE_INTEGER:index}
+function recommendationRank(item:ProjectCatalogueFilterable){const order=['open-to-join','team-forming','in-progress','completed','not-open'];const index=item.availabilityFacet?order.indexOf(item.availabilityFacet.slug):-1;return index===-1?order.length:index}
+export function filterAndSortProjectCatalogue<T extends ProjectCatalogueFilterable>(projects:T[],filters:ProjectCatalogueFilters):T[]{const q=filters.query.trim().toLowerCase();const filtered=projects.filter(item=>(!q||catalogueSearchText(item).includes(q))&&hasFacet(item.roleFamilies,filters.role)&&hasSingle(item.experienceFacet,filters.experience)&&hasSingle(item.formatFacet,filters.format)&&hasFacet(item.capabilities,filters.capability)&&hasFacet(item.domains,filters.domain)&&hasFacet(item.tools,filters.tool)&&hasSingle(item.commitmentFacet,filters.commitment)&&hasSingle(item.workingModelFacet,filters.workingModel)&&hasSingle(item.projectTypeFacet,filters.projectType)&&hasSingle(item.availabilityFacet,filters.availability)&&hasSingle(item.stageFacet,filters.stage)&&hasSingle(durationFacet(item.durationWeeks),filters.duration));return[...filtered].sort((a,b)=>{if(filters.sort==='recommended'){const rank=recommendationRank(a)-recommendationRank(b);return rank||recentTieBreak(a,b)}if(filters.sort==='closing'){const ad=timestamp(a.deadline),bd=timestamp(b.deadline);if(ad===null&&bd!==null)return 1;if(ad!==null&&bd===null)return-1;if(ad!==null&&bd!==null&&ad!==bd)return ad-bd;return recentTieBreak(a,b)}if(filters.sort==='duration-short'||filters.sort==='duration-long'){const ad=a.durationWeeks,bd=b.durationWeeks;if(ad===null&&bd!==null)return 1;if(ad!==null&&bd===null)return-1;if(ad!==null&&bd!==null&&ad!==bd)return filters.sort==='duration-short'?ad-bd:bd-ad;return recentTieBreak(a,b)}if(filters.sort==='commitment-low'){const rank=commitmentRank(a)-commitmentRank(b);return rank||recentTieBreak(a,b)}return recentTieBreak(a,b)})}
+export function catalogueFacetOptions(projects:ProjectCatalogueFilterable[],key:'roleFamilies'|'capabilities'|'domains'|'tools'){const map=new Map<string,CatalogueFacet>();for(const item of projects)for(const facet of item[key])if(!map.has(facet.slug))map.set(facet.slug,facet);return[...map.values()].sort((a,b)=>a.label.localeCompare(b.label))}
+export function catalogueSingleFacetOptions(projects:ProjectCatalogueFilterable[],key:'experienceFacet'|'formatFacet'|'commitmentFacet'|'workingModelFacet'|'projectTypeFacet'|'availabilityFacet'|'stageFacet'){
+  if(key==='experienceFacet')return[...CATALOGUE_EXPERIENCE_OPTIONS];
+  if(key==='formatFacet')return[...CATALOGUE_FORMAT_OPTIONS];
+  if(key==='commitmentFacet')return[...CATALOGUE_COMMITMENT_OPTIONS];
+  if(key==='workingModelFacet')return[...CATALOGUE_WORKING_MODEL_OPTIONS];
+  if(key==='projectTypeFacet')return[...CATALOGUE_PROJECT_SOURCE_OPTIONS];
+  if(key==='availabilityFacet')return[...CATALOGUE_AVAILABILITY_OPTIONS];
+  const map=new Map<string,CatalogueFacet>();for(const item of projects){const facet=item[key];if(facet&&!map.has(facet.slug))map.set(facet.slug,facet)}return[...map.values()].sort((a,b)=>a.label.localeCompare(b.label))
 }
-
-export function catalogueFacetOptions(projects:ProjectCatalogueFilterable[],key:'roleFamilies'|'capabilities'|'domains'|'tools'){
-  const map=new Map<string,CatalogueFacet>();
-  for(const item of projects)for(const facet of item[key])if(!map.has(facet.slug))map.set(facet.slug,facet);
-  return[...map.values()].sort((a,b)=>a.label.localeCompare(b.label));
-}
-
-export function catalogueSingleFacetOptions(projects:ProjectCatalogueFilterable[],key:'commitmentFacet'|'workingModelFacet'|'projectTypeFacet'|'stageFacet'){
-  const map=new Map<string,CatalogueFacet>();
-  for(const item of projects){const facet=item[key];if(facet&&!map.has(facet.slug))map.set(facet.slug,facet)}
-  return[...map.values()].sort((a,b)=>a.label.localeCompare(b.label));
-}
-
-export function catalogueDurationOptions(projects:ProjectCatalogueFilterable[]){
-  return[...new Set(projects.map(item=>item.durationWeeks).filter((value):value is number=>Boolean(value&&value>0)))].sort((a,b)=>a-b).map(value=>durationFacet(value)!);
-}
-
-export function activeProjectCatalogueFilterCount(filters:ProjectCatalogueFilters){
-  return[filters.role,filters.capability,filters.domain,filters.tool,filters.commitment,filters.workingModel,filters.projectType,filters.stage,filters.duration].filter(value=>value!=='all').length;
-}
+export function catalogueDurationOptions(_projects:ProjectCatalogueFilterable[]){return[...CATALOGUE_DURATION_OPTIONS]}
+export function activeProjectCatalogueFilterCount(filters:ProjectCatalogueFilters){return[filters.role,filters.experience,filters.format,filters.capability,filters.domain,filters.tool,filters.commitment,filters.workingModel,filters.projectType,filters.availability,filters.stage,filters.duration].filter(value=>value!=='all').length}

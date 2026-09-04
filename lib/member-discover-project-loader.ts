@@ -2,9 +2,9 @@ import {createServerSupabaseClient} from '@/lib/supabase/server';
 
 const PROJECT_STATUSES=['pilot','recruiting','open','forming','active','review','completed'];
 const SCALARS='id,slug,title,summary,status,project_type,location,location_type,difficulty_level,team_size_threshold,duration_weeks,weekly_commitment,application_deadline,applications_open,created_at';
-const PRIMARY_SELECT=`${SCALARS},project_roles(id,title,skills,openings),project_role_families(project_role_catalogue(slug,title)),project_capabilities(capabilities(id,slug,name)),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))`;
-const CORE_FACET_SELECT=`${SCALARS},project_roles(id,title,skills,openings),project_capabilities(capabilities(id,slug,name)),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))`;
-const MINIMAL_SELECT=`${SCALARS},project_roles(id,title,skills,openings)`;
+const PRIMARY_SELECT=`${SCALARS},project_roles(id,title,canonical_role_key,skills,openings),project_role_families(project_role_catalogue(slug,title)),project_capabilities(capabilities(id,slug,name)),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))`;
+const CORE_FACET_SELECT=`${SCALARS},project_roles(id,title,canonical_role_key,skills,openings),project_capabilities(capabilities(id,slug,name)),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))`;
+const MINIMAL_SELECT=`${SCALARS},project_roles(id,title,canonical_role_key,skills,openings)`;
 const DISCOVER_BATCH_SIZE=200;
 
 type MemberServerDb=Awaited<ReturnType<typeof createServerSupabaseClient>>;

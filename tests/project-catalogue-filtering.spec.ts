@@ -16,9 +16,9 @@ test('legacy project values normalize into canonical public discovery bands',()=
   expect(normalizeCommitment('5–7 hrs/week')).toEqual({slug:'5-7-hours',label:'5–7 hours/week'});
   expect(normalizeCommitment('11+ hours/week')).toEqual({slug:'10-plus-hours',label:'10+ hours/week'});
   expect(normalizeCommitment('not specified')).toBeNull();
-  expect(durationFacet(2)).toEqual({slug:'short',label:'Short — up to 3 weeks'});
-  expect(durationFacet(5)).toEqual({slug:'standard',label:'Standard — 4–6 weeks'});
-  expect(durationFacet(8)).toEqual({slug:'extended',label:'Extended — 7+ weeks'});
+  expect(durationFacet(2)).toEqual({slug:'short',label:'Short · up to 3 weeks'});
+  expect(durationFacet(5)).toEqual({slug:'standard',label:'Standard · 4–6 weeks'});
+  expect(durationFacet(8)).toEqual({slug:'extended',label:'Extended · 7+ weeks'});
 });
 
 test('governed display facets use product wording without replacing lifecycle values',()=>{
@@ -54,12 +54,18 @@ test('new governed taxonomy associations appear automatically in options',()=>{
   expect(catalogueDurationOptions(projects).map(value=>value.slug)).toEqual(['short','extended']);
 });
 
-test('sorting is deterministic and keeps missing dates or durations last',()=>{
-  const projects=[item({title:'Older short',createdAt:'2026-08-01T00:00:00.000Z',deadline:'2026-09-20T00:00:00.000Z',durationWeeks:2}),item({title:'Newest long',createdAt:'2026-09-02T00:00:00.000Z',deadline:'2026-10-20T00:00:00.000Z',durationWeeks:8}),item({title:'Unknown',createdAt:'2026-09-01T00:00:00.000Z',deadline:null,durationWeeks:null})];
-  expect(filterAndSortProjectCatalogue(projects,filters({sort:'recent'})).map(value=>value.title)).toEqual(['Newest long','Unknown','Older short']);
+test('approved sorting is deterministic and keeps missing dates or durations last',()=>{
+  const projects=[item({title:'Older short',createdAt:'2026-08-01T00:00:00.000Z',deadline:'2026-09-20T00:00:00.000Z',durationWeeks:2,commitmentFacet:normalizeCommitment('2 hours/week')}),item({title:'Newest long',createdAt:'2026-09-02T00:00:00.000Z',deadline:'2026-10-20T00:00:00.000Z',durationWeeks:8,commitmentFacet:normalizeCommitment('10+ hours/week')}),item({title:'Unknown',createdAt:'2026-09-01T00:00:00.000Z',deadline:null,durationWeeks:null,commitmentFacet:null})];
+  expect(filterAndSortProjectCatalogue(projects,filters({sort:'newest'})).map(value=>value.title)).toEqual(['Newest long','Unknown','Older short']);
   expect(filterAndSortProjectCatalogue(projects,filters({sort:'closing'})).map(value=>value.title)).toEqual(['Older short','Newest long','Unknown']);
   expect(filterAndSortProjectCatalogue(projects,filters({sort:'duration-short'})).map(value=>value.title)).toEqual(['Older short','Newest long','Unknown']);
-  expect(filterAndSortProjectCatalogue(projects,filters({sort:'duration-long'})).map(value=>value.title)).toEqual(['Newest long','Older short','Unknown']);
+  expect(filterAndSortProjectCatalogue(projects,filters({sort:'commitment-low'})).map(value=>value.title)).toEqual(['Older short','Newest long','Unknown']);
+});
+
+test('recommended sorting prioritises joinable work before recency',()=>{
+  const joinable=item({title:'Joinable',createdAt:'2026-08-01T00:00:00.000Z',availabilityFacet:projectAvailabilityFacet({status:'open',applicationsOpen:true,hasCapacity:true})});
+  const completed=item({title:'Completed newer',createdAt:'2026-09-03T00:00:00.000Z',availabilityFacet:projectAvailabilityFacet({status:'completed'})});
+  expect(filterAndSortProjectCatalogue([completed,joinable],filters({sort:'recommended'})).map(value=>value.title)).toEqual(['Joinable','Completed newer']);
 });
 
 test('active filter count excludes search and sort but includes new canonical dimensions',()=>{

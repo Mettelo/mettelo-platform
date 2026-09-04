@@ -9,6 +9,7 @@ const files={
   publicPage:'app/projects/[id]/page.tsx',
   memberPage:'app/member/discover/[id]/page.tsx',
   memberComponent:'components/project-experience/MemberProjectDetailV2.tsx',
+  memberBody:'components/project-experience/MemberProjectDetailBodyV3.tsx',
   memberApplyPage:'app/member/discover/[id]/apply/page.tsx',
   brandPolish:'components/project-experience/ProjectExperiencePolish.module.css',
   parityMigration:'supabase/migrations/20260902184500_restore_project_runtime_parity.sql'
@@ -25,6 +26,7 @@ if(!failures.length){
   const publicPage=fs.readFileSync(files.publicPage,'utf8');
   const memberPage=fs.readFileSync(files.memberPage,'utf8');
   const memberComponent=fs.readFileSync(files.memberComponent,'utf8');
+  const memberBody=fs.readFileSync(files.memberBody,'utf8');
   const memberApplyPage=fs.readFileSync(files.memberApplyPage,'utf8');
   const polish=fs.readFileSync(files.brandPolish,'utf8');
   const migration=fs.readFileSync(files.parityMigration,'utf8');
@@ -45,14 +47,18 @@ if(!failures.length){
   if(!memberPage.includes('ProjectExperiencePolish.module.css')||!memberPage.includes('polish.memberHost'))failures.push('member Project Detail is not left-aligned in the shared brand polish');
   if(!memberPage.includes("from('project_role_families')")||!memberPage.includes('contributionAreas={contributionAreas}'))failures.push('member Project Detail does not load governed project-specific contribution areas separately from the canonical project query');
 
-  for(const marker of ["label:'Apply now'",'pdv2RoleGridInformational','pdv2LearningBand','Where you can contribute','contributionAreas'])if(!memberComponent.includes(marker))failures.push(`member Project Detail single-decision/informational-role contract lost ${marker}`);
-  for(const forbidden of ['setSelectedRole','Select this role','SELECTED ROLE','Apply as ${selected.title}'])if(memberComponent.includes(forbidden))failures.push(`member Project Detail reintroduced embedded role-selection behavior: ${forbidden}`);
-  if(!memberComponent.includes('href={`/member/discover/${project.id}/apply`}>Apply now</Link>'))failures.push('member mobile project CTA does not go directly to the application form');
-  if(!memberApplyPage.includes("const initialRoleId=requestedRole&&availableRoles.some(role=>role.id===requestedRole)?requestedRole:''"))failures.push('application form silently preselects a role instead of asking the member to confirm one');
+  // V3 keeps the accepted hero/decision wrapper but moves the application decision into an explicit,
+  // backend-authoritative contribution-area choice below it.
+  for(const marker of ["label:'Apply now'",'contributionAreas','MemberProjectDetailBodyV3'])if(!memberComponent.includes(marker))failures.push(`member Project Detail wrapper contract lost ${marker}`);
+  for(const marker of ['Choose your contribution area','aria-pressed={selected}','Choose this role','selectedRoleId','role.available','role.remaining','Apply as {selectedRole.title}','?role=${encodeURIComponent(selectedRole.id)}'])if(!memberBody.includes(marker))failures.push(`member Project Detail V3 role-decision contract lost ${marker}`);
+  if(memberBody.includes("useState(roles[0]")||memberBody.includes('availableRoles[0]')||memberBody.includes('selectableRoles[0]'))failures.push('member Project Detail V3 reintroduced first-role auto-selection');
+  if(!memberBody.includes('canApply&&selectedRole&&<div className={styles.mobileAction}'))failures.push('member mobile project CTA is not gated on an explicit role choice');
+  if(!memberBody.includes('href={`/member/discover/${projectId}/apply?role=${encodeURIComponent(selectedRole.id)}`}'))failures.push('member mobile project CTA does not preserve the selected role into the application form');
+  if(!memberApplyPage.includes("const initialRoleId=requestedRole&&availableRoles.some(role=>role.id===requestedRole)?requestedRole:''"))failures.push('application form does not revalidate the requested role against current backend availability');
   if(memberApplyPage.includes("availableRoles[0]?.id"))failures.push('application form reintroduced first-role auto-selection');
 
-  for(const marker of ['--px-ink:var(--ink)','--mp-ink:var(--ink)','var(--bronze)','var(--indigo)','linear-gradient(138deg,var(--ink)','grid-template-columns:minmax(0,1.58fr) 350px','pdv2SaveUtility','pdv2RoleGridInformational'])if(!polish.includes(marker))failures.push(`Project Experience brand/hierarchy polish lost ${marker}`);
+  for(const marker of ['--px-ink:var(--ink)','--mp-ink:var(--ink)','var(--bronze)','var(--indigo)','linear-gradient(138deg,var(--ink)','grid-template-columns:minmax(0,1.58fr) 350px','pdv2SaveUtility'])if(!polish.includes(marker))failures.push(`Project Experience brand/hierarchy polish lost ${marker}`);
 }
 
 if(failures.length){console.error('Project post-merge regression audit failed:');failures.forEach(item=>console.error(`- ${item}`));process.exit(1)}
-console.log('Project post-merge regression audit passed: Discover resilience, Save parity, pagination, brand hierarchy, single Apply CTA and informational contribution areas are protected.');
+console.log('Project post-merge regression audit passed: Discover resilience, Save parity, pagination, brand hierarchy, explicit role selection and role-aware application routing are protected.');

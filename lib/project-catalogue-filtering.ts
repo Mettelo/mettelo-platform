@@ -1,5 +1,5 @@
 export type CatalogueFacet={slug:string;label:string;aliases?:string[]};
-export type ProjectCatalogueSort='recent'|'closing'|'duration-short'|'duration-long';
+export type ProjectCatalogueSort='recommended'|'newest'|'closing'|'duration-short'|'commitment-low';
 
 export type ProjectCatalogueFilterable={
   title:string;
@@ -40,7 +40,7 @@ export type ProjectCatalogueFilters={
 };
 
 export const DEFAULT_PROJECT_CATALOGUE_FILTERS:ProjectCatalogueFilters={
-  query:'',role:'all',experience:'all',format:'all',capability:'all',domain:'all',tool:'all',commitment:'all',workingModel:'all',projectType:'all',availability:'all',stage:'all',duration:'all',sort:'recent'
+  query:'',role:'all',experience:'all',format:'all',capability:'all',domain:'all',tool:'all',commitment:'all',workingModel:'all',projectType:'all',availability:'all',stage:'all',duration:'all',sort:'recommended'
 };
 
 export function normalizeExperienceLevel(value:string|null|undefined):CatalogueFacet|null{
@@ -82,9 +82,9 @@ export function normalizeCommitment(value:string|null|undefined):CatalogueFacet|
 
 export function durationFacet(value:number|null|undefined):CatalogueFacet|null{
   if(!value||value<=0)return null;
-  if(value<=3)return{slug:'short',label:'Short — up to 3 weeks'};
-  if(value<=6)return{slug:'standard',label:'Standard — 4–6 weeks'};
-  return{slug:'extended',label:'Extended — 7+ weeks'};
+  if(value<=3)return{slug:'short',label:'Short · up to 3 weeks'};
+  if(value<=6)return{slug:'standard',label:'Standard · 4–6 weeks'};
+  return{slug:'extended',label:'Extended · 7+ weeks'};
 }
 
 export function workingModelFacet(value:string|null|undefined):CatalogueFacet|null{
@@ -127,13 +127,17 @@ function hasFacet(values:CatalogueFacet[],slug:string){return slug==='all'||valu
 function hasSingle(value:CatalogueFacet|null|undefined,slug:string){return slug==='all'||value?.slug===slug}
 function timestamp(value:string|null){if(!value)return null;const n=new Date(value).getTime();return Number.isFinite(n)?n:null}
 function recentTieBreak(a:ProjectCatalogueFilterable,b:ProjectCatalogueFilterable){return(timestamp(b.createdAt)||0)-(timestamp(a.createdAt)||0)||a.title.localeCompare(b.title)}
+function commitmentRank(item:ProjectCatalogueFilterable){const order=['up-to-3-hours','3-5-hours','5-7-hours','7-10-hours','10-plus-hours'];const index=item.commitmentFacet?order.indexOf(item.commitmentFacet.slug):-1;return index===-1?Number.MAX_SAFE_INTEGER:index}
+function recommendationRank(item:ProjectCatalogueFilterable){const order=['open-to-join','team-forming','in-progress','completed','not-open'];const index=item.availabilityFacet?order.indexOf(item.availabilityFacet.slug):-1;return index===-1?order.length:index}
 
 export function filterAndSortProjectCatalogue<T extends ProjectCatalogueFilterable>(projects:T[],filters:ProjectCatalogueFilters):T[]{
   const q=filters.query.trim().toLowerCase();
   const filtered=projects.filter(item=>(!q||catalogueSearchText(item).includes(q))&&hasFacet(item.roleFamilies,filters.role)&&hasSingle(item.experienceFacet,filters.experience)&&hasSingle(item.formatFacet,filters.format)&&hasFacet(item.capabilities,filters.capability)&&hasFacet(item.domains,filters.domain)&&hasFacet(item.tools,filters.tool)&&hasSingle(item.commitmentFacet,filters.commitment)&&hasSingle(item.workingModelFacet,filters.workingModel)&&hasSingle(item.projectTypeFacet,filters.projectType)&&hasSingle(item.availabilityFacet,filters.availability)&&hasSingle(item.stageFacet,filters.stage)&&hasSingle(durationFacet(item.durationWeeks),filters.duration));
   return[...filtered].sort((a,b)=>{
+    if(filters.sort==='recommended'){const rank=recommendationRank(a)-recommendationRank(b);return rank||recentTieBreak(a,b)}
     if(filters.sort==='closing'){const ad=timestamp(a.deadline),bd=timestamp(b.deadline);if(ad===null&&bd!==null)return 1;if(ad!==null&&bd===null)return-1;if(ad!==null&&bd!==null&&ad!==bd)return ad-bd;return recentTieBreak(a,b)}
-    if(filters.sort==='duration-short'||filters.sort==='duration-long'){const ad=a.durationWeeks,bd=b.durationWeeks;if(ad===null&&bd!==null)return 1;if(ad!==null&&bd===null)return-1;if(ad!==null&&bd!==null&&ad!==bd)return filters.sort==='duration-short'?ad-bd:bd-ad;return recentTieBreak(a,b)}
+    if(filters.sort==='duration-short'){const ad=a.durationWeeks,bd=b.durationWeeks;if(ad===null&&bd!==null)return 1;if(ad!==null&&bd===null)return-1;if(ad!==null&&bd!==null&&ad!==bd)return ad-bd;return recentTieBreak(a,b)}
+    if(filters.sort==='commitment-low'){const rank=commitmentRank(a)-commitmentRank(b);return rank||recentTieBreak(a,b)}
     return recentTieBreak(a,b);
   });
 }

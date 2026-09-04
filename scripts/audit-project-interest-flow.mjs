@@ -9,20 +9,7 @@ expect('lib/project-participation-terms.ts',['PROJECT_PARTICIPATION_TERMS_VERSIO
 expect('app/api/project-applications/route.ts',["application_kind:isInterest?'interest':'application",".not('status','in','(declined,withdrawn)')",'loadProjectRoleUsage(termsDb,projectId,project.project_type)','already participated in this canonical project','That project role has filled','terms_accepted_at','termsVersion!==PROJECT_PARTICIPATION_TERMS_VERSION','terms_version:PROJECT_PARTICIPATION_TERMS_VERSION','terms_attachment_id:null','notifyAdmins','notifyUser']);
 forbid('app/api/project-applications/route.ts',['termsAttachmentId','communication_template_attachments',"template_key','project_application_terms"]);
 expect('supabase/migrations/20260903215500_project_interest_inline_terms.sql',['add column if not exists terms_version text','Version identifier of inline Mettelo Project Participation Terms']);
-expect('app/api/admin/applications/route.ts',[
-  'loadProjectRoleUsage(db,application.project_id,project.project_type)',
-  'already has participation history for this canonical project',
-  ".from('project_members')",
-  '.insert({',
-  'No existing cohort history was overwritten.',
-  'if(createError){const {data:concurrentRun}=await db',
-  'if(!concurrentRun)throw createError',
-  'run=concurrentRun',
-  'const {data:startedRun,error:startError}=await db',
-  ".eq('status','forming')",
-  ".eq('has_started',false)",
-  "if(startedRun){"
-]);
+expect('app/api/admin/applications/route.ts',['loadProjectRoleUsage(db,application.project_id,project.project_type)','already has participation history for this canonical project',".from('project_members')",'.insert({','No existing cohort history was overwritten.','if(createError){const {data:concurrentRun}=await db','if(!concurrentRun)throw createError','run=concurrentRun','const {data:startedRun,error:startError}=await db',".eq('status','forming')",".eq('has_started',false)","if(startedRun){"]);
 forbid('app/api/admin/applications/route.ts',[".from('project_members').upsert"]);
 expect('lib/project-role-capacity.ts',[".eq('status','forming')",".eq('has_started',false)",".eq('project_run_id',run.id)",".in('membership_status',['waiting','active'])",".eq('project_id',projectId)"]);
 expect('supabase/migrations/20260901193000_project_lifecycle_invariants.sql',['pg_advisory_xact_lock','Project cohort capacity exceeded','Project role capacity exceeded for this cohort','Application-open projects require complete decision content and team size','Application-open projects require enough role capacity for the full team','Partner Projects support one engagement run only','Projects with operational history cannot return to Draft']);
@@ -30,30 +17,16 @@ expect('supabase/migrations/20260901194000_imported_open_project_default_roles.s
 expect('supabase/migrations/20260819193000_member_discover_application_integrity.sql',['project_applications_one_active_application_per_project_user',"application_kind='application'",'saved_projects','enable row level security','auth.uid()']);
 
 // Team formation is readiness-driven, opt-in for automatic leadership, and single-winner under concurrency.
-expect('lib/project-team-readiness.ts',[
-  'const volunteers=candidates.filter(candidate=>candidate.leadershipInterest)',
-  'recommendation=volunteers[0]||null',
-  ".eq('team_role','contributor')",
-  ".select('id')",
-  'if(assigned){',
-  'A concurrent approval may have completed the same deterministic lead',
-  "if(leads.length===0)blockers.push('project_lead')",
-  "if(leads.length>1)blockers.push('multiple_project_leads')"
-]);
-expect('supabase/migrations/20260902122350_project_team_single_lead_invariant.sql',[
-  'create unique index if not exists project_members_one_current_lead_per_run',
-  'on public.project_members(project_run_id)',
-  "team_role='project_lead'",
-  "membership_status in ('waiting','active')"
-]);
+expect('lib/project-team-readiness.ts',['const volunteers=candidates.filter(candidate=>candidate.leadershipInterest)','recommendation=volunteers[0]||null',".eq('team_role','contributor')",".select('id')",'if(assigned){','A concurrent approval may have completed the same deterministic lead',"if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')"]);
+expect('supabase/migrations/20260902122350_project_team_single_lead_invariant.sql',['create unique index if not exists project_members_one_current_lead_per_run','on public.project_members(project_run_id)',"team_role='project_lead'","membership_status in ('waiting','active')"]);
 
-// Authenticated Discover must stay in My Mettelo and use real project-domain data only.
+// Authenticated Discover stays in My Mettelo and now shares the governed catalogue filter model.
 expect('lib/member-navigation.ts',["{label:'Discover',href:'/member/discover'","{label:'Saved',href:'/member/saved'"]);
 expect('components/MemberAppShell.tsx',["href=\"/member/discover\"","isActive('/member/discover')",'hasProjectBreadcrumb']);
 expect('app/member/discover/page.tsx',['loadMemberDiscoverProjects',".from('project_applications')",".from('project_members')",".from('saved_projects')",'calculateMemberReadiness','applicationReadiness.ready','resolveMemberProjectState','memberProjectCatalogueAction']);
-expect('lib/member-discover-project-loader.ts',[".from('projects')",'project_roles(id,title,skills,openings)','PRIMARY_SELECT','CORE_FACET_SELECT','MINIMAL_SELECT']);
+expect('lib/member-discover-project-loader.ts',[".from('projects')",'project_roles(id,title,canonical_role_key,skills,openings)','PRIMARY_SELECT','CORE_FACET_SELECT','MINIMAL_SELECT']);
 forbid('app/member/discover/page.tsx',['career_roles','career_applications','/careers/','PROFILE_APPLICATION_READY']);
-expect('components/MemberDiscoverCatalogue.tsx',['Search projects, skills or topics','All roles','Skill / capability','Search capabilities','All domains','All tools','Any commitment','Any working model','Any project type','Any project stage','Discover is broad. Recommended is personalised.','Recommended uses your profile and primary Capability Path where relevant.','View Recommended','mdFilterDialog','showModal()','aria-haspopup="dialog"']);
+expect('components/MemberDiscoverCatalogue.tsx',['Search projects, roles, skills, tools or industries','Career / Role','Experience Level','Solo / Team','More filters','Filters · {activeCount}','Skills you want to build','Industry','Tools & technologies','Weekly commitment','Working model','Project source','Availability','Show {visible.length}','Discover is broad. Recommended is personalised.','position:fixed;inset:0 0 0 auto','showModal()','aria-haspopup="dialog"']);
 
 // Member Project Detail is the authenticated decision surface and consumes canonical application readiness.
 expect('app/member/discover/[id]/page.tsx',[".in('visibility',['public','members'])",'calculateMemberReadiness','applicationReadiness.ready','applicationReadiness.missing','project_members','role capacity lookup','resolveMemberProjectState']);
@@ -78,6 +51,5 @@ expect('app/onboarding/complete/page.tsx',['/auth/continue-after-onboarding?fall
 expect('app/api/projects/saved/route.ts',[".from('saved_projects')",".from('projects')",'user_id:user.id']);
 forbid('app/api/projects/saved/route.ts',['project_applications','career_applications']);
 expect('app/member/saved/page.tsx',['Saving a project never creates an application.','/member/discover/','/member/saved-opportunities']);
-
 expect('app/admin/project-operations/applications/page.tsx',['const db=privilegedDb||auth',".from('project_applications')",'if(privilegedDb){const users']);
 console.log('Project interest, member Discover and application convergence contract passed.');

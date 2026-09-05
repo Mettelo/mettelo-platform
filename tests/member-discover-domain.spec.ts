@@ -19,7 +19,7 @@ test('member project resolver implements the release-blocking CTA matrix',()=>{
 });
 
 test('resolver hands lifecycle ownership to the correct destination',()=>{
-  expect(memberProjectPrimaryAction('open_eligible','p1')).toEqual({label:'Apply to this project',href:'/member/discover/p1/apply'});
+  expect(memberProjectPrimaryAction('open_eligible','p1')).toEqual({label:'Review fit',href:'/member/discover/p1#fit'});
   for(const state of ['application_submitted','application_action_required','application_in_review','team_forming'] as const)expect(memberProjectPrimaryAction(state,'p1')).toEqual({label:'View application',href:'/member/applications'});
   for(const state of ['confirmed','active'] as const)expect(memberProjectPrimaryAction(state,'p1')).toEqual({label:'Open in Projects',href:'/member/projects'});
   expect(memberProjectPrimaryAction('completed','p1')).toEqual({label:'View in Projects',href:'/member/projects?state=completed'});

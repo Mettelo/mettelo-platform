@@ -18,7 +18,7 @@ AUTO remains server-authoritative:
 
 The programme default start delay is now **360 minutes (6 hours)**. The six-hour period is an Admin oversight window, not a required approval gate. Admin may pause or otherwise block a run through the existing scheduled-start controls. If the run remains ready and is not paused/blocked, the existing scheduler may start it automatically at the durable `scheduled_start_at` time.
 
-Per-project delay configuration remains supported.
+Per-project delay configuration remains supported and explicit project overrides remain authoritative.
 
 AUTO-qualified records do not enter the human review queue.
 
@@ -138,8 +138,8 @@ Phase 7 migration:
 
 It:
 
-1. changes the canonical AUTO delay default to 360 minutes;
-2. migrates the unreleased Phase 6 120-minute programme default to 360 minutes;
+1. changes the canonical AUTO delay default to 360 minutes for new/unconfigured projects;
+2. preserves explicit per-project AUTO delay overrides;
 3. adds `offered` to the canonical project-application status constraint;
 4. documents that `offered` is not membership.
 

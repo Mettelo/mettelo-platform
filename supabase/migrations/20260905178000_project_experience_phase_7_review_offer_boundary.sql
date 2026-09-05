@@ -34,3 +34,32 @@ alter table public.project_applications
 
 comment on constraint project_applications_status_check on public.project_applications is
   'Canonical project request lifecycle. REVIEW_REQUIRED uses submitted -> in_review -> shortlisted -> offered/declined; offered is a selection boundary only and does not create membership. AUTO may continue to use approved/waiting_for_team/team_complete compatibility states.';
+
+-- Phase 7 requires the canonical immutable review history to retain the Admin note/reason
+-- that accompanied each transition. Keep project_application_events as the one
+-- transition-audit architecture instead of creating a Phase 7-specific history table.
+alter table public.project_application_events
+  add column if not exists reviewer_notes text;
+
+comment on column public.project_application_events.reviewer_notes is
+  'Snapshot of the review note/reason recorded on the canonical project request when this status transition occurred.';
+
+create or replace function public.record_project_application_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into public.project_application_events(application_id, from_status, to_status, actor_user_id, reviewer_notes, created_at)
+    values (new.id, null, new.status, auth.uid(), new.reviewer_notes, coalesce(new.submitted_at, now()));
+  elsif old.status is distinct from new.status then
+    insert into public.project_application_events(application_id, from_status, to_status, actor_user_id, reviewer_notes, created_at)
+    values (new.id, old.status, new.status, auth.uid(), new.reviewer_notes, coalesce(new.updated_at, now()));
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.record_project_application_event() from public, anon, authenticated;

@@ -6,13 +6,14 @@ const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
 
 test.describe('Project Experience Phase 7 contract',()=>{
- test('AUTO keeps a six-hour default oversight window',()=>{
+ test('AUTO keeps a six-hour default oversight window without rewriting explicit project overrides',()=>{
   const admission=read('lib/project-admission.ts');
   const migration=read('supabase/migrations/20260905178000_project_experience_phase_7_review_offer_boundary.sql');
   const adminPolicy=read('components/AdminProjectAdmissionPolicy.tsx');
   expect(admission).toContain('DEFAULT_AUTO_START_DELAY_MINUTES=360');
   expect(migration).toContain('alter column auto_start_delay_minutes set default 360');
-  expect(migration).toContain('set auto_start_delay_minutes=360');
+  expect(migration).not.toMatch(/update\s+public\.projects\s+set\s+auto_start_delay_minutes\s*=\s*360/i);
+  expect(migration).toContain('Explicit per-project configuration remains authoritative');
   expect(adminPolicy).toContain('six-hour oversight window');
   expect(adminPolicy).toContain('item.auto_start_delay_minutes??360');
  });

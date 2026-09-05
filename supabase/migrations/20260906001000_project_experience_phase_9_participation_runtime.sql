@@ -95,11 +95,13 @@ declare
   run_row public.project_runs%rowtype;
   maximum_members integer;
   occupied integer:=0;
+  exclude_member_id uuid:=null;
 begin
   if new.membership_status not in ('waiting','active') then return new; end if;
   if new.project_run_id is null then
     raise exception using errcode='23514',message='ACTIVE_MEMBERSHIP_REQUIRES_RUN';
   end if;
+  if tg_op='UPDATE' then exclude_member_id:=old.id; end if;
 
   select * into project_row from public.projects where id=new.project_id for update;
   if project_row.id is null then raise exception using errcode='P0002',message='PROJECT_NOT_FOUND'; end if;
@@ -124,7 +126,7 @@ begin
   from public.project_members m
   where m.project_run_id=new.project_run_id
     and m.membership_status in ('waiting','active')
-    and (tg_op='INSERT' or m.id<>old.id);
+    and (exclude_member_id is null or m.id<>exclude_member_id);
 
   if occupied>=maximum_members then
     raise exception using errcode='23514',message='PARTICIPATION_CAPACITY_FULL';

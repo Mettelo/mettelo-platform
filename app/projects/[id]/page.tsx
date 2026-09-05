@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 import {notFound} from 'next/navigation';
 import ProjectPublicDetailV2 from '@/components/project-experience/ProjectPublicDetailV2';
 import polish from '@/components/project-experience/ProjectExperiencePolish.module.css';
-import {projectAcceptsApplications} from '@/lib/member-project-journey';
+import {resolveProjectPublicAvailability} from '@/lib/project-public-availability';
 import {buildProjectExperienceModel} from '@/lib/project-experience-model';
 import {getPublicProjectExperienceData} from '@/lib/public-project-experience-data';
 import {createPublicSupabaseClient} from '@/lib/supabase/public';
@@ -67,11 +67,17 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   const rolePool=project.canonical_project_key
     ?(project.project_roles||[]).filter(role=>Boolean(role.canonical_role_key))
     :(project.project_roles||[]);
-  const roles=rolePool.filter(role=>{
-    const status=roleDetails.get(role.id)?.roleStatus;
-    return status!=='closed'&&status!=='filled';
+  const roles=rolePool;
+  const roleCapacity=roles.reduce((sum,role)=>sum+Math.max(0,Number(role.openings)||0),0);
+  const availability=resolveProjectPublicAvailability({
+    status:project.status,
+    project_type:project.project_type||'open',
+    application_deadline:project.application_deadline,
+    applications_open:project.applications_open,
+    visibility:'public',
+    role_count:roleCapacity
   });
-  const canApply=projectAcceptsApplications(project)&&roles.length>0;
+  const canApply=availability.acceptingInterest;
   const domains=relationValues(project.project_domains,'domains');
   const tools=relationValues(project.project_tools,'tools');
   const methods=relationValues(project.project_methods,'methods');
@@ -83,7 +89,7 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
 
   const model=buildProjectExperienceModel({
     project:{id:project.id,title:project.title,summary:project.summary,problemStatement:project.problem_statement,status:project.status,projectType:project.project_type,applicationsOpen:project.applications_open,partnerName:project.partner_name,location:project.location,locationType:project.location_type,difficultyLevel:project.difficulty_level,durationWeeks:project.duration_weeks,weeklyCommitment:project.weekly_commitment,applicationDeadline:project.application_deadline,participationMode,minTeamSize,targetTeamSize,maxTeamSize,teamSizeThreshold:project.team_size_threshold},
-    roles:roles.map(role=>{const rich=roleDetails.get(role.id);return{id:role.id,title:role.title,description:role.description,discipline:role.discipline,skills:(role.skills||[]).filter(Boolean),openings:role.openings,responsibilities:rich?.responsibilities||[],recommendedSkills:rich?.recommendedSkills||[],experienceExpectation:rich?.experienceExpectation||null,weeklyCommitment:rich?.weeklyCommitment||null,roleStatus:rich?.roleStatus||null,applicationRequirements:rich?.applicationRequirements||null}}),
+    roles:roles.map(role=>{const rich=roleDetails.get(role.id);return{id:role.id,title:role.title,description:role.description,discipline:role.discipline,skills:(role.skills||[]).filter(Boolean),openings:role.openings,responsibilities:rich?.responsibilities||[],recommendedSkills:rich?.recommendedSkills||[],experienceExpectation:rich?.experienceExpectation||null,weeklyCommitment:rich?.weeklyCommitment||null,roleStatus:null,applicationRequirements:null}}),
     domains,tools,methods,detail,brief,milestones
   });
 

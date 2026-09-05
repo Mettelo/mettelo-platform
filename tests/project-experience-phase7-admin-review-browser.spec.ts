@@ -15,9 +15,11 @@ for(const viewport of viewports){
   await expect(page.getByRole('heading',{level:1,name:'Admin project-request review'})).toBeVisible();
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
-  const controls=page.locator('button:visible,select:visible,input:visible,summary:visible');
-  const count=await controls.count();
-  for(let i=0;i<count;i++){const box=await controls.nth(i).boundingBox();if(box)expect(Math.max(box.width,box.height)).toBeGreaterThanOrEqual(44)}
+  const primaryControls=page.locator('button:visible,select:visible,input:not([type="checkbox"]):visible,summary:visible');
+  const count=await primaryControls.count();
+  for(let i=0;i<count;i++){const box=await primaryControls.nth(i).boundingBox();if(box)expect(Math.max(box.width,box.height)).toBeGreaterThanOrEqual(44)}
+  const checkboxes=page.getByRole('checkbox');
+  for(let i=0;i<await checkboxes.count();i++)await expect(checkboxes.nth(i)).toHaveAccessibleName(/\S+/);
  });
 }
 

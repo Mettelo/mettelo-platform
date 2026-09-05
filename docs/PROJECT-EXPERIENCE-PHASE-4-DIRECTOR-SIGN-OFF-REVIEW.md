@@ -1,192 +1,117 @@
 # Phase 4 — Director Sign-off Review
 
-## Review scope
+## Review authority
 
-This review covers Project Experience Phase 4 — Public Project Discovery Experience across frontend, backend, Supabase/PostgreSQL, migrations, public-read security, project catalogue filtering, public project detail, project availability/CTA behaviour, Project Architect/Admin compatibility, member continuation, Public/Discover/Lab dependencies, mobile/tablet/desktop behaviour, accessibility, analytics, regression coverage and documentation.
+This Director review now uses `docs/PROJECT-EXPERIENCE-PHASE-4-FULL-ACCEPTANCE-REVIEW.md` as the detailed evidence ledger for all 83 user stories, 58 mandatory test journeys and the 63-point Director checklist.
+
+The previous Phase 4 review was not sufficient because it treated the earlier public discovery implementation as materially complete before reconciling every user story in the stricter acceptance authority supplied on 5 September 2026.
 
 ## Decision state
 
-**NOT APPROVED — exact-head release evidence pending.**
+**NOT APPROVED — final documentation-inclusive exact-head release evidence pending.**
 
-All material Phase 4 implementation defects found during Director review have now been fixed. No intentionally deferred Phase 4 implementation defect is currently known. Final approval still requires the documentation-inclusive exact head to complete the full protected release evidence.
+Phase 5 remains held.
 
-## 1. Success criteria
+## Additional defects found by the strict acceptance review
 
-**Implementation: PASS. Final release sign-off: PENDING.**
+The stricter review found material Phase 4 gaps beyond the original A–H remediation:
 
-The public discovery implementation now satisfies the defined Phase 4 architecture and product requirements. Runtime/release evidence is still required on the final exact SHA.
+I. `/projects` still contained an actual public `SubmissionForm` / `project_application` flow, violating the Phase 4→6 boundary.
 
-## 2. Related functionality reviewed
+J. Public project detail used `Continue to apply` semantics instead of the required `Submit interest` CTA and allowed contribution areas to read like public application choices.
 
-The review covered:
+K. New-user signup/onboarding did not reliably preserve the exact originating project through email/social signup, verification and Phase 2 onboarding.
 
-- canonical `public.projects` discovery identity;
-- Phase 3 Solo / Team / Flexible participation fields;
-- legacy `team_size_threshold` compatibility;
-- public catalogue loader and pagination;
-- public search/filter/sort engine;
-- filter dialog and URL/history state;
-- project cards and availability labels;
-- public project detail;
-- role/career/capability/domain/tool/method facets;
-- Capability Paths;
-- shared lifecycle/availability contract;
-- public interest continuation;
-- anonymous sign-in continuation to `/member/discover/[id]`;
-- member qualification/application ownership;
-- Project Architect/Admin canonical data compatibility;
-- governed project resources;
-- Lab/private resource boundaries;
-- Proof/evidence presentation boundaries;
-- public catalogue analytics;
-- responsive/accessibility contracts;
-- repository and isolated-Supabase regression coverage.
+L. Rich canonical public detail fields existed in the Phase 3 model but several were not surfaced: supporting objectives, key questions, scope, public resource provenance, timeline, Proof potential and team/basic eligibility context.
 
-## 3. Issues found
+M. Public project detail lacked project-specific canonical/share metadata and hidden/nonexistent project noindex handling.
 
-A. Flexible participation was invisible in public discovery.
+N. `/projects` had no route-level loading state.
 
-B. Public project detail exposed only the legacy formation minimum.
+O. Catalogue cards did not explicitly expose the full comparison metadata required by the acceptance contract, notably experience level and capability tags.
 
-C. Public filter terminology still assumed Solo / Team only.
+## Remediation result
 
-D. Rich public project detail depended on service-role-backed helpers.
+**Implementation remediation: PASS for I–O. Runtime/visual sign-off: PENDING.**
 
-E. Project cards exposed `Submit interest` when canonical availability rejected interest.
+- Removed the public submission form entirely. Phase 4 now hands the canonical project ID to `/member/discover/[id]`; Phase 6 remains the submission owner.
+- Open public opportunities use the exact `Submit interest` CTA. Closed projects expose a truthful `Interest closed` state.
+- Public contribution areas are informational. Detailed eligibility/role selection remains an authenticated Phase 5 concern.
+- Existing Phase 1 authentication and Phase 2 onboarding now carry a sanitised internal project return target through email signup, social signup, verification, onboarding completion and back to the exact project.
+- Public detail now renders canonical challenge/context/use case/objectives/questions/scope/resources/deliverables/success standards/capabilities/timeline/Proof potential/team structure without creating a duplicate data model.
+- Proof copy explicitly states that completing a project does not automatically create verified Mettelo Proof.
+- Public detail metadata now uses visibility-gated canonical title/summary/canonical URL/OpenGraph/Twitter metadata; hidden/nonexistent projects are noindex.
+- `/projects/loading.tsx` provides a route-level accessible loading state.
+- Project cards now show canonical domain/experience, participation, duration/weekly commitment, bounded capability tags, contribution areas, tools/methods and canonical availability.
+- `tests/project-experience-phase4-acceptance-contract.spec.ts` protects the new Phase 4 boundary and is part of `test:regression`.
 
-F. A crafted public `?interest=<id>` state could select an unavailable project.
+## Architecture result
 
-G. The frozen regression audit required obsolete privileged public helper names after the secure public projection replaced them.
+**PASS implementation.**
 
-H. Card header status wording could still say applications were available for an `open/recruiting` lifecycle record even when the canonical availability result reported a deadline/capacity closure.
+Phase 4 still uses one canonical Phase 3 project architecture. No duplicate project table, public-only project model, parallel lifecycle, new qualification engine or parallel application endpoint was introduced.
 
-## 4. Issues fixed
+The public catalogue remains sourced through the anon/public Supabase client and governed canonical relations. The public detail continues through the versioned read-only `get_public_project_experience_detail(uuid)` projection. Member qualification/application remains owned by `/member/discover/[id]` and later phases.
 
-**PASS. A–H are fixed.**
+The catalogue loader uses bounded server batches and only the current 12-item page is rendered to the browser. Database-side filter push-down is a future scale optimisation to monitor as catalogue volume grows materially; it is not implemented as a second catalogue/filter engine because duplicating the canonical TypeScript filtering/availability logic would violate the one-engine contract.
 
-- Canonical `participation_mode`, `min_team_size`, `target_team_size`, `max_team_size` flow through public discovery with legacy fallback.
-- Solo / Team / Flexible are first-class public filter options.
-- Cards expose canonical participation summaries.
-- Public detail exposes Participation and Capacity separately.
-- Filter wording is participation-based.
-- A versioned PostgreSQL public-safe projection replaces service-role-backed rich public reads.
-- `Submit interest` and the public interest-form project set use the same `availability.acceptingInterest` decision.
-- The regression audit requires the secure Phase 4 public RPC architecture while preserving authenticated member rich-data contracts.
-- `pilot/open/recruiting` card header wording now uses the canonical availability label, so card header, footer and CTA cannot contradict one another.
+## Supabase / security result
 
-## 5. Supabase / schema / migration result
+**PASS implementation. Exact-head runtime security evidence pending.**
 
-**Implementation: PASS. Exact-head clean-migration execution: PENDING.**
-
-Phase 4 introduces no duplicate project table or participation schema.
-
-Versioned migration:
+The Phase 4 public-detail migration remains versioned in:
 
 `supabase/migrations/20260905143000_project_experience_phase_4_public_detail_projection.sql`
 
-adds:
+The read function is visibility/status gated, read-only, fixed-search-path, filters resources to public/publish-permitted/green metadata, excludes protected URLs/storage/access/review/run-scoped data, and grants execution only to intended browser roles.
 
-`public.get_public_project_experience_detail(uuid)`
+Public catalogue/detail reads do not introduce a service-role dependency.
 
-The function:
+## Public journey result
 
-- is read-only;
-- is `SECURITY DEFINER` with a fixed `search_path`;
-- returns `null` unless the project is public and in an allowed public lifecycle state;
-- returns only definition-level/public-safe fields;
-- filters resources to `sensitivity='public'`, `publish_policy='permitted'`, `governance_status='green'`;
-- excludes protected resource URLs/storage/access/review fields;
-- excludes run-scoped execution resources/milestones;
-- revokes default public function access;
-- grants execute only to `anon` and `authenticated`;
-- does not mutate project data;
-- does not change project IDs, foreign keys or Phase 3 constraints.
+The intended public journey is now:
 
-No hosted-only Phase 4 database change is part of the implementation.
+`/projects` → search/filter/compare → `View project` → public decision surface → `Submit interest` → existing sign in/sign up when required → username/verification/onboarding when required → exact `/member/discover/[projectId]` continuation.
 
-## 6. RLS / security result
+There is no actual Phase 4 public interest form.
 
-**Implementation: PASS. Exact-head isolated security execution: PENDING.**
+## UI / UX / accessibility result
 
-The public catalogue continues to use the anon/public Supabase client and `visibility='public'`.
+**Source implementation: PASS. Final browser evidence: PENDING.**
 
-Richer public detail now also uses the anon client through the narrow public-safe RPC instead of privileged rich-detail helpers. Protected base-table policies are not weakened and browser roles receive no project/resource write authority.
+The accepted Mettelo catalogue/detail design system is preserved. The strict review added missing content within existing layout primitives rather than introducing a parallel redesign.
 
-Dedicated security coverage verifies public-only visibility, private-project rejection, protected-field absence and fixture restoration.
+Required final browser evidence still includes mobile/tablet/desktop, 320px, 200% reflow, long-card/detail content, filter focus/Escape/return, keyboard discovery, screen-reader semantics, touch targets and visible focus.
 
-## 7. Backend / API integrity result
+## Test evidence required on the final exact head
 
-**PASS implementation.**
-
-Phase 4 adds no mutation API or parallel lifecycle. Public discovery consumes canonical project state and the existing lifecycle/availability rules. Member qualification/application continues through `/member/discover/[projectId]`.
-
-## 8. Form / journey regression result
-
-**PASS implementation. Exact-head execution pending.**
-
-The intended journey is preserved:
-
-Public catalogue → filter/search → project card → public detail → sign-in if needed → exact member-project continuation.
-
-The public interest surface is restricted to projects whose canonical availability accepts interest. Phase 6 remains owner of actual submission lifecycle semantics.
-
-## 9. UI / UX review result
-
-**PASS implementation.**
-
-- accepted catalogue/card design preserved;
-- canonical participation is visible and decision-useful;
-- Flexible is represented;
-- capacity is understandable without inventing Phase 9 runtime behaviour;
-- unavailable projects remain readable;
-- secondary CTA state is truthful;
-- card availability copy is consistent across header/footer/action;
-- loading/update, zero-result, database-error and active-filter states remain present;
-- URL/back-forward filter behaviour remains intact.
-
-## 10. Mobile / accessibility result
-
-**PASS source/test contract; final browser execution pending.**
-
-Blocking public discovery coverage includes 320, 375, 390, 414, 768, 1024 and 1440 widths, 200% text reflow, horizontal-overflow checks, labelled controls, keyboard capability autocomplete, Escape close, focus return and live result count.
-
-## 11. Tests executed and results
-
-On a pre-final Phase 4 head containing the secure public RPC:
-
-- lint: PASS;
-- typecheck: PASS;
-- interaction audit: PASS;
-- regression coverage: initially FAIL because the frozen V2 audit required obsolete privileged public helper names.
-
-That audit defect was fixed to enforce the new secure public contract. Later CTA/status/documentation changes changed the exact SHA, so previous PASS results are supporting evidence only.
-
-Final exact-head evidence required:
+The final documentation-inclusive SHA must pass, without exception:
 
 - lint;
 - typecheck;
-- interaction audit;
-- corrected regression coverage;
-- public catalogue filtering tests;
-- production build;
+- interaction/content/regression audits;
+- `tests/project-experience-phase4-acceptance-contract.spec.ts` through the blocking regression command;
+- public catalogue filtering/browser regression;
 - clean isolated Supabase migration startup;
-- Phase 4 public RPC/security test;
-- public browser regression;
-- authenticated/member continuation regression;
-- persistence/form regression;
-- responsive/200% browser evidence;
-- Event Room contract;
-- protected Release Gate.
+- Phase 4 public RPC/RLS/leakage security coverage;
+- authenticated/member safe-return regression;
+- signup → verification → onboarding → exact-project return journey;
+- persistence/form regressions outside the removed Phase 4 public form;
+- mobile/tablet/desktop/200% accessibility evidence;
+- production build;
+- Event Room Phase 1–12 Contract;
+- protected Release Gate Status Bridge.
 
-## 12. Remaining risks
+Previous green runs from older SHAs are supporting evidence only and cannot approve the final Phase 4 head.
 
-1. The final documentation-inclusive exact SHA has not yet completed all release gates.
-2. PR #213 is intentionally stacked on Phase 3 / PR #212; the merge owner must preserve the Phase 1–3 contracts when retargeting/rebasing after dependencies merge.
+## Remaining risks
 
-No known Phase 4 implementation defect remains intentionally deferred.
+1. Exact-head runtime/browser/release evidence is still pending and can reveal defects that must be fixed before approval.
+2. PR #213 remains intentionally stacked on Phase 3 / PR #212; the merge owner must preserve the Phase 1–3 contracts when dependency ordering changes.
+3. Catalogue database-side filter push-down should be reconsidered at materially larger catalogue scale; the current bounded-batch server strategy avoids browser-wide catalogue transfer and preserves one canonical filter/availability engine.
 
 ## SIGN-OFF
 
-**NOT APPROVED — exact-head release evidence pending.**
+**NOT APPROVED.**
 
-Implementation and Director remediation are complete. Approval requires the final exact head to pass the complete protected release evidence without a new Phase 4-related defect.
+All currently known strict Phase 4 implementation gaps have been remediated, but approval is prohibited until the final documentation-inclusive exact head completes the full mandatory runtime, security, responsive/accessibility and protected release evidence. Phase 5 must remain on hold until then.

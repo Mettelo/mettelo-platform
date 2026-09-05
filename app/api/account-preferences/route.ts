@@ -47,11 +47,12 @@ export async function PATCH(request:Request){
       const profileDiscoverable=bool(body.profile_discoverable);
       const allowProjectInvitations=bool(body.allow_project_invitations);
       const allowMemberMessages=bool(body.allow_member_messages);
-      const [profileUpdate,privacyUpdate]=await Promise.all([
-        supabase.from('profiles').update({is_public:profileDiscoverable,updated_at:new Date().toISOString()}).eq('id',user.id),
-        supabase.from('member_privacy_preferences').upsert({user_id:user.id,allow_project_invitations:allowProjectInvitations,allow_member_messages:allowMemberMessages,updated_at:new Date().toISOString()},{onConflict:'user_id'})
-      ]);
-      if(profileUpdate.error||privacyUpdate.error)return NextResponse.json({error:'Unable to save privacy preferences.'},{status:500});
+      const {error}=await supabase.rpc('save_member_privacy_preferences',{
+        p_profile_discoverable:profileDiscoverable,
+        p_allow_project_invitations:allowProjectInvitations,
+        p_allow_member_messages:allowMemberMessages
+      });
+      if(error){console.error('account privacy atomic save failed',{code:error.code,message:error.message});return NextResponse.json({error:'Unable to save privacy preferences. No privacy changes were applied.'},{status:500});}
       return NextResponse.json({ok:true,message:'Privacy preferences saved.'});
     }
 

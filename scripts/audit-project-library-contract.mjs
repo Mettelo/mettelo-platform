@@ -71,10 +71,17 @@ for(const token of [
   if(!phase8PrivateImportMigration.includes(token))fail(`Phase 8 private import hardening missing ${token}`);
 }
 
+// Phase 4 deliberately separates anonymous public projection from the richer authenticated member projection.
+for(const token of ['getPublicProjectExperienceData','buildProjectExperienceModel']){
+  if(!publicRoute.includes(token))fail(`public project detail route missing secure Phase 4 projection dependency ${token}`);
+}
+for(const forbidden of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails']){
+  if(publicRoute.includes(forbidden))fail(`public project detail route must not use privileged projection dependency ${forbidden}`);
+}
+for(const token of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel']){
+  if(!memberRoute.includes(token))fail(`member project detail route missing canonical projection dependency ${token}`);
+}
 for(const route of [publicRoute,memberRoute]){
-  for(const token of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel']){
-    if(!route.includes(token))fail(`project detail route missing canonical projection dependency ${token}`);
-  }
   if(!route.includes('project_roles(id,title,description,skills,openings,discipline,canonical_role_key)'))fail('project detail route must load canonical project-role identity');
   if(!route.includes('project.canonical_project_key'))fail('canonical project detail must distinguish preserved legacy roles from canonical roles');
   if(!route.includes('canonical_role_key'))fail('canonical project detail must filter to canonical roles');

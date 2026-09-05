@@ -7,6 +7,7 @@ import {recordAdminAudit} from '@/lib/admin-audit';
 
 type ServiceDb=NonNullable<ReturnType<typeof serviceDb>>;
 type AccessMode='member'|'legacy_full'|'full'|'custom'|'invalid';
+type IdentityRow={id:string;username:string|null;member_id:string};
 
 async function requireAccessManager(){
  const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();
@@ -22,13 +23,18 @@ function capabilityState(user:Pick<SupabaseUser,'app_metadata'>){
  if(configured.includes('*'))return{mode:'full' as AccessMode,capabilities:['*'],valid:true};
  return{mode:'custom' as AccessMode,capabilities:[...new Set(configured as AdminCapability[])],valid:true};
 }
-function safeAccount(user:SupabaseUser){
- const state=capabilityState(user);return{id:user.id,email:user.email||'',name:String(user.user_metadata?.full_name||''),is_admin:user.app_metadata?.role==='admin',access_mode:state.mode,capabilities:state.capabilities,configuration_valid:state.valid,can_manage_access:hasAdminCapability(user,'admin.access.manage'),created_at:user.created_at};
+function safeAccount(user:SupabaseUser,identity?:IdentityRow){
+ const state=capabilityState(user);return{id:user.id,email:user.email||'',name:String(user.user_metadata?.full_name||''),username:identity?.username||'',member_id:identity?.member_id||'',is_admin:user.app_metadata?.role==='admin',access_mode:state.mode,capabilities:state.capabilities,configuration_valid:state.valid,can_manage_access:hasAdminCapability(user,'admin.access.manage'),created_at:user.created_at};
 }
-function cleanSearch(value:unknown){return String(value??'').trim().slice(0,120).toLowerCase()}
+function cleanSearch(value:unknown){return String(value??'').trim().slice(0,120).toLowerCase().replace(/^@/,'')}
 async function listAllUsers(db:ServiceDb){
  const users:SupabaseUser[]=[];for(let page=1;page<=20;page++){const {data,error}=await db.auth.admin.listUsers({page,perPage:1000});if(error)throw error;users.push(...data.users);if(data.users.length<1000)return users}
  throw new Error('Account directory exceeds the bounded Admin access listing limit.');
+}
+async function identityMap(db:ServiceDb,users:SupabaseUser[]){
+ const map=new Map<string,IdentityRow>();
+ for(let start=0;start<users.length;start+=500){const ids=users.slice(start,start+500).map(user=>user.id);if(!ids.length)continue;const {data,error}=await db.from('profiles').select('id,username,member_id').in('id',ids);if(error)throw error;for(const row of (data||[]) as IdentityRow[])map.set(row.id,row)}
+ return map;
 }
 function requestedCapabilities(mode:unknown,value:unknown){
  if(mode==='full')return{ok:true as const,capabilities:['*'] as string[]};
@@ -43,8 +49,8 @@ export async function GET(request:Request){
  try{
   const params=new URL(request.url).searchParams;const page=Math.max(1,Number.parseInt(params.get('page')||'1',10)||1);const requested=Number.parseInt(params.get('page_size')||'25',10);const pageSize=[25,50,100].includes(requested)?requested:25;const access=params.get('access')||'all';const sort=params.get('sort')==='oldest'?'oldest':'newest';const q=cleanSearch(params.get('q'));
   if(!['all','admin','member'].includes(access))return NextResponse.json({error:'Invalid access filter.'},{status:400});
-  const users=await listAllUsers(gate.db!);let accounts=users.map(safeAccount);
-  if(q)accounts=accounts.filter(item=>item.email.toLowerCase().includes(q)||item.name.toLowerCase().includes(q));if(access==='admin')accounts=accounts.filter(item=>item.is_admin);if(access==='member')accounts=accounts.filter(item=>!item.is_admin);
+  const users=await listAllUsers(gate.db!);const identities=await identityMap(gate.db!,users);let accounts=users.map(user=>safeAccount(user,identities.get(user.id)));
+  if(q)accounts=accounts.filter(item=>item.email.toLowerCase().includes(q)||item.name.toLowerCase().includes(q)||item.username.toLowerCase().includes(q)||item.member_id.toLowerCase().includes(q));if(access==='admin')accounts=accounts.filter(item=>item.is_admin);if(access==='member')accounts=accounts.filter(item=>!item.is_admin);
   accounts.sort((a,b)=>sort==='oldest'?a.created_at.localeCompare(b.created_at):b.created_at.localeCompare(a.created_at));const total=accounts.length;const pages=Math.max(1,Math.ceil(total/pageSize));const safePage=Math.min(page,pages);const start=(safePage-1)*pageSize;
   return NextResponse.json({users:accounts.slice(start,start+pageSize),page:safePage,page_size:pageSize,total,pages,current_user_id:gate.user!.id,capability_registry:ADMIN_CAPABILITIES});
  }catch(error){console.error('admin access listing failed',error);return NextResponse.json({error:'Unable to load accounts.'},{status:500});}
@@ -54,7 +60,7 @@ export async function PATCH(request:Request){
  const gate=await requireAccessManager();if(gate.error)return gate.error;
  try{
   const body=await request.json();const targetId=String(body.user_id||'').trim();const action=String(body.action||'');if(!targetId||!['grant','revoke','update_capabilities'].includes(action))return NextResponse.json({error:'Invalid Admin access request.'},{status:400});
-  const {data:target,error:readError}=await gate.db!.auth.admin.getUserById(targetId);if(readError||!target.user)return NextResponse.json({error:'Account not found.'},{status:404});const beforeUser=target.user;const before=safeAccount(beforeUser);
+  const {data:target,error:readError}=await gate.db!.auth.admin.getUserById(targetId);if(readError||!target.user)return NextResponse.json({error:'Account not found.'},{status:404});const beforeUser=target.user;const {data:identity}=await gate.db!.from('profiles').select('id,username,member_id').eq('id',targetId).maybeSingle();const before=safeAccount(beforeUser,(identity||undefined) as IdentityRow|undefined);
   if(action==='revoke'&&targetId===gate.user!.id)return NextResponse.json({error:'You cannot remove your own Admin access.'},{status:409});
   if(action==='update_capabilities'&&beforeUser.app_metadata?.role!=='admin')return NextResponse.json({error:'Grant Admin access before editing capabilities.'},{status:409});
 
@@ -68,9 +74,9 @@ export async function PATCH(request:Request){
   if(targetId===gate.user!.id&&!willManage)return NextResponse.json({error:'You cannot remove your own Admin access management capability.'},{status:409});
   if(before.can_manage_access&&!willManage){const all=await listAllUsers(gate.db!);const otherManagers=all.filter(user=>user.id!==targetId&&hasAdminCapability(user,'admin.access.manage'));if(otherManagers.length===0)return NextResponse.json({error:'At least one Admin must retain Admin access management capability.'},{status:409});}
 
-  const {data:updated,error}=await gate.db!.auth.admin.updateUserById(targetId,{app_metadata:appMetadata});if(error||!updated.user)throw error||new Error('Admin account update returned no user.');const after=safeAccount(updated.user);
+  const {data:updated,error}=await gate.db!.auth.admin.updateUserById(targetId,{app_metadata:appMetadata});if(error||!updated.user)throw error||new Error('Admin account update returned no user.');const after=safeAccount(updated.user,(identity||undefined) as IdentityRow|undefined);
   const auditAction=action==='grant'?'admin.access.granted':action==='revoke'?'admin.access.revoked':'admin.capabilities.updated';
-  const audit=await recordAdminAudit({actorUserId:gate.user!.id,actorEmail:gate.user!.email,capability:'admin.access.manage',action:auditAction,resourceType:'admin.account',resourceId:targetId,beforeState:{is_admin:before.is_admin,access_mode:before.access_mode,capabilities:before.capabilities},afterState:{is_admin:after.is_admin,access_mode:after.access_mode,capabilities:after.capabilities},metadata:{target_email:after.email||before.email,requested_capabilities:afterCapabilities}});
+  const audit=await recordAdminAudit({actorUserId:gate.user!.id,actorEmail:gate.user!.email,capability:'admin.access.manage',action:auditAction,resourceType:'admin.account',resourceId:targetId,beforeState:{is_admin:before.is_admin,access_mode:before.access_mode,capabilities:before.capabilities},afterState:{is_admin:after.is_admin,access_mode:after.access_mode,capabilities:after.capabilities},metadata:{target_email:after.email||before.email,target_username:after.username||undefined,target_member_id:after.member_id||undefined,requested_capabilities:afterCapabilities}});
   return NextResponse.json({ok:true,user:after,audit_recorded:audit.ok});
  }catch(error){console.error('admin access update failed',error);return NextResponse.json({error:'Unable to update Admin access.'},{status:500});}
 }

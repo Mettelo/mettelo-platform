@@ -1,5 +1,6 @@
 import {redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
+import {isRequiredCommunication} from '@/lib/account-preferences';
 import MemberAccountSettings from '@/components/MemberAccountSettings';
 
 export const dynamic='force-dynamic';
@@ -17,11 +18,12 @@ export default async function MemberAccountPage(){
   ]);
 
   const overrides=new Map((notificationResult.data||[]).map(row=>[row.event_key,row]));
-  const notifications=(catalogueResult.data||[]).map(event=>({
-    ...event,
-    in_app_enabled:overrides.get(event.event_key)?.in_app_enabled??(event.default_channel==='in_app'||event.default_channel==='email_and_in_app'),
-    email_enabled:overrides.get(event.event_key)?.email_enabled??event.default_channel==='email_and_in_app'
-  }));
+  const notifications=(catalogueResult.data||[]).map(event=>{
+    const required=isRequiredCommunication(event);
+    const defaultInApp=event.default_channel==='in_app'||event.default_channel==='email_and_in_app';
+    const defaultEmail=event.default_channel==='email_and_in_app';
+    return {...event,required,in_app_enabled:required?defaultInApp:(overrides.get(event.event_key)?.in_app_enabled??defaultInApp),email_enabled:required?defaultEmail:(overrides.get(event.event_key)?.email_enabled??defaultEmail)};
+  });
 
   return <MemberAccountSettings
     account={{email:user.email||'',full_name:profileResult.data?.full_name||'',username:profileResult.data?.username||null,member_id:profileResult.data?.member_id||null}}

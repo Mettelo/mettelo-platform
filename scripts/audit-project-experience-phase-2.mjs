@@ -22,7 +22,7 @@ const checks=[
  ['onboarding captures broader professional context',onboarding.includes('current_job_title')&&onboarding.includes('organisation')&&onboarding.includes('experience_level')&&onboarding.includes('employment_status')&&onboarding.includes('languages')&&onboarding.includes('Professional bio')],
  ['onboarding availability uses canonical capacity ranges',onboarding.includes('1–3 hours/week')&&onboarding.includes('16+ hours/week')],
  ['onboarding privacy is separated from profile data collection',!onboarding.includes('Show my professional profile')&&onboarding.includes('Privacy and communication choices are managed separately in Account')],
- ['safe onboarding continuation is preserved',completion.includes('/auth/continue-after-onboarding')&&continuation.includes('mettelo_return_to')&&continuation.includes("value.startsWith('/')&&!value.startsWith('//')"))],
+ ['safe onboarding continuation is preserved',completion.includes('/auth/continue-after-onboarding')&&continuation.includes('mettelo_return_to')&&continuation.includes("value.startsWith('/')&&!value.startsWith('//')")],
  ['Profile and Account are separate destinations',nav.includes("href:'/member/profile'")&&nav.includes("href:'/member/account'")],
  ['Profile editor does not edit privacy',!profile.includes('name="is_public"')&&profile.includes('managed separately in Account')],
  ['profile URLs normalize missing scheme and server requires https',profile.includes('normaliseProfileUrl')&&profileApi.includes("protocol!=='https:'")],

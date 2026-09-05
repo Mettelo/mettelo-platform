@@ -57,7 +57,7 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
     getPublicProjectExperienceData(project.id),
     createServerSupabaseClient()
   ]);
-  const {detail,brief,milestones,roleDetails}=publicExperience;
+  const {detail,brief,milestones,roleDetails,loadError}=publicExperience;
   const {data:{user}}=await auth.auth.getUser();
 
   // Imported canonical projects intentionally keep legacy role rows so historic
@@ -97,5 +97,5 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   const signinHref=`/signin?next=${encodeURIComponent(memberProjectHref)}`;
   const ctaHref=user?memberProjectHref:signinHref;
 
-  return <div className={`${polish.host} ${polish.publicHost}`}><ProjectPublicDetailV2 model={model} canApply={canApply} ctaHref={ctaHref} authenticated={Boolean(user)}/></div>;
+  return <div className={`${polish.host} ${polish.publicHost}`}><ProjectPublicDetailV2 model={model} canApply={canApply} ctaHref={ctaHref} authenticated={Boolean(user)} detailLoadError={loadError}/></div>;
 }

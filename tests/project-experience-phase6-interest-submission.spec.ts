@@ -17,7 +17,7 @@ test.describe('Project Experience Phase 6 interest submission contract',()=>{
   test('server revalidates qualification before persisting interest',()=>{
     const api=source('app/api/project-applications/route.ts');
     expect(api).toContain('calculateMemberReadiness');
-    expect(api).toContain("code,'PROFILE_INCOMPLETE'").or.toBeDefined();
+    expect(api).toContain("'PROFILE_INCOMPLETE'");
     expect(api).toContain("eq('project_id',projectId).eq('user_id',user.id)");
     expect(api).toContain('loadMemberProjectTeamState');
     expect(api).toContain("'CAPACITY_FULL'");

@@ -408,7 +408,6 @@ begin
       admission_mode_snapshot='review_required',
       admission_decision='review_required',
       admission_decided_at=now_at,
-      approved_at=null,
       decision_at=null,
       decision_reason=null,
       updated_at=now_at
@@ -463,7 +462,7 @@ where pr.project_id=p.id
 
 update public.project_applications pa
 set status='submitted',project_run_id=null,admission_mode_snapshot='review_required',
-    admission_decision='review_required',admission_decided_at=now(),approved_at=null,
+    admission_decision='review_required',admission_decided_at=now(),
     decision_at=null,decision_reason=null,updated_at=now()
 from public.projects p
 where pa.project_id=p.id

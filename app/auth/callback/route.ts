@@ -15,7 +15,7 @@ export async function GET(request:Request){
         if(flow==='signup'){const target=new URL('/auth/verified',url.origin);target.searchParams.set('next',next);return NextResponse.redirect(target)}
         if(flow==='social-signup'){
           const {data:{user}}=await supabase.auth.getUser();
-          if(user){await supabase.auth.updateUser({data:{...(user.user_metadata||{}),mettelo_identity_required:true}})}
+          if(user){await supabase.auth.updateUser({data:{...(user.user_metadata||{}),mettelo_identity_required:true,mettelo_identity_next:next}})}
           const target=new URL('/auth/social-complete',url.origin);target.searchParams.set('next',next);return NextResponse.redirect(target)
         }
         return NextResponse.redirect(new URL(next,url.origin));

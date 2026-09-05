@@ -17,9 +17,7 @@ security definer
 set search_path=public
 as $$
 begin
-  if new.member_id is null then
-    new.member_id:='MTL-' || lpad(nextval('public.mettelo_member_number_seq')::text,6,'0');
-  end if;
+  new.member_id:='MTL-' || lpad(nextval('public.mettelo_member_number_seq')::text,6,'0');
   return new;
 end;
 $$;
@@ -49,6 +47,17 @@ language plpgsql
 set search_path=public
 as $$
 begin
+  if tg_op='INSERT' then
+    if current_setting('app.member_identity_signup',true) is distinct from '1' and (
+      new.username is not null or
+      new.username_claimed_at is not null or
+      new.username_claim_attempted_at is not null
+    ) then
+      raise exception 'member identity fields must be created through the canonical identity operation' using errcode='42501';
+    end if;
+    return new;
+  end if;
+
   if new.member_id is distinct from old.member_id then
     raise exception 'member_id is immutable' using errcode='42501';
   end if;
@@ -65,7 +74,7 @@ $$;
 
 drop trigger if exists profiles_protect_member_identity on public.profiles;
 create trigger profiles_protect_member_identity
-before update on public.profiles
+before insert or update on public.profiles
 for each row execute function public.protect_member_identity_fields();
 
 create or replace function public.claim_member_username(p_username text)
@@ -122,6 +131,7 @@ declare
   requested_username text:=lower(trim(coalesce(new.raw_user_meta_data->>'username','')));
 begin
   if requested_username='' then requested_username:=null; end if;
+  perform set_config('app.member_identity_signup','1',true);
   insert into public.profiles (id,full_name,username,username_claimed_at)
   values (new.id,coalesce(new.raw_user_meta_data->>'full_name',''),requested_username,case when requested_username is null then null else now() end)
   on conflict (id) do nothing;

@@ -8,7 +8,7 @@ function read(relative:string){return fs.readFileSync(path.join(root,relative),'
 
 test.describe('Project Experience Phase 5 member fit and readiness',()=>{
  test('fit evaluator is transparent and does not create a hidden acceptance score',()=>{
-  const fit=evaluateMemberProjectFit({profile:{skills:['SQL','Power BI'],preferredRoles:['Data Analyst'],experienceLevel:'Intermediate',weeklyCapacity:'5-7 hours/week'},preferredDomains:[{slug:'retail-ecommerce',name:'Retail & E-commerce'}],preferredTools:[{slug:'power-bi',name:'Power BI'}],project:{difficultyLevel:'Intermediate',weeklyCommitment:'3-5 hours/week',domains:[{slug:'retail-ecommerce',name:'Retail & E-commerce'}],tools:[{slug:'power-bi',name:'Power BI'},{slug:'python',name:'Python'}]},roles:[{id:'r1',title:'Data Analyst',canonicalRoleKey:'data-analyst',skills:['SQL','Python'],recommendedSkills:['Power BI']}]});
+  const fit=evaluateMemberProjectFit({profile:{skills:['SQL','Power BI'],preferredRoles:['Data Analyst / BI'],experienceLevel:'Intermediate',weeklyCapacity:'5-7 hours/week'},preferredDomains:[{slug:'retail-ecommerce',name:'Retail & E-commerce'}],preferredTools:[{slug:'power-bi',name:'Power BI'}],project:{difficultyLevel:'Intermediate',weeklyCommitment:'3-5 hours/week',domains:[{slug:'retail-ecommerce',name:'Retail & E-commerce'}],tools:[{slug:'power-bi',name:'Power BI'},{slug:'python',name:'Python'}]},roles:[{id:'r1',title:'Data Analyst',canonicalRoleKey:'data-analyst',skills:['SQL','Python'],recommendedSkills:['Power BI']}]});
   expect(fit.matchedCount).toBeGreaterThanOrEqual(3);expect(fit.gapCount).toBe(0);expect(fit.roleFits.r1.preferredRoleMatch).toBeTruthy();expect(fit.roleFits.r1.matchedSkills).toContain('SQL');expect(fit.roleFits.r1.matchedSkills).toContain('Power BI');
  });
 

@@ -3,7 +3,7 @@ import type {ProjectExperienceModel} from '@/lib/project-experience-model';
 import ProjectPublicDetailBodyV3 from './ProjectPublicDetailBodyV3';
 import styles from './ProjectPublicDetailV2.module.css';
 
-type Props={model:ProjectExperienceModel;canApply:boolean;ctaHref:string;authenticated:boolean};
+type Props={model:ProjectExperienceModel;canApply:boolean;ctaHref:string;authenticated:boolean;detailLoadError?:boolean};
 
 function titleCase(value:string|null|undefined){return value?value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase()):'Not published'}
 function date(value:string|null|undefined){if(!value)return'Not published';const parsed=new Date(value);if(Number.isNaN(parsed.getTime()))return'Not published';return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric'}).format(parsed)}
@@ -20,7 +20,7 @@ function participation(project:ProjectExperienceModel['project']){
   return{label:'Not published',detail:min?`${min} participant${min===1?'':'s'}`:'Not published'};
 }
 
-export default function ProjectPublicDetailV2({model,canApply,ctaHref,authenticated}:Props){
+export default function ProjectPublicDetailV2({model,canApply,ctaHref,authenticated,detailLoadError=false}:Props){
   const {project,resources,proofSignals,roles,taxonomy}=model;
   const workingModel=project.locationType?titleCase(project.locationType):project.location||'Project-specific';
   const statusLabel=canApply?'Open for interest':project.status==='pilot'?'Pilot project':'Interest closed';
@@ -60,6 +60,7 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
       </aside>
     </header>
 
+    {detailLoadError&&<div className={styles.empty} role="alert"><strong>Some project details could not be loaded.</strong><span>Core project information is still available. Refresh this page to retry the detailed project brief.</span></div>}
     <ProjectPublicDetailBodyV3 model={model} canApply={canApply} ctaHref={ctaHref} authenticated={authenticated}/>
   </div>;
 }

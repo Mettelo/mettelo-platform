@@ -86,6 +86,17 @@ test.describe('Project Experience Phase 8 source contract',()=>{
     expect(page).toContain('<MemberProjectOffers/>');
   });
 
+  test('Tracker agrees with offered, accepted and expired Offer lifecycle',()=>{
+    const tracker=read('components/MemberApplicationTracker.tsx');
+    expect(tracker).toContain("accepted:'Place accepted'");
+    expect(tracker).toContain("expired:'Offer expired'");
+    expect(tracker).toContain("const closedStates=new Set(['declined','expired','withdrawn'])");
+    expect(tracker).toContain("needs:items.filter(item=>item.status==='offered'");
+    expect(tracker).toContain("item.status==='accepted'&&item.admission_decision==='auto_qualified'");
+    expect(tracker).toContain("item.status==='accepted'&&item.admission_decision==='review_required'");
+    expect(tracker).toContain('review the Project Place Offer above');
+  });
+
   test('confirmation dialog and success state have explicit focus management',()=>{
     const component=read('components/MemberProjectOffers.tsx');
     expect(component).toContain('openerRef');
@@ -108,6 +119,17 @@ test.describe('Project Experience Phase 8 source contract',()=>{
     expect(cron).toContain("db.rpc('phase8_expire_project_offers'");
     expect(cron).toContain('dedupeKey:`project-offer:${reminder.offer_id}:expiring`');
     expect(cron).toContain('dedupeKey:`project-offer:${expired.offer_id}:expired`');
+  });
+
+  test('accepted reservation is consumed exactly once by later canonical membership',()=>{
+    const handoff=read('supabase/migrations/20260905232700_project_experience_phase_8_reservation_consumption.sql');
+    expect(handoff).toContain('add column if not exists capacity_consumed_at timestamptz');
+    expect(handoff).toContain('phase8_consume_offer_reservation_on_membership');
+    expect(handoff).toContain("status='accepted'");
+    expect(handoff).toContain('capacity_consumed_at is null');
+    expect(handoff).toContain("'offer_capacity_consumed'");
+    expect(handoff).toContain("message='PHASE8_ACCEPTED_TERMINAL'");
+    expect(handoff).toContain("new.status not in ('waiting_for_team','team_complete')");
   });
 
   test('RLS exposes only member-owned offers while writes remain RPC controlled',()=>{

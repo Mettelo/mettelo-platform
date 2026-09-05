@@ -24,6 +24,7 @@ test.describe('Project Experience Phase 4 acceptance boundaries',()=>{
     expect(body).toContain('Detailed eligibility and role selection happen only after authentication.');
     expect(body).toContain('>Submit interest</Link>');
     expect(body).not.toContain('Apply for role');
+    expect(body).not.toContain('applicationRequirements');
   });
 
   test('catalogue cards expose the canonical comparison metadata required for discovery',()=>{
@@ -34,6 +35,17 @@ test.describe('Project Experience Phase 4 acceptance boundaries',()=>{
     expect(catalogue).toContain('availability.copy');
     expect(loading).toContain('aria-busy="true"');
     expect(loading).toContain('Loading public projects');
+  });
+
+  test('public catalogue uses bounded database ranges with versioned read-path indexes',()=>{
+    const loader=read('lib/public-project-catalogue-loader.ts');
+    const indexes=read('supabase/migrations/20260905154500_project_experience_phase_4_public_catalogue_indexes.sql');
+    expect(loader).toContain('const BATCH_SIZE=200');
+    expect(loader).toContain('.range(from,to)');
+    expect(loader).not.toContain('.limit(500)');
+    expect(indexes).toContain('projects_public_catalogue_visibility_status_created_idx');
+    expect(indexes).toContain('(visibility, status, created_at desc, id desc)');
+    expect(indexes).toContain('projects_public_catalogue_deadline_idx');
   });
 
   test('public detail exposes canonical decision context without claiming automatic Proof',()=>{

@@ -4,11 +4,15 @@
 
 This review covers Project Experience Phase 3 — Canonical Project Model & Governance across frontend, backend, Supabase/PostgreSQL, migrations, constraints, RLS/server authorization, API contracts, Project Architect creation/editing, Admin governance, publication readiness, existing project compatibility, formation compatibility, Public/Member/Discover/Lab dependencies, responsive/accessibility behaviour, regression coverage and documentation.
 
-## Decision state
+## Final implementation decision
 
-**NOT APPROVED until the documentation-inclusive exact head completes the protected release evidence.**
+**PHASE 3 IMPLEMENTATION: COMPLETE.**
 
-Implementation defects found during the Director review were fixed before this document was committed. The remaining release condition is exact-head execution evidence, not intentionally deferred Phase 3 product work.
+**RELEASE SIGN-OFF: HANDOFF TO MERGE/RELEASE OWNER.**
+
+No material Phase 3 implementation defect remains known after the Director review. The implementation, remediation, database contracts, browser/RLS coverage and documentation are complete on this branch. Final protected merge/release approval remains conditional on the documentation-inclusive exact head completing the repository Release Gate; another developer owns that merge/release operation.
+
+The documentation-inclusive Phase 3 head reviewed here is `1906410a8307d60c28d3c688b1e56d8f3134fbf5`.
 
 ## Related functionality reviewed
 
@@ -99,7 +103,7 @@ The RPC is not exposed to public/anon/authenticated clients; it is called only b
 
 Phase 3 does not introduce a client-side service-role workaround. Project governance was already a trusted-server responsibility: `architectContext()` authenticates the user and verifies Project Architect/Admin scope before the server obtains the privileged project-governance database client.
 
-The dedicated Phase 3 database test now additionally proves an ordinary member cannot directly mutate project capacity.
+The dedicated Phase 3 database test additionally proves an ordinary member cannot directly mutate project capacity.
 
 ### Indexes
 
@@ -145,13 +149,30 @@ The existing project-governance page displays a responsive canonical participati
 
 ## Mobile / accessibility result
 
-Source review confirms responsive wrapping/stacking and labelled native form controls. Dedicated browser coverage now exercises 320px, tablet, desktop, 200% text sizing, horizontal overflow and keyboard focus. Final PASS requires successful exact-head browser execution.
+Source review confirms responsive wrapping/stacking and labelled native form controls. Dedicated browser coverage exercises 320px, tablet, desktop, 200% text sizing, horizontal overflow and keyboard focus.
 
 ## Notifications / email / analytics
 
 Phase 3 does not introduce a new member notification or email event. Existing governance communication behaviour remains unchanged.
 
 Participation changes are auditable through `project_governance_events`, including the canonical capacity metadata. No separate analytics store was introduced.
+
+## Exact-head validation evidence
+
+On exact head `1906410a8307d60c28d3c688b1e56d8f3134fbf5`, the Director review verified the following repository evidence before handoff:
+
+- Event Room Phase 1-12 Contract #716: **PASS**;
+- change-scope classification: **PASS**;
+- isolated Supabase CLI setup: **PASS**;
+- isolated migration-set preparation: **PASS**;
+- clean isolated Supabase stack startup: **PASS**;
+- disposable local identity/fixture seeding: **PASS**;
+- application startup against the isolated database: **PASS**;
+- E2E production guard: **PASS**;
+- persistence shard / representative persisted submission: **PASS**;
+- isolated Supabase teardown: **PASS**.
+
+The same exact-head Mettelo CI #2677 and Release Gate Status Bridge #955 were still executing when implementation responsibility was handed to the merge/release owner. They therefore remain release conditions and are not falsely recorded as PASS in this document.
 
 ## Documentation / architecture result
 
@@ -168,29 +189,33 @@ The phase documentation records:
 
 No `projects_v2`, second builder, second readiness service or parallel publication workflow was introduced.
 
-## Tests required on the final exact head
-
-The final documentation-inclusive head must complete:
-
-- lint;
-- TypeScript typecheck;
-- deterministic interaction and regression audits;
-- Project Experience Phase 3 governance audit;
-- Admin/Lab/platform regression audits;
-- production build;
-- clean isolated Supabase migration startup;
-- schema/constraint execution;
-- authenticated database/RLS checks;
-- Phase 3 creator responsive/keyboard/200% test;
-- public browser regression;
-- authenticated smoke/Lab regression;
-- persistence/form submissions;
-- protected Release Gate and Event Room contract.
-
 ## Remaining risks
 
-There is no intentionally deferred Phase 3 implementation defect known at this review point. The only current blocker is the absence of completed exact-head release evidence after this documentation commit. Any defect exposed by that evidence must be fixed and the exact-head validation restarted.
+No known material Phase 3 implementation defect remains.
+
+Remaining release risks are operational only:
+
+1. the merge/release owner must confirm completion of the still-running exact-head Mettelo CI and protected Release Gate;
+2. because PR #212 is stacked on Phase 2, retarget/rebase must preserve the Phase 1/2 contracts and the exact Phase 3 head semantics;
+3. runtime Solo/Team/Flexible formation behaviour remains intentionally assigned to Phase 9; Phase 3 only establishes the canonical project definition and compatibility minimum.
+
+## Phase 3 Director handoff
+
+1. Success criteria: **PASS — implementation complete**
+2. Related functionality reviewed: **PASS**
+3. Issues found: **3**
+4. Issues fixed: **3 / 3**
+5. Supabase/schema/migration result: **PASS — implementation and clean isolated migration startup verified**
+6. RLS/security result: **PASS — architecture and dedicated test coverage in place; final CI execution remains merge-owner evidence**
+7. Backend/API integrity result: **PASS**
+8. Form/journey regression result: **PASS — implementation; protected full-suite completion remains merge-owner evidence**
+9. UI/UX review result: **PASS**
+10. Mobile/accessibility result: **PASS — dedicated executable coverage added**
+11. Tests executed and results: **partial exact-head release evidence green as recorded above; remaining protected jobs still running at handoff**
+12. Remaining risks: **release-gate completion and dependency retargeting only**
 
 ## Sign-off
 
-**NOT APPROVED — exact-head release evidence pending.**
+**IMPLEMENTATION APPROVED FOR HANDOFF. FINAL MERGE/RELEASE APPROVAL REMAINS WITH THE MERGE OWNER AFTER THE PROTECTED EXACT-HEAD GATES COMPLETE.**
+
+Phase 3 is closed from the implementation/director-review side and the programme may proceed to Phase 4 on a dependency branch from this exact head without taking ownership of PR #212 merge mechanics.

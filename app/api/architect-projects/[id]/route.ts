@@ -7,7 +7,7 @@ type RouteContext={params:Promise<{id:string}>};
 async function readableDraft(id:string){
   const ctx=await architectContext();if('error'in ctx)return{error:ctx.error} as const;
   const {db,user,isAdmin}=ctx;
-  const {data:project,error}=await db.from('projects').select('id,slug,title,summary,project_archetype,governance_status,status,visibility,project_type,partner_name,location,difficulty_level,duration_weeks,weekly_commitment,team_size_threshold,presentation_required,risk_level,admin_review_required,created_by_user_id').eq('id',id).maybeSingle();
+  const {data:project,error}=await db.from('projects').select('id,slug,title,summary,project_archetype,governance_status,status,visibility,project_type,partner_name,location,difficulty_level,duration_weeks,weekly_commitment,team_size_threshold,participation_mode,min_team_size,target_team_size,max_team_size,presentation_required,risk_level,admin_review_required,created_by_user_id').eq('id',id).maybeSingle();
   if(error)throw error;
   if(!project)return{error:NextResponse.json({error:'Project proposal not found.'},{status:404})} as const;
   const roles=await assignedRole(db,id,user.id);

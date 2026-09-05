@@ -5,7 +5,7 @@ Status: **IN PROGRESS / NOT APPROVED**
 ## Non-negotiable product rules
 
 1. **Partner Project = REVIEW_REQUIRED. Always.** Partner + AUTO cannot persist, cannot be selected in Admin, cannot be forced through review/start APIs, and cannot be auto-started by scheduled processing.
-2. **Mettelo Open Project** may be `AUTO` or `REVIEW_REQUIRED` according to canonical project configuration.
+2. **Mettelo Open Project** may use `AUTO` or `REVIEW_REQUIRED` according to canonical project configuration.
 3. A legitimate Open AUTO project follows:
    `AUTO QUALIFY → START CONDITIONS MET → START SCHEDULED +6 HOURS → OPTIONAL ADMIN INTERVENTION → FINAL READINESS CHECK → AUTO START`.
 4. The six-hour window is **not waiting for Admin approval**. Healthy scheduled AUTO runs show **No action required** and start automatically if Admin does nothing and readiness remains valid.
@@ -46,8 +46,8 @@ Admin exception controls:
 - **Start now** — optional early start through canonical `startProjectRun()`;
 - **Pause** — stores actor/reason and prevents auto-start;
 - **Block start** — explicit stronger stop requiring a reason;
-- **Resume** — clears pause and establishes a new valid window;
-- **Unblock** — clears block and establishes a new valid window;
+- **Resume** — clears pause and establishes a new valid window after revalidating the team minimum;
+- **Unblock** — clears block and establishes a new valid window after revalidating the team minimum;
 - **Retry start** — canonical readiness/start retry after failure;
 - **Convert to review required** — only for an unstarted Open AUTO project, with audit and safe unwind of waiting AUTO state.
 
@@ -131,6 +131,10 @@ Notification/outbox failure after an already-audited decision does not make the 
 
 ## Migrations
 
+- `20260905177500_project_application_decision_baseline.sql`
+  - reconciles the existing hosted `project_applications.decision_at` and `decision_reason` columns into repository migration history;
+  - preserves existing hosted values and makes clean reconstruction match Production;
+  - removes the hosted-only schema drift exposed by Phase 7 migration validation.
 - `20260905178000_project_experience_phase_7_review_offer_boundary.sql`
   - Partner hard-lock;
   - effective admission SQL policy;
@@ -143,14 +147,14 @@ Notification/outbox failure after an already-audited decision does not make the 
 - `20260905178100_project_experience_phase_7_default_window_normalization.sql`
   - converts the unreleased Phase 6 120-minute programme default to 360.
 
-No hosted-only DDL is permitted. Production remains pre-Phase6/7 until the stacked PR train is approved and merged.
+No hosted-only DDL is permitted. Production remains pre-Phase6/7 for the new Phase 7 structures; the pre-existing decision metadata columns are now explicitly represented by the reconciliation migration above.
 
 ## Executable evidence
 
 Phase 7 test coverage includes:
 
 - `tests/project-experience-phase7-admin-review.spec.ts` — source/architecture contract;
-- `tests/project-experience-phase7-admin-review-e2e.spec.ts` — isolated Supabase Partner policy, review audit, clarification, no-membership Offer, invalid transition, AUTO-review rejection and concurrent Offer capacity;
+- `tests/project-experience-phase7-admin-review-e2e.spec.ts` — isolated Supabase Partner policy, review audit, clarification, no-membership Offer, invalid transition, AUTO-review rejection, concurrent Offer capacity, AUTO block/unblock and AUTO→REVIEW_REQUIRED conversion;
 - `tests/project-experience-phase7-admin-review-browser.spec.ts` — mobile/tablet/desktop/landscape/200%/keyboard/dialog acceptance;
 - Phase 6 AUTO security, journey, concurrency, withdrawal, recruitment and analytics suites remain mandatory regressions;
 - Event Room and protected Release Gate remain mandatory exact-head gates.

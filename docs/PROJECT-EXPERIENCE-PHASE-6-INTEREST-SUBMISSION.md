@@ -12,7 +12,7 @@ It begins only after Phase 5 has decided that the member may enter the submissio
 
 Canonical journey:
 
-`MEMBER PROJECT → SUBMIT INTEREST → COMPLETE INTEREST FORM → REVIEW → ACCEPT TERMS → SERVER REVALIDATION → PERSIST INTEREST → MEMBER CONFIRMATION → APPLICATIONS TRACKER → ADMIN REVIEW`
+`MEMBER PROJECT → SUBMIT INTEREST → COMPLETE INTEREST FORM → REVIEW → ACCEPT TERMS → SERVER REVALIDATION → PERSIST INTEREST → MEMBER CONFIRMATION → APPLICATIONS TRACKER → ADMIN REVIEW → TEAM FORMATION → LATER ROLE ASSIGNMENT`
 
 ## Binding boundaries
 
@@ -114,6 +114,36 @@ Required database guarantees:
 - failed/duplicate insert cannot create partial membership or Lab state;
 - all required schema/index/constraint changes are versioned under `supabase/migrations`.
 
+## Downstream role/team contract
+
+Phase 6 interest is deliberately role-neutral. The downstream rules are:
+
+1. Admin may move an `interest` through review/shortlist/approval without fabricating a role.
+2. Approval creates the existing `project_members` waiting place with `project_role_id = null` for an interest.
+3. Legacy `application` rows continue to require their existing valid role and role-capacity checks before approval.
+4. The existing Team Formation surface owns later formal role assignment.
+5. `assign_role` writes the chosen role to both `project_members.project_role_id` and the linked `project_applications.project_role_id`.
+6. `assessProjectTeamReadiness()` requires responsibility coverage (`project_role_id` present for every selected member) before the project can start.
+7. Therefore role-neutral interest does not bypass the responsibility/readiness gate; it only moves role assignment to the approved later stage.
+
+## Integration defects found and fixed during Phase 6
+
+### A. Member tracker described every request as an application — FIXED
+
+`/member/applications` remains the canonical route, but the UI now distinguishes project `interest` from legacy `application` records. New interest cards/dialog/withdrawal copy use interest/request language without creating a second tracker.
+
+### B. Admin discarded `application_kind` before rendering — FIXED
+
+Admin now carries `application_kind` into the queue, labels project interests truthfully and generates member communication using the correct interest/application noun.
+
+### C. Role-neutral interest could never be approved — FIXED
+
+The existing Admin approval API previously rejected every row with `project_role_id = null`. Phase 6 interests necessarily have `project_role_id = null`, creating a dead-end after successful submission. The approval path now permits role-neutral interests to create a waiting team place; legacy applications retain role validation/capacity checks.
+
+### D. Later responsibility gate verified — PASS IN SOURCE
+
+Team Formation already supports explicit role assignment and persists that assignment back to membership and request state. Project readiness does not allow a team to start until every selected member has a formal project role, so the corrected Phase 6 flow preserves downstream governance.
+
 ## UI/UX requirements
 
 The form must be usable at 320px through desktop and at 200% text size.
@@ -152,9 +182,25 @@ Phase 6 must explicitly review and protect:
 - project capacity/team formation behavior;
 - withdrawal behavior;
 - accepted/waiting membership conversion;
+- later formal role assignment;
+- responsibility coverage/readiness gate;
 - Mettelo Lab authorization boundary;
 - Public/Discover regression;
 - existing legacy role-specific application flow.
+
+## Test coverage added
+
+`tests/project-experience-phase6-interest-submission.spec.ts` is included in blocking `test:regression` and protects:
+
+- role-neutral final interest submission;
+- authoritative server revalidation;
+- PostgreSQL active-interest uniqueness invariant;
+- interest-aware member tracker semantics;
+- interest-aware Admin semantics;
+- role-neutral Admin approval;
+- preserved legacy application role checks;
+- later Team Formation role assignment;
+- responsibility coverage requirement before project start.
 
 ## Success criteria
 
@@ -169,17 +215,17 @@ Phase 6 is complete only when all are true:
 7. Duplicate/race submission cannot create a second active interest.
 8. Failed submissions preserve member-entered data.
 9. Successful submission shows a clear confirmation.
-10. Successful submission appears in the existing member Applications tracker.
-11. Successful submission is visible to existing Admin review on the same canonical row.
+10. Successful submission appears in the existing member Applications tracker with truthful interest semantics.
+11. Successful submission is visible to existing Admin review on the same canonical row and is labelled as interest.
 12. Member/Admin notifications are attempted after persistence and failures are observable without rolling back a valid request.
 13. Interest submission does not create project membership or Lab access.
-14. Member A cannot read/update Member B's request.
-15. RLS insert/read/update behavior matches the frontend/backend contract.
-16. Migrations reconstruct cleanly from repository state.
-17. Schema constraints/indexes/FKs match the role-neutral interest model.
-18. Legacy role-specific applications remain compatible.
-19. Mobile/tablet/desktop/200%/keyboard/accessibility checks pass.
-20. Lint, typecheck, build, regression, isolated Supabase, authenticated E2E, Event Room and protected Release Gate are green on the final exact head.
+14. Admin can approve a role-neutral interest into team formation without fabricating a role.
+15. Later role assignment remains explicit and required before readiness/start.
+16. Member A cannot read/update Member B's request.
+17. RLS insert/read/update behavior matches the frontend/backend contract.
+18. Migrations reconstruct cleanly from repository state.
+19. Schema constraints/indexes/FKs match the role-neutral interest model and legacy role-specific applications remain compatible.
+20. Mobile/tablet/desktop/200%/keyboard/accessibility checks plus lint, typecheck, build, regression, isolated Supabase, authenticated E2E, Event Room and protected Release Gate are green on the final exact head.
 
 ## Sign-off rule
 

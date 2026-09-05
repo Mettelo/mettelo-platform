@@ -48,6 +48,8 @@ declare
   due_at timestamptz;
   team_join boolean;
   late_join boolean:=false;
+  active_run_exists boolean:=false;
+  active_run_recruitment_open boolean:=false;
   membership_state text:='waiting';
 begin
   select * into app from public.project_applications where id=p_application_id for update;
@@ -96,10 +98,20 @@ begin
     raise exception using errcode='23514', message='ALREADY_PARTICIPATING';
   end if;
 
-  -- Late joining has priority over creating another cohort. Eligible members join
-  -- the SAME active run while run/project policy permits and maximum is not full.
-  if project.project_type='open'
-     and coalesce(project.late_joining_enabled,true)
+  -- Late joining has priority over creating another cohort for every governed
+  -- project type. A started run can only be selected when project policy, cutoff
+  -- and run-level recruitment state all permit the join.
+  select exists(
+    select 1 from public.project_runs
+    where project_id=project.id and status='active' and has_started=true
+  ) into active_run_exists;
+
+  select exists(
+    select 1 from public.project_runs
+    where project_id=project.id and status='active' and has_started=true and coalesce(recruitment_open,true)=true
+  ) into active_run_recruitment_open;
+
+  if coalesce(project.late_joining_enabled,true)
      and (project.late_joining_cutoff_at is null or now_at < project.late_joining_cutoff_at) then
     select * into run
     from public.project_runs
@@ -112,10 +124,12 @@ begin
     late_join:=run.id is not null;
   end if;
 
+  -- Partner projects keep their single canonical forming run, but an active run is
+  -- never selected here because active joining is governed exclusively above.
   if run.id is null and project.project_type='partner' then
     select * into run
     from public.project_runs
-    where project_id=project.id and status not in ('completed','cancelled')
+    where project_id=project.id and status='forming' and has_started=false
     order by run_number asc
     limit 1 for update;
   elsif run.id is null and team_join then
@@ -128,10 +142,12 @@ begin
 
   if run.id is null then
     -- If an active run exists but late joining is no longer permitted, do not
-    -- silently create a competing run from the same intake action.
-    if exists(select 1 from public.project_runs where project_id=project.id and status='active' and has_started=true)
+    -- silently create a competing run from the same intake action. This includes
+    -- project-level policy/cutoff closure and run-level recruitment closure.
+    if active_run_exists
        and (coalesce(project.late_joining_enabled,true)=false
-            or (project.late_joining_cutoff_at is not null and now_at>=project.late_joining_cutoff_at)) then
+            or (project.late_joining_cutoff_at is not null and now_at>=project.late_joining_cutoff_at)
+            or active_run_recruitment_open=false) then
       raise exception using errcode='23514', message='LATE_JOINING_CLOSED';
     end if;
 

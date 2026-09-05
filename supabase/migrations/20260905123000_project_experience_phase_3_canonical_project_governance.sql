@@ -76,14 +76,35 @@ declare
   canonical_changed boolean;
 begin
   legacy_min := greatest(1, least(50, coalesce(new.team_size_threshold, 5)));
-  canonical_changed := tg_op = 'INSERT'
-    or old.participation_mode is distinct from new.participation_mode
+
+  if tg_op = 'INSERT' then
+    -- Existing create paths know only team_size_threshold. Defaults on the new
+    -- columns are therefore interpreted as legacy input unless explicit
+    -- canonical values differ from the default contract.
+    if new.participation_mode = 'team'
+       and new.min_team_size = 5
+       and new.target_team_size = 5
+       and new.max_team_size = 5
+       and legacy_min <> 5 then
+      new.participation_mode := case when legacy_min = 1 then 'solo' else 'team' end;
+      new.min_team_size := legacy_min;
+      new.target_team_size := legacy_min;
+      new.max_team_size := legacy_min;
+    elsif new.participation_mode = 'solo' then
+      new.min_team_size := 1;
+      new.target_team_size := 1;
+      new.max_team_size := 1;
+    end if;
+    new.team_size_threshold := new.min_team_size;
+    return new;
+  end if;
+
+  canonical_changed := old.participation_mode is distinct from new.participation_mode
     or old.min_team_size is distinct from new.min_team_size
     or old.target_team_size is distinct from new.target_team_size
     or old.max_team_size is distinct from new.max_team_size;
 
-  if tg_op = 'UPDATE'
-     and old.team_size_threshold is distinct from new.team_size_threshold
+  if old.team_size_threshold is distinct from new.team_size_threshold
      and not canonical_changed then
     new.min_team_size := legacy_min;
     new.target_team_size := greatest(new.target_team_size, legacy_min);

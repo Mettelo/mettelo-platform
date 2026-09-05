@@ -24,6 +24,13 @@ const policyFields='id,project_type,partner_name,admission_mode,auto_start_delay
 const runFields='id,run_number,status,has_started,required_team_size,scheduled_start_at,start_scheduled_at,start_ready_at,auto_start_paused_at,auto_start_pause_reason,auto_start_paused_by_user_id,auto_start_blocked_at,auto_start_block_reason,auto_start_blocked_by_user_id,auto_start_failure,recruitment_open';
 
 function safeReason(value:unknown,max=500){return String(value||'').trim().slice(0,max)}
+async function minimumReady(db:NonNullable<ReturnType<typeof serviceDb>>,runId:string,requiredInput:unknown){
+  const required=Math.max(1,Number(requiredInput||1));
+  const {count,error}=await db.from('project_members').select('id',{count:'exact',head:true}).eq('project_run_id',runId).in('membership_status',['waiting','active']);
+  if(error)throw error;
+  const filled=count||0;
+  return{ready:filled>=required,filled,required};
+}
 
 export async function GET(request:Request){
   try{
@@ -107,6 +114,8 @@ export async function PATCH(request:Request){
 
       if(action==='unblock_run'){
         if(!run.auto_start_blocked_at)return NextResponse.json({ok:true,action,status:'scheduled',already_unblocked:true});
+        const readiness=await minimumReady(db,runId,run.required_team_size);
+        if(!readiness.ready)return NextResponse.json({ok:false,status:'team_forming',blockers:['team_size'],filled:readiness.filled,required_team_size:readiness.required,error:'This team is below its minimum. Keep the run blocked until the start condition is restored.'},{status:409});
         const delay=safeAutoStartDelayMinutes(project.auto_start_delay_minutes);
         const due=new Date(Date.now()+delay*60_000).toISOString();
         const {data:updated,error}=await db.from('project_runs').update({
@@ -120,11 +129,13 @@ export async function PATCH(request:Request){
           updated_at:now
         }).eq('id',runId).eq('has_started',false).select('id').maybeSingle();
         if(error)throw error;if(!updated)return NextResponse.json({error:'This run changed before it could be unblocked.'},{status:409});
-        await db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'project_auto_start_unblocked',actor_type:'user',actor_user_id:user.id,from_status:'forming',to_status:'forming',metadata:{reason:reason||null,scheduled_start_at:due,delay_minutes:delay}});
+        await db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'project_auto_start_unblocked',actor_type:'user',actor_user_id:user.id,from_status:'forming',to_status:'forming',metadata:{reason:reason||null,scheduled_start_at:due,delay_minutes:delay,filled:readiness.filled,required_team_size:readiness.required}});
         return NextResponse.json({ok:true,action,status:'scheduled',scheduled_start_at:due});
       }
 
       if(action==='resume_run'){
+        const readiness=await minimumReady(db,runId,run.required_team_size);
+        if(!readiness.ready)return NextResponse.json({ok:false,status:'team_forming',blockers:['team_size'],filled:readiness.filled,required_team_size:readiness.required,error:'This team is below its minimum. Automatic start cannot resume until the start condition is restored.'},{status:409});
         const delay=safeAutoStartDelayMinutes(project.auto_start_delay_minutes);
         const due=new Date(Date.now()+delay*60_000).toISOString();
         const {data:updated,error}=await db.from('project_runs').update({
@@ -139,7 +150,7 @@ export async function PATCH(request:Request){
         }).eq('id',runId).eq('has_started',false).is('auto_start_blocked_at',null).select('id').maybeSingle();
         if(error)throw error;
         if(!updated)return NextResponse.json({error:'Unblock this run before resuming automatic start.'},{status:409});
-        await db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'project_auto_start_resumed',actor_type:'user',actor_user_id:user.id,from_status:'forming',to_status:'forming',metadata:{reason:reason||null,scheduled_start_at:due,delay_minutes:delay}});
+        await db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'project_auto_start_resumed',actor_type:'user',actor_user_id:user.id,from_status:'forming',to_status:'forming',metadata:{reason:reason||null,scheduled_start_at:due,delay_minutes:delay,filled:readiness.filled,required_team_size:readiness.required}});
         return NextResponse.json({ok:true,action,status:'scheduled',scheduled_start_at:due});
       }
 

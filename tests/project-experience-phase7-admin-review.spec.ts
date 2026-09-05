@@ -57,9 +57,21 @@ test.describe('Project Experience Phase 7 contract',()=>{
   expect(page).toContain("item.admissionMode!=='auto'");
  });
 
- test('offered is a canonical non-membership review status',()=>{
+ test('offered is a canonical non-membership review status and member tracker shows it truthfully',()=>{
   const migration=read('supabase/migrations/20260905178000_project_experience_phase_7_review_offer_boundary.sql');
+  const tracker=read('components/MemberApplicationTracker.tsx');
   expect(migration).toContain("'offered'");
   expect(migration).toContain('offered is a selection boundary only and does not create membership');
+  expect(tracker).toContain("offered:'Place offered'");
+  expect(tracker).toContain("if(item.status==='offered')return'→ Place offered'");
+  expect(tracker).toContain('Selection does not enrol you automatically');
+  expect(tracker).not.toContain("withdrawable=new Set(['submitted','in_review','shortlisted','offered'");
+ });
+
+ test('notification failure cannot turn an already-audited review transition into false API failure',()=>{
+  const route=read('app/api/admin/applications/route.ts');
+  expect(route).toContain('let communicationRecorded=true');
+  expect(route).toContain("console.error('project review communication error',error)");
+  expect(route).toContain('communication:{body:memberMessage,recorded:communicationRecorded}');
  });
 });

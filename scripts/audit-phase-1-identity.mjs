@@ -98,7 +98,7 @@ const checks=[
  ['legacy users have a non-blocking claim route',Boolean(identityPage)&&Boolean(identityClaim)&&identityApi.includes('ensureIdentityProfile')&&identityApi.includes("from('profiles').insert")],
  ['identity API is authenticated and uses canonical RPC',identityApi.includes('Authentication required.')&&identityApi.includes("rpc('claim_member_username'")],
  ['claim form has accessible working error and success states',identityClaim.includes("'success'")&&identityClaim.includes('aria-busy')&&identityClaim.includes('aria-live="polite"')&&identityClaim.includes('Check your connection and try again.')],
- ['member profile displays handle and Member ID',profilePage.includes('@{profile.username}')&&profilePage.includes('Member ID')&&profilePage.includes('profile.member_id')],
+ ['member profile displays handle and Member ID',profilePage.includes('@${profile.username}')&&profilePage.includes('Member ID')&&profilePage.includes('profile.member_id')],
  ['Admin can resolve username and Member ID inside existing access boundary',adminAccessApi.includes('username')&&adminAccessApi.includes('member_id')&&adminAccessApi.includes("replace(/^@/,'')")&&adminIdentity.includes('Member identity')&&adminIdentity.includes('@username')],
  ['authorised team overview carries username without exposing Member ID',teamOverview.includes('username:string|null')&&teamOverview.includes('full_name,username,headline,avatar_url')&&!teamOverview.includes('member_id')],
  ['Lab and team rosters render username when present',teamRoster.includes('@{member.username}')&&lab.includes('@{member.username}')],

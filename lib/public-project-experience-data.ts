@@ -13,17 +13,18 @@ function strings(value:unknown){return Array.isArray(value)?value.filter((item):
 function number(value:unknown){return typeof value==='number'&&Number.isFinite(value)?value:null}
 function metricLines(value:unknown){const raw=text(value);return raw?raw.split(/\r?\n|;|•/).map(item=>item.replace(/^[-*\d.)\s]+/,'').trim()).filter(Boolean).slice(0,24):[]}
 
-export type PublicProjectExperienceData={detail:ProjectDetailContent;brief:ProjectExperienceBrief|null;milestones:ProjectExperienceMilestone[];roleDetails:Map<string,ProjectExperienceRoleDetail>};
+export type PublicProjectExperienceData={detail:ProjectDetailContent;brief:ProjectExperienceBrief|null;milestones:ProjectExperienceMilestone[];roleDetails:Map<string,ProjectExperienceRoleDetail>;loadError:boolean};
 
 const EMPTY_DETAIL:ProjectDetailContent={deliverables:[],dataSources:[],successCriteria:[],capabilities:[],pathContexts:[],technicalSkills:[],professionalSkills:[],importedTools:[],importedMethods:[],importedDomain:null,sourceProjectKey:null};
+function empty(loadError:boolean):PublicProjectExperienceData{return{detail:EMPTY_DETAIL,brief:null,milestones:[],roleDetails:new Map(),loadError}}
 
 export async function getPublicProjectExperienceData(projectId:string):Promise<PublicProjectExperienceData>{
   const db=createPublicSupabaseClient();
-  if(!db)return{detail:EMPTY_DETAIL,brief:null,milestones:[],roleDetails:new Map()};
+  if(!db)return empty(true);
   const {data,error}=await db.rpc('get_public_project_experience_detail',{p_project_id:projectId});
-  if(error||!data)return{detail:EMPTY_DETAIL,brief:null,milestones:[],roleDetails:new Map()};
+  if(error||!data){if(error)console.error('public project experience projection failed',{projectId,code:error.code});return empty(true)}
   const projection=record(data) as Projection|null;
-  if(!projection)return{detail:EMPTY_DETAIL,brief:null,milestones:[],roleDetails:new Map()};
+  if(!projection)return empty(true);
 
   const origin=record(projection.import_origin);const normalized=record(origin?.normalized);
   const detail:ProjectDetailContent={
@@ -38,5 +39,5 @@ export async function getPublicProjectExperienceData(projectId:string):Promise<P
   const brief:ProjectExperienceBrief|null=briefRow?{businessContext:text(briefRow.context),stakeholder:text(briefRow.stakeholder),useCase:text(briefRow.primary_use_case),primaryObjective:text(briefRow.primary_objective),supportingObjectives:strings(briefRow.supporting_objectives),keyQuestions:strings(briefRow.key_questions),inScope:strings(briefRow.in_scope),outOfScope:strings(briefRow.out_of_scope),successMeasures:metricLines(briefRow.success_metrics),decisionToSupport:text(briefRow.decision_to_support),constraintsTradeOffs:strings(briefRow.constraints_trade_offs),assumptions:strings(briefRow.explicit_assumptions),acceptanceChecks:strings(briefRow.acceptance_quality_checks),responsibleUseRisks:strings(briefRow.responsible_use_risks),evidenceExpectations:strings(briefRow.evidence_expectations),technicalSkills:strings(briefRow.technical_skills),professionalSkills:strings(briefRow.professional_skills),methods:strings(briefRow.canonical_methods),tools:strings(briefRow.canonical_tools),stakeholderHandover:text(briefRow.stakeholder_handover),capabilityOutcome:text(briefRow.capability_outcome)}:null;
   const milestones=records(projection.milestones).map(row=>({id:String(row.id),title:String(row.title),description:text(row.description),weekStart:number(row.week_start),weekEnd:number(row.week_end),expectedOutput:text(row.expected_output)}));
   const roleDetails=new Map(records(projection.role_details).map(row=>[String(row.id),{id:String(row.id),responsibilities:strings(row.responsibilities),recommendedSkills:strings(row.recommended_skills),experienceExpectation:text(row.experience_expectation),weeklyCommitment:text(row.weekly_commitment),roleStatus:null,applicationRequirements:null}]));
-  return{detail,brief,milestones,roleDetails};
+  return{detail,brief,milestones,roleDetails,loadError:false};
 }

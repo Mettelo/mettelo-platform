@@ -99,6 +99,18 @@ where scheduled_start_at is not null
 -- ---------------------------------------------------------------------------
 
 alter table public.project_applications
+  add column if not exists clarification_requested_at timestamptz,
+  add column if not exists clarification_response text,
+  add column if not exists clarification_responded_at timestamptz;
+
+comment on column public.project_applications.clarification_requested_at is
+  'Time at which an authorized reviewer requested additional information from the applicant.';
+comment on column public.project_applications.clarification_response is
+  'Member-supplied response to the most recent clarification request. This does not create membership or change admission authority.';
+comment on column public.project_applications.clarification_responded_at is
+  'Time at which the member responded to the most recent clarification request.';
+
+alter table public.project_applications
   drop constraint if exists project_applications_status_check;
 
 alter table public.project_applications
@@ -247,6 +259,9 @@ begin
   update public.project_applications
   set status=p_to_status,
       reviewer_notes=nullif(left(trim(coalesce(p_reviewer_notes,'')),1500),''),
+      clarification_requested_at=case when p_to_status='clarification_requested' then now_at else clarification_requested_at end,
+      clarification_response=case when p_to_status='clarification_requested' then null else clarification_response end,
+      clarification_responded_at=case when p_to_status='clarification_requested' then null else clarification_responded_at end,
       decision_at=case when p_to_status in ('offered','declined') then now_at else null end,
       decision_reason=case when p_to_status in ('offered','declined') then nullif(left(trim(coalesce(p_reviewer_notes,'')),1500),'') else null end,
       updated_at=now_at
@@ -269,6 +284,61 @@ $$;
 
 revoke all on function public.phase7_transition_review_request(uuid,text,text) from public,anon;
 grant execute on function public.phase7_transition_review_request(uuid,text,text) to authenticated;
+
+-- Members may answer only their own active clarification request. The response returns
+-- the same canonical row to IN_REVIEW and the existing status trigger records the
+-- member actor via auth.uid().
+create or replace function public.phase7_respond_to_clarification(
+  p_application_id uuid,
+  p_response text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  app public.project_applications%rowtype;
+  actor uuid:=auth.uid();
+  response_text text:=trim(coalesce(p_response,''));
+  now_at timestamptz:=now();
+begin
+  if actor is null then
+    raise exception using errcode='42501',message='AUTH_REQUIRED';
+  end if;
+  if length(response_text)<10 or length(response_text)>2000 then
+    raise exception using errcode='23514',message='CLARIFICATION_RESPONSE_INVALID';
+  end if;
+
+  select * into app
+  from public.project_applications
+  where id=p_application_id
+  for update;
+  if app.id is null or app.user_id<>actor then
+    raise exception using errcode='P0002',message='APPLICATION_NOT_FOUND';
+  end if;
+  if app.status<>'clarification_requested' then
+    raise exception using errcode='23514',message='CLARIFICATION_NOT_ACTIVE';
+  end if;
+
+  update public.project_applications
+  set status='in_review',
+      clarification_response=response_text,
+      clarification_responded_at=now_at,
+      updated_at=now_at
+  where id=app.id;
+
+  return jsonb_build_object(
+    'id',app.id,
+    'status','in_review',
+    'previous_status','clarification_requested',
+    'clarification_responded_at',now_at
+  );
+end;
+$$;
+
+revoke all on function public.phase7_respond_to_clarification(uuid,text) from public,anon;
+grant execute on function public.phase7_respond_to_clarification(uuid,text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Safe explicit conversion of an unstarted Open AUTO project to REVIEW_REQUIRED

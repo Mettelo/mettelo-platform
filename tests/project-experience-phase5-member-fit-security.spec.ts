@@ -30,19 +30,21 @@ test.describe('Project Experience Phase 5 member-fit RLS',()=>{
   await admin.from('project_applications').delete().eq('id',otherRequest.id);
  });
 
- test('database rejects a second active role-neutral interest for the same member and project',async()=>{
+ test('database rejects a second active role-neutral interest but allows new interest after decline',async()=>{
   const admin=serviceDb();const {memberId}=await findUserIds();const {data:project,error:projectError}=await admin.from('projects').select('id').limit(1).single();if(projectError||!project)throw projectError||new Error('Phase 5 uniqueness test requires a project fixture.');
   await admin.from('project_applications').delete().eq('project_id',project.id).eq('user_id',memberId).eq('application_kind','interest');
   const now=new Date().toISOString();const row={project_id:project.id,user_id:memberId,project_role_id:null,status:'submitted',application_kind:'interest',contribution_statement:'Disposable Phase 5 uniqueness request used only inside the isolated local Supabase test.',terms_accepted_at:now,terms_version:PROJECT_PARTICIPATION_TERMS_VERSION,submitted_at:now};
   const first=await admin.from('project_applications').insert(row).select('id').single();if(first.error||!first.data)throw first.error||new Error('Could not seed first Phase 5 interest.');
   const second=await admin.from('project_applications').insert(row).select('id');expect(second.error?.code).toBe('23505');
-  await admin.from('project_applications').delete().eq('id',first.data.id);
+  const declined=await admin.from('project_applications').update({status:'declined'}).eq('id',first.data.id);if(declined.error)throw declined.error;
+  const third=await admin.from('project_applications').insert({...row,submitted_at:new Date(Date.now()+1000).toISOString()}).select('id').single();expect(third.error).toBeNull();expect(third.data?.id).toBeTruthy();
+  await admin.from('project_applications').delete().eq('project_id',project.id).eq('user_id',memberId).eq('application_kind','interest');
  });
 
  test('source contract keeps Phase 5 member reads authenticated and applicant access separate from membership',async()=>{
   const page=fs.readFileSync('app/member/discover/[id]/page.tsx','utf8');const api=fs.readFileSync('app/api/project-applications/route.ts','utf8');const detail=fs.readFileSync('lib/project-detail-content.ts','utf8');const migration=fs.readFileSync('supabase/migrations/20260905170000_project_experience_phase_5_interest_uniqueness.sql','utf8');
   expect(page).toContain('createServerSupabaseClient');expect(page).toContain("supabase.from('profiles')");expect(page).toContain(".eq('id',user.id)");expect(page).toContain("profile_domain_preferences').select('domains(slug,name)').eq('user_id',user.id)");expect(page).toContain("profile_tool_preferences').select('tools(slug,name)').eq('user_id',user.id)");expect(page).not.toContain("serviceDb().from('profiles')");
   expect(api).not.toContain("from('project_members').insert");expect(api).toContain("from('project_applications').insert");expect(detail).toContain("row.sensitivity==='public'&&row.publish_policy==='permitted'&&row.governance_status==='green'");expect(detail).toContain('Approved project members receive authorised resource links');
-  expect(migration).toContain('project_applications_one_active_interest_per_project_user');expect(migration).toContain("where application_kind='interest'");expect(migration).toContain("status not in ('declined','withdrawn')");
+  expect(migration).toContain('drop index if exists public.project_applications_one_interest_per_project_user');expect(migration).toContain('project_applications_one_active_interest_per_project_user');expect(migration).toContain("where application_kind='interest'");expect(migration).toContain("status not in ('declined','withdrawn')");
  });
 });

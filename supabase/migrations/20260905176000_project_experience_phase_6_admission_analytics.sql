@@ -5,6 +5,7 @@
 create or replace function public.log_phase6_interest_submission()
 returns trigger
 language plpgsql
+security definer
 set search_path=public
 as $$
 begin
@@ -16,6 +17,8 @@ begin
 end;
 $$;
 
+revoke all on function public.log_phase6_interest_submission() from public,anon,authenticated;
+
 drop trigger if exists trg_log_phase6_interest_submission on public.project_applications;
 create trigger trg_log_phase6_interest_submission
 after insert on public.project_applications
@@ -24,6 +27,7 @@ for each row execute function public.log_phase6_interest_submission();
 create or replace function public.log_phase6_review_required()
 returns trigger
 language plpgsql
+security definer
 set search_path=public
 as $$
 begin
@@ -36,6 +40,8 @@ begin
   return new;
 end;
 $$;
+
+revoke all on function public.log_phase6_review_required() from public,anon,authenticated;
 
 drop trigger if exists trg_log_phase6_review_required on public.project_applications;
 create trigger trg_log_phase6_review_required

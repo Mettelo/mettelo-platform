@@ -11,7 +11,7 @@ import {normalizeProfessionalLink} from '@/lib/project-application-validation';
 
 function ids(value:unknown){return Array.isArray(value)?[...new Set(value.map(String).filter(Boolean))].slice(0,8):[]}
 type DbError={code?:string;message?:string;details?:string};
-type AdmissionResult={decision:'auto_qualified'|'review_required';application_id?:string;run_id?:string;run_number?:number;filled?:number;required_team_size?:number;maximum_team_size?:number;team_ready?:boolean;scheduled_start_at?:string|null;participation_preference?:string};
+type AdmissionResult={decision:'auto_qualified'|'review_required';application_id?:string;run_id?:string;run_number?:number;filled?:number;required_team_size?:number;maximum_members?:number;maximum_team_size?:number;team_ready?:boolean;scheduled_start_at?:string|null;participation_preference?:string};
 function fail(error:string,status:number,code:string,field?:string){return NextResponse.json({error,code,field},{status})}
 function logFailure(input:{requestId:string;projectId?:string;roleId?:string;userId?:string;category:string;error?:unknown}){const dbError=input.error as DbError|undefined;console.error('project_application_submit_failed',{request_id:input.requestId,project_id:input.projectId||null,project_role_id:input.roleId||null,user_id:input.userId||null,category:input.category,db_code:dbError?.code||null,db_message:dbError?.message||null})}
 const ROLE_FILLED_MESSAGE='That project role has filled or is no longer available. Please choose another role.';
@@ -58,7 +58,13 @@ export async function POST(request:Request){
         if(message.includes('CAPACITY_FULL')){await termsDb.from('project_applications').update({status:'declined',admission_mode_snapshot:'auto',admission_decision:'ineligible',admission_decided_at:decisionAt,decision_reason:'Project capacity changed before automatic admission completed.',decision_at:decisionAt,updated_at:decisionAt}).eq('id',data.id);return fail('This project filled while your interest was being submitted.',409,'CAPACITY_FULL')}
         if(message.includes('LATE_JOINING_CLOSED')){await termsDb.from('project_applications').update({status:'declined',admission_mode_snapshot:'auto',admission_decision:'ineligible',admission_decided_at:decisionAt,decision_reason:'Late joining is closed for the current active project run.',decision_at:decisionAt,updated_at:decisionAt}).eq('id',data.id);return fail('This project is already in progress and its late-joining window is closed.',409,'LATE_JOINING_CLOSED')}
         if(message.includes('ALREADY_PARTICIPATING')){await termsDb.from('project_applications').update({status:'withdrawn',admission_mode_snapshot:'auto',admission_decision:'ineligible',admission_decided_at:decisionAt,decision_reason:'Existing project participation was detected during automatic admission.',withdrawn_at:decisionAt,updated_at:decisionAt}).eq('id',data.id);return fail('You are already participating in, confirmed for, or have completed this project.',409,'ALREADY_PARTICIPATING')}
-        return NextResponse.json({ok:true,application:data,admission:{decision:'auto_qualified',automation_state:'needs_attention'},message:'Your interest was saved, but project preparation needs attention. We will update you from My Mettelo.'},{status:202})
+        const [{error:cleanupApplicationError},{error:cleanupEventError}]=await Promise.all([
+          termsDb.from('project_applications').delete().eq('id',data.id),
+          termsDb.from('project_activity_log').delete().eq('project_id',projectId).eq('event_type','interest_submitted').contains('metadata',{application_id:data.id})
+        ]);
+        if(cleanupApplicationError)logFailure({requestId,projectId,userId,category:'auto_admission_cleanup_application',error:cleanupApplicationError});
+        if(cleanupEventError)logFailure({requestId,projectId,userId,category:'auto_admission_cleanup_event',error:cleanupEventError});
+        return fail('We could not complete automatic qualification. Your form responses are still available; please try again.',503,'AUTO_ADMISSION_UNAVAILABLE');
       }
       admission=admissionData as AdmissionResult;
     }else{

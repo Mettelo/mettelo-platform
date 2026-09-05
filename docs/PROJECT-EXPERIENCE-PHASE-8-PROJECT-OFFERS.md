@@ -1,13 +1,13 @@
 # Project Experience Phase 8 — Project Place Offer & Member Acceptance
 
-**Status:** implementation in progress on stacked draft PR #217.  
+**Status:** implementation and exact-head validation in progress on stacked draft PR #217.  
 **Dependency:** Phase 7 / PR #216. Phase 8 must not merge ahead of Phase 7 and must be revalidated if the Phase 7 head changes.
 
 ## Product boundary
 
 Phase 8 creates the explicit commitment boundary between Mettelo selecting a member and that member agreeing to participate.
 
-Canonical review/offer journey:
+Canonical REVIEW_REQUIRED journey:
 
 ```text
 submitted
@@ -17,14 +17,28 @@ submitted
 → accepted / declined / expired
 ```
 
-Phase 8 deliberately preserves the Phase 7 boundary:
+Eligibility is mandatory at the database boundary:
+
+```text
+Partner Project
+→ effective REVIEW_REQUIRED
+→ Offer permitted
+
+Mettelo Open + REVIEW_REQUIRED
+→ Offer permitted
+
+Mettelo Open + AUTO
+→ Offer forbidden
+```
+
+Phase 8 deliberately preserves:
 
 ```text
 OFFERED ≠ MEMBERSHIP
 ACCEPTED OFFER ≠ ACTIVE PROJECT
 ```
 
-An accepted Offer records a member commitment and continues to reserve capacity. Canonical project membership, team/run formation, Lab/private-resource access and project activation remain owned by later team-formation/start phases.
+An accepted Offer records explicit member commitment. It reserves capacity until canonical team formation creates membership, at which point the same reservation is marked consumed so the member is never counted twice. Lab/private-resource access and project activation remain owned by the later team/start architecture.
 
 ## Architecture
 
@@ -32,32 +46,35 @@ Phase 8 extends the existing project-participation architecture instead of repla
 
 - `project_applications` remains the canonical request/review record;
 - `project_application_events` remains the canonical application-state audit trail;
-- `project_activity_log` remains operational lifecycle evidence;
-- `project_offers` is the new canonical commitment/reservation record;
-- `project_members` remains canonical participation membership and is not written by Phase 8;
+- `project_activity_log` remains operational lifecycle/analytics evidence;
+- `project_offers` is the canonical commitment/reservation record;
+- `project_members` remains canonical participation membership;
 - `project_runs` remains canonical run/cohort state;
 - the existing notification/outbox infrastructure remains canonical for member communication;
-- the existing `/api/cron/project-formation` scheduled-processing route now also processes bounded Offer reminders and expiry.
+- the existing `/api/cron/project-formation` scheduled-processing route also processes bounded Offer reminders and expiry.
 
-No `project_applications_v2`, membership-v2, run-v2, notification-v2 or separate scheduler is introduced.
+No application-v2, membership-v2, run-v2, notification-v2, fake AUTO Offer or second scheduler is introduced.
 
 ## Database
 
-Versioned migrations:
+Versioned Phase 8 migrations:
 
 - `20260905232000_project_experience_phase_8_project_offers.sql`
 - `20260905232100_project_experience_phase_8_offer_response_hardening.sql`
+- `20260905232500_project_experience_phase_8_offer_integrity.sql`
+- `20260905232600_project_experience_phase_8_expiry_delivery_contract.sql`
+- `20260905232700_project_experience_phase_8_reservation_consumption.sql`
 
 ### `project_offers`
 
-Durable fields include:
+Durable fields include canonical equivalents of:
 
 - Offer ID;
 - application;
 - project;
 - member;
-- optional project run/cohort;
-- status;
+- optional run/cohort;
+- current Offer status;
 - offered at;
 - expires at;
 - accepted at;
@@ -66,37 +83,67 @@ Durable fields include:
 - offered by;
 - capacity reserved at;
 - capacity released at;
+- capacity consumed at;
 - bounded reminder marker;
 - created/updated timestamps.
 
-Supported statuses:
+Supported Offer statuses:
 
 - `pending`
 - `accepted`
 - `declined`
 - `expired`
 
-The application lifecycle also gains first-class `expired` so My Mettelo and Admin history can represent an Offer that closed without a member response.
+The application lifecycle also has first-class `expired` so member Tracker and Admin history represent an Offer that closed without response.
 
-## Offer creation and capacity reservation
+## Offer creation and eligibility
 
-When Phase 7 makes the legal transition into `offered`, a database trigger creates the corresponding durable `project_offers` row in the same database transaction.
+When Phase 7 makes a legal transition into `offered`, the database creates the canonical `project_offers` row in the same transaction.
 
-The current programme default response window is **72 hours**. This is a Phase 8 operating default, not a per-project configuration surface. A future configurable Offer policy must extend the canonical project model rather than scatter route constants.
-
-Capacity safety uses the same per-project PostgreSQL advisory-lock namespace as the Phase 7 Offer decision. The authoritative calculation includes:
+Phase 8 does not trust UI visibility or Phase 7 alone. The Phase 8 Offer transition independently validates:
 
 ```text
-confirmed/waiting canonical memberships
+effective_project_admission_mode = review_required
+```
+
+and rejects an `auto_qualified` application. This means an Open AUTO project cannot receive a fake Offer through a forged/stale server path.
+
+The current programme default response window is **72 hours**. `expires_at` is persisted server-side and is the authority; client time is presentation only.
+
+## Capacity model
+
+Capacity decisions use the same per-project PostgreSQL advisory-lock namespace as the governed Offer decision.
+
+Authoritative capacity before membership consumption is:
+
+```text
+waiting/active canonical memberships
 +
 pending Offer reservations
 +
-accepted Offer reservations not yet consumed by team formation
+accepted but not-yet-consumed Offer reservations
+<= maximum capacity
 ```
 
-This closes the temporary Phase 7 proxy where only `project_applications.status='offered'` represented outstanding reservation.
+State behavior:
 
-Decline and expiry release the reservation. Acceptance does not release it because later team formation still needs that place.
+```text
+PENDING
+→ reserves one place
+
+ACCEPTED
+→ continues reserving that same place
+
+DECLINED / EXPIRED
+→ releases the reservation
+
+ACCEPTED + later canonical membership created
+→ reservation becomes CONSUMED
+→ membership counts the place
+→ Offer no longer counts as a second reservation
+```
+
+`capacity_consumed_at` makes the Phase 8 → Phase 10 handoff explicit and prevents double counting.
 
 ## Member response API
 
@@ -115,20 +162,34 @@ Payload:
 
 The HTTP route does not directly mutate lifecycle fields. It invokes `phase8_respond_to_project_offer` under the authenticated member session.
 
-The database function validates:
+Acceptance/decline revalidation includes:
 
 - authenticated actor;
-- Offer ownership;
+- Offer belongs to actor;
 - legal action;
-- current pending state;
-- expiry;
-- corresponding application remains offered;
-- project remains joinable;
-- repeat same-state response is idempotent.
+- Offer still pending;
+- server-authoritative expiry;
+- application still `offered`;
+- project still valid/joinable;
+- effective admission mode remains REVIEW_REQUIRED;
+- accepting member is not already waiting/active/completed in the project;
+- accepted reservation has not been released/consumed incorrectly;
+- capacity remains internally coherent;
+- repeat same-state action is idempotent.
 
-It uses the project advisory lock before changing the Offer/application state.
+The function acquires the project advisory lock before the terminal decision.
 
-An Offer that is already past `expires_at` is durably expired and its capacity released. The function returns the persisted `expired` result rather than raising after writing, because a PostgreSQL exception would roll the transaction back.
+If the member responds after `expires_at`, the Offer and application are durably changed to `expired`, capacity is released, and the function returns an expired domain result. It deliberately does not raise after writing because a PostgreSQL exception would roll the transaction back.
+
+## Terminal-state integrity
+
+A Phase 8 linked application cannot be arbitrarily reopened through the generic application status path.
+
+- `declined` and `expired` are terminal for Phase 8.
+- `accepted` may advance only into the later team/readiness states (`waiting_for_team` / `team_complete`) through the governed downstream journey.
+- a legacy/AUTO application without a Phase 8 Offer remains governed by its existing Phase 6 lifecycle.
+
+This prevents a generic withdrawal/update from leaving an accepted Offer as a phantom capacity reservation.
 
 ## RLS and authorization
 
@@ -140,108 +201,176 @@ Authenticated members can select only rows where:
 user_id = auth.uid()
 ```
 
-Platform Admin can select operational Offer state using trusted `app_metadata.role='admin'` authorization.
+Platform Admin can read operational Offer state using trusted `app_metadata.role='admin'` authorization.
 
-Direct authenticated/anonymous insert, update and delete are revoked. Consequential state changes occur only through the governed functions/server paths.
+Direct anonymous/authenticated insert, update and delete are revoked. Consequential lifecycle changes occur through governed database/server paths.
 
-The service-role key remains server-only.
+The service-role key remains server-only for privileged operational/scheduled work.
+
+No Phase 8 endpoint accepts a member ID, project ID, run ID or capacity value from the browser as authority for the Offer decision.
 
 ## Member experience
 
-`/member/applications` now includes a dedicated Project Offers panel rather than overloading the existing Phase 6/7 tracker implementation.
+`/member/applications` contains a dedicated Project Place Offers surface plus the canonical application Tracker.
 
-For each Offer it displays:
+The Offer surface answers:
 
-- project;
-- commitment;
-- participation mode;
-- team state/minimum/target/maximum where available;
-- expected kickoff/start context;
-- Offer expiry;
-- participation expectation;
-- current Offer state.
+1. what project is being offered;
+2. why the member is seeing the Offer;
+3. project type;
+4. Partner organisation when applicable;
+5. expected commitment;
+6. duration;
+7. Team/Solo/Flexible participation mode;
+8. current confirmed/reserved team state plus minimum/target;
+9. expected start context;
+10. server expiry (`ACCEPT BY`);
+11. participation expectations;
+12. what Accept and Decline mean.
 
-Pending Offers provide explicit actions:
+Pending Offer actions:
 
-- **Accept place**
-- **Decline**
+- **Accept place** — primary;
+- **Decline** — secondary/destructive.
 
-Both use a confirmation dialog. Opening an Offer does not accept it.
+Both require a lightweight confirmation dialog. Accept copy states that commitment is recorded but project start and private Lab/workspace access remain later governed steps. Decline copy states that unrelated profile readiness, Proof and skills are unaffected.
 
-Acceptance copy explicitly states that membership/private workspace access has not started yet.
+Resolved Offers are read-only and provide a route back to Discover.
 
-The panel includes loading, load failure/retry, pending, accepted, declined, expired, saving and confirmation states, with live status/error feedback.
+### Tracker alignment
 
-Responsive contract:
+The canonical Tracker now agrees with Offer state:
 
-- mobile <=480px: one-column facts/actions, full-width 44px+ controls;
+- `offered` = **Place offered** and contributes to **Needs you**;
+- REVIEW_REQUIRED `accepted` = **Place accepted**;
+- `declined` = closed history;
+- `expired` = **Offer expired** in closed history.
+
+A REVIEW_REQUIRED accepted application does not expose the old generic “Release my place” action. The older AUTO/formation withdrawal behavior remains available only where `admission_decision='auto_qualified'` permits it.
+
+## Responsive and accessibility contract
+
+Offer UI requirements implemented in code include:
+
+- mobile `<=480px`: one-column context/actions and full-width 44px+ controls;
+- extra 340px containment refinement;
 - tablet: two-column facts;
 - desktop: three-column facts;
-- dialog remains viewport-contained;
-- no colour-only lifecycle communication;
-- keyboard-visible focus and semantic button/dialog behavior;
-- 200% reflow remains required release evidence.
+- viewport-contained native confirmation dialog;
+- overflow-safe wrapping;
+- state communicated in text, not color alone;
+- visible keyboard focus;
+- dialog accessible name and description;
+- focus returns to the invoking Accept/Decline button when dialog is cancelled/closed;
+- successful response moves focus to the live status message;
+- reduced-motion handling.
+
+Real 320px, tablet, desktop, 200% reflow, keyboard and screen-reader evidence is still a release/sign-off requirement; source implementation alone is not approval evidence.
 
 ## Notifications and email
 
-Phase 7 already sends `project_place_offered` through canonical `notifyUser` infrastructure when Admin records the Offer decision.
+When Admin records the Offer, canonical `notifyUser` infrastructure receives:
 
-Phase 8 adds canonical lifecycle communication for:
+- project-place Offer title/body;
+- project name;
+- project type;
+- Partner organisation where applicable;
+- canonical Offer ID;
+- authoritative persisted expiry;
+- action URL `/member/applications`;
+- deterministic Offer dedupe key.
+
+Phase 8 also creates lifecycle communication for:
 
 - Offer accepted;
 - Offer declined;
-- Offer expiring soon;
+- bounded Offer reminder;
 - Offer expired.
 
-Notification/outbox delivery remains best-effort after the lifecycle transaction. Communication failure cannot falsify an accepted/declined/expired database state.
+Notification/outbox delivery remains best-effort after lifecycle commitment. Communication failure must never falsify accepted/declined/expired database state.
 
-Each scheduled reminder/expiry communication uses a deterministic dedupe key.
+Scheduled reminder/expiry communication uses deterministic dedupe keys.
 
 ## Scheduled processing
 
 Phase 8 reuses `/api/cron/project-formation`; no second cron framework is introduced.
 
-`phase8_claim_offer_reminders` claims at most one reminder for a pending Offer in its final 24 hours. `reminder_sent_at` prevents repeated claims.
+`phase8_claim_offer_reminders` claims at most one reminder for a still-pending Offer in its final 24 hours. Conditions include:
+
+- status still pending;
+- expiry not passed;
+- reminder not already claimed.
+
+`reminder_sent_at` prevents repeated claims, and terminal Offer states no longer match the claim query.
 
 `phase8_expire_project_offers`:
 
-- locks due pending rows with `FOR UPDATE SKIP LOCKED`;
-- transitions Offer to `expired`;
-- records `expired_at`;
-- records capacity release;
-- updates the application tracker to `expired`;
-- writes `project_offer_expired` activity evidence;
-- returns affected member/project identifiers so the existing notification/outbox system can send the expiry update.
+- considers only due `pending` rows;
+- locks with `FOR UPDATE SKIP LOCKED`;
+- records `expired_at` and release once;
+- updates the application Tracker to `expired`;
+- writes canonical `offer_expired` audit/analytics evidence;
+- returns exactly the affected Offer/member/project identifiers so the existing notification/outbox path can communicate expiry;
+- is idempotent because the second run no longer finds the terminal row.
 
-The worker is idempotent because only `pending` rows are processed.
+The AUTO-start loop remains a separate lifecycle responsibility and continues to validate effective AUTO policy before starting runs.
 
-## Analytics / operational evidence
+## Audit and analytics
 
-Consequential lifecycle events are written to `project_activity_log`:
+Canonical Phase 8 lifecycle events in `project_activity_log` include:
 
-- `project_place_offered` (Phase 7 existing boundary);
-- `project_offer_accepted`;
-- `project_offer_declined`;
-- `project_offer_expired`.
+- `offer_created`;
+- `offer_accepted`;
+- `offer_declined`;
+- `offer_expired`;
+- `offer_capacity_consumed` when later membership consumes an accepted reservation.
 
-No sensitive free-text application content is added to these Phase 8 event payloads.
+Terminal decision metadata includes `decision_seconds` so `offered_at → accepted/declined/expired` can be measured without logging application statements, reviewer notes, evidence URLs or unnecessary email data.
 
-## Security cases requiring release evidence
+Phase 7 may additionally retain its operational `project_place_offered` selection event; that is distinct from the Phase 8 canonical Offer lifecycle event.
 
-Phase 8 must prove:
+## Admin operations
 
-- Member A cannot read Member B's Offer;
-- Member A cannot accept/decline Member B's Offer;
-- anonymous response is denied;
-- forged project/application/user/run fields cannot choose the transition target;
+Admin Project Operations shows:
+
+- confirmed canonical membership;
+- active reserved Offers;
+- available places;
+- maximum capacity;
+- pending / accepted / declined / expired counts;
+- Offer member;
+- offered timestamp;
+- expiry or resolved timestamp;
+- reservation state;
+- accepted reservations that have been consumed into canonical membership.
+
+Expired reservations release automatically; Admin does not manually free them.
+
+## Security and concurrency release cases
+
+Release evidence must prove at least:
+
+- Partner REVIEW_REQUIRED creates Offer;
+- Open REVIEW_REQUIRED creates Offer;
+- Open AUTO cannot enter Offer lifecycle;
+- member cannot forge an application into `offered`;
+- Member A cannot read Member B Offer;
+- Member A cannot accept/decline Member B Offer;
+- direct member writes to `project_offers` are denied;
 - expired Offer cannot become accepted;
-- declined Offer cannot become accepted;
-- repeat Accept is idempotent;
-- repeat Decline is idempotent;
-- direct table update is denied to normal members;
-- simultaneous final-place Offer decisions cannot over-reserve;
-- accepted reservations remain counted until a later phase consumes them;
-- decline/expiry release capacity exactly once.
+- declined Offer cannot later become accepted;
+- accepted Offer cannot be stale-declined;
+- double Accept is idempotent;
+- double Decline is idempotent;
+- Accept vs Decline yields one valid terminal state;
+- Accept vs Expiry yields one valid terminal state;
+- simultaneous final-place Offers cannot over-reserve;
+- reminder claim excludes accepted/declined/expired Offers;
+- expiry worker is idempotent;
+- capacity release is recorded once;
+- accepted reservation is consumed exactly once by later canonical membership;
+- terminal Phase 8 application state cannot be arbitrarily rewritten;
+- leadership interest is not converted into Project Lead authority by acceptance.
 
 ## Existing functionality to preserve
 
@@ -249,56 +378,58 @@ Phase 8 must not regress:
 
 - Supabase Auth/session boundaries;
 - canonical `/api/project-applications` submission;
-- Phase 6 AUTO admission/run scheduling;
-- Phase 7 REVIEW_REQUIRED state machine;
-- Partner Projects always requiring review;
-- Phase 7 clarification flow;
-- project application event history;
-- project activity history;
-- canonical `project_members` and `project_runs`;
-- `startProjectRun()`;
-- My Mettelo application tracker;
+- Phase 6 AUTO admission/run scheduling and six-hour Admin intervention path;
+- Phase 7 REVIEW_REQUIRED/Partner review state machine;
+- clarification flow;
+- application/activity history;
+- canonical `project_members` / `project_runs`;
+- canonical `startProjectRun()` readiness boundary;
+- My Mettelo tracker;
 - Admin Project Operations;
-- existing notifications/outbox/email delivery;
-- project-formation cron behavior;
+- notifications/outbox/email delivery;
+- project-formation cron;
 - Lab access remaining membership/start governed.
 
 ## Rollback
 
-The schema is additive. If Phase 8 UI/API must be rolled back before release:
+The Phase 8 schema is additive. If Phase 8 UI/API must be disabled before release:
 
 - stop exposing response controls;
 - stop invoking Phase 8 scheduled Offer processing;
-- preserve Offer/audit rows rather than deleting history;
-- do not manufacture or delete membership as a rollback mechanism;
-- prefer a reviewed forward/compensating migration if schema correction is required.
+- preserve Offer/audit history;
+- do not manufacture/delete membership as rollback;
+- preserve capacity state and use a reviewed forward/compensating migration if correction is required.
 
 Do not apply a destructive reverse migration to Production from memory.
 
 ## Verification contract
 
-Before Phase 8 can be signed off, exact-head evidence must include:
+Phase 8 is not approved from implementation alone. Exact final-head evidence must include the user-supplied **68 mandatory E2E journeys / release checks** and **67-point Director sign-off**, including:
 
-1. canonical Offer record exists;
-2. expiry exists;
-3. pending capacity reservation is authoritative;
-4. over-offering is prevented;
-5. acceptance works;
-6. decline works;
-7. expiry works;
-8. capacity releases on decline/expiry;
-9. concurrency races are handled;
-10. member tracker/Offer panel updates;
-11. Admin operational state updates;
-12. communication matrix is followed;
-13. reminder dedupe works;
-14. mobile Offer UI works;
-15. accessibility passes;
-16. Offer E2E passes;
-17. documentation is current.
+- Partner mandatory Offer path;
+- Open REVIEW_REQUIRED Offer path;
+- AUTO exclusion;
+- canonical Offer persistence/FKs/constraints/indexes/RLS;
+- capacity and all required races;
+- accept/decline/expiry/idempotency;
+- Tracker/Admin agreement;
+- notification/outbox behavior and reminder dedupe;
+- accepted reservation → later team formation compatibility;
+- no premature Lab/start access;
+- analytics/audit privacy;
+- 320px/tablet/desktop/200%/keyboard/screen-reader/focus evidence;
+- lint;
+- typecheck;
+- build;
+- Offer/backend E2E;
+- Phase 6/7/Partner/application/Admin regressions;
+- Event Room contract;
+- protected Release Gate/Deployment Gate.
 
-Required repository gates remain lint, typecheck, build, static audits, blocking regressions, isolated Supabase migration/RLS/backend E2E, responsive/accessibility evidence, Event Room contract, Release Gate and Deployment Gate according to current CI policy.
+Only the exact final SHA counts. A queued, running, cancelled or superseded workflow is not success.
 
 ## Known repository dependency risk
 
-The repository's documented P0 incomplete Supabase baseline still applies: `project_runs`, notifications/outbox and other older hosted objects do not have complete authoritative creation history in `supabase/migrations/`. Phase 8 must therefore pass the repository's isolated migration compatibility harness, but this PR does not falsely claim that the wider historical production schema provenance problem has been solved.
+Phase 7 / PR #216 remains the immediate dependency. Phase 8 must not merge ahead of it; once Phase 7 is accepted/merged, Phase 8 must be retargeted/rebased as necessary and all required exact-head evidence rerun.
+
+The repository's documented historical Supabase-baseline P0 also remains: some older hosted objects such as the original `project_runs` / notification baseline pre-date complete authoritative creation migrations. Phase 8 uses only versioned forward migrations and must pass the repository's isolated migration compatibility harness; this phase does not falsely claim to resolve that separate historical provenance issue.

@@ -4,6 +4,7 @@ const fail=(message)=>{console.error(`Project Library contract audit failed: ${m
 const read=(path)=>fs.readFileSync(path,'utf8');
 
 const publicLoader=read('lib/project-detail-content.ts');
+const publicProjection=read('lib/public-project-experience-data.ts');
 const labLoader=read('lib/project-lab-canonical-data.ts');
 const labBrief=read('components/project-experience/ProjectLabCanonicalBrief.tsx');
 const publicPage=read('components/project-experience/ProjectPublicDetailV2.tsx');
@@ -29,6 +30,25 @@ for(const token of ['external_url','provider_url','licence_url','internal_storag
 }
 for(const token of ['externalUrl:null','providerUrl:null','licenceUrl:null']){
   if(!publicLoader.includes(token))fail(`public discovery loader must hard-null ${token}`);
+}
+
+// Phase 4+ public detail uses the governed public RPC projection rather than
+// directly loading the richer member-only projection helpers. This keeps the
+// public route on the same canonical model without exposing restricted fields.
+for(const token of ["getPublicProjectExperienceData(project.id)",'buildProjectExperienceModel']){
+  if(!publicRoute.includes(token))fail(`public project detail route missing secure canonical projection dependency ${token}`);
+}
+for(const token of ["rpc('get_public_project_experience_detail'",'externalUrl:null','providerUrl:null','licenceUrl:null','loadError:false']){
+  if(!publicProjection.includes(token))fail(`public project experience projection missing ${token}`);
+}
+for(const token of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel']){
+  if(!memberRoute.includes(token))fail(`member project detail route missing canonical projection dependency ${token}`);
+}
+for(const route of [publicRoute,memberRoute]){
+  if(!route.includes('project_roles(id,title,description,skills,openings,discipline,canonical_role_key)'))fail('project detail route must load canonical project-role identity');
+  if(!route.includes('project.canonical_project_key'))fail('canonical project detail must distinguish preserved legacy roles from canonical roles');
+  if(!route.includes('canonical_role_key'))fail('canonical project detail must filter to canonical roles');
+  if(route.includes('Project Contributor'))fail('project detail route must not invent generic Project Contributor roles');
 }
 
 // Phase 8: authorised Lab projection must gate before service-role reads.
@@ -69,16 +89,6 @@ for(const token of [
   'revoke all on all tables in schema private_import from public, anon, authenticated'
 ]){
   if(!phase8PrivateImportMigration.includes(token))fail(`Phase 8 private import hardening missing ${token}`);
-}
-
-for(const route of [publicRoute,memberRoute]){
-  for(const token of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel']){
-    if(!route.includes(token))fail(`project detail route missing canonical projection dependency ${token}`);
-  }
-  if(!route.includes('project_roles(id,title,description,skills,openings,discipline,canonical_role_key)'))fail('project detail route must load canonical project-role identity');
-  if(!route.includes('project.canonical_project_key'))fail('canonical project detail must distinguish preserved legacy roles from canonical roles');
-  if(!route.includes('canonical_role_key'))fail('canonical project detail must filter to canonical roles');
-  if(route.includes('Project Contributor'))fail('project detail route must not invent generic Project Contributor roles');
 }
 
 if(!publicPage.includes('ProjectPublicDetailBodyV3'))fail('public project detail wrapper must render the approved V3 body');

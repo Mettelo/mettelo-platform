@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/cron/project-formation",
-      "schedule": "15 6 * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/email-delivery",

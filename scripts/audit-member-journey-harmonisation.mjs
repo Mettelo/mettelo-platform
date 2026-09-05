@@ -12,6 +12,7 @@ const journey=read('lib/member-project-journey.ts');
 const sharedHeader=read('components/MemberPageHeader.tsx');
 const sharedHeaderCss=read('components/MemberPageHeader.module.css');
 const profileApi=read('app/api/profile/route.ts');
+const atomicProfileMigration=read('supabase/migrations/20260905110000_project_experience_phase_2_atomic_profile_save.sql');
 const menuRestore=read('app/public-mobile-menu-restore.css');
 const rootLayout=read('app/layout.tsx');
 
@@ -33,9 +34,9 @@ const checks=[
   ['Discover retains exact member project CTA rendering',catalogue.includes('href={item.action.href}')],
   ['shared header mobile title remains controlled',sharedHeaderCss.includes('@media(max-width:480px)')&&sharedHeaderCss.includes('font-size:32px')],
   ['shared header maintains 44px action targets',sharedHeaderCss.includes('min-height:44px')],
-  ['Profile save safely upserts the authenticated owner row',profileApi.includes("upsert({id:user.id,...updatePayload},{onConflict:'id'})")],
-  ['Profile save keeps owner identity server-derived',profileApi.includes('id:user.id')&&!profileApi.includes('id:body.id')],
-  ['Profile save surfaces schema mismatch without exposing database detail',profileApi.includes("schemaMismatch=error.code==='42703'||error.code==='PGRST204'")],
+  ['Profile save safely upserts the authenticated owner row',profileApi.includes("rpc('save_member_profile'")&&atomicProfileMigration.includes('insert into public.profiles(')&&atomicProfileMigration.includes('on conflict(id) do update set')],
+  ['Profile save keeps owner identity server-derived',!profileApi.includes('id:body.id')&&atomicProfileMigration.includes('v_user_id uuid:=auth.uid()')&&atomicProfileMigration.includes('v_user_id,')],
+  ['Profile save surfaces schema mismatch without exposing database detail',profileApi.includes("schemaMismatch=error.code==='42883'||error.code==='PGRST202'")&&profileApi.includes('Profile saving is temporarily unavailable while the profile schema is updated.')],
   ['Contained public mobile menu restore is loaded last',rootLayout.includes("import './public-mobile-menu-restore.css';")],
   ['Restored mobile menu is contained rather than viewport-height',menuRestore.includes('width:min(86vw,340px)')&&menuRestore.includes('height:auto!important')&&menuRestore.includes('top:68px!important')],
   ['Restored mobile menu retains a backdrop and bounded scrolling',menuRestore.includes('.mobileMenuBackdrop')&&menuRestore.includes('max-height:calc(100dvh - 80px)')]

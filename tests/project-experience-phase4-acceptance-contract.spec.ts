@@ -44,6 +44,18 @@ test.describe('Project Experience Phase 4 acceptance boundaries',()=>{
     expect(body).not.toContain('In partnership with');
   });
 
+  test('public detail uses canonical availability and distinguishes load failure from empty content',()=>{
+    const detail=read('app/projects/[id]/page.tsx');
+    const loader=read('lib/public-project-experience-data.ts');
+    const hero=read('components/project-experience/ProjectPublicDetailV2.tsx');
+    expect(detail).toContain('resolveProjectPublicAvailability');
+    expect(detail).toContain('const canApply=availability.acceptingInterest');
+    expect(loader).toContain('loadError:boolean');
+    expect(loader).toContain("console.error('public project experience projection failed'");
+    expect(hero).toContain('Some project details could not be loaded.');
+    expect(hero).toContain('Refresh this page to retry the detailed project brief.');
+  });
+
   test('project-specific SEO is visibility-gated and hidden projects are not indexable',()=>{
     const detail=read('app/projects/[id]/page.tsx');
     expect(detail).toContain(".eq('visibility','public')");

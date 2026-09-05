@@ -27,3 +27,11 @@ alter table public.project_applications
 
 comment on constraint project_applications_status_check on public.project_applications is
   'Canonical project request lifecycle: review, team formation/confirmation, terminal history, and legacy accepted/approved compatibility states.';
+
+-- Keep the PostgreSQL uniqueness contract aligned with the API definition of an
+-- active interest. Declined and withdrawn requests are terminal history and must
+-- not block a later lifecycle/request for the same member and project.
+drop index if exists public.project_applications_one_interest_per_project_user;
+create unique index project_applications_one_interest_per_project_user
+  on public.project_applications(project_id,user_id)
+  where application_kind='interest' and status not in ('declined','withdrawn');

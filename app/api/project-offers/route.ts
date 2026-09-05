@@ -27,6 +27,9 @@ function mapRpcError(message:string){
   if(message.includes('OFFER_NOT_PENDING'))return{status:409,error:'This project offer has already been resolved. Refresh My Mettelo to see its current state.'};
   if(message.includes('APPLICATION_NOT_OFFERED'))return{status:409,error:'This project request is no longer awaiting an offer response. Refresh My Mettelo.'};
   if(message.includes('PROJECT_NOT_JOINABLE'))return{status:409,error:'This project is no longer able to accept this offer response.'};
+  if(message.includes('OFFER_REQUIRES_REVIEW_REQUIRED')||message.includes('AUTO_OFFER_FORBIDDEN'))return{status:409,error:'This Offer is no longer valid for the project admission policy. Refresh My Mettelo.'};
+  if(message.includes('ALREADY_PARTICIPATING'))return{status:409,error:'You are already participating in, confirmed for, or have completed this project.'};
+  if(message.includes('OFFER_RESERVATION_INVALID'))return{status:409,error:'This reserved project place is no longer valid. Refresh My Mettelo before responding.'};
   if(message.includes('INVALID_OFFER_ACTION'))return{status:400,error:'Choose Accept place or Decline.'};
   if(message.includes('AUTH_REQUIRED'))return{status:401,error:'Your session has expired. Please sign in again.'};
   return{status:500,error:'We could not update this project offer right now.'};

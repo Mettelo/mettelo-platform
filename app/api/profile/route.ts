@@ -52,7 +52,8 @@ export async function PATCH(request:Request){
     const skills=list(body.skills,30);
     const preferredRoles=list(body.preferred_roles,12);
     const languages=list(body.languages,12);
-    const isPublic=Boolean(body.is_public);
+    const hasPublicChoice=Object.prototype.hasOwnProperty.call(body,'is_public');
+    const requestedPublic=hasPublicChoice?Boolean(body.is_public):null;
     const domainSlugs=slugList(body.domain_preferences);
     const toolSlugs=slugList(body.tool_preferences);
     const hasOnboardingStep=Object.prototype.hasOwnProperty.call(body,'onboarding_step');
@@ -67,21 +68,20 @@ export async function PATCH(request:Request){
     for(const url of [linkedinUrl,githubUrl,portfolioUrl]){if(url){try{if(new URL(url).protocol!=='https:')throw new Error();}catch{return NextResponse.json({error:'Profile links must be valid HTTPS URLs.'},{status:400});}}}
     if(avatarUrl){const projectUrl=process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/,'');const expectedPrefix=projectUrl?`${projectUrl}/storage/v1/object/public/profile-images/${user.id}/`:'';if(!expectedPrefix||!avatarUrl.startsWith(expectedPrefix)) return NextResponse.json({error:'Profile image must come from your Mettelo image upload.'},{status:400});}
 
-    const [domainRows,toolRows,proofResult]=await Promise.all([
+    const [domainRows,toolRows,proofResult,currentProfile]=await Promise.all([
       domainSlugs.length?supabase.from('domains').select('id,slug').eq('is_active',true).in('slug',domainSlugs):Promise.resolve({data:[],error:null}),
       toolSlugs.length?supabase.from('tools').select('id,slug').eq('is_active',true).in('slug',toolSlugs):Promise.resolve({data:[],error:null}),
-      supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified')
+      supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified'),
+      supabase.from('profiles').select('is_public').eq('id',user.id).maybeSingle()
     ]);
-    if(domainRows.error||toolRows.error) return NextResponse.json({error:'Unable to validate project preferences.'},{status:500});
+    if(domainRows.error||toolRows.error||currentProfile.error) return NextResponse.json({error:'Unable to validate project preferences.'},{status:500});
     if((domainRows.data||[]).length!==domainSlugs.length||(toolRows.data||[]).length!==toolSlugs.length)return NextResponse.json({error:'One or more project preferences are invalid. Refresh and try again.'},{status:400});
 
+    const isPublic=hasPublicChoice?Boolean(requestedPublic):Boolean(currentProfile.data?.is_public);
     const memberReadiness=calculateMemberReadiness({profile:{full_name:fullName,headline,current_job_title:currentJobTitle,professional_area:professionalArea,bio,location,experience_level:experienceLevel,employment_status:employmentStatus,project_availability:projectAvailability,weekly_capacity:weeklyCapacity,primary_goal:primaryGoal,linkedin_url:linkedinUrl,github_url:githubUrl,portfolio_url:portfolioUrl,skills,preferred_roles:preferredRoles},domainCount:domainSlugs.length,toolCount:toolSlugs.length,verifiedProofCount:proofResult.count||0});
     const onboardingState=onboardingComplete?{onboarding_step:4,onboarding_completed_at:new Date().toISOString()}:hasOnboardingStep?{onboarding_step:onboardingStep}:{};
     const updatePayload={full_name:fullName,headline,bio,location,professional_area:professionalArea||null,primary_goal:primaryGoal||null,linkedin_url:linkedinUrl||null,github_url:githubUrl||null,portfolio_url:portfolioUrl||null,avatar_url:avatarUrl||null,current_job_title:currentJobTitle||null,organisation:organisation||null,experience_level:experienceLevel||null,employment_status:employmentStatus||null,project_availability:projectAvailability||null,weekly_capacity:weeklyCapacity||null,skills,preferred_roles:preferredRoles,languages,is_public:isPublic,profile_readiness:memberReadiness.legacyProfileReadiness,...onboardingState,updated_at:new Date().toISOString()};
 
-    // Historical/auth-imported accounts can legitimately exist without a profiles row.
-    // Upsert preserves the owner-only RLS contract while making save idempotent for both
-    // existing and missing rows instead of turning a missing row into a generic 500.
     const {data,error}=await supabase.from('profiles').upsert({id:user.id,...updatePayload},{onConflict:'id'}).select('*').single();
     if(error){
       console.error('member profile upsert failed',{code:error.code,message:error.message,details:error.details,hint:error.hint});

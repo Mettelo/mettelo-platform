@@ -21,13 +21,12 @@ export default async function ApplicationsPage(){
   const {data:{user}}=await auth.auth.getUser();
   if(!user)redirect('/signin?next=/member/applications');
 
-  // My Mettelo Applications is intentionally scoped to the project-participation
-  // domain at source. Recruitment applications are owned by /careers/applications.
-  // Hosted environments already carry project_run_id/application_kind/requested_role.
-  // Historical migration reconstruction does not yet version all three, so blank CI
-  // environments use a narrow fallback while hosted environments keep richer data.
-  // Do not join the legacy project_roles table through the member client: authenticated
-  // intentionally has no SELECT grant there. requested_role is the hosted role label.
+  // My Mettelo Applications is the existing project-request tracker route.
+  // It now presents Phase 6 `interest` rows truthfully while retaining legacy
+  // role-specific `application` rows in the same canonical tracker.
+  // Recruitment applications remain owned by /careers/applications.
+  // Do not join legacy project_roles through the member client: authenticated
+  // intentionally has no SELECT grant there. requested_role is the legacy label.
   const primary=await auth
     .from('project_applications')
     .select('id,status,submitted_at,updated_at,project_id,project_run_id,application_kind,requested_role,projects(title,status,project_type,team_size_threshold,forming_deadline,kickoff_at)')
@@ -46,7 +45,7 @@ export default async function ApplicationsPage(){
     error=fallback.error;
   }
 
-  if(error)console.error('member project applications query failed',error);
+  if(error)console.error('member project requests query failed',error);
   const applications=(projectData||[]) as unknown as Application[];
   const applicationIds=applications.map(item=>item.id);
   const runIds=[...new Set(applications.map(item=>item.project_run_id).filter((id):id is string=>Boolean(id)))];
@@ -75,15 +74,15 @@ export default async function ApplicationsPage(){
 
   return <div className="applicationsPage">
     <MemberPageHeader
-      eyebrow="MY WORK · PROJECT APPLICATIONS"
+      eyebrow="MY WORK · PROJECT REQUESTS"
       title="Applications"
       titleId="applications-title"
-      description="Track the projects you’ve applied to, see exactly when you need to act, and follow each application until it either closes or becomes confirmed project work."
+      description="Track project interests submitted through the new project journey alongside any legacy project applications. Follow each request from submission through review, team formation, confirmation or closure."
       actions={<><a className="applicationsButton applicationsButtonDark" href="/member/discover">Discover projects</a><a className="applicationsButton" href="/member/recommended">Recommended</a></>}
     />
 
     {error
-      ? <section className="applicationsError" role="alert"><h2>We couldn’t load your applications</h2><p>Refresh the page to try again. Your project data has not been changed.</p></section>
+      ? <section className="applicationsError" role="alert"><h2>We couldn’t load your project requests</h2><p>Refresh the page to try again. Your project data has not been changed.</p></section>
       : <MemberApplicationTracker applications={enriched}/>}
 
     <style>{`

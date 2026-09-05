@@ -96,11 +96,14 @@ for(const token of ['challenge.decisionToSupport','challenge.constraintsTradeOff
 for(const token of ['model','roles','contributionAreas','primaryAction']){
   if(!memberExperience.includes(token))fail(`member project detail does not preserve ${token}`);
 }
-for(const marker of ['<strong>Apply</strong>','<strong>Team formation</strong>','<strong>Project delivery</strong>','<strong>Evidence review</strong>','<strong>Handover</strong>']){
-  if(!memberBody.includes(marker))fail(`member project detail must preserve five-step Project journey marker ${marker}`);
+for(const marker of ['01 · Overview','02 · Project fit','03 · Team &amp; capacity','04 · Delivery','05 · Quality','06 · Possible contribution areas','07 · What happens next']){
+  if(!memberBody.includes(marker))fail(`member project detail must preserve Phase 5 decision journey marker ${marker}`);
 }
-for(const marker of ['>01</span>','>02</span>','>03</span>','>04</span>','>05</span>']){
-  if(!memberBody.includes(marker))fail(`member project detail must preserve numbered five-step Project journey marker ${marker}`);
+for(const marker of ['Possible contribution areas','You are not choosing or applying for a formal role at this stage.','What happens after you submit interest','Phase 5 ends with the qualification decision and handoff. The actual interest answers are collected and persisted by the canonical Phase 6 form.']){
+  if(!memberBody.includes(marker))fail(`member project detail must preserve Phase 5 handoff marker ${marker}`);
+}
+for(const retired of ['<strong>Apply</strong>','roleSelectButton',"?role=${encodeURIComponent(selectedRole.id)}",'/apply?role=']){
+  if(memberBody.includes(retired))fail(`member project detail reintroduced retired role-first marker ${retired}`);
 }
 
 for(const token of ["visibility = 'public'","status = 'open'","applications_open = true",'project_identity_baseline']){

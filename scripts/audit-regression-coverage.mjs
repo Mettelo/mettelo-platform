@@ -122,8 +122,9 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
     if(marker==='ProjectMemberCanonicalSections'&&memberComponent.includes(marker))failures.push('Project Experience V3: legacy member body was reintroduced below the frozen hero');
   }
   for(const marker of ['MemberProjectDetailBodyV3'])if(!memberComponent.includes(marker))failures.push(`Project Experience V3: member shell lost ${marker}`);
-  for(const marker of ['#overview','#deliverables','#quality','#roles','#timeline','Project overview','Project deliverables','Success standards','Choose your contribution area','Project delivery plan','qualityGroups(successCriteria)','roleSelectButton','aria-pressed','role.recommendedSkills','role.experienceExpectation','role.weeklyCommitment','role.applicationRequirements',"?role=${encodeURIComponent(selectedRole.id)}"]){if(!memberBodyV3.includes(marker))failures.push(`Project Experience V3: member body lost required marker ${marker}`)}
-  if(memberBodyV3.includes("useState(selectableRoles[0]?.id"))failures.push('Project Experience V3: member role selection must require explicit user intent rather than preselecting the first role');
+  for(const marker of ['#overview','#deliverables','#quality','#roles','#timeline','Project overview','Project deliverables','Success standards','Possible contribution areas','You are not choosing or applying for a formal role at this stage.','What happens after you submit interest','qualityGroups(successCriteria)','role.recommendedSkills','role.experienceExpectation','role.weeklyCommitment'])if(!memberBodyV3.includes(marker))failures.push(`Project Experience Phase 5: member body lost required marker ${marker}`);
+  for(const forbidden of ['Choose your contribution area','roleSelectButton','aria-pressed',"?role=${encodeURIComponent(selectedRole.id)}",'/apply?role='])if(memberBodyV3.includes(forbidden))failures.push(`Project Experience Phase 5: retired role-first interaction reintroduced marker ${forbidden}`);
+  if(memberBodyV3.includes("useState(selectableRoles[0]?.id"))failures.push('Project Experience Phase 5: member role selection must not be reintroduced before initial interest');
   if(memberBodyV3.includes("role={selectable?'button'"))failures.push('Project Experience V3: nested article-as-button interaction was reintroduced around role details');
 
   if(!publicDetailContent.includes("row.sensitivity==='public'&&row.publish_policy==='permitted'&&row.governance_status==='green'"))failures.push('Project Experience V2: internal public resource projection is not GREEN + public + publish-permitted');
@@ -154,7 +155,7 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
 
   if(!teamMigration.includes('leadership_interest boolean not null default false'))failures.push('Project Experience V2: leadership willingness is not persisted');
   if(!memberApplication.includes('I would be willing to lead this project team if selected.'))failures.push('Project Experience V2: application UI lost leadership willingness');
-  if(!memberApplicationRoute.includes('leadership_interest:isInterest?false:leadershipInterest'))failures.push('Project Experience V2: application endpoint does not persist leadership willingness');
+  if(!memberApplicationRoute.includes('leadership_interest:leadershipInterest'))failures.push('Project Experience Phase 5: interest/application endpoint does not persist leadership willingness');
   for(const marker of ["members.every(member=>Boolean(member.project_role_id))",".from('project_experience_readiness')","if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')","leadershipInterest?60:0",'activeLeadProjects*25'])if(!teamReadiness.includes(marker))failures.push(`Project Experience V2: team readiness lost ${marker}`);
   if(!adminApplicationRoute.includes("if(readiness.ready&&project.project_type==='open'&&!run.has_started)"))failures.push('Project Experience V2: Open Project auto-start is not gated on complete team readiness');
   if(adminApplicationRoute.includes("if(full&&project.project_type==='open'&&!run.has_started)"))failures.push('Project Experience V2: legacy headcount-only auto-start was reintroduced');
@@ -163,4 +164,4 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
 }
 
 if(failures.length){console.error('Critical regression coverage audit failed:');failures.forEach(failure=>console.error(`- ${failure}`));process.exit(1)}
-console.log(`Critical regression coverage audit passed (${journeys.length} journeys + ${projectExperienceContracts.length} Project Experience contracts + secure Phase 4 public projection + frozen hero + V3 Public/Member body redesign).`);
+console.log(`Critical regression coverage audit passed (${journeys.length} journeys + ${projectExperienceContracts.length} Project Experience contracts + secure Phase 4 public projection + frozen hero + Phase 5 role-neutral member decision contract).`);

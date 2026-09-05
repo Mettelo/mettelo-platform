@@ -22,10 +22,10 @@ test('existing project lifecycle is a truthful recommendation signal and routes 
   const expected:Array<[Parameters<typeof memberProjectCatalogueAction>[0],string,string]>=[
     ['open_eligible','View project','/member/discover/project-1'],
     ['ineligible','View project','/member/discover/project-1'],
-    ['application_submitted','View application','/member/applications'],
-    ['application_action_required','View application','/member/applications'],
-    ['application_in_review','View application','/member/applications'],
-    ['team_forming','View application','/member/applications'],
+    ['application_submitted','View interest','/member/applications'],
+    ['application_action_required','View interest','/member/applications'],
+    ['application_in_review','View interest','/member/applications'],
+    ['team_forming','View interest','/member/applications'],
     ['confirmed','Open in Projects','/member/projects'],
     ['active','Open in Projects','/member/projects'],
     ['completed','View in Projects','/member/projects?state=completed']

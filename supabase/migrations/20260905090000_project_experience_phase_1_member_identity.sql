@@ -1,4 +1,5 @@
 create sequence if not exists public.mettelo_member_number_seq as bigint start with 100001;
+grant usage,select on sequence public.mettelo_member_number_seq to authenticated;
 
 alter table public.profiles
   add column if not exists username text,

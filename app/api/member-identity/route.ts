@@ -46,7 +46,7 @@ export async function POST(request:Request){
     const result=Array.isArray(data)?data[0]:data;
     if(!result)return NextResponse.json({error:'Unable to save username. Please try again.'},{status:500});
     if(result.success){
-      const metadata={...(user.user_metadata||{}),mettelo_identity_required:false};
+      const metadata={...(user.user_metadata||{}),mettelo_identity_required:false,mettelo_identity_next:null};
       const {error:metadataError}=await supabase.auth.updateUser({data:metadata});
       if(metadataError)console.error('member identity completion metadata update failed',{code:metadataError.code,message:metadataError.message});
       return NextResponse.json({identity:{username:result.claimed_username,member_id:result.claimed_member_id},code:result.code});

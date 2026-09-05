@@ -27,7 +27,7 @@ const checks=[
   ['Applications Discover CTA stays inside My Mettelo',applications.includes('href="/member/discover"')&&!applications.includes('href="/projects"')],
   ['Proof project discovery CTA stays inside My Mettelo',proof.includes('href="/member/discover"')&&!proof.includes('href="/projects"')],
   ['Discover catalogue routes exact project states to member detail',journey.includes("return{label:'View project',href:`/member/discover/${projectId}`}")],
-  ['application lifecycle states still route to Applications',journey.includes("return{label:'View application',href:'/member/applications'}")],
+  ['active interest lifecycle states route to Applications',journey.includes("['application_submitted','application_action_required','application_in_review','team_forming'].includes(state)")&&journey.includes("return{label:'View interest',href:'/member/applications'}")],
   ['Save Project uses canonical saved-project API',save.includes("fetch('/api/projects/saved'")],
   ['Save Project exposes visible status feedback',save.includes('role="status"')&&save.includes('Saved to My Mettelo')&&!save.includes('mdSrOnly')],
   ['Save Project uses optimistic state with rollback on failure',save.includes('setSaved(next)')&&save.includes('setSaved(previous)')],

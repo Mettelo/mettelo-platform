@@ -2,10 +2,8 @@ import {notFound} from 'next/navigation';
 import ProjectPublicDetailV2 from '@/components/project-experience/ProjectPublicDetailV2';
 import polish from '@/components/project-experience/ProjectExperiencePolish.module.css';
 import {projectAcceptsApplications} from '@/lib/member-project-journey';
-import {getProjectDetailContent} from '@/lib/project-detail-content';
-import {getProjectExperiencePlanning} from '@/lib/project-experience-data';
 import {buildProjectExperienceModel} from '@/lib/project-experience-model';
-import {getProjectExperienceRoleDetails} from '@/lib/project-experience-role-data';
+import {getPublicProjectExperienceData} from '@/lib/public-project-experience-data';
 import {createPublicSupabaseClient} from '@/lib/supabase/public';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 
@@ -34,12 +32,11 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   if(projectResult.error||!projectResult.data)notFound();
   const project=projectResult.data as unknown as Project;
 
-  const [detail,planning,roleDetails,auth]=await Promise.all([
-    getProjectDetailContent(project.id),
-    getProjectExperiencePlanning(project.id),
-    getProjectExperienceRoleDetails(project.id),
+  const [publicExperience,auth]=await Promise.all([
+    getPublicProjectExperienceData(project.id),
     createServerSupabaseClient()
   ]);
+  const {detail,brief,milestones,roleDetails}=publicExperience;
   const {data:{user}}=await auth.auth.getUser();
 
   // Imported canonical projects intentionally keep legacy role rows so historic
@@ -66,7 +63,7 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   const model=buildProjectExperienceModel({
     project:{id:project.id,title:project.title,summary:project.summary,problemStatement:project.problem_statement,status:project.status,projectType:project.project_type,applicationsOpen:project.applications_open,partnerName:project.partner_name,location:project.location,locationType:project.location_type,difficultyLevel:project.difficulty_level,durationWeeks:project.duration_weeks,weeklyCommitment:project.weekly_commitment,applicationDeadline:project.application_deadline,participationMode,minTeamSize,targetTeamSize,maxTeamSize,teamSizeThreshold:project.team_size_threshold},
     roles:roles.map(role=>{const rich=roleDetails.get(role.id);return{id:role.id,title:role.title,description:role.description,discipline:role.discipline,skills:(role.skills||[]).filter(Boolean),openings:role.openings,responsibilities:rich?.responsibilities||[],recommendedSkills:rich?.recommendedSkills||[],experienceExpectation:rich?.experienceExpectation||null,weeklyCommitment:rich?.weeklyCommitment||null,roleStatus:rich?.roleStatus||null,applicationRequirements:rich?.applicationRequirements||null}}),
-    domains,tools,methods,detail,brief:planning.brief,milestones:planning.milestones
+    domains,tools,methods,detail,brief,milestones
   });
 
   const memberProjectHref=`/member/discover/${project.id}`;

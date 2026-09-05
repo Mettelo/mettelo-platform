@@ -45,3 +45,8 @@ if(careerNotifications.includes('notifyUser')){console.error('FAIL lib/career-no
 
 if(failed)process.exit(1);
 console.log(`Phase 3 careers deterministic audit passed: ${passed}/${checks.length} files.`);
+
+// The programme's historical "audit:phase3" command predates Project Experience
+// Phase 3. Preserve that careers contract and extend the same blocking CI step
+// with the new canonical project-governance contract rather than renaming it.
+await import('./audit-project-experience-phase-3-governance.mjs');

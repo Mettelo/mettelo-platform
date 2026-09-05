@@ -1,0 +1,21 @@
+import {createClient} from '@supabase/supabase-js';
+import {expect,test,type Page} from '@playwright/test';
+
+type Credentials={email:string;password:string};
+const architect=():Credentials=>({email:process.env.E2E_ARCHITECT_EMAIL||'',password:process.env.E2E_ARCHITECT_PASSWORD||''});
+const member=():Credentials=>({email:process.env.E2E_MEMBER_EMAIL||'',password:process.env.E2E_MEMBER_PASSWORD||''});
+function env(){const url=process.env.E2E_SUPABASE_URL||'';const anon=process.env.E2E_SUPABASE_ANON_KEY||'';const service=process.env.E2E_SUPABASE_SERVICE_ROLE_KEY||'';if(!url||!anon||!service)throw new Error('Missing isolated Supabase E2E credentials.');if(!['127.0.0.1','localhost'].includes(new URL(url).hostname))throw new Error('Phase 3 tests refuse non-local Supabase.');return{url,anon,service};}
+async function signIn(page:Page,target:string){const c=architect();await page.goto(`/signin?next=${encodeURIComponent(target)}`,{waitUntil:'networkidle'});await page.locator('#main-content input[type="email"]').fill(c.email);await page.locator('#main-content input[type="password"]').fill(c.password);await page.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>url.pathname===target,{timeout:20_000});}
+async function noOverflow(page:Page,label:string){const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));expect(size.scroll,label).toBeLessThanOrEqual(size.client);}
+
+test('Project Architect creator exposes canonical participation controls across viewports',async({page})=>{test.setTimeout(180_000);const target='/member/architect-projects/new';await signIn(page,target);for(const viewport of [{width:320,height:740},{width:768,height:1024},{width:1440,height:900}]){await page.setViewportSize(viewport);await page.goto(target,{waitUntil:'networkidle'});await expect(page.getByRole('heading',{name:'Create one canonical Mettelo project.'})).toBeVisible();await expect(page.getByLabel('Participation mode')).toBeVisible();await expect(page.getByLabel('Minimum participants')).toBeVisible();await expect(page.getByLabel('Target participants')).toBeVisible();await expect(page.getByLabel('Maximum participants')).toBeVisible();await noOverflow(page,`Phase 3 creator ${viewport.width}px overflow`);}});
+
+test('Phase 3 creator remains usable at 200 percent text sizing and by keyboard',async({page})=>{const target='/member/architect-projects/new';await signIn(page,target);await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});await expect(page.getByLabel('Participation mode')).toBeVisible();await page.getByLabel('Participation mode').focus();await expect(page.getByLabel('Participation mode')).toBeFocused();await page.keyboard.press('ArrowDown');await page.keyboard.press('Tab');await noOverflow(page,'Phase 3 creator 200% reflow');});
+
+test('project participation constraints and direct member ownership remain database enforced',async()=>{const {url,anon,service}=env();const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});const {data:project,error:projectError}=await admin.from('projects').select('id,participation_mode,min_team_size,target_team_size,max_team_size,team_size_threshold').limit(1).maybeSingle();if(projectError)throw projectError;if(!project)throw new Error('Expected at least one seeded project.');
+  expect(project.team_size_threshold).toBe(project.min_team_size);
+  expect(project.min_team_size).toBeLessThanOrEqual(project.target_team_size);
+  expect(project.target_team_size).toBeLessThanOrEqual(project.max_team_size);
+  const invalid=await admin.from('projects').update({participation_mode:'team',min_team_size:5,target_team_size:3,max_team_size:2,team_size_threshold:5}).eq('id',project.id).select('id');expect(invalid.error).not.toBeNull();
+  const db=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});const login=await db.auth.signInWithPassword(member());if(login.error)throw login.error;const forbidden=await db.from('projects').update({target_team_size:Math.min(50,Number(project.target_team_size||1)+1)}).eq('id',project.id).select('id');expect(forbidden.data||[]).toHaveLength(0);
+});

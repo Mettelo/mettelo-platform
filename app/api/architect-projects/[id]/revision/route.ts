@@ -1,5 +1,6 @@
 import {NextResponse} from 'next/server';
 import {architectContext,archetypes,assignedRole,classifyRisk,clean} from '@/lib/project-governance';
+import {parseProjectParticipation,validateProjectParticipation} from '@/lib/project-participation';
 
 const sourceTypes=new Set(['google_sheets','excel','google_drive','github','kaggle','hugging_face','api','public_portal','cloud_location','external_website','other']);
 const sensitivities=new Set(['public','internal','restricted']);
@@ -18,6 +19,9 @@ function rpcErrorMessage(message:string){
   if(message.includes('RESOURCE_NOT_IN_PROJECT'))return 'One resource no longer belongs to this project. Reload the draft before saving.';
   if(message.includes('DELIVERABLE_NOT_IN_PROJECT')||message.includes('SUCCESS_CRITERION_NOT_IN_PROJECT')||message.includes('MILESTONE_NOT_IN_PROJECT')||message.includes('ROLE_NOT_IN_PROJECT'))return 'The project changed while this draft was open. Reload it before saving so existing record IDs are preserved.';
   if(message.includes('PROJECT_NOT_EDITABLE'))return 'This project is no longer editable because its governance state changed.';
+  if(message.includes('INVALID_PARTICIPATION'))return 'The project participation mode or team capacity is no longer valid. Review minimum, target and maximum team sizes.';
+  if(message.includes('INVALID_TEAM_MINIMUM'))return 'Team projects require at least two participants.';
+  if(message.includes('INVALID_FLEXIBLE_MINIMUM'))return 'Flexible projects must be able to begin with one participant.';
   return 'Unable to save this canonical project revision.';
 }
 
@@ -35,6 +39,10 @@ export async function PATCH(request:Request,{params}:Context){
     if(!title||summary.length<40||!archetypes.includes(projectArchetype as typeof archetypes[number]))return NextResponse.json({error:'Add a title, a clear summary of at least 40 characters and a valid Data & AI archetype.'},{status:400});
     if(!context||!stakeholder||!primaryQuestion||!expectedOutcome||!successMetrics)return NextResponse.json({error:'Complete the problem context, stakeholder, primary question, expected outcome and success measures.'},{status:400});
     if(!clean(body.problem_primary_use_case,2400)||!clean(body.problem_primary_objective,2400))return NextResponse.json({error:'Add the primary use case and primary objective.'},{status:400});
+
+    const participation=parseProjectParticipation(body as Record<string,unknown>);
+    const participationError=validateProjectParticipation(participation);
+    if(participationError)return NextResponse.json({error:participationError},{status:400});
 
     const resources=items(body.resources,20).map((item,index)=>{const rawUrl=clean(item.external_url,2000),externalUrl=httpsUrl(item.external_url),rawProviderId=clean(item.provider_id,80),providerId=rawProviderId?uuid(rawProviderId):'';return{index,id:uuid(item.id)||null,name:clean(item.name,180),description:clean(item.description,1600)||null,source_type:clean(item.source_type,40),external_url:externalUrl,invalid_url:Boolean(rawUrl&&!externalUrl),provider_id:providerId||null,invalid_provider:Boolean(rawProviderId&&!providerId),provider_name:clean(item.provider_name,180)||null,provider_url:httpsUrl(item.provider_url)||null,licence_name:clean(item.licence_name,180)||null,licence_url:httpsUrl(item.licence_url)||null,required_subset:clean(item.required_subset,1200)||null,approximate_size:clean(item.approximate_size,120)||null,data_period:clean(item.data_period,180)||null,data_format:clean(item.data_format,120)||null,unit_of_observation:clean(item.unit_of_observation,240)||null,known_limitations:clean(item.known_limitations,1600)||null,provenance:clean(item.provenance,1600)||null,sensitivity:sensitivities.has(clean(item.sensitivity,30))?clean(item.sensitivity,30):'internal'};});
     const invalidResource=resources.find(item=>!item.name||!sourceTypes.has(item.source_type)||!item.external_url||item.invalid_url||item.invalid_provider);if(invalidResource)return NextResponse.json({error:`Resource ${invalidResource.index+1} needs a name, supported source type, HTTPS source URL and valid provider reference when supplied.`},{status:400});
@@ -55,9 +63,9 @@ export async function PATCH(request:Request,{params}:Context){
     const risk=classifyRisk({declared:body.declared_risk,partner:body.partner_project,sensitivity:body.data_sensitivity,impact:body.impact_area,rightsConfirmed:body.data_rights_confirmed,prohibited:body.prohibited_activity});
     if(risk.level==='prohibited')return NextResponse.json({error:'This revision cannot proceed. Remove prohibited activity and re-confirm legitimate data access and usage rights.',risk_reasons:risk.reasons},{status:422});
 
-    const payload={title,summary,project_archetype:projectArchetype,difficulty_level:clean(body.difficulty_level,30)||null,duration_weeks:integer(body.duration_weeks,1,52),weekly_commitment:clean(body.weekly_commitment,120)||null,team_size_threshold:integer(body.team_size_threshold,1,50,5)??5,location:clean(body.location,160)||'Remote',partner_project:body.partner_project===true,partner_name:clean(body.partner_name,180)||null,presentation_required:body.presentation_required===true,brief:{context,stakeholder,primary_question:primaryQuestion,expected_outcome:expectedOutcome,success_metrics:successMetrics,constraints:clean(body.problem_constraints,3000),ethics_considerations:clean(body.problem_ethics,3000),primary_use_case:clean(body.problem_primary_use_case,2400),primary_objective:clean(body.problem_primary_objective,2400),supporting_objectives:list(body.problem_supporting_objectives,12,1200),key_questions:list(body.problem_key_questions,12,1200),in_scope:list(body.problem_in_scope,20,800),out_of_scope:list(body.problem_out_of_scope,20,800)},resources,deliverables,success_criteria:successCriteria,milestones,roles,capabilities};
+    const payload={title,summary,project_archetype:projectArchetype,difficulty_level:clean(body.difficulty_level,30)||null,duration_weeks:integer(body.duration_weeks,1,52),weekly_commitment:clean(body.weekly_commitment,120)||null,...participation,location:clean(body.location,160)||'Remote',partner_project:body.partner_project===true,partner_name:clean(body.partner_name,180)||null,presentation_required:body.presentation_required===true,brief:{context,stakeholder,primary_question:primaryQuestion,expected_outcome:expectedOutcome,success_metrics:successMetrics,constraints:clean(body.problem_constraints,3000),ethics_considerations:clean(body.problem_ethics,3000),primary_use_case:clean(body.problem_primary_use_case,2400),primary_objective:clean(body.problem_primary_objective,2400),supporting_objectives:list(body.problem_supporting_objectives,12,1200),key_questions:list(body.problem_key_questions,12,1200),in_scope:list(body.problem_in_scope,20,800),out_of_scope:list(body.problem_out_of_scope,20,800)},resources,deliverables,success_criteria:successCriteria,milestones,roles,capabilities};
     const {error:revisionError}=await db.rpc('apply_project_experience_draft_revision',{target_project_id:projectId,actor_user_id:user.id,actor_scope_value:isAdmin?'admin':'project_architect',payload,target_risk_level:risk.level,target_risk_reasons:risk.reasons,target_admin_review_required:risk.adminReviewRequired});
     if(revisionError)return NextResponse.json({error:rpcErrorMessage(revisionError.message)},{status:revisionError.message.includes('BLOCKED')||revisionError.message.includes('NOT_EDITABLE')?409:500});
-    return NextResponse.json({ok:true,id:projectId,governance_status:project.governance_status});
+    return NextResponse.json({ok:true,id:projectId,governance_status:project.governance_status,participation});
   }catch(error){console.error('atomic project draft revision error',error);return NextResponse.json({error:'Unable to save this canonical project revision.'},{status:500})}
 }

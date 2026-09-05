@@ -21,7 +21,7 @@ export type ProjectTeamReadiness={
 
 function iso(value:unknown){const text=String(value||'');return text||'9999-12-31T23:59:59.999Z'}
 
-export async function assessProjectTeamReadiness({db,projectId,runId,requiredTeamSize,assignLead=false}:{db:Db;projectId:string;runId:string;requiredTeamSize:number;assignLead?:boolean}):Promise<ProjectTeamReadiness>{
+export async function assessProjectTeamReadiness({db,projectId,runId,requiredTeamSize,assignLead=false,requireResponsibilityCoverage=true,requireLead=true}:{db:Db;projectId:string;runId:string;requiredTeamSize:number;assignLead?:boolean;requireResponsibilityCoverage?:boolean;requireLead?:boolean}):Promise<ProjectTeamReadiness>{
   const threshold=Math.max(1,Number(requiredTeamSize||1));
   const {data:memberData,error:memberError}=await db
     .from('project_members')
@@ -32,7 +32,7 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
   const members=(memberData||[]) as MemberRow[];
   const filled=members.length;
   const full=filled>=threshold;
-  const responsibilityCoverageReady=full&&members.every(member=>Boolean(member.project_role_id));
+  const responsibilityCoverageReady=!requireResponsibilityCoverage||(full&&members.every(member=>Boolean(member.project_role_id)));
 
   const {data:projectReadiness,error:readinessError}=await db
     .from('project_experience_readiness')
@@ -45,10 +45,7 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
   let leadAssignedNow=false;
   let recommendation:Candidate|null=null;
 
-  // Leadership can be formed as soon as the selected team and responsibilities are
-  // complete. Automatic assignment is opt-in only: if nobody volunteered, Mettelo
-  // leaves the team forming for an explicit Admin / Project Architect decision.
-  if(assignLead&&full&&responsibilityCoverageReady&&leads.length===0&&members.length){
+  if(requireLead&&assignLead&&full&&responsibilityCoverageReady&&leads.length===0&&members.length){
     const userIds=members.map(member=>member.user_id);
     const [{data:applications},{data:history}]=await Promise.all([
       db.from('project_applications').select('user_id,leadership_interest,submitted_at').eq('project_run_id',runId).in('user_id',userIds),
@@ -69,59 +66,27 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
     if(recommendation){
       const selected=members.find(member=>member.user_id===recommendation?.userId);
       if(selected){
-        const {data:assigned,error}=await db
-          .from('project_members')
-          .update({team_role:'project_lead'})
-          .eq('id',selected.id)
-          .eq('team_role','contributor')
-          .select('id')
-          .maybeSingle();
+        const {data:assigned,error}=await db.from('project_members').update({team_role:'project_lead'}).eq('id',selected.id).eq('team_role','contributor').select('id').maybeSingle();
         if(error)throw error;
         if(assigned){
           leadAssignedNow=true;
-          await db.from('project_activity_log').insert({
-            project_id:projectId,
-            project_run_id:runId,
-            event_type:'project_lead_auto_assigned',
-            actor_type:'system',
-            from_status:'forming',
-            to_status:'forming',
-            metadata:{
-              user_id:recommendation.userId,
-              leadership_interest:recommendation.leadershipInterest,
-              completed_projects:recommendation.completedProjects,
-              active_lead_projects:recommendation.activeLeadProjects,
-              leadership_readiness_score:recommendation.score,
-              volunteers_available:volunteers.length,
-              candidate_count:candidates.length,
-              selection_policy:'volunteer_interest_then_mettelo_delivery_history_then_current_lead_load_then_submission_order'
-            }
-          });
+          await db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'project_lead_auto_assigned',actor_type:'system',from_status:'forming',to_status:'forming',metadata:{user_id:recommendation.userId,leadership_interest:recommendation.leadershipInterest,completed_projects:recommendation.completedProjects,active_lead_projects:recommendation.activeLeadProjects,leadership_readiness_score:recommendation.score,volunteers_available:volunteers.length,candidate_count:candidates.length,selection_policy:'volunteer_interest_then_mettelo_delivery_history_then_current_lead_load_then_submission_order'}});
           leads=[{...selected,team_role:'project_lead'}];
         }else{
-          // A concurrent approval may have completed the same deterministic lead
-          // assignment first. Re-read authority so only the winning request logs or
-          // notifies, while every caller receives the real current readiness state.
-          const {data:currentLeads,error:leadError}=await db
-            .from('project_members')
-            .select('id,user_id,project_role_id,team_role,membership_status,joined_at')
-            .eq('project_run_id',runId)
-            .eq('team_role','project_lead')
-            .in('membership_status',['waiting','active']);
-          if(leadError)throw leadError;
-          leads=(currentLeads||[]) as MemberRow[];
+          const {data:currentLeads,error:leadError}=await db.from('project_members').select('id,user_id,project_role_id,team_role,membership_status,joined_at').eq('project_run_id',runId).eq('team_role','project_lead').in('membership_status',['waiting','active']);
+          if(leadError)throw leadError;leads=(currentLeads||[]) as MemberRow[];
         }
       }
     }
   }
 
-  const leadReady=leads.length===1;
+  const leadReady=!requireLead||leads.length===1;
   const blockers:string[]=[];
   if(!full)blockers.push('team_size');
   if(full&&!responsibilityCoverageReady)blockers.push('responsibility_coverage');
   if(!labReady)blockers.push(readinessError?'project_readiness_unavailable':'project_readiness');
-  if(leads.length===0)blockers.push('project_lead');
-  if(leads.length>1)blockers.push('multiple_project_leads');
-  const leadUserId=leadReady?leads[0].user_id:null;
+  if(requireLead&&leads.length===0)blockers.push('project_lead');
+  if(requireLead&&leads.length>1)blockers.push('multiple_project_leads');
+  const leadUserId=leads.length===1?leads[0].user_id:null;
   return{filled,threshold,full,responsibilityCoverageReady,labReady,leadReady,leadUserId,leadAssignedNow,ready:blockers.length===0,blockers,recommendation};
 }

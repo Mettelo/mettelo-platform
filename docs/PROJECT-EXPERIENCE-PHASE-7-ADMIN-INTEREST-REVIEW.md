@@ -53,6 +53,8 @@ The endpoint rejects AUTO projects/`auto_qualified` requests. AUTO operational i
 
 The existing `project_application_event_audit` trigger remains the canonical state-transition audit mechanism. The actual status update is executed through the authenticated Admin Supabase client so `auth.uid()` records the Admin actor in the same database transaction as the status mutation.
 
+Phase 7 extends `project_application_events` with a `reviewer_notes` snapshot so the canonical immutable history retains the note/reason that accompanied each review transition. No Phase 7-specific history table is introduced.
+
 The broader `project_activity_log` receives a compatible operational/analytics event using `actor_type='user'` and Admin actor metadata. Failure of this secondary log does not falsely roll back or misreport a transition that was already atomically audited by `project_application_events`.
 
 Audit history preserves:
@@ -113,6 +115,8 @@ Phase 7 reuses the current Mettelo notification infrastructure.
 - Offered: communicates that Mettelo is offering a place while explicitly stating that selection does not auto-enrol the member.
 - Declined: clear, non-accusatory closure.
 
+Notification/outbox failure after an already-audited state transition must not cause the API to report that the lifecycle decision itself failed. Communication delivery status is treated separately from canonical request state.
+
 The Phase 8 offer lifecycle owns explicit acceptance/decline, expiry, reserved capacity and any bounded offer reminders.
 
 ## Security and RLS
@@ -141,7 +145,8 @@ It:
 1. changes the canonical AUTO delay default to 360 minutes for new/unconfigured projects;
 2. preserves explicit per-project AUTO delay overrides;
 3. adds `offered` to the canonical project-application status constraint;
-4. documents that `offered` is not membership.
+4. extends canonical `project_application_events` with immutable review-note snapshots and keeps the existing trigger as the one transition-audit architecture;
+5. documents that `offered` is not membership.
 
 Phase 7 intentionally does not introduce a temporary offer table. Phase 8 owns the durable offer entity, acceptance, expiry and capacity-reservation contract.
 
@@ -155,10 +160,12 @@ Phase 7 must prove:
 - AUTO requests are excluded from review actions;
 - valid REVIEW_REQUIRED transitions succeed;
 - invalid transitions fail server-side;
-- audit records capture the Admin actor and state change;
+- audit records capture the Admin actor, state change and review note;
 - offering creates no membership and starts no run;
 - decline works;
 - shortlist works;
+- member tracker displays `Place offered` truthfully without exposing Phase 8 acceptance controls early;
+- communication failure cannot convert an already-audited decision into false API failure;
 - complete review context renders;
 - verified Proof is displayed safely;
 - mobile/tablet/desktop layouts remain usable;

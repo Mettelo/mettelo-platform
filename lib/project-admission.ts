@@ -10,6 +10,20 @@ export function canonicalAdmissionMode(value:unknown):ProjectAdmissionMode{
   return value==='auto'?'auto':'review_required';
 }
 
+/**
+ * Canonical effective admission policy.
+ * Partner Projects are always REVIEW_REQUIRED regardless of stale/browser supplied
+ * configuration. Ordinary Mettelo Open Projects may use either configured mode.
+ */
+export function effectiveProjectAdmissionMode(projectType:unknown,configured:unknown):ProjectAdmissionMode{
+  if(String(projectType||'').toLowerCase()==='partner')return'review_required';
+  return canonicalAdmissionMode(configured);
+}
+
+export function canConfigureAutoAdmission(projectType:unknown){
+  return String(projectType||'').toLowerCase()!=='partner';
+}
+
 export function canonicalParticipationMode(value:unknown):ProjectParticipationMode{
   return value==='solo'||value==='flexible'?value:'team';
 }

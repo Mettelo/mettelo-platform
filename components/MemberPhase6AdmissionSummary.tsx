@@ -1,3 +1,5 @@
+'use client';
+
 type Item={id:string;status:string;admission_decision?:string|null;participation_preference?:string|null;projects:{title:string;status?:string}|null;formation?:{filled:number;threshold:number;status:string;scheduled_start_at?:string|null;run_number:number|null}|null};
 
 function status(item:Item){const formation=item.formation;if(formation?.status==='active'||item.projects?.status==='active')return{label:'PROJECT IN PROGRESS',body:formation?`${formation.filled} of ${formation.threshold} places currently filled.`:'Your project is active.',tone:'active'};if(formation?.scheduled_start_at)return{label:'TEAM READY · START SCHEDULED',body:`Your project has enough members to start. Expected start: ${new Date(formation.scheduled_start_at).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})}.`,tone:'ready'};if(formation)return{label:'TEAM FORMING',body:`${formation.filled} of ${formation.threshold} members needed to start.`,tone:'forming'};return{label:'YOU’RE IN',body:'Your place is confirmed. Mettelo is preparing the next project state.',tone:'ready'}}

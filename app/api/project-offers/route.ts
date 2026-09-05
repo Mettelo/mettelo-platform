@@ -12,6 +12,15 @@ type OfferResult={
   creates_membership?:boolean;
   capacity_released?:boolean;
 };
+type OfferProject={title:string|null};
+type OfferRow={
+  id:string;
+  application_id:string;
+  project_id:string;
+  user_id:string;
+  expires_at:string;
+  projects:OfferProject|OfferProject[]|null;
+};
 
 function mapRpcError(message:string){
   if(message.includes('OFFER_NOT_FOUND'))return{status:404,error:'Project offer not found.'};
@@ -56,12 +65,13 @@ export async function PATCH(request:Request){
     let projectTitle='your Mettelo project';
 
     if(db){
-      const {data:offer}=await db
+      const {data:offerData}=await db
         .from('project_offers')
         .select('id,application_id,project_id,user_id,expires_at,projects(title)')
         .eq('id',offerId)
         .single();
-      const project=offer&&Array.isArray(offer.projects)?offer.projects[0]:offer?.projects;
+      const offer=offerData as unknown as OfferRow|null;
+      const project=offer?(Array.isArray(offer.projects)?offer.projects[0]||null:offer.projects):null;
       projectTitle=project?.title||projectTitle;
 
       if(!result.already_in_state&&offer?.user_id===user.id){

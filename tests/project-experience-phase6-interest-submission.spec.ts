@@ -41,6 +41,16 @@ test.describe('Project Experience Phase 6 interest submission contract',()=>{
     expect(lifecycle).toContain("'team_complete'");
   });
 
+  test('request lifecycle mutations are server-authoritative rather than owner-writable through RLS',()=>{
+    const boundary=source('supabase/migrations/20260905174000_project_experience_phase_6_request_mutation_boundary.sql');
+    const api=source('app/api/project-applications/route.ts');
+    expect(boundary).toContain('drop policy if exists "users withdraw own applications"');
+    expect(boundary).toContain('Members may create/read their own requests');
+    expect(api).toContain("action!=='withdraw'");
+    expect(api).toContain('const db=serviceDb()');
+    expect(api).toContain("update({status:'withdrawn'");
+  });
+
   test('member tracker and Admin preserve request kind instead of pretending every row is an application',()=>{
     const trackerPage=source('app/member/applications/page.tsx');
     const tracker=source('components/MemberApplicationTracker.tsx');

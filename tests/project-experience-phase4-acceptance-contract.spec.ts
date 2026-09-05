@@ -26,6 +26,16 @@ test.describe('Project Experience Phase 4 acceptance boundaries',()=>{
     expect(body).not.toContain('Apply for role');
   });
 
+  test('catalogue cards expose the canonical comparison metadata required for discovery',()=>{
+    const catalogue=read('app/projects/page.tsx');
+    const loading=read('app/projects/loading.tsx');
+    for(const marker of ['Project fit','p.difficulty_level','primary?.name','Participation','Commitment','Capabilities','Contribution areas','Tools &amp; methods'])expect(catalogue).toContain(marker);
+    expect(catalogue).toContain('visibleCapabilities=item.capabilities.slice(0,3)');
+    expect(catalogue).toContain('availability.copy');
+    expect(loading).toContain('aria-busy="true"');
+    expect(loading).toContain('Loading public projects');
+  });
+
   test('public detail exposes canonical decision context without claiming automatic Proof',()=>{
     const body=read('components/project-experience/ProjectPublicDetailBodyV3.tsx');
     for(const marker of ['Supporting objectives','Key questions','In scope','Out of scope','Public resources and source provenance','Project deliverables','Success standards','Timeline &amp; Proof potential','Potential evidence from this project','How you can contribute','Basic eligibility'])expect(body).toContain(marker);

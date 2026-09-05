@@ -79,6 +79,75 @@ before insert or update of project_id,required_team_size,team_size_threshold,has
 on public.project_runs
 for each row execute function public.phase9_sync_run_participation_contract();
 
+-- Maximum capacity is a database invariant, not merely an admission-route check.
+-- This protects future team-formation writes (including REVIEW_REQUIRED accepted
+-- Offers) from overfilling the canonical run. The lock namespace intentionally
+-- matches Phase 6 admission so concurrent membership creation serializes with the
+-- existing AUTO capacity path.
+create or replace function public.phase9_validate_membership_capacity()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  project_row public.projects%rowtype;
+  run_row public.project_runs%rowtype;
+  maximum_members integer;
+  occupied integer:=0;
+begin
+  if new.membership_status not in ('waiting','active') then return new; end if;
+  if new.project_run_id is null then
+    raise exception using errcode='23514',message='ACTIVE_MEMBERSHIP_REQUIRES_RUN';
+  end if;
+
+  select * into project_row from public.projects where id=new.project_id for update;
+  if project_row.id is null then raise exception using errcode='P0002',message='PROJECT_NOT_FOUND'; end if;
+
+  select * into run_row
+  from public.project_runs
+  where id=new.project_run_id and project_id=new.project_id
+  for update;
+  if run_row.id is null then raise exception using errcode='23514',message='MEMBERSHIP_RUN_PROJECT_MISMATCH'; end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(new.project_id::text,6));
+
+  maximum_members:=case
+    when project_row.participation_mode='solo' then 1
+    else greatest(
+      coalesce(project_row.max_team_size,project_row.target_team_size,project_row.min_team_size,project_row.team_size_threshold,1),
+      1
+    )
+  end;
+
+  select count(*)::integer into occupied
+  from public.project_members m
+  where m.project_run_id=new.project_run_id
+    and m.membership_status in ('waiting','active')
+    and (tg_op='INSERT' or m.id<>old.id);
+
+  if occupied>=maximum_members then
+    raise exception using errcode='23514',message='PARTICIPATION_CAPACITY_FULL';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.phase9_validate_membership_capacity() from public,anon,authenticated;
+
+drop trigger if exists project_member_phase9_capacity_guard on public.project_members;
+create trigger project_member_phase9_capacity_guard
+before insert or update of project_id,project_run_id,membership_status
+on public.project_members
+for each row execute function public.phase9_validate_membership_capacity();
+
+-- A member may have at most one live membership in the same run. Historical rows
+-- outside waiting/active remain available for audit/completion history.
+create unique index if not exists project_members_live_user_run_unique
+  on public.project_members(project_run_id,user_id)
+  where project_run_id is not null and membership_status in ('waiting','active');
+
 -- Runtime capacity snapshot used by later formation/start phases and tests. It is
 -- service-only because membership counts for non-public projects are operational
 -- data. This function does not mutate membership or bypass RLS for browser users.

@@ -151,7 +151,7 @@ test.describe('recursive public responsive coverage',()=>{
       const contentBox=await content.boundingBox();
       expect(contentBox,`project detail content should render at ${viewport.width}x${viewport.height}`).not.toBeNull();
       if(contentBox)expect(contentBox.width).toBeLessThanOrEqual(viewport.width+1);
-      // Phase 4 public discovery hands off through the governed Submit interest CTA.
+      // Phase 4 keeps the responsive public handoff on the governed Submit interest CTA.
       await expect(page.getByRole('link',{name:'Submit interest',exact:true}).last()).toBeVisible();
     }
   });

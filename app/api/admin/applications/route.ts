@@ -2,19 +2,9 @@ import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {notifyUser,serviceDb} from '@/lib/project-flow';
 
-const reviewStatuses=new Set(['in_review','shortlisted','offered','declined']);
-const allowedTransitions:Record<string,Set<string>>={
-  submitted:new Set(['in_review','declined']),
-  in_review:new Set(['shortlisted','declined']),
-  shortlisted:new Set(['offered','declined']),
-  offered:new Set(),
-  declined:new Set(),
-  withdrawn:new Set(),
-  approved:new Set(),
-  accepted:new Set(),
-  waiting_for_team:new Set(),
-  team_complete:new Set()
-};
+const reviewStatuses=new Set(['in_review','clarification_requested','shortlisted','offered','declined']);
+
+type ReviewStatus='in_review'|'clarification_requested'|'shortlisted'|'offered'|'declined';
 
 async function adminDb(){
   const auth=await createServerSupabaseClient();
@@ -31,20 +21,32 @@ async function memberEmail(db:NonNullable<ReturnType<typeof serviceDb>>,userId:s
   return data.user?.email||null;
 }
 
-function defaultMessage(status:string,title:string,reviewerNotes:string,kind:string|null){
+function defaultMessage(status:ReviewStatus,title:string,reviewerNotes:string,kind:string|null,partnerName:string|null){
   const noun=kind==='interest'?'interest':'application';
+  const owner=partnerName?`${partnerName} Partner Project`:`${title}`;
   if(status==='in_review')return `Your project ${noun} for ${title} is now in review. No action is required from you right now. We will update My Mettelo when the next decision is available.`;
-  if(status==='shortlisted')return `Your project ${noun} for ${title} has progressed to the shortlist. No action is required right now; we will contact you if we need more information before the final decision.`;
-  if(status==='offered')return `Mettelo would like to offer you a place on ${title}. This selection does not enrol you automatically. Your place will only become confirmed after the explicit offer acceptance step is available.`;
+  if(status==='clarification_requested')return `We need a little more information before we can continue reviewing your project ${noun} for ${title}.${reviewerNotes?` ${reviewerNotes}`:''} Open My Mettelo to review the request.`;
+  if(status==='shortlisted')return `Your project ${noun} for ${title} has progressed to the shortlist. This is not yet a confirmed place. We will contact you when the next decision is available.`;
+  if(status==='offered')return `Mettelo would like to offer you a place on ${owner}. This selection does not enrol you automatically. Explicit member acceptance remains required before membership or team formation.`;
   return `Your project ${noun} for ${title} was not selected for this team.${reviewerNotes?` ${reviewerNotes}`:''} You can continue exploring other Mettelo projects that match your profile.`;
 }
 
-function notificationMeta(status:string,kind:string|null){
+function notificationMeta(status:ReviewStatus,kind:string|null){
   const label=kind==='interest'?'Project interest':'Project application';
   if(status==='in_review')return{type:'application_in_review',title:`${label} in review`,subject:`Your Mettelo ${label.toLowerCase()} is in review`};
+  if(status==='clarification_requested')return{type:'application_clarification_requested',title:'More information requested',subject:'More information is needed for your Mettelo project request'};
   if(status==='shortlisted')return{type:'application_shortlisted',title:`${label} shortlisted`,subject:`Your Mettelo ${label.toLowerCase()} has been shortlisted`};
   if(status==='offered')return{type:'project_place_offered',title:'Project place offered',subject:'Mettelo project place offered'};
   return{type:'application_declined',title:`${label} update`,subject:`Your Mettelo ${label.toLowerCase()} has been updated`};
+}
+
+function rpcMessage(message:string){
+  if(message.includes('OFFER_CAPACITY_FULL'))return{status:409,error:'This project no longer has capacity for another outstanding offer. Refresh the queue before making a different decision.'};
+  if(message.includes('AUTO_REVIEW_FORBIDDEN'))return{status:409,error:'AUTO admissions are managed through the scheduled-start controls, not the human review queue.'};
+  if(message.includes('INVALID_REVIEW_TRANSITION'))return{status:409,error:'This project request changed or cannot make that review transition. Refresh before trying again.'};
+  if(message.includes('ADMIN_REQUIRED'))return{status:403,error:'Admin access required.'};
+  if(message.includes('APPLICATION_NOT_FOUND'))return{status:404,error:'Project request not found.'};
+  return{status:500,error:'Unable to update this project request.'};
 }
 
 export async function PATCH(request:Request){
@@ -54,15 +56,18 @@ export async function PATCH(request:Request){
     const {auth,db,user}=connection;
     const body=await request.json();
     const id=String(body.id||'');
-    const status=String(body.status||'');
+    const status=String(body.status||'') as ReviewStatus;
     const reviewerNotes=String(body.reviewer_notes||'').trim().slice(0,1500);
     const customMessage=String(body.custom_message||'').trim().slice(0,1800);
 
     if(!id||!reviewStatuses.has(status))return NextResponse.json({error:'Choose a valid project request and review action.'},{status:400});
+    if(status==='clarification_requested'&&!reviewerNotes&&!customMessage){
+      return NextResponse.json({error:'Explain what information is needed before requesting clarification.'},{status:400});
+    }
 
     const {data:application,error:loadError}=await db
       .from('project_applications')
-      .select('id,project_id,project_run_id,user_id,status,application_kind,admission_decision,reviewer_notes,projects(id,title,status,admission_mode)')
+      .select('id,project_id,project_run_id,user_id,status,application_kind,admission_decision,reviewer_notes,projects(id,title,status,project_type,partner_name,admission_mode)')
       .eq('id',id)
       .single();
     if(loadError||!application)return NextResponse.json({error:'Project request not found.'},{status:404});
@@ -70,63 +75,44 @@ export async function PATCH(request:Request){
     const project=Array.isArray(application.projects)?application.projects[0]:application.projects;
     if(!project)return NextResponse.json({error:'Project not found.'},{status:404});
 
-    if(application.admission_decision==='auto_qualified'||project.admission_mode==='auto'){
-      return NextResponse.json({error:'AUTO admissions are managed through the scheduled-start controls, not the human review queue.'},{status:409});
+    const {data:transition,error:transitionError}=await auth.rpc('phase7_transition_review_request',{
+      p_application_id:id,
+      p_to_status:status,
+      p_reviewer_notes:reviewerNotes||null
+    });
+    if(transitionError){
+      const mapped=rpcMessage(String(transitionError.message||''));
+      return NextResponse.json({error:mapped.error},{status:mapped.status});
     }
 
-    if(application.status===status){
-      return NextResponse.json({ok:true,already_in_state:true,application:{id:application.id,status:application.status}});
+    const result=transition as {id:string;status:string;previous_status?:string;already_in_state?:boolean;creates_membership?:boolean;requires_member_acceptance?:boolean;capacity?:unknown};
+    if(result.already_in_state){
+      return NextResponse.json({ok:true,already_in_state:true,application:{id:result.id,status:result.status},selection:{status:result.status,creates_membership:false,requires_member_acceptance:result.status==='offered'}});
     }
 
-    const allowed=allowedTransitions[application.status]||new Set<string>();
-    if(!allowed.has(status)){
-      return NextResponse.json({error:`A project request cannot move from ${application.status.replaceAll('_',' ')} to ${status.replaceAll('_',' ')}.`},{status:409});
-    }
-
-    const now=new Date().toISOString();
-    const patch:{status:string;reviewer_notes:string|null;decision_at?:string|null;decision_reason?:string|null;updated_at:string}={
-      status,
-      reviewer_notes:reviewerNotes||null,
-      updated_at:now
-    };
-    if(status==='offered'||status==='declined'){
-      patch.decision_at=now;
-      patch.decision_reason=reviewerNotes||null;
-    }else{
-      patch.decision_at=null;
-      patch.decision_reason=null;
-    }
-
-    // Mutate through the authenticated Admin client. The canonical database trigger
-    // records the status transition in project_application_events atomically and can
-    // therefore capture the real Admin actor via auth.uid().
-    const {data:updated,error:updateError}=await auth
-      .from('project_applications')
-      .update(patch)
-      .eq('id',id)
-      .eq('status',application.status)
-      .select('id,status,updated_at')
-      .maybeSingle();
-    if(updateError)throw updateError;
-    if(!updated)return NextResponse.json({error:'This project request changed while you were reviewing it. Refresh before trying again.'},{status:409});
-
-    // project_application_events is the canonical state-transition audit. This broader
-    // activity entry supports project operations/analytics and must never make a valid
-    // audited review transition appear to have failed.
     const activityInsert=await db.from('project_activity_log').insert({
       project_id:application.project_id,
       project_run_id:application.project_run_id||null,
-      event_type:status==='offered'?'project_place_offered':`application_${status}`,
+      event_type:status==='in_review'?'review_started':status==='clarification_requested'?'clarification_requested':status==='offered'?'project_place_offered':`application_${status}`,
       actor_type:'user',
       actor_user_id:user.id,
       from_status:application.status,
       to_status:status,
-      metadata:{application_id:id,application_kind:application.application_kind,reviewer_notes:reviewerNotes||null,actor_role:'admin'}
+      metadata:{
+        application_id:id,
+        application_kind:application.application_kind,
+        reviewer_notes:reviewerNotes||null,
+        actor_role:'admin',
+        project_type:project.project_type,
+        partner_name:project.partner_name||null,
+        creates_membership:false,
+        capacity:result.capacity||null
+      }
     });
     if(activityInsert.error)console.error('project review activity log error',activityInsert.error);
 
     const comm=notificationMeta(status,application.application_kind);
-    const memberMessage=customMessage||defaultMessage(status,project.title,reviewerNotes,application.application_kind);
+    const memberMessage=customMessage||defaultMessage(status,project.title,reviewerNotes,application.application_kind,project.partner_name||null);
     let communicationRecorded=true;
     try{
       await notifyUser(db,{
@@ -140,7 +126,7 @@ export async function PATCH(request:Request){
         actionUrl:'/member/applications',
         subject:`${comm.subject}: ${project.title}`,
         templateKey:comm.type,
-        payload:{project_title:project.title,review_status:status}
+        payload:{project_title:project.title,project_type:project.project_type,partner_name:project.partner_name||null,review_status:status}
       });
     }catch(error){
       communicationRecorded=false;
@@ -149,8 +135,8 @@ export async function PATCH(request:Request){
 
     return NextResponse.json({
       ok:true,
-      application:updated,
-      selection:{status,creates_membership:false,requires_member_acceptance:status==='offered'},
+      application:{id:result.id,status:result.status},
+      selection:{status:result.status,creates_membership:false,requires_member_acceptance:result.status==='offered',capacity:result.capacity||null},
       communication:{body:memberMessage,recorded:communicationRecorded}
     });
   }catch(error){

@@ -41,7 +41,29 @@ Phase 5 reuses:
 
 No new Phase 5 database table or persisted fit score is required.
 
-## Qualification contract
+## One structured qualification contract
+
+`resolveMemberProjectQualification()` is the canonical pure domain decision and returns:
+
+- `state` — member-project lifecycle/CTA state;
+- `reason` — structured qualification reason;
+- `eligible` — whether Submit Interest is currently allowed.
+
+Current reasons include:
+
+- `ELIGIBLE`;
+- `PROFILE_INCOMPLETE`;
+- `INTEREST_EXISTS`;
+- `PROJECT_CLOSED`;
+- `CAPACITY_FULL`;
+- `ALREADY_PARTICIPATING`;
+- `DEADLINE_PASSED`;
+- `CAPACITY_UNKNOWN`;
+- completed/cancelled equivalents.
+
+The existing state resolver delegates to this contract so page/catalogue behavior cannot define a competing eligibility matrix.
+
+## Qualification inputs
 
 Phase 5 eligibility is derived from authoritative server state:
 
@@ -53,17 +75,7 @@ Phase 5 eligibility is derived from authoritative server state:
 6. previous/current participation constraints;
 7. application/interest deadline.
 
-The canonical state maps to explicit user-facing results such as:
-
-- eligible → **Submit Interest**;
-- profile incomplete → explain missing profile areas and route safely to profile completion;
-- active interest exists → **Interest submitted** + tracker action;
-- project closed/deadline passed → clear closed reason;
-- project full → clear capacity reason;
-- already participating/accepted → existing project action;
-- completed → no interest CTA.
-
-Client-disabled controls are not security. The Phase 6 entry route and canonical submission API revalidate authoritative state.
+Client-disabled controls are not security. The Phase 6 entry route and canonical submission API re-read persisted state before a write.
 
 ## Project fit
 
@@ -82,7 +94,7 @@ A weekly-capacity mismatch is **advisory in Phase 5**. It may help the member ma
 
 ## Team and capacity contract
 
-The member page must explain, from current Supabase state:
+The member page explains, from current Supabase state:
 
 - participation mode;
 - confirmed members;
@@ -93,7 +105,7 @@ The member page must explain, from current Supabase state:
 - current team/project state;
 - whether project capacity remains available.
 
-Minimum, target and maximum are distinct concepts. Target must not be presented as the minimum required to start.
+Minimum, target and maximum are distinct concepts. Target is not presented as the minimum required to start.
 
 For open projects, the current relevant run/cohort is used. For partner/single-cycle projects, current project membership is used. Reserved/waiting places count toward capacity where the existing model treats them as occupied.
 
@@ -107,17 +119,19 @@ Existing active state replaces Submit Interest with the current Applications tra
 
 Existing waiting/active/completed membership replaces Submit Interest with the appropriate Projects/active/completed state.
 
-## Profile readiness
+## Profile readiness and safe exact-project return
 
 Phase 5 reuses `calculateMemberReadiness()` and does not duplicate required profile fields in page JSX.
 
 If profile readiness is incomplete:
 
-- the page explains the missing areas;
-- Submit Interest routes to profile completion using a safe internal `next` URL for the exact project;
-- profile save must complete before the member returns;
-- qualification is recalculated from saved backend state;
-- no interest record is created before Phase 6 submission.
+- Submit Interest routes to profile completion;
+- the `next` target is the exact project plus `#member-decision-title`;
+- `ProfileReturnAfterSave` accepts only same-origin internal paths and rejects protocol-relative (`//`), backslash and foreign-origin targets;
+- profile save completes before the `mettelo:profile-updated` return event navigates;
+- the member project re-reads backend state and recalculates qualification;
+- the qualification heading is programmatically focusable and receives focus after return;
+- no interest record is created before Phase 6 final submission.
 
 ## Phase 6 handoff
 
@@ -161,8 +175,15 @@ Required evidence includes:
 - visible focus;
 - status meaning expressed in text rather than colour alone;
 - semantic headings/navigation;
-- sensible focus after profile return;
+- qualification focus after profile return;
 - mobile primary CTA not obscuring content/browser UI.
+
+## Documentation authority
+
+Detailed acceptance evidence is maintained in:
+
+- `docs/PROJECT-EXPERIENCE-PHASE-5-FULL-ACCEPTANCE-REVIEW.md` — 80 stories, 50 mandatory tests, 63-point Director matrix;
+- `docs/PROJECT-EXPERIENCE-PHASE-5-DIRECTOR-SIGN-OFF-REVIEW.md` — Director summary and final decision.
 
 ## Current implementation status
 
@@ -177,7 +198,8 @@ Implemented in PR #214:
 - one dominant `Submit Interest` CTA;
 - no required role selection before initial interest;
 - Possible contribution areas rendered informationally;
-- safe exact-project profile repair route;
+- structured shared qualification result;
+- hardened exact-project profile repair route and focus restoration;
 - Phase 6 route revalidates qualification without requiring `?role=`;
 - Phase 6 form submits interest without formal role assignment;
 - `/api/project-applications` revalidates profile readiness, deadline/project state, active interest, prior participation and project capacity before insert;

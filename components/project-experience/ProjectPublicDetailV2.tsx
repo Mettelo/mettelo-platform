@@ -23,7 +23,7 @@ function participation(project:ProjectExperienceModel['project']){
 export default function ProjectPublicDetailV2({model,canApply,ctaHref,authenticated}:Props){
   const {project,resources,proofSignals,roles,taxonomy}=model;
   const workingModel=project.locationType?titleCase(project.locationType):project.location||'Project-specific';
-  const statusLabel=canApply?'Open for applications':project.status==='pilot'?'Pilot project':'Applications closed';
+  const statusLabel=canApply?'Open for interest':project.status==='pilot'?'Pilot project':'Interest closed';
   const primarySource=resources[0]||null;
   const rolePlaces=roles.reduce((sum,role)=>sum+Math.max(0,role.openings),0);
   const proofConfigured=proofSignals.length>0;
@@ -47,15 +47,15 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
       <aside className={styles.decision} aria-labelledby="project-decision-title">
         <div className={styles.decisionTop}><span className={styles.label}>Project opportunity</span><span className={canApply?styles.openPill:styles.neutralPill}>{canApply?'Open':'Closed'}</span></div>
         <h2 id="project-decision-title">Decide whether this is the right project for you.</h2>
-        <p>Understand the problem, contribution areas, commitment and quality bar before you apply.</p>
+        <p>Understand the problem, contribution areas, commitment and quality bar before you submit interest.</p>
         <dl className={styles.metaGrid}>
           <div><dt>Duration</dt><dd>{weeks(project.durationWeeks)}</dd></div><div><dt>Commitment</dt><dd>{project.weeklyCommitment||'Not published'}</dd></div>
           <div><dt>Participation</dt><dd>{participationInfo.label}</dd></div><div><dt>Capacity</dt><dd>{capacityLabel}</dd></div>
           <div><dt>Working model</dt><dd>{workingModel}</dd></div><div><dt>Level</dt><dd>{project.difficultyLevel?titleCase(project.difficultyLevel):'Not published'}</dd></div>
-          <div><dt>Applications close</dt><dd>{date(project.applicationDeadline)}</dd></div>
+          <div><dt>Interest closes</dt><dd>{date(project.applicationDeadline)}</dd></div>
         </dl>
-        <Link className={styles.primaryButton} href={ctaHref}>{canApply?'Continue to apply':'Open in My Mettelo'}</Link>
-        <small>{authenticated?'Your eligibility, role capacity and application state are checked in My Mettelo.':'Sign in or create an account to continue with this project.'}</small>
+        {canApply?<Link className={styles.primaryButton} href={ctaHref}>Submit interest</Link>:<span className={styles.primaryButton} aria-disabled="true">Interest closed</span>}
+        <small>{canApply?(authenticated?'Your eligibility and application state are checked in My Mettelo.':'Sign in or create an account to continue with this project.'):'This project is not currently accepting interest.'}</small>
         {primarySource&&<article className={styles.sourceCard}><div className={styles.sourceHead}><span>Data source</span><b className={styles.verified}>● Governed</b></div><h3>{primarySource.name}</h3><p>{primarySource.providerName||titleCase(primarySource.sourceType)}</p>{primarySource.licenceName&&<span className={styles.sourceMeta}>Licence · {primarySource.licenceName}</span>}<p className={styles.disclaimer}>Public project pages show approved source metadata only. Direct resource and stored-copy links remain protected.</p></article>}
       </aside>
     </header>

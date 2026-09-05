@@ -85,6 +85,12 @@ Profile repair returns to the exact project with `#member-decision-title`; the q
 
 Blocking/domain/authenticated/persistence tests were rewritten around Submit Interest, project capacity and no mandatory role selection.
 
+### M. PostgreSQL allowed duplicate active role-neutral interests under concurrency — FIXED
+
+The historical `unique(project_id,user_id,project_role_id)` constraint does not protect rows where `project_role_id` is `NULL`, because ordinary PostgreSQL unique constraints treat nulls as distinct. Phase 5 intentionally persists initial interest without a formal role, so concurrent requests could create duplicate active interests even though the API performed a pre-check.
+
+A versioned migration now creates `project_applications_one_active_interest_per_project_user`, a partial unique index on `(project_id,user_id)` for active `application_kind='interest'` rows. An isolated Supabase test now proves a second active role-neutral interest is rejected with PostgreSQL `23505`.
+
 ## 4. Frontend / UX review
 
 Source result: **PASS WITH BROWSER EVIDENCE PENDING**.
@@ -112,7 +118,7 @@ Existing interest and participation override new-interest eligibility. Declined/
 
 ## 6. Supabase / PostgreSQL / schema review
 
-Source result: **PASS — NO NEW PHASE 5 SCHEMA REQUIRED**.
+Source result: **PASS WITH MIGRATION/RUNTIME EVIDENCE PENDING**.
 
 Phase 5 reuses versioned:
 
@@ -123,9 +129,14 @@ Phase 5 reuses versioned:
 - `project_applications`;
 - canonical project taxonomy/content relations.
 
-No fit score/table, tracker_v2, role reservation table or dashboard-only field was added.
+Phase 5 adds no fit-score table, duplicate tracker, role-reservation table or dashboard-only field. It does add one required repository-versioned database index migration:
 
-Clean isolated migrations remain **PENDING CI**.
+- `20260905170000_project_experience_phase_5_interest_uniqueness.sql`
+- `project_applications_one_active_interest_per_project_user`
+
+This migration closes the role-neutral interest uniqueness gap while preserving legacy role-specific application handling.
+
+Clean isolated migrations and hosted-equivalent schema validation remain **PENDING CI**.
 
 ## 7. RLS / security / privacy review
 
@@ -137,13 +148,14 @@ Source result: **PASS; RUNTIME SECURITY EVIDENCE PENDING**.
 - public-safe project resource projection strips private URLs/storage/review evidence;
 - interest submission does not create project membership or Lab access;
 - safe profile return now rejects protocol-relative/external targets;
-- isolated cross-user RLS test is part of smoke/staging suites.
+- isolated cross-user RLS test is part of smoke/staging suites;
+- isolated database test now covers duplicate role-neutral interest rejection.
 
 ## 8. Form / validation / submission review
 
 Phase 5 does not create an interest record merely by viewing or clicking the member page.
 
-The Phase 6 interest form is now role-neutral and persists only on final Submit Interest. `/api/project-applications` performs authoritative qualification immediately before insert and detects an existing active request to prevent duplicates.
+The Phase 6 interest form is now role-neutral and persists only on final Submit Interest. `/api/project-applications` performs authoritative qualification immediately before insert and detects an existing active request. PostgreSQL now independently enforces one active role-neutral interest per member/project, so the final write path is race-safe for Phase 5 interest.
 
 Legacy role-specific `application` handling remains only for regression compatibility and no longer controls initial Phase 5 interest.
 
@@ -188,8 +200,10 @@ Updated Phase 5 coverage includes:
 - Phase 2 readiness reuse;
 - role-neutral interest persistence with `project_role_id = null`;
 - API profile/project/capacity/prior-participation revalidation;
-- duplicate request protection;
+- duplicate active role-neutral interest protection at PostgreSQL level;
 - owner-scoped profile/preference RLS;
+- cross-user project-request read/update IDOR protection;
+- applicant does not receive project membership/Lab access;
 - safe profile return source contract;
 - responsive member project journey;
 - existing legacy application regression.
@@ -202,11 +216,12 @@ Runtime evidence still required for material acceptance journeys including:
 
 - profile-save failure/value retention;
 - full/late-join/race capacity cases;
-- cross-user application IDOR;
+- cross-user application IDOR execution;
 - applicant cannot access Lab/team-private resources;
 - username-change request continuity;
 - full signup/verification/onboarding return;
 - keyboard/screen-reader/focus-after-return execution;
+- clean application of the new Phase 5 uniqueness migration;
 - exact-head repository regressions and release gates.
 
 No analytics framework/convention was found in the repository to reuse; Phase 5 therefore does not invent a new analytics infrastructure or log sensitive qualification data.
@@ -215,4 +230,4 @@ No analytics framework/convention was found in the repository to reuse; Phase 5 
 
 **NOT APPROVED**
 
-The source architecture is now aligned with the binding Phase 5 contract, but the final documentation-inclusive exact head has not yet produced the mandatory runtime evidence. Source review or queued workflows are not sufficient for approval.
+The source architecture is aligned with the binding Phase 5 contract and the newly discovered database race condition has been fixed with a repository migration plus isolated Supabase coverage. Approval still requires the documentation-inclusive exact head to produce the mandatory runtime, migration, RLS, browser, accessibility and release-gate evidence. Source review or queued workflows are not sufficient for approval.

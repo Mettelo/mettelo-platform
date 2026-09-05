@@ -14,6 +14,7 @@ const onboardingComplete=read('app/onboarding/complete/page.tsx');
 const onboarding=read('components/OnboardingFlow.tsx');
 const profileApi=read('app/api/profile/route.ts');
 const onboardingMigration=read('supabase/migrations/20260815153916_phase_1_onboarding_state.sql');
+const atomicProfileMigration=read('supabase/migrations/20260905110000_project_experience_phase_2_atomic_profile_save.sql');
 const responsiveGate=read('app/dev/phase-1-responsive-gate/page.tsx');
 const onboardingPreview=read('app/dev/phase-1-onboarding/page.tsx');
 const browserGate=read('tests/phase1-browser.spec.ts');
@@ -69,13 +70,13 @@ const checks=[
  ['onboarding has five named steps',onboarding.includes("const steps=['About you','Skills & interests','Project goals','Availability','Review profile']")],
  ['onboarding exposes progress',onboarding.includes('Step {step+1} of {steps.length}')&&onboarding.includes('% complete')],
  ['onboarding can save and continue later',onboarding.includes('Save and continue later')&&onboarding.includes('saveForLater')&&onboarding.includes("window.location.assign('/member')")],
- ['onboarding progress is persisted',Boolean(onboardingMigration)&&onboardingMigration.includes('onboarding_step')&&profileApi.includes("hasOwnProperty.call(body,'onboarding_step')")&&profileApi.includes('hasOnboardingStep?{onboarding_step:onboardingStep}:{}')],
- ['normal profile edits preserve onboarding progress',profileApi.includes("const hasOnboardingStep=Object.prototype.hasOwnProperty.call(body,'onboarding_step')")&&profileApi.includes('...onboardingState')],
+ ['onboarding progress is persisted',Boolean(onboardingMigration)&&onboardingMigration.includes('onboarding_step')&&profileApi.includes("hasOwnProperty.call(body,'onboarding_step')")&&profileApi.includes('onboarding_step:persistedStep')&&profileApi.includes("rpc('save_member_profile'")&&atomicProfileMigration.includes("p_profile->>'onboarding_step'")],
+ ['normal profile edits preserve onboarding progress',profileApi.includes("const hasOnboardingStep=Object.prototype.hasOwnProperty.call(body,'onboarding_step')")&&profileApi.includes("Number(currentProfile.data?.onboarding_step||0)")&&profileApi.includes('onboarding_step:persistedStep')],
  ['returning onboarding users resume saved step',onboardingPage.includes('initialStep={Math.max(0,Math.min(4,Number(profile.onboarding_step||0)))}')&&onboarding.includes('useState(initialStep)')],
  ['completed members bypass first-time onboarding',onboardingMigration.includes('onboarding_completed_at')&&onboardingPage.includes("if(profile.onboarding_completed_at)redirect('/member')")],
  ['onboarding has explicit completion state',Boolean(onboardingComplete)&&onboarding.includes("window.location.assign('/onboarding/complete')")&&onboardingComplete.includes('Your professional profile is ready to use.')],
- ['onboarding completion is persisted',profileApi.includes('onboarding_completed_at:new Date().toISOString()')&&onboarding.includes('save(4,true)')],
- ['onboarding reuses canonical profile API',(profileApi.includes("supabase.from('profiles').update")||(profileApi.includes("supabase.from('profiles').upsert")&&profileApi.includes('id:user.id')&&!profileApi.includes('id:body.id')))],
+ ['onboarding completion is persisted',profileApi.includes('const completionAt=currentProfile.data?.onboarding_completed_at||(onboardingComplete?new Date().toISOString():null)')&&profileApi.includes('onboarding_completed_at:completionAt')&&onboarding.includes('save(4,true)')&&atomicProfileMigration.includes('coalesce(public.profiles.onboarding_completed_at,excluded.onboarding_completed_at)')],
+ ['onboarding reuses canonical profile API',(profileApi.includes("supabase.from('profiles').update")||(profileApi.includes("supabase.from('profiles').upsert")&&profileApi.includes('id:user.id')&&!profileApi.includes('id:body.id'))||(profileApi.includes("rpc('save_member_profile'")&&atomicProfileMigration.includes('security invoker')&&atomicProfileMigration.includes('on conflict(id) do update')))],
  ['onboarding has required-field gating',onboarding.includes('canContinue')],
  ['onboarding supports back navigation',onboarding.includes('← Back')],
  ['auth status messages expose aria-live',signin.includes('aria-live="polite"')&&checkEmail.includes('aria-live="polite"')&&updatePassword.includes('aria-live="polite"')&&socialComplete.includes('aria-live="polite"')&&onboarding.includes('aria-live="polite"')],

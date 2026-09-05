@@ -71,4 +71,13 @@ test.describe('Project Experience Phase 4 acceptance boundaries',()=>{
     expect(complete).toContain("item.startsWith('/')&&!item.startsWith('//')");
     expect(complete).toContain("next.startsWith('/member/discover/')");
   });
+
+  test('authenticated member continuation consumes the same canonical participation fields as public discovery',()=>{
+    const member=read('app/member/discover/[id]/page.tsx');
+    expect(member).toContain('participation_mode,min_team_size,target_team_size,max_team_size,team_size_threshold');
+    expect(member).toContain('participationMode:project.participation_mode');
+    expect(member).toContain('minTeamSize:project.min_team_size');
+    expect(member).toContain('targetTeamSize:project.target_team_size');
+    expect(member).toContain('maxTeamSize:project.max_team_size');
+  });
 });

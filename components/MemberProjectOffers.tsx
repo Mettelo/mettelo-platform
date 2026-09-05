@@ -1,0 +1,102 @@
+'use client';
+
+import {useEffect,useMemo,useRef,useState} from 'react';
+
+type Project={title:string;weekly_commitment:string|null;participation_mode:string|null;kickoff_at:string|null;min_team_size:number|null;target_team_size:number|null;max_team_size:number|null};
+type Offer={id:string;application_id:string;project_id:string;project_run_id:string|null;status:'pending'|'accepted'|'declined'|'expired';offered_at:string;expires_at:string;accepted_at:string|null;declined_at:string|null;expired_at:string|null;capacity_reserved_at:string;capacity_released_at:string|null;projects:Project|Project[]|null};
+type Action='accept'|'decline';
+
+function projectOf(offer:Offer){return Array.isArray(offer.projects)?offer.projects[0]||null:offer.projects}
+function dateTime(value:string|null){if(!value)return'Not set';return new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}
+function statusLabel(status:Offer['status']){return status==='pending'?'Place offered':status==='accepted'?'Place accepted':status==='declined'?'Place declined':'Offer expired'}
+function teamCopy(project:Project|null){if(!project)return'Team details will be confirmed in Mettelo.';const min=Math.max(1,Number(project.min_team_size||1));const target=Number(project.target_team_size||0);return target>min?`Minimum ${min} · target ${target}${project.max_team_size?` · maximum ${project.max_team_size}`:''}`:`Minimum ${min}${project.max_team_size?` · maximum ${project.max_team_size}`:''}`}
+
+export default function MemberProjectOffers(){
+  const [offers,setOffers]=useState<Offer[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState('');
+  const [message,setMessage]=useState('');
+  const [working,setWorking]=useState('');
+  const [pendingAction,setPendingAction]=useState<{offer:Offer;action:Action}|null>(null);
+  const dialogRef=useRef<HTMLDialogElement>(null);
+
+  async function load(){
+    setLoading(true);setError('');
+    try{
+      const response=await fetch('/api/project-offers/mine',{cache:'no-store'});
+      const body=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(body.error||'We could not load your project offers right now.');
+      setOffers(body.offers||[]);
+    }catch(cause){setError(cause instanceof Error?cause.message:'We could not load your project offers right now.');}
+    finally{setLoading(false)}
+  }
+
+  useEffect(()=>{void load()},[]);
+  useEffect(()=>{if(pendingAction&&dialogRef.current&&!dialogRef.current.open)dialogRef.current.showModal()},[pendingAction]);
+
+  const active=useMemo(()=>offers.filter(offer=>offer.status==='pending'),[offers]);
+  const resolved=useMemo(()=>offers.filter(offer=>offer.status!=='pending'),[offers]);
+
+  async function respond(offer:Offer,action:Action){
+    setWorking(offer.id);setError('');setMessage('');
+    try{
+      const response=await fetch('/api/project-offers',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id:offer.id,action})});
+      const body=await response.json().catch(()=>({}));
+      if(!response.ok){
+        if(body.offer?.status==='expired'){
+          setOffers(current=>current.map(item=>item.id===offer.id?{...item,status:'expired',expired_at:new Date().toISOString(),capacity_released_at:new Date().toISOString()}:item));
+        }
+        throw new Error(body.error||'We could not update this project offer right now.');
+      }
+      const next=body.offer?.status as Offer['status'];
+      const now=new Date().toISOString();
+      setOffers(current=>current.map(item=>item.id===offer.id?{...item,status:next,accepted_at:next==='accepted'?now:item.accepted_at,declined_at:next==='declined'?now:item.declined_at,capacity_released_at:next==='declined'?now:item.capacity_released_at}:item));
+      const project=projectOf(offer)?.title||'this project';
+      setMessage(next==='accepted'?`You accepted your place on ${project}. Your commitment is recorded; Mettelo will now move it into team formation.`:`You declined your place on ${project}. The reserved capacity has been released.`);
+      closeDialog();
+    }catch(cause){setError(cause instanceof Error?cause.message:'We could not update this project offer right now.');}
+    finally{setWorking('')}
+  }
+
+  function openAction(offer:Offer,action:Action){setMessage('');setError('');setPendingAction({offer,action})}
+  function closeDialog(){if(dialogRef.current?.open)dialogRef.current.close();setPendingAction(null)}
+
+  if(loading)return <section className="mpoPanel" aria-busy="true" aria-live="polite"><div className="mpoEyebrow">PROJECT OFFERS</div><h2>Your project offers</h2><p>Loading your current offer state…</p><style jsx global>{styles}</style></section>;
+  if(error&&!offers.length)return <section className="mpoPanel mpoError" role="alert"><div className="mpoEyebrow">PROJECT OFFERS</div><h2>We couldn’t load your offers</h2><p>{error}</p><button className="mpoButton mpoDark" type="button" onClick={()=>void load()}>Try again</button><style jsx global>{styles}</style></section>;
+  if(!offers.length)return null;
+
+  return <>
+    <section className="mpoPanel" aria-labelledby="member-project-offers-title">
+      <div className="mpoHead"><div><div className="mpoEyebrow">COMMITMENT</div><h2 id="member-project-offers-title">Project offers</h2><p>Review each offered place before Mettelo moves it into team formation. Opening an offer never enrols you automatically.</p></div>{active.length>0&&<span className="mpoCount">{active.length} need{active.length===1?'s':''} your response</span>}</div>
+      {message&&<div className="mpoStatus mpoSuccess" role="status" aria-live="polite">{message}</div>}
+      {error&&<div className="mpoStatus mpoError" role="alert">{error}</div>}
+      <div className="mpoList">
+        {offers.map(offer=>{const project=projectOf(offer);const pending=offer.status==='pending';return <article className={`mpoCard mpo-${offer.status}`} key={offer.id}>
+          <div className="mpoCardHead"><div><span className="mpoState">{statusLabel(offer.status)}</span><h3>{project?.title||'Mettelo project'}</h3></div><small>Offered {dateTime(offer.offered_at)}</small></div>
+          <div className="mpoGrid">
+            <div><span>Commitment</span><strong>{project?.weekly_commitment||'See project expectations'}</strong></div>
+            <div><span>Participation</span><strong>{project?.participation_mode?project.participation_mode.replaceAll('_',' '):'Project configuration'}</strong></div>
+            <div><span>Team state</span><strong>{teamCopy(project)}</strong></div>
+            <div><span>Expected start</span><strong>{dateTime(project?.kickoff_at||null)}</strong></div>
+            <div><span>Offer expiry</span><strong>{dateTime(offer.expires_at)}</strong></div>
+            <div><span>Participation expectation</span><strong>Accepting records your commitment. Membership and private workspace access follow the governed team-formation/start journey.</strong></div>
+          </div>
+          {pending?<div className="mpoActions"><button className="mpoButton mpoDark" type="button" disabled={working===offer.id} onClick={()=>openAction(offer,'accept')}>Accept place</button><button className="mpoButton" type="button" disabled={working===offer.id} onClick={()=>openAction(offer,'decline')}>Decline</button></div>:<p className="mpoResolved">{offer.status==='accepted'?'Your commitment is recorded. Mettelo will update you when team formation progresses.':offer.status==='declined'?'This offer is closed and its reserved capacity has been released.':'This offer closed when its response window ended, and its reserved capacity has been released.'}</p>}
+        </article>})}
+      </div>
+      {resolved.length>0&&active.length===0&&<p className="mpoQuiet">No project offer currently needs your response.</p>}
+    </section>
+
+    <dialog className="mpoDialog" ref={dialogRef} onClose={()=>setPendingAction(null)} aria-labelledby="mpo-dialog-title">
+      {pendingAction&&<><div className="mpoDialogHead"><div><div className="mpoEyebrow">CONFIRM RESPONSE</div><h2 id="mpo-dialog-title">{pendingAction.action==='accept'?'Accept this project place?':'Decline this project place?'}</h2></div><button className="mpoClose" type="button" aria-label="Close offer response dialog" onClick={closeDialog}>×</button></div><div className="mpoDialogBody"><p>{pendingAction.action==='accept'?`You are confirming that you want to take the offered place on ${projectOf(pendingAction.offer)?.title||'this project'}. This records your commitment; it does not start the project or unlock the private workspace yet.`:`Declining closes this offer and releases its reserved place. It does not affect your unrelated Mettelo activity.`}</p><div className="mpoActions"><button className="mpoButton" type="button" disabled={working===pendingAction.offer.id} onClick={closeDialog}>Go back</button><button className={`mpoButton ${pendingAction.action==='accept'?'mpoDark':'mpoDanger'}`} type="button" disabled={working===pendingAction.offer.id} onClick={()=>void respond(pendingAction.offer,pendingAction.action)}>{working===pendingAction.offer.id?'Saving…':pendingAction.action==='accept'?'Confirm acceptance':'Confirm decline'}</button></div></div></>}
+    </dialog>
+    <style jsx global>{styles}</style>
+  </>;
+}
+
+const styles=`
+.mpoPanel{margin:22px 0;padding:22px;border:1px solid #e7e1d6;border-radius:20px;background:#fff;color:#10131d}.mpoHead{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.mpoHead h2,.mpoPanel>h2{margin:4px 0 7px;font-size:clamp(1.35rem,2vw,1.8rem)}.mpoHead p,.mpoPanel>p{margin:0;color:#5b6472;max-width:760px;line-height:1.6}.mpoEyebrow{font-family:var(--font-mono),monospace;font-size:11px;font-weight:800;letter-spacing:.09em;color:#8b5a17}.mpoCount{display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border-radius:999px;background:#f7efdd;color:#6f4b16;font-size:12px;font-weight:800;white-space:nowrap}.mpoList{display:grid;gap:14px;margin-top:18px}.mpoCard{padding:18px;border:1px solid #e7e1d6;border-radius:14px;background:#fcfbf7;min-width:0}.mpoCardHead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.mpoCardHead h3{margin:6px 0 0;font-size:1.08rem}.mpoCardHead small{color:#5b6472}.mpoState{display:inline-flex;font-size:12px;font-weight:800;color:#2356a8}.mpo-accepted .mpoState{color:#157347}.mpo-declined .mpoState,.mpo-expired .mpoState{color:#5b6472}.mpoGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.mpoGrid>div{min-width:0;padding:12px;border:1px solid #eee8dd;border-radius:10px;background:#fff}.mpoGrid span{display:block;margin-bottom:5px;font-family:var(--font-mono),monospace;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#7a808a}.mpoGrid strong{display:block;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.mpoActions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.mpoButton{min-height:44px;padding:0 15px;border:1px solid #b8c0c9;border-radius:10px;background:#fff;color:#10131d;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.mpoButton:disabled{cursor:not-allowed;opacity:.6}.mpoButton:focus-visible,.mpoClose:focus-visible{outline:3px solid #2356a8;outline-offset:3px}.mpoDark{background:#10131d;border-color:#10131d;color:#fff}.mpoDanger{background:#a53a3a;border-color:#a53a3a;color:#fff}.mpoResolved,.mpoQuiet{margin:14px 0 0;color:#5b6472;line-height:1.55}.mpoStatus{margin:16px 0 0;padding:12px 14px;border-radius:10px;font-size:13px;line-height:1.5}.mpoSuccess{background:#eef8f2;color:#155c3a;border:1px solid #b7dec7}.mpoError{background:#fff4f4;color:#7b2626;border-color:#dfb5b5}.mpoDialog{width:min(94vw,560px);max-height:88dvh;padding:0;border:1px solid #d8d2c8;border-radius:18px;background:#fff;color:#10131d;box-shadow:0 24px 80px rgba(16,19,29,.24)}.mpoDialog::backdrop{background:rgba(16,19,29,.56)}.mpoDialogHead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:20px 20px 14px;border-bottom:1px solid #eee8dd}.mpoDialogHead h2{margin:5px 0 0;font-size:1.3rem}.mpoDialogBody{padding:20px}.mpoDialogBody p{margin:0;color:#4f5967;line-height:1.65}.mpoClose{width:44px;height:44px;border:1px solid #d4d7dc;border-radius:10px;background:#fff;color:#10131d;font-size:24px;cursor:pointer}.mpoDialog .mpoActions{justify-content:flex-end}.mpoQuiet{font-size:13px}
+@media(max-width:1024px){.mpoGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.mpoPanel{padding:16px;border-radius:14px}.mpoHead,.mpoCardHead{display:grid}.mpoCount{justify-self:start}.mpoGrid{grid-template-columns:minmax(0,1fr)}.mpoActions{display:grid;grid-template-columns:1fr}.mpoButton{width:100%}.mpoDialog{width:calc(100vw - 24px)}.mpoDialog .mpoActions{grid-template-columns:1fr}.mpoCardHead small{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.mpoDialog{scroll-behavior:auto}}
+`;

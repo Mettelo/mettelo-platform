@@ -48,10 +48,10 @@ test('search covers canonical facets, aliases, methods and project-specific cont
   expect(catalogueSearchText(project)).toContain('stage 2');
 });
 
-test('governed options stay complete while taxonomy associations remain data-driven',()=>{
+test('filter options expose only canonical values represented by discoverable projects',()=>{
   const projects=[item({title:'One',durationWeeks:2}),item({title:'Two',durationWeeks:8,capabilities:[facet('forecasting','Forecasting')]}),item({title:'Unknown',durationWeeks:null})];
   expect(catalogueFacetOptions(projects,'capabilities').map(value=>value.slug)).toEqual(['data-quality','forecasting']);
-  expect(catalogueDurationOptions(projects).map(value=>value.slug)).toEqual(['short','standard','extended']);
+  expect(catalogueDurationOptions(projects).map(value=>value.slug)).toEqual(['short','extended']);
 });
 
 test('approved sorting is deterministic and keeps missing dates or durations last',()=>{

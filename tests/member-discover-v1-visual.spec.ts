@@ -56,8 +56,8 @@ test('Discover and member project detail preserve the approved responsive intern
   test.setTimeout(300_000);await page.emulateMedia({reducedMotion:'reduce'});await mkdir(artifactDir,{recursive:true});await signIn(page);
   for(const width of widths){
     await page.setViewportSize({width,height:900});await page.goto('/member/discover',{waitUntil:'networkidle'});
-    await expect(page.getByRole('heading',{level:1,name:'Discover projects'})).toBeVisible();await expect(page.getByText('DIRECTION & DISCOVERY · PROJECTS',{exact:true})).toBeVisible();await expect(page.getByPlaceholder('Search projects, skills or topics')).toBeVisible();
-    const filterButton=page.getByRole('button',{name:/Filters ·/});await expect(filterButton).toBeVisible();await expect(page.locator('.mdFilterSummaryV2')).toBeVisible();
+    await expect(page.getByRole('heading',{level:1,name:'Discover projects'})).toBeVisible();await expect(page.getByText('DIRECTION & DISCOVERY · PROJECTS',{exact:true})).toBeVisible();await expect(page.getByPlaceholder('Search projects, roles, skills, tools or industries')).toBeVisible();
+    const filterButton=width<=680?page.getByRole('button',{name:/Filters ·/}):page.getByRole('button',{name:/More filters/});await expect(filterButton).toBeVisible();await expect(page.locator('.mdFilterSummaryV2')).toBeVisible();
     const card=page.locator('.mdProjectCard').filter({hasText:title});await expect(card).toBeVisible();await expect(card.getByText('Data Analyst',{exact:true})).toBeVisible();const view=card.getByRole('link',{name:'View project'});await expect(view).toHaveAttribute('href',`/member/discover/${projectId}`);expect(await columns(page,'.mdProjectGrid'),`${width}px Discover grid`).toBe(width>980?2:1);
     if(width<=480){const mobile=page.getByRole('navigation',{name:'My Mettelo mobile navigation'});await expect(mobile).toBeVisible();await expect(mobile.locator('a[href="/member/discover"]')).toHaveAttribute('aria-current','page');if(width===390){await filterButton.click();const filterDialog=page.getByRole('dialog',{name:'Filter projects'});await expect(filterDialog).toBeVisible();await expect(page.getByRole('button',{name:'Close project filters'})).toBeFocused();await page.keyboard.press('Escape');await expect(filterDialog).toBeHidden();await expect(filterButton).toBeFocused()}}else{await expect(page.getByRole('complementary',{name:'My Mettelo navigation'})).toBeVisible()}
     await noOverflow(page,`${width}px Discover`);await page.screenshot({path:`${artifactDir}/${width}-discover.png`,fullPage:true,animations:'disabled'});
@@ -67,21 +67,21 @@ test('Discover and member project detail preserve the approved responsive intern
 
 test('Discover Filters V2 exposes governed facets and keyboard capability selection',async({page})=>{
   test.setTimeout(120_000);await signIn(page);await page.setViewportSize({width:390,height:844});await page.goto('/member/discover',{waitUntil:'networkidle'});
-  const trigger=page.locator('button.mdFilterTriggerV2');await expect(trigger).toBeVisible();await expect(trigger).toHaveAccessibleName('Filters · 0');await trigger.click();
+  const trigger=page.getByRole('button',{name:'Filters · 0'});await expect(trigger).toBeVisible();await trigger.click();
   const dialog=page.getByRole('dialog',{name:'Filter projects'});await expect(dialog).toBeVisible();
-  await expect(dialog.getByLabel('Role')).toContainText('Data Analyst');
-  await expect(dialog.getByLabel('Domain')).toContainText('Cross-industry / Open Data');
-  await expect(dialog.getByLabel('Tool / technology')).toContainText('Python');
-  await expect(dialog.getByLabel('Commitment')).toContainText('5–7 hours/week');
+  await expect(dialog.getByLabel('Career / Role')).toContainText('Data Analyst');
+  await expect(dialog.getByLabel('Industry')).toContainText('Cross-industry');
+  await expect(dialog.getByLabel('Tools & technologies')).toContainText('Python');
+  await expect(dialog.getByLabel('Weekly commitment')).toContainText('5–7 hours/week');
   await expect(dialog.getByLabel('Working model')).toContainText('Remote');
-  await expect(dialog.getByLabel('Project type')).toContainText('Open Project');
+  await expect(dialog.getByLabel('Project source')).toContainText('Open Project');
   await expect(dialog.getByLabel('Project stage')).toContainText('Recruiting');
-  const sort=dialog.getByLabel('Sort projects');for(const label of ['Recently added','Closing soon','Shortest duration','Longest duration'])await expect(sort).toContainText(label);
-  const capability=dialog.getByRole('combobox',{name:'Skill / capability'});await capability.fill('data anal');await expect(capability).toHaveAttribute('aria-expanded','true');await expect(dialog.getByRole('option',{name:'Data Analysis'})).toBeVisible();await capability.press('Enter');await expect(capability).toHaveValue('Data Analysis');
-  await dialog.getByRole('button',{name:/Show \d+ projects?/}).click();await expect(trigger).toHaveAccessibleName('Filters · 1');
-  const chip=page.getByRole('button',{name:'Remove Skill: Data Analysis filter'});await expect(chip).toBeVisible();await chip.click();await expect(trigger).toHaveAccessibleName('Filters · 0');
+  const sort=dialog.locator('fieldset').filter({hasText:'Sort results'}).locator('select');for(const label of ['Recently added','Closing soon','Shortest duration','Longest duration'])await expect(sort).toContainText(label);
+  const capability=dialog.getByRole('combobox',{name:'Skills you want to build'});await capability.fill('data qual');await expect(capability).toHaveAttribute('aria-expanded','true');await expect(dialog.getByRole('option',{name:'Data Quality'})).toBeVisible();await capability.press('Enter');await expect(capability).toHaveValue('Data Quality');
+  await dialog.getByRole('button',{name:/Show \d+ projects?/}).click();await expect(page.getByRole('button',{name:'Filters · 1'})).toBeVisible();
+  const chip=page.getByRole('button',{name:'Remove Skill: Data Quality filter'});await expect(chip).toBeVisible();await chip.click();await expect(page.getByRole('button',{name:'Filters · 0'})).toBeVisible();
 
-  await trigger.click();await capability.fill('data');await capability.press('Escape');await expect(capability).toHaveAttribute('aria-expanded','false');await expect(dialog).toBeVisible();await capability.press('Escape');await expect(dialog).toBeHidden();await expect(trigger).toBeFocused();
+  const activeTrigger=page.getByRole('button',{name:'Filters · 0'});await activeTrigger.click();await capability.fill('data');await capability.press('Escape');await expect(capability).toHaveAttribute('aria-expanded','false');await expect(dialog).toBeVisible();await capability.press('Escape');await expect(dialog).toBeHidden();await expect(activeTrigger).toBeFocused();
   await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});await noOverflow(page,'390px Discover Filters V2 at 200% text zoom');
 });
 
@@ -93,7 +93,7 @@ test('Discover pagination shows 9 projects per page and refinements reset to pag
   });
   const pagination=page.getByRole('navigation',{name:'Discover project pages'});await expect(pagination).toBeVisible();await expect(pagination).toContainText('Showing 1–9 of 12');await expect(page.locator('.mdProjectCard:visible')).toHaveCount(9);
   await pagination.getByRole('button',{name:'Next page'}).click();await expect(pagination).toContainText('Page 2 of 2');await expect(page.locator('.mdProjectCard:visible')).toHaveCount(3);
-  await page.getByPlaceholder('Search projects, skills or topics').fill(title);await expect(page.locator('.mdProjectCard').filter({hasText:title})).toBeVisible();await expect(page.getByRole('navigation',{name:'Discover project pages'})).toHaveCount(0);
+  await page.getByPlaceholder('Search projects, roles, skills, tools or industries').fill(title);await expect(page.locator('.mdProjectCard').filter({hasText:title})).toBeVisible();await expect(page.getByRole('navigation',{name:'Discover project pages'})).toHaveCount(0);
 });
 
 test('member Discover links stay internal while signed-in public Projects routes remain public',async({page})=>{

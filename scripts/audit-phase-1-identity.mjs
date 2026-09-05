@@ -30,6 +30,7 @@ const adminIdentity=read('components/AdminMemberIdentityLookup.tsx');
 const teamOverview=read('lib/project-team-overview.ts');
 const teamRoster=read('components/ProjectTeamRoster.tsx');
 const lab=read('components/MetteloLabPanel.tsx');
+const messagePanel=read('components/ProjectMessagePanel.tsx');
 const adminSecurityTest=read('tests/admin-access-capabilities.spec.ts');
 
 const checks=[
@@ -101,7 +102,7 @@ const checks=[
  ['member profile displays handle and Member ID',profilePage.includes('@${profile.username}')&&profilePage.includes('Member ID')&&profilePage.includes('profile.member_id')],
  ['Admin can resolve username and Member ID inside existing access boundary',adminAccessApi.includes('username')&&adminAccessApi.includes('member_id')&&adminAccessApi.includes("replace(/^@/,'')")&&adminIdentity.includes('Member identity')&&adminIdentity.includes('@username')],
  ['authorised team overview carries username without exposing Member ID',teamOverview.includes('username:string|null')&&teamOverview.includes('full_name,username,headline,avatar_url')&&!teamOverview.includes('member_id')],
- ['Lab and team rosters render username when present',teamRoster.includes('@{member.username}')&&lab.includes('@{member.username}')],
+ ['Lab, team roster and Chat consume username identity without a second member directory',teamRoster.includes('@{member.username}')&&lab.includes('@{member.username}')&&messagePanel.includes('/api/project-team-overview?')&&messagePanel.includes('mentionToken(member)')&&messagePanel.includes('@${member.username}')],
  ['public username availability enumeration endpoint was not introduced',!fs.existsSync('app/api/member-identity/availability/route.ts')&&!fs.existsSync('app/api/username-availability/route.ts')],
  ['identity security behaviour is covered by authenticated Supabase E2E',adminSecurityTest.includes("claim_member_username")&&adminSecurityTest.includes('PHASE1_MEMBER')&&adminSecurityTest.includes("member_id:'MTL-999999'")&&adminSecurityTest.includes("getByLabel('Member identity')")]
 ];

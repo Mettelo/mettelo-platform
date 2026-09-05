@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import {NextResponse} from 'next/server';
+import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {calculateMemberReadiness} from '@/lib/member-readiness';
 
 const allowedAreas=new Set(['Data Analysis / BI','Data Science / ML','Data Engineering','AI / Generative AI','Analytics Engineering','Research / Product / Design','Career transition / Student','Other']);
@@ -11,16 +11,14 @@ function list(value:unknown,max=20){return Array.isArray(value)?[...new Set(valu
 
 export async function GET(){
   try{
-    const supabase=await createServerSupabaseClient();
-    const {data:{user}}=await supabase.auth.getUser();
-    if(!user) return NextResponse.json({error:'Authentication required.'},{status:401});
+    const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});
     const [profileResult,domainPrefs,toolPrefs,proofResult]=await Promise.all([
       supabase.from('profiles').select('*').eq('id',user.id).single(),
       supabase.from('profile_domain_preferences').select('domains(slug,name)').eq('user_id',user.id),
       supabase.from('profile_tool_preferences').select('tools(slug,name)').eq('user_id',user.id),
       supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified')
     ]);
-    if(profileResult.error) return NextResponse.json({error:'Unable to load profile.'},{status:500});
+    if(profileResult.error)return NextResponse.json({error:'Unable to load profile.'},{status:500});
     const memberReadiness=calculateMemberReadiness({profile:profileResult.data,domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0,verifiedProofCount:proofResult.count||0});
     return NextResponse.json({profile:profileResult.data,member_readiness:memberReadiness,domain_preferences:domainPrefs.data||[],tool_preferences:toolPrefs.data||[]});
   }catch{return NextResponse.json({error:'Profile service is unavailable.'},{status:503});}
@@ -28,75 +26,34 @@ export async function GET(){
 
 export async function PATCH(request:Request){
   try{
-    const supabase=await createServerSupabaseClient();
-    const {data:{user}}=await supabase.auth.getUser();
-    if(!user) return NextResponse.json({error:'Authentication required.'},{status:401});
-
+    const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});
     const body=await request.json();
-    const fullName=String(body.full_name||'').trim().slice(0,120);
-    const headline=String(body.headline||'').trim().slice(0,160);
-    const bio=String(body.bio||'').trim().slice(0,1000);
-    const location=String(body.location||'').trim().slice(0,120);
-    const professionalArea=String(body.professional_area||'').trim();
-    const primaryGoal=String(body.primary_goal||'').trim().slice(0,200);
-    const linkedinUrl=String(body.linkedin_url||'').trim().slice(0,300);
-    const githubUrl=String(body.github_url||'').trim().slice(0,300);
-    const portfolioUrl=String(body.portfolio_url||'').trim().slice(0,300);
-    const currentJobTitle=String(body.current_job_title||'').trim().slice(0,140);
-    const organisation=String(body.organisation||'').trim().slice(0,160);
-    const experienceLevel=String(body.experience_level||'').trim();
-    const employmentStatus=String(body.employment_status||'').trim();
-    const projectAvailability=String(body.project_availability||'').trim();
-    const weeklyCapacity=String(body.weekly_capacity||'').trim().slice(0,120);
-    const avatarUrl=body.avatar_url?String(body.avatar_url).trim().slice(0,700):'';
-    const skills=list(body.skills,30);
-    const preferredRoles=list(body.preferred_roles,12);
-    const languages=list(body.languages,12);
-    const hasPublicChoice=Object.prototype.hasOwnProperty.call(body,'is_public');
-    const requestedPublic=hasPublicChoice?Boolean(body.is_public):null;
-    const domainSlugs=slugList(body.domain_preferences);
-    const toolSlugs=slugList(body.tool_preferences);
-    const hasOnboardingStep=Object.prototype.hasOwnProperty.call(body,'onboarding_step');
-    const onboardingStep=Math.max(0,Math.min(4,Number.isFinite(Number(body.onboarding_step))?Math.trunc(Number(body.onboarding_step)):0));
-    const onboardingComplete=body.onboarding_complete===true;
+    const fullName=String(body.full_name||'').trim().slice(0,120);const headline=String(body.headline||'').trim().slice(0,160);const bio=String(body.bio||'').trim().slice(0,1000);const location=String(body.location||'').trim().slice(0,120);const professionalArea=String(body.professional_area||'').trim();const primaryGoal=String(body.primary_goal||'').trim().slice(0,200);const linkedinUrl=String(body.linkedin_url||'').trim().slice(0,300);const githubUrl=String(body.github_url||'').trim().slice(0,300);const portfolioUrl=String(body.portfolio_url||'').trim().slice(0,300);const currentJobTitle=String(body.current_job_title||'').trim().slice(0,140);const organisation=String(body.organisation||'').trim().slice(0,160);const experienceLevel=String(body.experience_level||'').trim();const employmentStatus=String(body.employment_status||'').trim();const projectAvailability=String(body.project_availability||'').trim();const weeklyCapacity=String(body.weekly_capacity||'').trim().slice(0,120);const avatarUrl=body.avatar_url?String(body.avatar_url).trim().slice(0,700):'';const skills=list(body.skills,30);const preferredRoles=list(body.preferred_roles,12);const languages=list(body.languages,12);
+    const domainSlugs=slugList(body.domain_preferences);const toolSlugs=slugList(body.tool_preferences);const hasPublicChoice=Object.prototype.hasOwnProperty.call(body,'is_public');const hasOnboardingStep=Object.prototype.hasOwnProperty.call(body,'onboarding_step');const onboardingStep=Math.max(0,Math.min(4,Number.isFinite(Number(body.onboarding_step))?Math.trunc(Number(body.onboarding_step)):0));const onboardingComplete=body.onboarding_complete===true;const expectedUpdatedAt=body.expected_updated_at?String(body.expected_updated_at):null;
 
-    if(!fullName) return NextResponse.json({error:'Full name is required.'},{status:400});
-    if(professionalArea&&!allowedAreas.has(professionalArea)) return NextResponse.json({error:'Choose a valid professional area.'},{status:400});
+    if(!fullName)return NextResponse.json({error:'Full name is required.'},{status:400});
+    if(professionalArea&&!allowedAreas.has(professionalArea))return NextResponse.json({error:'Choose a valid professional area.'},{status:400});
     if(experienceLevel&&!experienceLevels.has(experienceLevel))return NextResponse.json({error:'Choose a valid experience level.'},{status:400});
     if(employmentStatus&&!employmentStatuses.has(employmentStatus))return NextResponse.json({error:'Choose a valid employment status.'},{status:400});
     if(projectAvailability&&!availabilityStatuses.has(projectAvailability))return NextResponse.json({error:'Choose a valid project availability.'},{status:400});
     for(const url of [linkedinUrl,githubUrl,portfolioUrl]){if(url){try{if(new URL(url).protocol!=='https:')throw new Error();}catch{return NextResponse.json({error:'Profile links must be valid HTTPS URLs.'},{status:400});}}}
-    if(avatarUrl){const projectUrl=process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/,'');const expectedPrefix=projectUrl?`${projectUrl}/storage/v1/object/public/profile-images/${user.id}/`:'';if(!expectedPrefix||!avatarUrl.startsWith(expectedPrefix)) return NextResponse.json({error:'Profile image must come from your Mettelo image upload.'},{status:400});}
+    if(avatarUrl){const projectUrl=process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/,'');const expectedPrefix=projectUrl?`${projectUrl}/storage/v1/object/public/profile-images/${user.id}/`:'';if(!expectedPrefix||!avatarUrl.startsWith(expectedPrefix))return NextResponse.json({error:'Profile image must come from your Mettelo image upload.'},{status:400});}
 
     const [domainRows,toolRows,proofResult,currentProfile]=await Promise.all([
       domainSlugs.length?supabase.from('domains').select('id,slug').eq('is_active',true).in('slug',domainSlugs):Promise.resolve({data:[],error:null}),
       toolSlugs.length?supabase.from('tools').select('id,slug').eq('is_active',true).in('slug',toolSlugs):Promise.resolve({data:[],error:null}),
       supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified'),
-      supabase.from('profiles').select('is_public').eq('id',user.id).maybeSingle()
+      supabase.from('profiles').select('is_public,onboarding_step,onboarding_completed_at,updated_at').eq('id',user.id).maybeSingle()
     ]);
-    if(domainRows.error||toolRows.error||currentProfile.error) return NextResponse.json({error:'Unable to validate project preferences.'},{status:500});
+    if(domainRows.error||toolRows.error||currentProfile.error)return NextResponse.json({error:'Unable to validate project preferences.'},{status:500});
     if((domainRows.data||[]).length!==domainSlugs.length||(toolRows.data||[]).length!==toolSlugs.length)return NextResponse.json({error:'One or more project preferences are invalid. Refresh and try again.'},{status:400});
 
-    const isPublic=hasPublicChoice?Boolean(requestedPublic):Boolean(currentProfile.data?.is_public);
-    const memberReadiness=calculateMemberReadiness({profile:{full_name:fullName,headline,current_job_title:currentJobTitle,professional_area:professionalArea,bio,location,experience_level:experienceLevel,employment_status:employmentStatus,project_availability:projectAvailability,weekly_capacity:weeklyCapacity,primary_goal:primaryGoal,linkedin_url:linkedinUrl,github_url:githubUrl,portfolio_url:portfolioUrl,skills,preferred_roles:preferredRoles},domainCount:domainSlugs.length,toolCount:toolSlugs.length,verifiedProofCount:proofResult.count||0});
-    const onboardingState=onboardingComplete?{onboarding_step:4,onboarding_completed_at:new Date().toISOString()}:hasOnboardingStep?{onboarding_step:onboardingStep}:{};
-    const updatePayload={full_name:fullName,headline,bio,location,professional_area:professionalArea||null,primary_goal:primaryGoal||null,linkedin_url:linkedinUrl||null,github_url:githubUrl||null,portfolio_url:portfolioUrl||null,avatar_url:avatarUrl||null,current_job_title:currentJobTitle||null,organisation:organisation||null,experience_level:experienceLevel||null,employment_status:employmentStatus||null,project_availability:projectAvailability||null,weekly_capacity:weeklyCapacity||null,skills,preferred_roles:preferredRoles,languages,is_public:isPublic,profile_readiness:memberReadiness.legacyProfileReadiness,...onboardingState,updated_at:new Date().toISOString()};
-
-    const {data,error}=await supabase.from('profiles').upsert({id:user.id,...updatePayload},{onConflict:'id'}).select('*').single();
-    if(error){
-      console.error('member profile upsert failed',{code:error.code,message:error.message,details:error.details,hint:error.hint});
-      const schemaMismatch=error.code==='42703'||error.code==='PGRST204';
-      return NextResponse.json({error:schemaMismatch?'Profile saving is temporarily unavailable while the profile schema is updated.':'Unable to save profile. Please try again.'},{status:500});
-    }
-
-    const [clearDomains,clearTools]=await Promise.all([supabase.from('profile_domain_preferences').delete().eq('user_id',user.id),supabase.from('profile_tool_preferences').delete().eq('user_id',user.id)]);
-    if(clearDomains.error||clearTools.error)return NextResponse.json({error:'Profile saved, but project preferences could not be updated.'},{status:500});
-    const domainLinks=(domainRows.data||[]).map(row=>({user_id:user.id,domain_id:row.id}));const toolLinks=(toolRows.data||[]).map(row=>({user_id:user.id,tool_id:row.id}));
-    const [saveDomains,saveTools]=await Promise.all([domainLinks.length?supabase.from('profile_domain_preferences').insert(domainLinks):Promise.resolve({error:null}),toolLinks.length?supabase.from('profile_tool_preferences').insert(toolLinks):Promise.resolve({error:null})]);
-    if(saveDomains.error||saveTools.error)return NextResponse.json({error:'Profile saved, but project preferences could not be updated.'},{status:500});
-    return NextResponse.json({profile:data,profile_readiness:memberReadiness.legacyProfileReadiness,member_readiness:memberReadiness,domain_preferences:domainSlugs,tool_preferences:toolSlugs});
-  }catch(error){
-    console.error('member profile request failed',error);
-    return NextResponse.json({error:'Invalid profile request.'},{status:400});
-  }
+    const isPublic=hasPublicChoice?Boolean(body.is_public):Boolean(currentProfile.data?.is_public);const memberReadiness=calculateMemberReadiness({profile:{full_name:fullName,headline,current_job_title:currentJobTitle,professional_area:professionalArea,bio,location,experience_level:experienceLevel,employment_status:employmentStatus,project_availability:projectAvailability,weekly_capacity:weeklyCapacity,primary_goal:primaryGoal,linkedin_url:linkedinUrl,github_url:githubUrl,portfolio_url:portfolioUrl,skills,preferred_roles:preferredRoles},domainCount:domainSlugs.length,toolCount:toolSlugs.length,verifiedProofCount:proofResult.count||0});
+    const completionAt=currentProfile.data?.onboarding_completed_at||(onboardingComplete?new Date().toISOString():null);const persistedStep=onboardingComplete?4:hasOnboardingStep?onboardingStep:Number(currentProfile.data?.onboarding_step||0);
+    const profilePayload={full_name:fullName,headline,bio,location,professional_area:professionalArea||null,primary_goal:primaryGoal||null,linkedin_url:linkedinUrl||null,github_url:githubUrl||null,portfolio_url:portfolioUrl||null,avatar_url:avatarUrl||null,current_job_title:currentJobTitle||null,organisation:organisation||null,experience_level:experienceLevel||null,employment_status:employmentStatus||null,project_availability:projectAvailability||null,weekly_capacity:weeklyCapacity||null,skills,preferred_roles:preferredRoles,languages,is_public:isPublic,profile_readiness:memberReadiness.legacyProfileReadiness,onboarding_step:persistedStep,onboarding_completed_at:completionAt};
+    const {data,error}=await supabase.rpc('save_member_profile',{p_profile:profilePayload,p_domain_ids:(domainRows.data||[]).map(row=>row.id),p_tool_ids:(toolRows.data||[]).map(row=>row.id),p_expected_updated_at:expectedUpdatedAt});
+    if(error){console.error('member profile atomic save failed',{code:error.code,message:error.message});if(error.message.includes('PROFILE_STALE'))return NextResponse.json({error:'This profile changed in another session. Refresh before saving so newer changes are not overwritten.',code:'PROFILE_STALE'},{status:409});const schemaMismatch=error.code==='42883'||error.code==='PGRST202';return NextResponse.json({error:schemaMismatch?'Profile saving is temporarily unavailable while the profile schema is updated.':'Unable to save profile. Please try again.'},{status:500});}
+    const saved=Array.isArray(data)?data[0]:data;if(!saved)return NextResponse.json({error:'Unable to save profile. Please try again.'},{status:500});
+    return NextResponse.json({profile:saved,profile_readiness:memberReadiness.legacyProfileReadiness,member_readiness:memberReadiness,domain_preferences:domainSlugs,tool_preferences:toolSlugs});
+  }catch(error){console.error('member profile request failed',error);return NextResponse.json({error:'Invalid profile request.'},{status:400});}
 }

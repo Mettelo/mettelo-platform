@@ -5,12 +5,14 @@ import {loadProjectRoleUsage} from '@/lib/project-role-capacity';
 import {projectAcceptsApplications,projectApplicationDeadlinePassed} from '@/lib/project-lifecycle-policy';
 import {PROJECT_PARTICIPATION_TERMS_VERSION} from '@/lib/project-participation-terms';
 import {normalizeProfessionalLink} from '@/lib/project-application-validation';
+import {compareWeeklyCapacity} from '@/lib/member-project-fit';
 
 function ids(value:unknown){return Array.isArray(value)?[...new Set(value.map(String).filter(Boolean))].slice(0,8):[]}
 type DbError={code?:string;message?:string;details?:string};
 function fail(error:string,status:number,code:string,field?:string){return NextResponse.json({error,code,field},{status})}
 function logFailure(input:{requestId:string;projectId?:string;roleId?:string;userId?:string;category:string;error?:unknown}){const dbError=input.error as DbError|undefined;console.error('project_application_submit_failed',{request_id:input.requestId,project_id:input.projectId||null,project_role_id:input.roleId||null,user_id:input.userId||null,category:input.category,db_code:dbError?.code||null,db_message:dbError?.message||null})}
 const ROLE_FILLED_MESSAGE='That project role has filled or is no longer available. Please choose another role.';
+const CAPACITY_GAP_MESSAGE='Your saved weekly capacity is below this project’s minimum commitment. Update your profile if your availability has changed.';
 
 export async function POST(request:Request){
   const requestId=request.headers.get('x-request-id')||crypto.randomUUID();let projectId='';let roleId='';let userId='';
@@ -19,13 +21,15 @@ export async function POST(request:Request){
     const body=await request.json();projectId=String(body.project_id||'');const requestedKind=String(body.application_kind||'application')==='interest'?'interest':'application';const roleIds=ids(body.project_role_ids);const legacyRoleId=String(body.project_role_id||'');roleId=legacyRoleId;const requestedRole=String(body.requested_role||'').trim().slice(0,160);const statement=String(body.contribution_statement||'').trim().slice(0,2000);const availability=String(body.availability||'').trim().slice(0,160);const leadershipInterest=body.leadership_interest===true;const acceptedTerms=body.terms_accepted===true;const termsVersion=String(body.terms_version||'').trim().slice(0,80);const link=normalizeProfessionalLink(body.portfolio_url);
     if(!projectId||statement.length<40)return fail('Please review the highlighted fields before submitting.',400,'VALIDATION_ERROR','contribution_statement');
     if(!link.ok)return fail(link.error,400,'INVALID_PROFESSIONAL_LINK','professional_link');
-    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status,visibility,project_type,application_deadline,applications_open').eq('id',projectId).single();if(projectError||!project)return fail('Project not found.',404,'PROJECT_NOT_FOUND');
+    const {data:project,error:projectError}=await supabase.from('projects').select('id,title,status,visibility,project_type,application_deadline,applications_open,weekly_commitment').eq('id',projectId).single();if(projectError||!project)return fail('Project not found.',404,'PROJECT_NOT_FOUND');
     if(projectApplicationDeadlinePassed(project))return fail('Applications for this project are no longer open.',409,'PROJECT_CLOSED');const isInterest=requestedKind==='interest';if(isInterest&&(!['pilot','recruiting','open','forming','active','review'].includes(project.status)||project.visibility!=='public'))return fail('This project is not currently accepting interest.',409,'PROJECT_CLOSED');if(!isInterest&&!projectAcceptsApplications(project))return fail('Applications for this project are no longer open.',409,'PROJECT_CLOSED');
     if(!acceptedTerms)return fail(`Read and agree to the Mettelo Project Participation Terms before submitting your ${isInterest?'interest':'application'}.`,400,'TERMS_REQUIRED','terms_accepted');
     if(termsVersion!==PROJECT_PARTICIPATION_TERMS_VERSION)return fail('The Project Participation Terms changed. Review the current terms and submit again.',409,'TERMS_VERSION_CHANGED','terms_version');
     if(!isInterest){const {data:existing}=await supabase.from('project_applications').select('id,status,application_kind').eq('project_id',projectId).eq('user_id',user.id).eq('application_kind','application').not('status','in','(declined,withdrawn)').order('submitted_at',{ascending:false}).limit(1).maybeSingle();if(existing)return NextResponse.json({ok:true,already_submitted:true,application:existing,message:'You already have an application for this project.'});}
     let role:{id:string|null;title:string;openings:number|null}|null=null;let catalogueRoles:{id:string;title:string}[]=[];
     if(!isInterest){
+      const {data:profile,error:profileError}=await supabase.from('profiles').select('weekly_capacity').eq('id',user.id).single();if(profileError||!profile)return fail('We could not confirm your project readiness right now. Please try again.',503,'SERVICE_UNAVAILABLE');
+      if(compareWeeklyCapacity(profile.weekly_capacity,project.weekly_commitment)==='gap')return fail(CAPACITY_GAP_MESSAGE,409,'FIT_CAPACITY_GAP','weekly_capacity');
       if(roleIds.length){const {data,error}=await supabase.from('project_role_catalogue').select('id,title').in('id',roleIds).eq('active',true);if(error||!data||data.length!==roleIds.length)return fail('Please choose a valid contribution role.',400,'INVALID_ROLE','project_role_id');catalogueRoles=data;const first=data[0];const {data:legacy}=await supabase.from('project_roles').select('id,title,openings').eq('project_id',projectId).ilike('title',first.title).limit(1).maybeSingle();if(!legacy)return fail(ROLE_FILLED_MESSAGE,409,'ROLE_UNAVAILABLE','project_role_id');role={id:legacy.id,title:first.title,openings:legacy.openings};roleId=legacy.id;}
       else if(legacyRoleId){const {data,error}=await supabase.from('project_roles').select('id,project_id,title,openings').eq('id',legacyRoleId).eq('project_id',projectId).single();if(error||!data)return fail(ROLE_FILLED_MESSAGE,409,'ROLE_UNAVAILABLE','project_role_id');role={id:data.id,title:data.title,openings:data.openings};}
       else return fail('Please choose a role before submitting.',400,'INVALID_ROLE','project_role_id');

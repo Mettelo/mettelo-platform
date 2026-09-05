@@ -1,207 +1,164 @@
-# Project Experience Phase 7 — Admin Interest Review & Selection
+# Project Experience Phase 7 — Admin Review, AUTO-Start Oversight & Governed Selection
 
 Status: **IN PROGRESS / NOT APPROVED**
 
-## Objective
+## Non-negotiable product rules
 
-Give Mettelo Admin a structured, auditable review workflow for `REVIEW_REQUIRED` project interests while preserving the separate Phase 6 `AUTO` admission architecture.
+1. **Partner Project = REVIEW_REQUIRED. Always.** Partner + AUTO cannot persist, cannot be selected in Admin, cannot be forced through review/start APIs, and cannot be auto-started by scheduled processing.
+2. **Mettelo Open Project** may be `AUTO` or `REVIEW_REQUIRED` according to canonical project configuration.
+3. A legitimate Open AUTO project follows:
+   `AUTO QUALIFY → START CONDITIONS MET → START SCHEDULED +6 HOURS → OPTIONAL ADMIN INTERVENTION → FINAL READINESS CHECK → AUTO START`.
+4. The six-hour window is **not waiting for Admin approval**. Healthy scheduled AUTO runs show **No action required** and start automatically if Admin does nothing and readiness remains valid.
+5. REVIEW_REQUIRED follows:
+   `SUBMIT → REVIEW → CLARIFICATION/SHORTLIST/DECLINE/OFFER → MEMBER ACCEPTS → MEMBERSHIP/TEAM FORMATION`.
+   Selection/Offer alone creates no membership and opens no Lab/private workspace access.
+6. Target team size never blocks AUTO start once the configured minimum is satisfied.
+7. No start path may bypass lifecycle, capacity, membership validity, readiness, Lab/resources, permissions, RLS or security.
 
-Phase 7 does not replace AUTO qualification, project runs, project membership, the durable project-start scheduler, or the canonical `project_applications` model.
+## Canonical admission policy
 
-## Admission boundary
+`effectiveProjectAdmissionMode(project_type, admission_mode)` is the application-layer policy helper. The database also enforces Partner mandatory review with `projects_partner_requires_review_check`, and exposes the equivalent `effective_project_admission_mode()` SQL helper.
 
-### AUTO
+Phase 7 safely normalizes any unreleased Partner/AUTO configuration back to REVIEW_REQUIRED. Unstarted invalid waiting memberships/runs are unwound; already-started historical anomalies are not silently rewritten.
 
-AUTO remains server-authoritative:
+## AUTO oversight
 
-`SUBMIT INTEREST → SERVER QUALIFICATION → AUTO QUALIFIED → CANONICAL RUN/MEMBERSHIP → READY → SCHEDULED START → AUTO START`
+AUTO remains the Phase 6 server-authoritative admission/run architecture. Phase 7 adds operational oversight, not an approval queue.
 
-The programme default start delay is now **360 minutes (6 hours)**. The six-hour period is an Admin oversight window, not a required approval gate. Once a run is scheduled and still passes canonical readiness, Admin may explicitly **Start now** during the window. Admin may also pause/block the run. If Admin takes no start or blocking action and the run remains ready, the existing scheduler starts it automatically at the durable `scheduled_start_at` time.
+Durable state includes:
 
-Per-project delay configuration remains supported and explicit project overrides remain authoritative.
+- `auto_start_delay_minutes` — programme default 360;
+- `start_ready_at`;
+- `start_scheduled_at` / `scheduled_start_at`;
+- run pause fields and actor/reason;
+- run block fields and actor/reason;
+- start failure state;
+- canonical activity audit.
 
-AUTO-qualified records do not enter the human review queue.
+Because Phase 6 and Phase 7 are still an unreleased stacked migration train, migration `20260905178100_project_experience_phase_7_default_window_normalization.sql` converts the inherited Phase 6 120-minute programme default to 360. Explicit Open Project overrides created after the migration train remain authoritative.
 
-### REVIEW_REQUIRED
+Healthy AUTO state:
 
-The governed review path is:
+`AUTO QUALIFIED → TEAM FORMING if below minimum → START SCHEDULED when minimum/readiness conditions are met → six-hour window → final readiness → STARTED`.
 
-`SUBMITTED → IN REVIEW → SHORTLISTED → OFFERED`
+Admin exception controls:
 
-or a valid decline transition:
+- **Start now** — optional early start through canonical `startProjectRun()`;
+- **Pause** — stores actor/reason and prevents auto-start;
+- **Block start** — explicit stronger stop requiring a reason;
+- **Resume** — clears pause and establishes a new valid window;
+- **Unblock** — clears block and establishes a new valid window;
+- **Retry start** — canonical readiness/start retry after failure;
+- **Convert to review required** — only for an unstarted Open AUTO project, with audit and safe unwind of waiting AUTO state.
 
-`SUBMITTED / IN REVIEW / SHORTLISTED → DECLINED`
+The formation cron rechecks effective admission policy and will clear a stale due schedule rather than auto-start Partner or REVIEW_REQUIRED work. `startProjectRun()` independently rechecks policy for scheduler starts, lifecycle, pause/block, minimum/readiness, maximum capacity and idempotent activation.
 
-`OFFERED` is a selection boundary only. It does **not** create `project_members`, create/start a run, activate Lab access, or confirm participation. Explicit member acceptance is owned by the Phase 8 offer lifecycle.
+## Human review
 
-## Server transition contract
+The actionable review queue contains only:
 
-The Admin review API permits only:
+- all Partner Project submissions needing human selection;
+- Open Projects configured REVIEW_REQUIRED.
 
-- `submitted → in_review`
-- `submitted → declined`
-- `in_review → shortlisted`
-- `in_review → declined`
-- `shortlisted → offered`
-- `shortlisted → declined`
+Successful AUTO-qualified submissions are excluded from approval work and instead appear in AUTO oversight.
 
-Terminal/compatibility states are not silently reopened by this endpoint.
+Canonical review transitions:
 
-The endpoint rejects AUTO projects/`auto_qualified` requests. AUTO operational intervention remains in the admission/start policy controls.
+- `submitted → in_review | declined`
+- `in_review → clarification_requested | shortlisted | offered | declined`
+- `clarification_requested → in_review | declined`
+- `shortlisted → offered | declined`
 
-## Audit contract
+The transition is performed through `phase7_transition_review_request()`, which:
 
-The existing `project_application_event_audit` trigger remains the canonical state-transition audit mechanism. The actual status update is executed through the authenticated Admin Supabase client so `auth.uid()` records the Admin actor in the same database transaction as the status mutation.
+- requires authenticated Mettelo Admin authority;
+- locks the application/project and uses a per-project advisory lock;
+- enforces effective REVIEW_REQUIRED policy;
+- rejects stale/illegal transitions;
+- rechecks capacity before Offer;
+- counts waiting/active membership plus outstanding Offers;
+- prevents concurrent over-offering;
+- never creates `project_members` or a run.
 
-Phase 7 extends `project_application_events` with a `reviewer_notes` snapshot so the canonical immutable history retains the note/reason that accompanied each review transition. No Phase 7-specific history table is introduced.
+## Clarification round trip
 
-The broader `project_activity_log` receives a compatible operational/analytics event using `actor_type='user'` and Admin actor metadata. Failure of this secondary log does not falsely roll back or misreport a transition that was already atomically audited by `project_application_events`.
+Admin may request clarification from an in-review request. The request becomes `clarification_requested`, with request timestamp and review note.
 
-Audit history preserves:
+The member sees a **Needs you** action in My Mettelo and responds through `/api/project-applications/clarification`. The owner-scoped `phase7_respond_to_clarification()` function validates ownership/current state, stores the response, records the member actor through the existing status audit trigger, and returns the same request to `in_review`.
 
-- actor;
-- timestamp;
-- previous status;
-- new status;
-- application identity;
-- project identity;
-- review notes where applicable.
+No second application/review datastore is created.
 
-## Admin review context
+## Review data and UX
 
-The canonical Admin review surface exposes, where available:
+Admin review exposes, where available:
 
-- member name;
-- username and member ID;
-- email for privileged Admin operation;
-- professional headline;
-- skills;
-- experience level;
-- availability/capacity profile;
-- verified Proof/contributions;
-- interest/application statement;
-- submitted evidence link;
-- participation preference;
-- leadership interest;
-- project role context for legacy applications;
-- confirmed members;
-- minimum team size;
-- target team size;
-- maximum team size;
-- request status.
+- member identity, username/member ID and privileged email;
+- self-declared profile headline, skills, experience and availability;
+- verified Mettelo Proof in a visually distinct section;
+- interest/contribution statement and submitted evidence;
+- participation mode/preference and leadership interest;
+- Project type, Partner organisation, difficulty, commitment and recruitment state;
+- confirmed members, outstanding Offers, open places, minimum, target and maximum;
+- submitted timestamp and current review state.
 
-No second review datastore is introduced.
+Self-declared profile claims must never be presented as verified Proof.
 
-## Admin actions
+The AUTO dashboard separately reports Partner/Open review counts, AUTO forming, scheduled/starting soon, paused/blocked/needs attention, and started states. Healthy scheduled runs are labelled **No action required**.
 
-For REVIEW_REQUIRED requests, available actions depend on current state:
+## Offer boundary
 
-- Submitted: **Start review**, **Decline**
-- In review: **Shortlist**, **Decline**
-- Shortlisted: **Offer project place**, **Decline**
-- Offered: read-only in Phase 7 pending the Phase 8 member-acceptance contract
-- Declined: retained history
+`OFFERED ≠ ACCEPTED ≠ ACTIVE MEMBER`.
 
-Bulk actions are only offered when every selected request can legally make the same transition.
+Phase 7 Offer communication explicitly says selection does not enrol the member. Phase 8 owns durable Offer acceptance/decline, expiry, reserved-capacity lifecycle and the final conversion from accepted Offer to membership/team formation.
 
-The retired `Approve → team` action must not exist for REVIEW_REQUIRED requests.
+## Audit, analytics and communication
 
-For AUTO scheduled-start oversight, Admin may:
+Canonical review audit remains `project_application_events`, extended with immutable review-note snapshots. The existing trigger captures actor, timestamp, previous state and new state.
 
-- **Start now** — explicitly start a ready scheduled run before the six-hour fallback time;
-- **Pause** — block the scheduled automatic start;
-- **Resume** — restore the schedule after a run-level pause;
-- **Retry start** — re-run canonical readiness/start processing after an automation failure.
+`project_activity_log` records operational/analytics events including review started, clarification requested/responded, shortlisted, offered, declined, AUTO pause/block/resume/unblock/conversion/failure/start.
 
-Every start path reuses `startProjectRun()` and revalidates readiness; Phase 7 does not create a second start engine.
+Notification/outbox failure after an already-audited decision does not make the API falsely report that the lifecycle mutation failed. Project-start email/notification is emitted only after actual successful `startProjectRun()` activation.
 
-## Member communication
+## Security / RLS
 
-Phase 7 reuses the current Mettelo notification infrastructure.
+- members cannot configure admission policy, start schedules, pause/block state or project activation;
+- Partner + AUTO is rejected by canonical DB constraint;
+- Admin review RPC validates `app_metadata.role='admin'`;
+- clarification response is owner-scoped to `auth.uid()`;
+- service-role AUTO admission remains server-only;
+- no partner-review privileges are fabricated in Phase 7; until a scoped partner-review authorization model exists, Mettelo Admin is the reviewer;
+- review notes/decision reasoning are not exposed as ordinary public/member data beyond the explicit clarification request intended for the owning member.
 
-- In review: calm in-app status communication.
-- Shortlisted: progress communication with no false promise of a confirmed place.
-- Offered: communicates that Mettelo is offering a place while explicitly stating that selection does not auto-enrol the member.
-- Declined: clear, non-accusatory closure.
+## Migrations
 
-Notification/outbox failure after an already-audited state transition must not cause the API to report that the lifecycle decision itself failed. Communication delivery status is treated separately from canonical request state.
+- `20260905178000_project_experience_phase_7_review_offer_boundary.sql`
+  - Partner hard-lock;
+  - effective admission SQL policy;
+  - durable AUTO ready/pause/block fields;
+  - clarification state/data;
+  - canonical review/audit extensions;
+  - capacity-safe review transition RPC;
+  - member clarification response RPC;
+  - safe Open AUTO → REVIEW_REQUIRED conversion RPC.
+- `20260905178100_project_experience_phase_7_default_window_normalization.sql`
+  - converts the unreleased Phase 6 120-minute programme default to 360.
 
-The Phase 8 offer lifecycle owns explicit acceptance/decline, expiry, reserved capacity and any bounded offer reminders.
+No hosted-only DDL is permitted. Production remains pre-Phase6/7 until the stacked PR train is approved and merged.
 
-## Security and RLS
+## Executable evidence
 
-- Authentication is required.
-- `app_metadata.role='admin'` is required before any review or explicit early-start operation.
-- The authenticated Admin client performs the REVIEW_REQUIRED status mutation, preserving canonical RLS and audit actor identity.
-- Service-role access remains limited to privileged server-side supporting operations after Admin authentication.
-- AUTO requests cannot be forced through the human review endpoint.
-- Server-side transition validation prevents forged lifecycle jumps.
-- Compare-and-set status mutation protects against stale concurrent review decisions.
-- `Start now` calls the same server-authoritative readiness/start service as existing manual/Admin start processing.
-- No REVIEW_REQUIRED offer action inserts project membership.
+Phase 7 test coverage includes:
 
-## Responsive and accessibility contract
+- `tests/project-experience-phase7-admin-review.spec.ts` — source/architecture contract;
+- `tests/project-experience-phase7-admin-review-e2e.spec.ts` — isolated Supabase Partner policy, review audit, clarification, no-membership Offer, invalid transition, AUTO-review rejection and concurrent Offer capacity;
+- `tests/project-experience-phase7-admin-review-browser.spec.ts` — mobile/tablet/desktop/landscape/200%/keyboard/dialog acceptance;
+- Phase 6 AUTO security, journey, concurrency, withdrawal, recruitment and analytics suites remain mandatory regressions;
+- Event Room and protected Release Gate remain mandatory exact-head gates.
 
-The Admin review surface must support desktop, tablet and mobile. It preserves a mobile-card alternative to the wide desktop table and uses 44px minimum interactive targets for primary review controls. Dialogs require accessible names, status messages use live-region semantics, controls have visible keyboard focus, and content must remain usable under text reflow/zoom.
-
-## Database changes
-
-Phase 7 migration:
-
-`20260905178000_project_experience_phase_7_review_offer_boundary.sql`
-
-It:
-
-1. changes the canonical AUTO delay default to 360 minutes for new/unconfigured projects;
-2. preserves explicit per-project AUTO delay overrides;
-3. adds `offered` to the canonical project-application status constraint;
-4. extends canonical `project_application_events` with immutable review-note snapshots and keeps the existing trigger as the one transition-audit architecture;
-5. documents that `offered` is not membership.
-
-Phase 7 intentionally does not introduce a temporary offer table. Phase 8 owns the durable offer entity, acceptance, expiry and capacity-reservation contract.
-
-## Regression requirements
-
-Phase 7 must prove:
-
-- AUTO admission still qualifies without human review;
-- ready AUTO runs retain durable scheduled start and Admin Start now/pause/resume/retry controls;
-- Admin may start a ready AUTO run before the six-hour fallback time through the canonical start service;
-- default AUTO start delay is six hours;
-- if Admin does not start/pause/block a ready run, the durable scheduler remains the fallback automatic start path;
-- AUTO requests are excluded from human review actions;
-- valid REVIEW_REQUIRED transitions succeed;
-- invalid transitions fail server-side;
-- audit records capture the Admin actor, state change and review note;
-- offering creates no membership and starts no run;
-- decline works;
-- shortlist works;
-- member tracker displays `Place offered` truthfully without exposing Phase 8 acceptance controls early;
-- communication failure cannot convert an already-audited decision into false API failure;
-- complete review context renders;
-- verified Proof is displayed safely;
-- mobile/tablet/desktop layouts remain usable;
-- keyboard/focus/dialog semantics remain accessible;
-- Phase 6 application, withdrawal, AUTO scheduling, recruitment, concurrency, analytics and Event Room regressions remain green.
-
-## Phase 7 success criteria ledger
-
-1. Admin sees complete interest context — **IMPLEMENTED / VALIDATION PENDING**
-2. Existing history preserved — **IMPLEMENTED / VALIDATION PENDING**
-3. Review state transitions validated server-side — **IMPLEMENTED / VALIDATION PENDING**
-4. Audit events recorded — **IMPLEMENTED / VALIDATION PENDING**
-5. Selection does not auto-enrol member — **IMPLEMENTED / VALIDATION PENDING**
-6. Decline works — **IMPLEMENTED / VALIDATION PENDING**
-7. Shortlist works — **IMPLEMENTED / VALIDATION PENDING**
-8. Offer action works — **IMPLEMENTED / VALIDATION PENDING**
-9. Permissions correct — **IMPLEMENTED / VALIDATION PENDING**
-10. Admin mobile works — **IMPLEMENTED / VALIDATION PENDING**
-11. Accessibility passes — **VALIDATION PENDING**
-12. Admin regression passes — **VALIDATION PENDING**
-13. Docs updated — **IMPLEMENTED / VALIDATION PENDING**
-
-No criterion is considered PASS until exact-head executable evidence is green.
+The uploaded Phase 7 acceptance review defines 58 mandatory end-to-end journeys and a 62-point Director sign-off. A criterion is not PASS merely because code exists; final approval requires exact-head executable evidence, including clean isolated Supabase reconstruction/RLS, lint, typecheck, build, browser/accessibility, Phase 6 regressions, Event Room and Release Gate.
 
 ## Merge boundary
 
-This Phase 7 branch is stacked on Phase 6 and must not merge ahead of its dependencies. A separate merge/release chat owns final retarget/rebase, exact-head validation, protected Release Gate and merge.
+PR #216 is intentionally stacked on Phase 6 / PR #215 and must not merge first. If Phase 6 is merged and PR #216 is retargeted/rebased, the resulting SHA becomes the only valid release candidate and all mandatory validation must run again.
+
+Do not start Phase 8 from this implementation branch. Do not treat queued, running, cancelled or superseded workflows as approval.

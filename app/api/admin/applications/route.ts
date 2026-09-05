@@ -127,25 +127,31 @@ export async function PATCH(request:Request){
 
     const comm=notificationMeta(status,application.application_kind);
     const memberMessage=customMessage||defaultMessage(status,project.title,reviewerNotes,application.application_kind);
-    await notifyUser(db,{
-      userId:application.user_id,
-      email:await memberEmail(db,application.user_id),
-      projectId:application.project_id,
-      applicationId:id,
-      type:comm.type,
-      title:comm.title,
-      body:memberMessage,
-      actionUrl:'/member/applications',
-      subject:`${comm.subject}: ${project.title}`,
-      templateKey:comm.type,
-      payload:{project_title:project.title,review_status:status}
-    });
+    let communicationRecorded=true;
+    try{
+      await notifyUser(db,{
+        userId:application.user_id,
+        email:await memberEmail(db,application.user_id),
+        projectId:application.project_id,
+        applicationId:id,
+        type:comm.type,
+        title:comm.title,
+        body:memberMessage,
+        actionUrl:'/member/applications',
+        subject:`${comm.subject}: ${project.title}`,
+        templateKey:comm.type,
+        payload:{project_title:project.title,review_status:status}
+      });
+    }catch(error){
+      communicationRecorded=false;
+      console.error('project review communication error',error);
+    }
 
     return NextResponse.json({
       ok:true,
       application:updated,
       selection:{status,creates_membership:false,requires_member_acceptance:status==='offered'},
-      communication:{body:memberMessage}
+      communication:{body:memberMessage,recorded:communicationRecorded}
     });
   }catch(error){
     console.error('project request review error',error);

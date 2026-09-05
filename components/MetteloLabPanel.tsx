@@ -72,7 +72,7 @@ function RosterMember({member,currentUserId,canManageSubmissionPermissions,compl
  return <article className={styles.teamMember} data-current-user={isCurrent?'true':undefined}>
   {member.avatar_url?<span className={`${styles.personAvatar} ${styles.personAvatarPhoto}`} style={{backgroundImage:`url(${member.avatar_url})`}} aria-label={`${member.name} profile photo`}/>:<span className={styles.personAvatar} aria-hidden="true">{initials(member.name)}</span>}
   <div className={styles.memberContent}>
-   <div className={styles.memberHeading}><div><strong>{member.name}</strong>{isCurrent&&<span className={styles.youLabel}>You</span>}</div><span className={styles.rolePill}>{roleLabel(member.role)}</span></div>
+   <div className={styles.memberHeading}><div><strong>{member.name}</strong>{member.username&&<small>@{member.username}</small>}{isCurrent&&<span className={styles.youLabel}>You</span>}</div><span className={styles.rolePill}>{roleLabel(member.role)}</span></div>
    {member.headline&&<p className={styles.memberHeadline}>{member.headline}</p>}
    <div className={styles.memberMeta}><span>Status · {humanise(member.status)}</span>{member.can_submit_final_proof&&<span>Can submit final Proof</span>}</div>
    {canManageSubmissionPermissions&&!isCurrent&&<a className={styles.permissionLink} href={completionHref}>Manage submission permissions →</a>}

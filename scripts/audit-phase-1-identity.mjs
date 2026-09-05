@@ -19,6 +19,19 @@ const onboardingPreview=read('app/dev/phase-1-onboarding/page.tsx');
 const browserGate=read('tests/phase1-browser.spec.ts');
 const workflow=read('.github/workflows/ci.yml');
 const phase0=read('scripts/audit-phase-0-communications.mjs');
+const identityMigration=read('supabase/migrations/20260905090000_project_experience_phase_1_member_identity.sql');
+const identityApi=read('app/api/member-identity/route.ts');
+const identityRules=read('lib/member-identity.ts');
+const identityClaim=read('components/MemberIdentityClaimForm.tsx');
+const identityPage=read('app/member/identity/page.tsx');
+const profilePage=read('app/member/profile/page.tsx');
+const adminAccessApi=read('app/api/admin/access/route.ts');
+const adminIdentity=read('components/AdminMemberIdentityLookup.tsx');
+const teamOverview=read('lib/project-team-overview.ts');
+const teamRoster=read('components/ProjectTeamRoster.tsx');
+const lab=read('components/MetteloLabPanel.tsx');
+const messagePanel=read('components/ProjectMessagePanel.tsx');
+const adminSecurityTest=read('tests/admin-access-capabilities.spec.ts');
 
 const checks=[
  ['signup redirects to check-email',signin.includes('/auth/check-email?email=')],
@@ -72,7 +85,26 @@ const checks=[
  ['responsive gate covers required widths',forWidths(responsiveGate,[320,390,430,768,1024,1280,1440,1920])&&responsiveGate.includes("label:'Phone landscape'")],
  ['real-browser responsive gate exists separately from CI',Boolean(browserGate)&&browserGate.includes('width:320')&&browserGate.includes('width:1920')&&browserGate.includes('200 percent zoom')],
  ['GitHub CI preserves deterministic release-train checks and full main release validation',workflow.includes('npm run audit:phase1')&&workflow.includes('npm run audit:mettelo-lab')&&workflow.includes('npm run build')&&workflow.includes('Blocking public browser regression suite')&&workflow.includes('npm run test:regression')&&workflow.includes('release-train-pr-fast')&&workflow.includes('target_branch')&&workflow.includes('release/*')&&workflow.includes('requires_staging=true')&&workflow.includes('classification=runtime-or-backend-impact')&&workflow.includes('needs: [scope, verify, staging-e2e]')],
- ['Phase 0 audit still exists',Boolean(phase0)]
+ ['Phase 0 audit still exists',Boolean(phase0)],
+ ['auth UUID remains the profile primary identity',identityMigration.includes('alter table public.profiles')&&!identityMigration.includes('drop column id')&&!identityMigration.includes('alter column id')],
+ ['immutable generated Member ID exists',identityMigration.includes('assign_member_id')&&identityMigration.includes("'MTL-'")&&identityMigration.includes('member_id is immutable')],
+ ['username is case-insensitively unique',identityMigration.includes('profiles_username_ci_unique')&&identityMigration.includes('lower(username)')],
+ ['username database format is normalized ASCII safe',identityMigration.includes("username = lower(username)")&&identityMigration.includes("^[a-z][a-z0-9_]{2,29}$")],
+ ['reserved usernames are enforced in shared code and database',identityRules.includes('RESERVED_USERNAMES')&&identityMigration.includes('profiles_username_reserved')&&identityMigration.includes("'admin'")&&identityMigration.includes("'mettelo'")],
+ ['identity owner cannot bypass canonical claim fields',identityMigration.includes('protect_member_identity_fields')&&identityMigration.includes("app.member_identity_claim")&&identityMigration.includes('before insert or update')],
+ ['username claim is authenticated row locked and race safe',identityMigration.includes('auth.uid() is null')&&identityMigration.includes('for update')&&identityMigration.includes('unique_violation')&&identityMigration.includes("'UNAVAILABLE'")],
+ ['username claim has rapid retry protection',identityMigration.includes("interval '2 seconds'")&&identityMigration.includes("'RATE_LIMITED'")],
+ ['email signup collects and persists username without replacing Supabase Auth',signin.includes('name="username"')&&signin.includes('validateUsername')&&signin.includes('full_name:fullName,username:usernameResult.username')&&signin.includes('supabase.auth.signUp')],
+ ['OAuth signup requires username before onboarding',socialComplete.includes('name="username"')&&socialComplete.includes("fetch('/api/member-identity'")&&socialComplete.includes('validateUsername')],
+ ['legacy users have a non-blocking claim route',Boolean(identityPage)&&Boolean(identityClaim)&&identityApi.includes('ensureIdentityProfile')&&identityApi.includes("from('profiles').insert")],
+ ['identity API is authenticated and uses canonical RPC',identityApi.includes('Authentication required.')&&identityApi.includes("rpc('claim_member_username'")],
+ ['claim form has accessible working error and success states',identityClaim.includes("'success'")&&identityClaim.includes('aria-busy')&&identityClaim.includes('aria-live="polite"')&&identityClaim.includes('Check your connection and try again.')],
+ ['member profile displays handle and Member ID',profilePage.includes('@${profile.username}')&&profilePage.includes('Member ID')&&profilePage.includes('profile.member_id')],
+ ['Admin can resolve username and Member ID inside existing access boundary',adminAccessApi.includes('username')&&adminAccessApi.includes('member_id')&&adminAccessApi.includes("replace(/^@/,'')")&&adminIdentity.includes('Member identity')&&adminIdentity.includes('@username')],
+ ['authorised team overview carries username without exposing Member ID',teamOverview.includes('username:string|null')&&teamOverview.includes('full_name,username,headline,avatar_url')&&!teamOverview.includes('member_id')],
+ ['Lab, team roster and Chat consume username identity without a second member directory',teamRoster.includes('@{member.username}')&&lab.includes('@{member.username}')&&messagePanel.includes('/api/project-team-overview?')&&messagePanel.includes('mentionToken(member)')&&messagePanel.includes('@${member.username}')],
+ ['public username availability enumeration endpoint was not introduced',!fs.existsSync('app/api/member-identity/availability/route.ts')&&!fs.existsSync('app/api/username-availability/route.ts')],
+ ['identity security behaviour is covered by authenticated Supabase E2E',adminSecurityTest.includes("claim_member_username")&&adminSecurityTest.includes('PHASE1_MEMBER')&&adminSecurityTest.includes("member_id:'MTL-999999'")&&adminSecurityTest.includes("getByLabel('Member identity')")]
 ];
 
 function forWidths(source,widths){return widths.every(width=>source.includes(`width:${width}`));}

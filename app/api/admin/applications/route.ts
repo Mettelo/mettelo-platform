@@ -23,7 +23,7 @@ async function adminDb(){
   if(user.app_metadata?.role!=='admin')return{error:NextResponse.json({error:'Admin access required.'},{status:403})};
   const db=serviceDb();
   if(!db)return{error:NextResponse.json({error:'Admin data service is not configured.'},{status:503})};
-  return{db,user};
+  return{auth,db,user};
 }
 
 async function memberEmail(db:NonNullable<ReturnType<typeof serviceDb>>,userId:string){
@@ -51,7 +51,7 @@ export async function PATCH(request:Request){
   try{
     const connection=await adminDb();
     if('error' in connection)return connection.error;
-    const {db,user}=connection;
+    const {auth,db,user}=connection;
     const body=await request.json();
     const id=String(body.id||'');
     const status=String(body.status||'');
@@ -89,10 +89,7 @@ export async function PATCH(request:Request){
       reviewer_notes:reviewerNotes||null,
       updated_at:now
     };
-    if(status==='offered'){
-      patch.decision_at=now;
-      patch.decision_reason=reviewerNotes||null;
-    }else if(status==='declined'){
+    if(status==='offered'||status==='declined'){
       patch.decision_at=now;
       patch.decision_reason=reviewerNotes||null;
     }else{
@@ -100,7 +97,10 @@ export async function PATCH(request:Request){
       patch.decision_reason=null;
     }
 
-    const {data:updated,error:updateError}=await db
+    // Mutate through the authenticated Admin client. The canonical database trigger
+    // records the status transition in project_application_events atomically and can
+    // therefore capture the real Admin actor via auth.uid().
+    const {data:updated,error:updateError}=await auth
       .from('project_applications')
       .update(patch)
       .eq('id',id)
@@ -110,26 +110,20 @@ export async function PATCH(request:Request){
     if(updateError)throw updateError;
     if(!updated)return NextResponse.json({error:'This project request changed while you were reviewing it. Refresh before trying again.'},{status:409});
 
-    const eventInsert=await db.from('project_application_events').insert({
-      application_id:id,
-      from_status:application.status,
-      to_status:status,
-      actor_user_id:user.id,
-      created_at:now
-    });
-    if(eventInsert.error)throw eventInsert.error;
-
+    // project_application_events is the canonical state-transition audit. This broader
+    // activity entry supports project operations/analytics and must never make a valid
+    // audited review transition appear to have failed.
     const activityInsert=await db.from('project_activity_log').insert({
       project_id:application.project_id,
       project_run_id:application.project_run_id||null,
       event_type:status==='offered'?'project_place_offered':`application_${status}`,
-      actor_type:'admin',
+      actor_type:'user',
       actor_user_id:user.id,
       from_status:application.status,
       to_status:status,
-      metadata:{application_id:id,application_kind:application.application_kind,reviewer_notes:reviewerNotes||null}
+      metadata:{application_id:id,application_kind:application.application_kind,reviewer_notes:reviewerNotes||null,actor_role:'admin'}
     });
-    if(activityInsert.error)throw activityInsert.error;
+    if(activityInsert.error)console.error('project review activity log error',activityInsert.error);
 
     const comm=notificationMeta(status,application.application_kind);
     const memberMessage=customMessage||defaultMessage(status,project.title,reviewerNotes,application.application_kind);

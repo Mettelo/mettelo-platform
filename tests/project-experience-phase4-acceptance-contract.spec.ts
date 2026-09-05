@@ -28,7 +28,7 @@ test.describe('Project Experience Phase 4 acceptance boundaries',()=>{
 
   test('public detail exposes canonical decision context without claiming automatic Proof',()=>{
     const body=read('components/project-experience/ProjectPublicDetailBodyV3.tsx');
-    for(const marker of ['Supporting objectives','Key questions','In scope','Out of scope','Public resources and source provenance','Project deliverables','Success standards','Timeline & Proof potential','Potential evidence from this project','How you can contribute','Basic eligibility'])expect(body).toContain(marker);
+    for(const marker of ['Supporting objectives','Key questions','In scope','Out of scope','Public resources and source provenance','Project deliverables','Success standards','Timeline &amp; Proof potential','Potential evidence from this project','How you can contribute','Basic eligibility'])expect(body).toContain(marker);
     expect(body).toContain('completing a project does not automatically create verified Mettelo Proof');
     expect(body).toContain('<strong>Source/provider:</strong>');
     expect(body).not.toContain('In partnership with');

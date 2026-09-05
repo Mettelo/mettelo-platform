@@ -41,9 +41,9 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 | 21 | Return to exact project | PARTIAL | Safe internal `next` + `#member-decision-title` focus target implemented; browser proof pending. |
 | 22 | Failed profile save retains intent | BLOCKED | Existing profile form behavior must be evidenced in browser failure journey. |
 | 23 | Existing interest state | PASS | Any active exact-user/exact-project request produces Interest submitted / tracker state. |
-| 24 | Duplicate interest prevented | PARTIAL | UI replacement + API idempotent active-request check; rapid/race E2E pending. |
+| 24 | Duplicate interest prevented | PARTIAL | API idempotent active-request check plus PostgreSQL partial unique index protect concurrent role-neutral interest; current exact-head DB test pending. |
 | 25 | Interest tracker | PASS | Reuses `/member/applications`; no tracker_v2. |
-| 26 | Withdrawn/closed history | PASS | Declined/withdrawn records excluded from active-blocking query. |
+| 26 | Withdrawn/declined history | PASS | API active-request query and Phase 5 uniqueness index both exclude `declined`/`withdrawn`, so terminal history does not permanently block re-interest. |
 | 27 | Open project | PASS | Eligible open project exposes Submit Interest. |
 | 28 | Closed project | PASS | Closed state has explanation and no Submit Interest action. |
 | 29 | Full project | PARTIAL | Explicit `full` state from project-level capacity; full fixture E2E pending. |
@@ -56,7 +56,7 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 | 36 | Member uses Phase 3 data | PASS | Member model built from same canonical project/detail/planning sources. |
 | 37 | Member-specific data is additive | PASS | Qualification/team/request state layered onto canonical project content. |
 | 38 | Only authorised resources | PARTIAL | Detail loader exposes deny-by-default public/permitted/green metadata only; runtime security regression pending. |
-| 39 | Interest does not grant Lab | PARTIAL | No membership/Lab write in interest path; authorization regression pending. |
+| 39 | Interest does not grant Lab | PARTIAL | Interest API performs no membership write and persistence E2E now explicitly asserts zero `project_members` rows after successful interest; current exact-head execution pending. |
 | 40 | Member identity consistency | PARTIAL | `auth.user.id` is authoritative; username-change persistence regression pending. |
 | 41 | Profile data reused | PASS | Existing profile supplies readiness, availability and professional links; no project-page authority copy. |
 | 42 | Profile update affects readiness | PARTIAL | Server re-read on return implemented; exact browser recalculation pending. |
@@ -65,10 +65,10 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 | 45 | Correct Phase 6 interest flow | PASS | Submit Interest → canonical `/apply` route, no role parameter. |
 | 46 | No early application record | PASS | Member page/route do not insert; write occurs only at Phase 6 submit. |
 | 47 | Eligibility reads Supabase state | PASS | Profile/preferences/project/request/membership/run/capacity read from persisted state. |
-| 48 | Existing interest query | PARTIAL | Exact user/project and lifecycle filtering implemented; cross-user/duplicate runtime pending. |
+| 48 | Existing interest query | PARTIAL | Exact user/project and lifecycle filtering implemented; cross-user/duplicate runtime included and current exact-head result pending. |
 | 49 | Project capacity query | PARTIAL | Confirmed + waiting/reserved current run/project state counted; runtime scenarios pending. |
-| 50 | RLS protects state | PARTIAL | Versioned owner policies + isolated cross-user test added; exact-head Supabase run pending. |
-| 51 | No hosted-only DB dependency | PARTIAL | No new schema required; clean migration runtime pending. |
+| 50 | RLS protects state | PARTIAL | Hosted `project_applications` owner/admin policies verified; isolated cross-user profile/preference/request tests included; current exact-head run pending. |
+| 51 | No hosted-only DB dependency | PARTIAL | Required uniqueness change is repository-versioned; production was reviewed read-only and no hosted DDL was changed. Strengthened clean migration runtime pending at current exact head. |
 | 52 | One qualification contract | PASS | `resolveMemberProjectQualification()` returns state/reason/eligible and state resolver delegates to it. |
 | 53 | Safe identifiers | PASS | Member ID is derived from authenticated session; project is canonical route/body ID and validated server-side. |
 | 54 | Known product states structured | PASS | Structured reasons include ELIGIBLE, PROFILE_INCOMPLETE, INTEREST_EXISTS, PROJECT_CLOSED, CAPACITY_FULL, ALREADY_PARTICIPATING, DEADLINE_PASSED, CAPACITY_UNKNOWN. |
@@ -78,7 +78,7 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 | 58 | CTA state designed | PASS | Eligible, incomplete, existing, closed, full, accepted/active states have distinct content/actions. |
 | 59 | Contribution areas informational | PASS | No selection control; informational copy and cards only. |
 | 60 | Profile completion interaction | BLOCKED | Existing form provides validation/state; full keyboard/error/return runtime journey still required. |
-| 61 | Rapid CTA clicks safe | PARTIAL | Phase 5 navigation creates no record; API duplicate guard exists; rapid-submit E2E pending. |
+| 61 | Rapid CTA clicks safe | PARTIAL | Navigation creates no record; API idempotency plus PostgreSQL active-interest uniqueness protect double-submit; current exact-head runtime pending. |
 | 62 | Stale state handled | PARTIAL | Phase 6 route/API re-read latest state; closed/full race E2E pending. |
 | 63 | 320px member project | BLOCKED | Authenticated suite includes 320px, exact-head execution pending. |
 | 64 | Mobile CTA | BLOCKED | Sticky Submit Interest implementation exists; browser overlap/touch-target evidence pending. |
@@ -89,8 +89,8 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 | 69 | Status not colour-only | PASS | All states have explicit text labels/copy. |
 | 70 | Focus after return | PARTIAL | Safe return hash + focusable qualification heading implemented; browser proof pending. |
 | 71 | Cannot spoof eligibility | PARTIAL | Route/API revalidation implemented; malicious direct-route/POST matrix pending. |
-| 72 | Cannot view another application | PARTIAL | RLS owner-or-admin policy and cross-user profile preference test exist; application IDOR runtime pending. |
-| 73 | Cannot gain team access | PARTIAL | Public-safe projection and no membership write; explicit applicant→Lab/private-resource runtime pending. |
+| 72 | Cannot view another application | PARTIAL | Hosted owner/admin RLS verified and isolated Member A→Member B request read/update IDOR test included; current exact-head run pending. |
+| 73 | Cannot gain team access | PARTIAL | Public-safe projection, no membership write, and zero-membership-after-interest persistence assertion included; explicit applicant→Lab/private-resource runtime still pending. |
 | 74 | Member view measured | NOT APPLICABLE | No repository analytics convention/framework was found to reuse. Phase 5 does not invent a new analytics stack. |
 | 75 | No sensitive eligibility analytics | PASS | Phase 5 adds no analytics payload or private profile/application content logging. |
 | 76 | Phase 1 regression | BLOCKED | Auth/identity exact-head suites pending. |
@@ -108,9 +108,9 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 | 3 | Incomplete profile → save → exact project → recalculated | Covered in browser suite/source; **PENDING CI** |
 | 4 | Profile save failure retains values/intent | **PENDING additional runtime evidence** |
 | 5 | Existing active interest → Interest submitted + tracker | State/domain coverage; **PENDING browser runtime** |
-| 6 | Rapid double click | API idempotency exists; **PENDING runtime** |
+| 6 | Rapid double click | API idempotency + DB active-interest uniqueness included; DB test also proves declined history can reapply; **PENDING current exact-head runtime** |
 | 7 | Project closed | API/state regression present; **PENDING CI** |
-| 8 | Deadline passed | Structured qualification test; **PENDING runtime/API E2E** |
+| 8 | Deadline passed | Structured qualification test uses deadline-governed partner project while Open Projects retain continuous-intake semantics; **PENDING current exact-head runtime** |
 | 9 | Project full | State/helper covered; **PENDING browser/API fixture** |
 | 10 | Active + late joining permitted | Canonical lifecycle retained; **PENDING runtime** |
 | 11 | Active + late joining closed | Canonical lifecycle retained; **PENDING runtime** |
@@ -124,17 +124,17 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 | 19 | Public → signin → same member project | Covered; **PENDING CI** |
 | 20 | Public → signup→username→verification→onboarding→same project | Phase 4 auth chain exists; **PENDING full runtime** |
 | 21 | Malicious return URL rejected | `ProfileReturnAfterSave` rejects `//`, backslash and foreign origin; **PENDING browser security test** |
-| 22 | Member A cannot read Member B request | RLS architecture; **PENDING application IDOR runtime** |
+| 22 | Member A cannot read Member B request | Isolated request SELECT/UPDATE IDOR test included and hosted owner/admin policy verified; **PENDING current exact-head CI** |
 | 23 | Anonymous cannot access qualification | Server auth redirect; **PENDING runtime** |
-| 24 | Applicant cannot access team-only resources | Public-safe resource projection; **PENDING explicit runtime** |
+| 24 | Applicant cannot access team-only resources | Public-safe projection plus successful-interest zero-membership assertion included; explicit Lab/private-resource runtime **PENDING** |
 | 25 | Direct Phase 6 invalid eligibility blocked | Route/API revalidation; **PENDING CI** |
 | 26 | Change project state while page open | API latest-state read; **PENDING race E2E** |
 | 27 | Change capacity while page open | API latest-state team read; **PENDING race E2E** |
-| 28 | Phase 2 readiness update | Browser fixture; **PENDING CI** |
+| 28 | Phase 2 readiness update | Browser fixture + persistence fixture now seed canonical readiness; **PENDING CI** |
 | 29 | Username change preserves request | Auth ID architecture; **PENDING runtime** |
 | 30 | Project ID/slug preserved | Canonical route/model; **PENDING browser continuity** |
-| 31 | Repository-versioned schema | No new hosted schema; **PENDING clean migration run** |
-| 32 | RLS policies | Isolated RLS test included; **PENDING CI** |
+| 31 | Repository-versioned schema | Versioned migration replaces the legacy declined-blocking index. Prior 148-migration isolated stack was clean before the predicate replacement; **PENDING current exact-head clean migration run** |
+| 32 | RLS policies | Hosted policies verified + isolated RLS tests included; **PENDING current exact-head CI** |
 | 33 | 320px | Included; **PENDING CI** |
 | 34 | Tablet | Included; **PENDING CI** |
 | 35 | Desktop | Included; **PENDING CI** |
@@ -145,12 +145,12 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 | 40 | Loading states | Existing dynamic surfaces; **PENDING runtime review** |
 | 41 | Error states | Known states structured; infrastructure errors require runtime review |
 | 42 | Existing-interest tracker regression | Existing Applications reused; **PENDING CI** |
-| 43 | Public project regression | Phase 4 tests retained; **PENDING exact head** |
+| 43 | Public project regression | Phase 4 tests retained and stale public CTA assertion repaired; **PENDING exact head** |
 | 44 | Profile regression | Existing profile tests retained; **PENDING exact head** |
 | 45 | Auth regression | Existing auth tests retained; **PENDING exact head** |
 | 46 | Project regression | Existing project tests retained; **PENDING exact head** |
 | 47 | Lint | **PENDING exact-head CI** |
-| 48 | Typecheck | **PENDING exact-head CI** |
+| 48 | Typecheck | Missing dev onboarding `returnTo` integration regression fixed; **PENDING exact-head CI** |
 | 49 | Build | **PENDING exact-head CI** |
 | 50 | Relevant E2E/release gates | **PENDING exact-head CI** |
 
@@ -186,7 +186,7 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 28. Exact project return — **PARTIAL browser**
 29. Existing-interest state — **PASS source**
 30. Tracker — **PASS source**
-31. Duplicate-interest protection — **PARTIAL race**
+31. Duplicate-interest protection — **PASS source/DB contract; current exact-head runtime pending**
 32. Closed state — **PASS source**
 33. Full state — **PARTIAL runtime**
 34. Accepted state — **PASS source**
@@ -196,8 +196,8 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 38. Profile data reuse readiness — **PASS source**
 39. Phase 6 handoff — **PASS source**
 40. Supabase query integrity — **PARTIAL runtime**
-41. Database/migration compatibility — **BLOCKED CI**
-42. RLS — **BLOCKED CI**
+41. Database/migration compatibility — **PASS source + hosted read-only audit; current exact-head clean migration pending**
+42. RLS — **PASS hosted policy review; current exact-head isolated RLS pending**
 43. Member privacy — **PARTIAL runtime**
 44. Team-resource protection — **PARTIAL runtime**
 45. Backend/frontend state agreement — **PASS domain contract / runtime pending**
@@ -216,12 +216,12 @@ This ledger distinguishes source/architecture evidence from exact-head runtime e
 58. Phase 3 regression — **BLOCKED CI**
 59. Phase 4 regression — **BLOCKED CI**
 60. Existing application regression — **BLOCKED CI**
-61. Tests executed — **BLOCKED exact-head runtime**
-62. Documentation — **PASS, final runtime evidence update still required**
+61. Tests executed — **BLOCKED current exact-head runtime**
+62. Documentation — **PASS, final exact-head runtime evidence update still required**
 63. Remaining defects — **runtime evidence gaps remain; no Director approval yet**
 
 # FINAL DECISION
 
 **NOT APPROVED**
 
-The Phase 5 source architecture has been corrected to the binding Submit Interest / no-role-selection contract, but the mandatory exact-head runtime matrix has not yet completed. Approval requires final documentation-inclusive exact-head lint, typecheck, build, isolated Supabase/RLS, authenticated browser/responsive/accessibility, regression, Event Room and protected Release Gate evidence.
+The Phase 5 source architecture is aligned to the binding Submit Interest / no-role-selection contract. PostgreSQL now protects concurrent active role-neutral interest while allowing re-interest after declined/withdrawn terminal history, and hosted schema/RLS compatibility has been reviewed read-only with no production DDL change. Approval still requires the final documentation-inclusive exact head to pass lint, typecheck, build, isolated Supabase/migrations/RLS, authenticated browser/responsive/accessibility, persistence/regression, Event Room and protected Release Gate evidence.

@@ -5,9 +5,12 @@ import OnboardingFlow from '@/components/OnboardingFlow';
 export const dynamic='force-dynamic';
 type TaxonomyItem={slug:string;name:string};
 type PrefRow<T>={domains?:T|null;tools?:T|null};
+function safeNext(value:string|string[]|undefined){const item=Array.isArray(value)?value[0]:value;return item&&item.startsWith('/')&&!item.startsWith('//')&&item!=='/onboarding'?item:'/member'}
 
-export default async function OnboardingPage(){
-  const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/signin?next=%2Fonboarding');
+export default async function OnboardingPage({searchParams}:{searchParams?:Promise<{next?:string|string[]}>}){
+  const next=safeNext((await searchParams||{}).next);
+  const onboardingPath=next==='/member'?'/onboarding':`/onboarding?next=${encodeURIComponent(next)}`;
+  const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect(`/signin?next=${encodeURIComponent(onboardingPath)}`);
   const [profileResult,domainsResult,toolsResult,domainPrefsResult,toolPrefsResult]=await Promise.all([
     supabase.from('profiles').select('*').eq('id',user.id).single(),
     supabase.from('domains').select('slug,name').eq('is_active',true).order('sort_order'),
@@ -16,9 +19,9 @@ export default async function OnboardingPage(){
     supabase.from('profile_tool_preferences').select('tools(slug,name)').eq('user_id',user.id)
   ]);
   const profile=profileResult.data||{full_name:user.user_metadata?.full_name||'',headline:'',bio:'',location:'',professional_area:'',primary_goal:'',linkedin_url:'',github_url:'',portfolio_url:'',avatar_url:null,skills:[],preferred_roles:[],languages:[],is_public:false,current_job_title:'',organisation:'',experience_level:'',employment_status:'',project_availability:'',weekly_capacity:'',onboarding_step:0,onboarding_completed_at:null};
-  if(profile.onboarding_completed_at)redirect('/member');
+  if(profile.onboarding_completed_at)redirect(next);
   const domains=(domainsResult.data||[]) as TaxonomyItem[];const tools=(toolsResult.data||[]) as TaxonomyItem[];
   const domainPreferences=((domainPrefsResult.data||[]) as unknown as PrefRow<TaxonomyItem>[]).map(row=>row.domains?.slug).filter((v):v is string=>Boolean(v));
   const toolPreferences=((toolPrefsResult.data||[]) as unknown as PrefRow<TaxonomyItem>[]).map(row=>row.tools?.slug).filter((v):v is string=>Boolean(v));
-  return <OnboardingFlow initialProfile={profile} initialStep={Math.max(0,Math.min(4,Number(profile.onboarding_step||0)))} domains={domains} tools={tools} domainPreferences={domainPreferences} toolPreferences={toolPreferences}/>;
+  return <OnboardingFlow initialProfile={profile} initialStep={Math.max(0,Math.min(4,Number(profile.onboarding_step||0)))} domains={domains} tools={tools} domainPreferences={domainPreferences} toolPreferences={toolPreferences} returnTo={next}/>;
 }

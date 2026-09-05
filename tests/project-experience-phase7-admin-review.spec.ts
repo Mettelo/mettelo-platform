@@ -18,6 +18,18 @@ test.describe('Project Experience Phase 7 contract',()=>{
   expect(adminPolicy).toContain('item.auto_start_delay_minutes??360');
  });
 
+ test('Admin can start a ready AUTO run early while six-hour fallback remains automatic',()=>{
+  const route=read('app/api/admin/project-admission/route.ts');
+  const adminPolicy=read('components/AdminProjectAdmissionPolicy.tsx');
+  const startService=read('lib/project-start-service.ts');
+  expect(route).toContain("['pause_run','resume_run','retry_run','start_run']");
+  expect(route).toContain("source:action==='start_run'?'manual':'admin_retry'");
+  expect(adminPolicy).toContain("runAction(run,'start_run')");
+  expect(adminPolicy).toContain('>Start now</button>');
+  expect(adminPolicy).toContain('let the scheduler start it automatically');
+  expect(startService).toContain("type StartSource='auto_scheduler'|'manual'|'admin_retry'");
+ });
+
  test('REVIEW_REQUIRED selection cannot auto-enrol or start a run',()=>{
   const route=read('app/api/admin/applications/route.ts');
   expect(route).toContain("submitted:new Set(['in_review','declined'])");
@@ -34,12 +46,15 @@ test.describe('Project Experience Phase 7 contract',()=>{
  test('review transitions use the authenticated Admin client so canonical audit captures actor',()=>{
   const route=read('app/api/admin/applications/route.ts');
   const audit=read('supabase/migrations/20260816001500_phase2_project_application_events.sql');
+  const phase7=read('supabase/migrations/20260905178000_project_experience_phase_7_review_offer_boundary.sql');
   expect(route).toContain("const {auth,db,user}=connection");
   expect(route).toContain("await auth\n      .from('project_applications')");
   expect(route).not.toContain(".from('project_application_events').insert");
   expect(route).toContain("actor_type:'user'");
   expect(audit).toContain('after insert or update of status on public.project_applications');
   expect(audit).toContain('auth.uid()');
+  expect(phase7).toContain('add column if not exists reviewer_notes text');
+  expect(phase7).toContain('new.reviewer_notes');
  });
 
  test('Admin review UI uses offer language and complete review context',()=>{

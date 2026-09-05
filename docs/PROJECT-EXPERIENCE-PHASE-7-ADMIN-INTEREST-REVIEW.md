@@ -16,7 +16,7 @@ AUTO remains server-authoritative:
 
 `SUBMIT INTEREST → SERVER QUALIFICATION → AUTO QUALIFIED → CANONICAL RUN/MEMBERSHIP → READY → SCHEDULED START → AUTO START`
 
-The programme default start delay is now **360 minutes (6 hours)**. The six-hour period is an Admin oversight window, not a required approval gate. Admin may pause or otherwise block a run through the existing scheduled-start controls. If the run remains ready and is not paused/blocked, the existing scheduler may start it automatically at the durable `scheduled_start_at` time.
+The programme default start delay is now **360 minutes (6 hours)**. The six-hour period is an Admin oversight window, not a required approval gate. Once a run is scheduled and still passes canonical readiness, Admin may explicitly **Start now** during the window. Admin may also pause/block the run. If Admin takes no start or blocking action and the run remains ready, the existing scheduler starts it automatically at the durable `scheduled_start_at` time.
 
 Per-project delay configuration remains supported and explicit project overrides remain authoritative.
 
@@ -94,7 +94,7 @@ No second review datastore is introduced.
 
 ## Admin actions
 
-Available actions depend on current state:
+For REVIEW_REQUIRED requests, available actions depend on current state:
 
 - Submitted: **Start review**, **Decline**
 - In review: **Shortlist**, **Decline**
@@ -105,6 +105,15 @@ Available actions depend on current state:
 Bulk actions are only offered when every selected request can legally make the same transition.
 
 The retired `Approve → team` action must not exist for REVIEW_REQUIRED requests.
+
+For AUTO scheduled-start oversight, Admin may:
+
+- **Start now** — explicitly start a ready scheduled run before the six-hour fallback time;
+- **Pause** — block the scheduled automatic start;
+- **Resume** — restore the schedule after a run-level pause;
+- **Retry start** — re-run canonical readiness/start processing after an automation failure.
+
+Every start path reuses `startProjectRun()` and revalidates readiness; Phase 7 does not create a second start engine.
 
 ## Member communication
 
@@ -122,12 +131,13 @@ The Phase 8 offer lifecycle owns explicit acceptance/decline, expiry, reserved c
 ## Security and RLS
 
 - Authentication is required.
-- `app_metadata.role='admin'` is required before any review operation.
-- The authenticated Admin client performs the status mutation, preserving canonical RLS and audit actor identity.
-- Service-role access remains limited to privileged server-side supporting operations such as private email lookup and operational logging after Admin authentication.
+- `app_metadata.role='admin'` is required before any review or explicit early-start operation.
+- The authenticated Admin client performs the REVIEW_REQUIRED status mutation, preserving canonical RLS and audit actor identity.
+- Service-role access remains limited to privileged server-side supporting operations after Admin authentication.
 - AUTO requests cannot be forced through the human review endpoint.
 - Server-side transition validation prevents forged lifecycle jumps.
 - Compare-and-set status mutation protects against stale concurrent review decisions.
+- `Start now` calls the same server-authoritative readiness/start service as existing manual/Admin start processing.
 - No REVIEW_REQUIRED offer action inserts project membership.
 
 ## Responsive and accessibility contract
@@ -155,9 +165,11 @@ Phase 7 intentionally does not introduce a temporary offer table. Phase 8 owns t
 Phase 7 must prove:
 
 - AUTO admission still qualifies without human review;
-- ready AUTO runs retain durable scheduled start and Admin pause/resume/retry;
+- ready AUTO runs retain durable scheduled start and Admin Start now/pause/resume/retry controls;
+- Admin may start a ready AUTO run before the six-hour fallback time through the canonical start service;
 - default AUTO start delay is six hours;
-- AUTO requests are excluded from review actions;
+- if Admin does not start/pause/block a ready run, the durable scheduler remains the fallback automatic start path;
+- AUTO requests are excluded from human review actions;
 - valid REVIEW_REQUIRED transitions succeed;
 - invalid transitions fail server-side;
 - audit records capture the Admin actor, state change and review note;

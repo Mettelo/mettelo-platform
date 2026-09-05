@@ -29,7 +29,7 @@ export async function PATCH(request:Request,{params}:Context){
   try{
     const {id}=await params;const projectId=uuid(id);if(!projectId)return NextResponse.json({error:'Valid project ID required.'},{status:400});
     const ctx=await architectContext();if('error'in ctx)return ctx.error;const {db,user,isAdmin}=ctx;
-    const {data:project,error:projectReadError}=await db.from('projects').select('id,governance_status').eq('id',projectId).maybeSingle();if(projectReadError)throw projectReadError;if(!project)return NextResponse.json({error:'Project proposal not found.'},{status:404});
+    const {data:project,error:projectReadError}=await db.from('projects').select('id,governance_status,participation_mode,min_team_size,target_team_size,max_team_size,team_size_threshold').eq('id',projectId).maybeSingle();if(projectReadError)throw projectReadError;if(!project)return NextResponse.json({error:'Project proposal not found.'},{status:404});
     const assignmentRoles=await assignedRole(db,projectId,user.id);if(!isAdmin&&!assignmentRoles.includes('creating_architect'))return NextResponse.json({error:'Creating Project Architect access is required.'},{status:403});
     if(!['draft','changes_requested'].includes(project.governance_status))return NextResponse.json({error:'Only draft or changes-requested proposals can be edited.'},{status:409});
 
@@ -40,7 +40,8 @@ export async function PATCH(request:Request,{params}:Context){
     if(!context||!stakeholder||!primaryQuestion||!expectedOutcome||!successMetrics)return NextResponse.json({error:'Complete the problem context, stakeholder, primary question, expected outcome and success measures.'},{status:400});
     if(!clean(body.problem_primary_use_case,2400)||!clean(body.problem_primary_objective,2400))return NextResponse.json({error:'Add the primary use case and primary objective.'},{status:400});
 
-    const participation=parseProjectParticipation(body as Record<string,unknown>);
+    const participationSource=body.participation_mode?body:{...body,participation_mode:project.participation_mode,min_team_size:project.min_team_size,target_team_size:project.target_team_size,max_team_size:project.max_team_size,team_size_threshold:project.team_size_threshold};
+    const participation=parseProjectParticipation(participationSource as Record<string,unknown>);
     const participationError=validateProjectParticipation(participation);
     if(participationError)return NextResponse.json({error:participationError},{status:400});
 

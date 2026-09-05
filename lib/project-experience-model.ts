@@ -64,6 +64,10 @@ export type ProjectExperienceProject={
   durationWeeks:number|null;
   weeklyCommitment:string|null;
   applicationDeadline:string|null;
+  participationMode?:'solo'|'team'|'flexible'|null;
+  minTeamSize?:number|null;
+  targetTeamSize?:number|null;
+  maxTeamSize?:number|null;
   teamSizeThreshold?:number|null;
   startsAt?:string|null;
   endsAt?:string|null;

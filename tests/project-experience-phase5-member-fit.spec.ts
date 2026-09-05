@@ -31,6 +31,7 @@ test.describe('Project Experience Phase 5 member fit and readiness',()=>{
   const page=read('app/member/discover/[id]/page.tsx');
   const hero=read('components/project-experience/MemberProjectDetailV2.tsx');
   const body=read('components/project-experience/MemberProjectDetailBodyV3.tsx');
+  const apply=read('app/member/discover/[id]/apply/page.tsx');
   expect(page).toContain('evaluateMemberProjectFit');
   expect(page).toContain("profile_domain_preferences').select('domains(slug,name)'");
   expect(page).toContain("profile_tool_preferences').select('tools(slug,name)'");
@@ -41,6 +42,8 @@ test.describe('Project Experience Phase 5 member fit and readiness',()=>{
   expect(body).toContain('Continue to submit interest');
   expect(body).toContain('/apply?role=${encodeURIComponent(selectedRole.id)}');
   expect(body).not.toContain('MemberProjectApplicationFlow');
+  expect(apply).toContain("if(!requestedRole||!availableRoles.some(role=>role.id===requestedRole))redirect(`/member/discover/${id}#roles`)");
+  expect(apply).toContain('const initialRoleId=requestedRole');
  });
 
  test('Phase 5 keeps profile completion and role capacity as separate readiness gates',()=>{
@@ -51,5 +54,6 @@ test.describe('Project Experience Phase 5 member fit and readiness',()=>{
   expect(page).toContain('roleAvailabilityKnown:availabilityKnown');
   expect(journey).toContain("if(!input.applicationReady)return 'ineligible'");
   expect(journey).toContain("if(input.roleAvailabilityKnown===false||!input.hasAvailableRole)return 'ineligible'");
+  expect(journey).toContain("label:'Review fit',href:`/member/discover/${projectId}#fit`");
  });
 });

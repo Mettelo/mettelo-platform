@@ -127,14 +127,16 @@ Notification/outbox failure after an already-audited decision does not make the 
 - clarification response is owner-scoped to `auth.uid()`;
 - service-role AUTO admission remains server-only;
 - no partner-review privileges are fabricated in Phase 7; until a scoped partner-review authorization model exists, Mettelo Admin is the reviewer;
-- review notes/decision reasoning are not exposed as ordinary public/member data beyond the explicit clarification request intended for the owning member.
+- review notes/decision reasoning are not exposed as ordinary public/member data beyond the explicit clarification request intended for the owning member;
+- `project_runs` remains row-governed by RLS, and browser roles receive SELECT only on the safe run-status columns;
+- `auto_start_failure`, pause/block reasons and pause/block actor user IDs are explicitly withheld from `anon` and ordinary `authenticated` direct reads; server-side `service_role` retains the full operational record.
 
 ## Migrations
 
 - `20260905177500_project_application_decision_baseline.sql`
-  - reconciles the existing hosted `project_applications.decision_at` and `decision_reason` columns into repository migration history;
+  - reconciles the existing hosted `project_applications.decision_at`, `decision_reason` and `approved_at` columns into repository migration history;
   - preserves existing hosted values and makes clean reconstruction match Production;
-  - removes the hosted-only schema drift exposed by Phase 7 migration validation.
+  - removes hosted-only schema drift exposed by Phase 7 migration validation.
 - `20260905178000_project_experience_phase_7_review_offer_boundary.sql`
   - Partner hard-lock;
   - effective admission SQL policy;
@@ -146,8 +148,13 @@ Notification/outbox failure after an already-audited decision does not make the 
   - safe Open AUTO → REVIEW_REQUIRED conversion RPC.
 - `20260905178100_project_experience_phase_7_default_window_normalization.sql`
   - converts the unreleased Phase 6 120-minute programme default to 360.
+- `20260905178200_project_run_operational_privacy.sql`
+  - removes broad browser SELECT on the full `project_runs` record;
+  - re-grants only safe status/scheduling/recruitment columns to `anon` and `authenticated`;
+  - keeps failure diagnostics, Admin reasons and Admin actor IDs server-only;
+  - preserves full `service_role` visibility for canonical server operations.
 
-No hosted-only DDL is permitted. Production remains pre-Phase6/7 for the new Phase 7 structures; the pre-existing decision metadata columns are now explicitly represented by the reconciliation migration above.
+No hosted-only DDL is permitted. Production remains pre-Phase6/7 for the new Phase 7 structures; the pre-existing application decision/approval metadata columns are now explicitly represented by the reconciliation migration above. No Phase 7 DDL was applied directly to Production during implementation or sign-off review.
 
 ## Executable evidence
 
@@ -155,6 +162,8 @@ Phase 7 test coverage includes:
 
 - `tests/project-experience-phase7-admin-review.spec.ts` — source/architecture contract;
 - `tests/project-experience-phase7-admin-review-e2e.spec.ts` — isolated Supabase Partner policy, review audit, clarification, no-membership Offer, invalid transition, AUTO-review rejection, concurrent Offer capacity, AUTO block/unblock and AUTO→REVIEW_REQUIRED conversion;
+- `tests/project-experience-phase7-partner-security.spec.ts` — ordinary/partner-side users cannot use Admin review authority;
+- `tests/project-experience-phase7-run-privacy.spec.ts` — anon/member safe run reads, private operational-column denial, and service-role operational visibility;
 - `tests/project-experience-phase7-admin-review-browser.spec.ts` — mobile/tablet/desktop/landscape/200%/keyboard/dialog acceptance;
 - Phase 6 AUTO security, journey, concurrency, withdrawal, recruitment and analytics suites remain mandatory regressions;
 - Event Room and protected Release Gate remain mandatory exact-head gates.

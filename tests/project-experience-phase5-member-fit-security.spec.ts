@@ -1,5 +1,6 @@
 import {createClient} from '@supabase/supabase-js';
 import {expect,test} from '@playwright/test';
+import fs from 'node:fs';
 
 function required(name:string){const value=process.env[name]?.trim();if(!value)throw new Error(`${name} is required`);return value}
 function localUrl(){const url=required('E2E_SUPABASE_URL');if(!['127.0.0.1','localhost'].includes(new URL(url).hostname))throw new Error('Phase 5 member-fit security test refuses non-local Supabase hosts.');return url}
@@ -21,6 +22,7 @@ test.describe('Project Experience Phase 5 member-fit RLS',()=>{
    admin.from('tools').select('id').eq('is_active',true).limit(1).single()
   ]);
   if(domainError)throw domainError;if(toolError)throw toolError;
+  if(!domain?.id||!tool?.id)throw new Error('Phase 5 RLS test requires at least one active domain and tool fixture.');
   for(const operation of [
    admin.from('profile_domain_preferences').upsert({user_id:memberId,domain_id:domain.id},{onConflict:'user_id,domain_id'}),
    admin.from('profile_domain_preferences').upsert({user_id:otherId,domain_id:domain.id},{onConflict:'user_id,domain_id'}),
@@ -41,7 +43,7 @@ test.describe('Project Experience Phase 5 member-fit RLS',()=>{
  });
 
  test('source contract keeps Phase 5 member reads authenticated and user-scoped',async()=>{
-  const fs=await import('node:fs');const page=fs.readFileSync('app/member/discover/[id]/page.tsx','utf8');
+  const page=fs.readFileSync('app/member/discover/[id]/page.tsx','utf8');
   expect(page).toContain('createServerSupabaseClient');expect(page).toContain("supabase.from('profiles')");expect(page).toContain(".eq('id',user.id)");expect(page).toContain("profile_domain_preferences').select('domains(slug,name)').eq('user_id',user.id)");expect(page).toContain("profile_tool_preferences').select('tools(slug,name)').eq('user_id',user.id)");
   expect(page).not.toContain("serviceDb().from('profiles')");expect(page).not.toContain("serviceDb().from('profile_domain_preferences')");expect(page).not.toContain("serviceDb().from('profile_tool_preferences')");
  });

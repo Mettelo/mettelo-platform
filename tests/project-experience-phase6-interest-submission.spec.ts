@@ -24,7 +24,7 @@ test.describe('Project Experience Phase 6 interest submission contract',()=>{
     expect(api).toContain("application_kind:isInterest?'interest':'application'");
     expect(api).toContain('project_role_id:role?.id||null');
     expect(api).toContain('Promise.allSettled');
-    expect(api).toContain('notification_warning');
+    expect(api).toContain("category:index===0?'member_notification':'admin_notification'");
   });
 
   test('database prevents duplicate active role-neutral interest and permits Phase 6 lifecycle states',()=>{

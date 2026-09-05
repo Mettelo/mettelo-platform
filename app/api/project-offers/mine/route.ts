@@ -8,7 +8,7 @@ export async function GET(){
 
   const {data,error}=await auth
     .from('project_offers')
-    .select('id,application_id,project_id,project_run_id,status,offered_at,expires_at,accepted_at,declined_at,expired_at,capacity_reserved_at,capacity_released_at,projects(title,weekly_commitment,participation_mode,expected_start,min_team_size,target_team_size,max_team_size)')
+    .select('id,application_id,project_id,project_run_id,status,offered_at,expires_at,accepted_at,declined_at,expired_at,capacity_reserved_at,capacity_released_at,projects(title,weekly_commitment,participation_mode,kickoff_at,min_team_size,target_team_size,max_team_size)')
     .eq('user_id',user.id)
     .order('offered_at',{ascending:false});
 

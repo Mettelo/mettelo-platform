@@ -85,8 +85,10 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
   if(!full)blockers.push('team_size');
   if(full&&!responsibilityCoverageReady)blockers.push('responsibility_coverage');
   if(!labReady)blockers.push(readinessError?'project_readiness_unavailable':'project_readiness');
-  if(requireLead&&leads.length===0)blockers.push('project_lead');
-  if(requireLead&&leads.length>1)blockers.push('multiple_project_leads');
+  if(requireLead){
+    if(leads.length===0)blockers.push('project_lead');
+    if(leads.length>1)blockers.push('multiple_project_leads');
+  }
   const leadUserId=leads.length===1?leads[0].user_id:null;
   return{filled,threshold,full,responsibilityCoverageReady,labReady,leadReady,leadUserId,leadAssignedNow,ready:blockers.length===0,blockers,recommendation};
 }

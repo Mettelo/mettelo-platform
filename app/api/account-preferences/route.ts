@@ -2,6 +2,11 @@ import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 
 function bool(value:unknown){return value===true;}
+function requiredCommunication(event:{event_key:string;product_area:string;urgency:string}){
+  const key=event.event_key.toLowerCase();
+  const area=event.product_area.toLowerCase();
+  return event.urgency==='critical'||area.includes('account')||area.includes('auth')||area.includes('security')||/(verification|password|security|account)/.test(key);
+}
 
 export async function GET(){
   try{
@@ -22,7 +27,8 @@ export async function GET(){
       const override=overrides.get(event.event_key);
       const defaultEmail=event.default_channel==='email_and_in_app';
       const defaultInApp=event.default_channel==='in_app'||event.default_channel==='email_and_in_app';
-      return {...event,in_app_enabled:override?.in_app_enabled??defaultInApp,email_enabled:override?.email_enabled??defaultEmail};
+      const required=requiredCommunication(event);
+      return {...event,required,in_app_enabled:required?defaultInApp:(override?.in_app_enabled??defaultInApp),email_enabled:required?defaultEmail:(override?.email_enabled??defaultEmail)};
     });
 
     return NextResponse.json({
@@ -56,11 +62,12 @@ export async function PATCH(request:Request){
     if(section==='notifications'){
       const requested=Array.isArray(body.preferences)?body.preferences:[];
       const keys=[...new Set(requested.map((item:{event_key?:unknown})=>String(item?.event_key||'').trim()).filter(Boolean))].slice(0,100);
-      if(!keys.length)return NextResponse.json({error:'Choose at least one notification preference to update.'},{status:400});
-      const {data:events,error:eventError}=await supabase.from('notification_event_catalogue').select('event_key').eq('active',true).in('event_key',keys);
+      if(!keys.length)return NextResponse.json({error:'Choose at least one configurable notification preference to update.'},{status:400});
+      const {data:events,error:eventError}=await supabase.from('notification_event_catalogue').select('event_key,product_area,urgency').eq('active',true).in('event_key',keys);
       if(eventError)return NextResponse.json({error:'Unable to validate notification preferences.'},{status:500});
-      const allowed=new Set((events||[]).map(item=>item.event_key));
-      if(allowed.size!==keys.length)return NextResponse.json({error:'One or more notification preferences are not available.'},{status:400});
+      const allowedEvents=(events||[]).filter(event=>!requiredCommunication(event));
+      const allowed=new Set(allowedEvents.map(item=>item.event_key));
+      if(allowed.size!==keys.length)return NextResponse.json({error:'Required account or security communications cannot be disabled.'},{status:400});
       const rows=requested.filter((item:{event_key?:unknown})=>allowed.has(String(item.event_key||''))).map((item:{event_key?:unknown;in_app_enabled?:unknown;email_enabled?:unknown})=>({user_id:user.id,event_key:String(item.event_key),in_app_enabled:bool(item.in_app_enabled),email_enabled:bool(item.email_enabled),updated_at:new Date().toISOString()}));
       const {error}=await supabase.from('notification_preferences').upsert(rows,{onConflict:'user_id,event_key'});
       if(error)return NextResponse.json({error:'Unable to save notification preferences.'},{status:500});
@@ -72,7 +79,7 @@ export async function PATCH(request:Request){
       if(!/^\S+@\S+\.\S+$/.test(email))return NextResponse.json({error:'Enter a valid email address.'},{status:400});
       if(email===(user.email||'').toLowerCase())return NextResponse.json({ok:true,message:'This is already your account email.'});
       const {error}=await supabase.auth.updateUser({email});
-      if(error){console.error('account email update failed',{code:error.code,message:error.message});return NextResponse.json({error:'We could not start the email change. Check the address and try again.'},{status:400});}
+      if(error){console.error('account email update failed',{code:error.code,message:error.message});return NextResponse.json({error:'We could not start the email change. Your current email is unchanged.'},{status:400});}
       return NextResponse.json({ok:true,message:'Check your email to confirm the address change. Your current account remains usable until the change is confirmed.'});
     }
 

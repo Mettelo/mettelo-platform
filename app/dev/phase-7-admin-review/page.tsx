@@ -1,0 +1,12 @@
+import AdminApplicationQueue from '@/components/AdminApplicationQueue';
+
+const base={avatar_url:null,email:'member@example.test',project_id:'00000000-0000-4000-8000-00000000b701',project:'Community Data Quality Project',role:'No formal role at interest stage',application_kind:'interest',submitted_at:'2026-09-05T12:00:00.000Z',statement:'I want to contribute data-quality analysis, document findings and communicate recommendations clearly.',portfolio_url:'https://example.test/proof',availability:'Weekday evenings',participation_preference:'team',leadership_interest:true,reviewer_notes:null,profile_completeness:92,profile:{headline:'Data analyst focused on quality and insight',skills:['SQL','Power BI','Data Quality'],experience_level:'Intermediate',project_availability:'Available now',weekly_capacity:'4–6 hours/week'},proof:[{title:'Verified data-quality contribution',description:'Validated a project dataset and documented the remediation approach.',evidence_url:'https://example.test/evidence',project_id:null,verification_status:'verified'}],capacity:{confirmed:2,minimum:2,target:4,maximum:5},communications:[]};
+
+const items=[
+ {...base,id:'phase7-submitted',name:'Amina Okafor',username:'amina_data',member_id:'MTL-100101',status:'submitted'},
+ {...base,id:'phase7-review',name:'Jordan Lee',username:'jordan_lee',member_id:'MTL-100102',status:'in_review',leadership_interest:false},
+ {...base,id:'phase7-shortlist',name:'Priya Shah',username:'priya_shah',member_id:'MTL-100103',status:'shortlisted',participation_preference:'either'},
+ {...base,id:'phase7-offered',name:'Daniel Mensah',username:'daniel_m',member_id:'MTL-100104',status:'offered',participation_preference:'solo'}
+];
+
+export default function Phase7AdminReviewFixture(){return <main id="main-content" style={{padding:'24px',maxWidth:'1280px',margin:'0 auto'}}><div className="eyebrow">PHASE 7 ACCEPTANCE FIXTURE</div><h1>Admin project-request review</h1><p>Rendered fixture for structured REVIEW_REQUIRED review. AUTO admissions are intentionally absent from the actionable queue.</p><AdminApplicationQueue initialItems={items}/></main>}

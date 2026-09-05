@@ -22,24 +22,25 @@ Phase 5 consumes the existing canonical architecture:
 - existing application/membership state for journey continuity;
 - existing Phase 6 application route as the downstream handoff only.
 
-No new table or hosted-only database field is required for the first Phase 5 implementation. Fit is calculated from canonical server-read data and is not persisted as a hidden score.
+No new table or hosted-only database field is required. Fit is calculated from canonical server-read data and is not persisted as a hidden score.
 
 ## Product rules
 
 1. Fit guidance must be transparent. Do not create an opaque percentage/ranking that implies Mettelo has objectively scored a person's suitability.
 2. A member can see why a signal is aligned, needs review, or represents a capacity gap.
 3. Soft mismatch does not automatically reject a member.
-4. Profile readiness remains a structured prerequisite for the downstream submission journey.
-5. Role capacity remains server-authoritative and separate from personal fit.
-6. Role selection is explicit and happens after fit review.
-7. Phase 5 must not perform the final application insert/update owned by Phase 6.
-8. Existing application/membership states remain authoritative for members who already applied or joined.
-9. Project/member/Admin continue to read the same canonical project identity and state.
-10. Lab remains out of scope until accepted membership/delivery state.
+4. A genuine weekly-capacity shortfall is a hard readiness gap because the member cannot currently meet the project's minimum published commitment.
+5. Profile readiness remains a structured prerequisite for the downstream submission journey.
+6. Role capacity remains server-authoritative and separate from personal fit.
+7. Role selection is explicit and happens after fit review.
+8. Phase 5 must not perform the final application insert/update owned by Phase 6.
+9. Existing application/membership states remain authoritative for members who already applied or joined.
+10. Project/member/Admin continue to read the same canonical project identity and state.
+11. Lab remains out of scope until accepted membership/delivery state.
 
 ## Fit signals
 
-The initial transparent evaluator uses only structured data already present in the product:
+The transparent evaluator uses only structured data already present in the product:
 
 - domain preference overlap;
 - tool preference overlap;
@@ -48,7 +49,11 @@ The initial transparent evaluator uses only structured data already present in t
 - per-role skill overlap;
 - per-role preferred-role overlap.
 
-Signals are labelled `match`, `review`, or `gap`. They are guidance, not an acceptance decision or guarantee.
+Signals are labelled `match`, `review`, or `gap`.
+
+`review` signals are guidance only and do not automatically reject a member. Experience/domain/tool mismatches remain advisory because the available metadata is not sufficient for a defensible automated rejection rule.
+
+The weekly-capacity signal has one hard rule: compare the member's maximum saved weekly capacity with the project's minimum published weekly commitment. Example: `4–6 hours/week` can meet a `5–8 hours/week` project because 6 >= 5. `Up to 3 hours/week` cannot meet that project's 5-hour minimum and blocks Phase 6 handoff until the member's genuine availability changes or they choose another project. Unparseable/flexible values return `review`, not a false rejection.
 
 Free-text experience/application requirements are shown for manual member review and are not converted into a hidden automated rejection rule.
 
@@ -56,7 +61,7 @@ Free-text experience/application requirements are shown for manual member review
 
 ### Schema
 
-No Phase 5 schema addition is currently required. The necessary canonical fields and relationships already exist.
+No Phase 5 schema addition is required. The necessary canonical fields and relationships already exist.
 
 ### Reads
 
@@ -74,14 +79,20 @@ Phase 5 adds no fit-score write, application write, membership write, role-reser
 
 The application form/write path remains Phase 6.
 
-### RLS/security expectations
+### RLS/security review
 
-- profile/preferences must remain scoped to the authenticated user;
-- project reads must remain restricted to public/member-visible projects;
-- application/membership reads must remain scoped to the authenticated user;
-- Phase 5 must not require service-role access for member fit;
-- role capacity remains derived through the existing protected backend contract;
-- no fit result is exposed publicly.
+Existing versioned migrations already enforce the Phase 5 privacy boundary:
+
+- `profiles` SELECT/INSERT/UPDATE is owner-scoped to `auth.uid()` for authenticated users;
+- `profile_domain_preferences` SELECT/INSERT/DELETE is owner-scoped to `auth.uid()`;
+- `profile_tool_preferences` SELECT/INSERT/DELETE is owner-scoped to `auth.uid()`;
+- project visibility remains authoritative for project reads;
+- application/membership reads remain owner-or-admin scoped;
+- Phase 5 member fit itself does not use service-role access;
+- existing service-role use for aggregate role-capacity calculation remains a protected backend capacity contract, not a profile/preferences bypass;
+- no fit result is exposed publicly or persisted.
+
+Runtime proof is now included in `tests/project-experience-phase5-member-fit-security.spec.ts`. On the disposable local Supabase stack it signs in as the member, proves that member can read their own profile/domain/tool preference rows, and proves another disposable user's corresponding rows are invisible under RLS.
 
 ## UX contract
 
@@ -95,10 +106,13 @@ The authenticated project detail must provide:
 - available capacity;
 - explicit contribution-area selection;
 - clear action to resolve missing profile requirements;
+- clear action to review a genuine weekly-capacity gap;
 - no premature hero-level `Apply now` action;
-- Phase 6 handoff only after the member selects an available role and is otherwise application-ready.
+- Phase 6 handoff only after the member selects an available role, meets profile readiness and has no hard capacity gap.
 
-Copy must avoid presenting fit guidance as a guarantee or rejection decision.
+The Phase 6 page independently re-checks both selected-role availability and the same weekly-capacity contract. Direct/manual URLs therefore cannot bypass the Phase 5 decision gate.
+
+Copy must avoid presenting advisory fit guidance as a guarantee or rejection decision.
 
 ## Accessibility / responsive contract
 
@@ -110,7 +124,7 @@ Phase 5 must preserve:
 - visible focus;
 - mobile/desktop action parity;
 - 320px and 200% reflow without horizontal page overflow;
-- actionable profile-readiness links with safe return to the same project.
+- actionable profile/capacity links with safe return to the same project.
 
 ## Success criteria
 
@@ -125,23 +139,27 @@ Phase 5 cannot be signed off until all of the following are true:
 7. Role capacity is server-authoritative.
 8. Unavailable roles cannot be selected for submission.
 9. Missing profile requirements block the submission handoff without blocking project review.
-10. Soft fit mismatches do not create an automatic rejection.
-11. Hero no longer bypasses Phase 5 with `Apply now`.
-12. Role selection is explicit.
-13. Phase 6 application route remains the only submission destination.
-14. Existing application/membership states still route correctly.
-15. No service-role workaround is introduced for member reads.
-16. No new Supabase schema is added unless a demonstrated data-contract need is found.
-17. RLS/security regression passes.
-18. Lint/typecheck/build pass.
-19. Blocking regression passes.
-20. Authenticated browser journey passes on mobile/tablet/desktop and 200% reflow.
-21. Existing Public/Admin/Lab/project/application journeys remain regression-safe.
-22. Director sign-off includes an explicit Supabase/schema/RLS result.
+10. Genuine weekly-capacity shortfall blocks submission and is actionable.
+11. Overlapping capacity ranges are not falsely rejected; member maximum is compared with project minimum.
+12. Unparseable commitment values degrade to manual review instead of automatic rejection.
+13. Soft fit mismatches do not create an automatic rejection.
+14. Hero no longer bypasses Phase 5 with `Apply now`.
+15. Role selection is explicit.
+16. Direct Phase 6 route access cannot bypass selected-role or hard-capacity readiness.
+17. Phase 6 application route remains the only submission destination.
+18. Existing application/membership states still route correctly.
+19. No service-role workaround is introduced for member profile/preferences reads.
+20. No new Supabase schema is added unless a demonstrated data-contract need is found.
+21. Profile/preferences cross-user RLS regression passes on isolated Supabase.
+22. Lint/typecheck/build pass.
+23. Blocking regression passes.
+24. Authenticated browser journey passes on mobile/tablet/desktop and 200% reflow.
+25. Existing Public/Admin/Lab/project/application journeys remain regression-safe.
+26. Director sign-off includes an explicit Supabase/schema/RLS result.
 
 ## Current implementation status
 
-Implemented in the first Phase 5 slice:
+Implemented:
 
 - stacked Phase 5 branch based on the frozen Phase 4 candidate;
 - `lib/member-project-fit.ts` transparent evaluator;
@@ -150,7 +168,20 @@ Implemented in the first Phase 5 slice:
 - hero `Review your fit` action instead of premature `Apply now`;
 - role-level fit signals and explicit role selection;
 - profile-readiness repair link preserving project context;
+- minimum-commitment weekly-capacity comparator;
+- hard weekly-capacity gap enforcement in both Phase 5 UI handoff and Phase 6 entry route;
 - Phase 6 handoff remains `/member/discover/[id]/apply?role=...`;
-- blocking `project-experience-phase5-member-fit.spec.ts` coverage.
+- blocking `project-experience-phase5-member-fit.spec.ts` coverage;
+- isolated `project-experience-phase5-member-fit-security.spec.ts` RLS coverage;
+- Phase 5 security test added to authenticated smoke/staging suites.
 
-This document is an implementation contract, not a Director approval. Phase 5 remains in development until exact-head validation and formal sign-off are complete.
+Current validation state:
+
+- source/architecture review: in progress, no material schema addition identified;
+- Supabase/RLS source review: PASS for owner-scoped profile/preferences policies;
+- isolated Supabase runtime security: PENDING exact-head CI execution;
+- lint/typecheck/build/regression: PENDING exact-head CI execution;
+- authenticated responsive/browser evidence: PENDING exact-head CI execution;
+- Director sign-off: NOT APPROVED while runtime gates are pending.
+
+This document is an implementation contract and evidence ledger, not a Director approval. Phase 5 remains in development until exact-head validation and formal sign-off are complete.

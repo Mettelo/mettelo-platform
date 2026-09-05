@@ -48,6 +48,8 @@ const v2Files={
   memberBodyV3:'components/project-experience/MemberProjectDetailBodyV3.tsx',
   bodyStylesV3:'components/project-experience/ProjectDetailBodyV3.module.css',
   publicDetailContent:'lib/project-detail-content.ts',
+  publicExperienceData:'lib/public-project-experience-data.ts',
+  publicExperienceMigration:'supabase/migrations/20260905143000_project_experience_phase_4_public_detail_projection.sql',
   memberPage:'app/member/discover/[id]/page.tsx',
   memberComponent:'components/project-experience/MemberProjectDetailV2.tsx',
   memberStyles:'components/project-experience/MemberProjectDetailV2.module.css',
@@ -79,6 +81,8 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   const memberBodyV3=fs.readFileSync(v2Files.memberBodyV3,'utf8');
   const bodyStylesV3=fs.readFileSync(v2Files.bodyStylesV3,'utf8');
   const publicDetailContent=fs.readFileSync(v2Files.publicDetailContent,'utf8');
+  const publicExperienceData=fs.readFileSync(v2Files.publicExperienceData,'utf8');
+  const publicExperienceMigration=fs.readFileSync(v2Files.publicExperienceMigration,'utf8');
   const memberPage=fs.readFileSync(v2Files.memberPage,'utf8');
   const memberComponent=fs.readFileSync(v2Files.memberComponent,'utf8');
   const memberStyles=fs.readFileSync(v2Files.memberStyles,'utf8');
@@ -100,17 +104,19 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   const adminApplicationRoute=fs.readFileSync(v2Files.adminApplicationRoute,'utf8');
   const adminTeamRoute=fs.readFileSync(v2Files.adminTeamRoute,'utf8');
 
-  for(const marker of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel','ProjectPublicDetailV2'])if(!publicPage.includes(marker))failures.push(`Project Experience V2: public detail is missing canonical wiring marker ${marker}`);
+  for(const marker of ['getPublicProjectExperienceData','buildProjectExperienceModel','ProjectPublicDetailV2'])if(!publicPage.includes(marker))failures.push(`Project Experience Phase 4: public detail is missing secure canonical wiring marker ${marker}`);
+  for(const forbidden of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails'])if(publicPage.includes(forbidden))failures.push(`Project Experience Phase 4: public detail reintroduced privileged helper ${forbidden}`);
+  for(const marker of ['createPublicSupabaseClient',"rpc('get_public_project_experience_detail'"])if(!publicExperienceData.includes(marker))failures.push(`Project Experience Phase 4: public safe loader lost ${marker}`);
+  for(const marker of ['security definer',"p.visibility = 'public'","s.sensitivity='public'","s.publish_policy='permitted'","s.governance_status='green'",'grant execute on function public.get_public_project_experience_detail(uuid) to anon, authenticated'])if(!publicExperienceMigration.includes(marker))failures.push(`Project Experience Phase 4: public projection migration lost ${marker}`);
+  for(const protectedName of ["'external_url'","'storage_path'","'content_pointer'","'provider_url'","'licence_url'","'access_notes'","'review_agreement_accepted'","'preview_data'","'sample_rows'","'download_enabled'","'query_enabled'"])if(publicExperienceMigration.includes(protectedName))failures.push(`Project Experience Phase 4: public projection includes protected field ${protectedName}`);
   for(const marker of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails','buildProjectExperienceModel','MemberProjectDetailV2'])if(!memberPage.includes(marker))failures.push(`Project Experience V2: member detail is missing canonical wiring marker ${marker}`);
   if(!canonicalData.includes(".is('project_run_id',null)"))failures.push('Project Experience V2: canonical data projection does not explicitly exclude run execution rows');
   if(!labData.includes("governanceStatus==='green'&&row.internal_storage_policy==='permitted'"))failures.push('Project Experience V2: Lab private resource links are not gated by green storage governance');
 
-  // Frozen first-section contract remains in the V2 shells; V3 owns only the body below it.
-  for(const marker of ['Decide whether this is the right project for you.','Understand the problem, contribution areas, commitment and quality bar before you apply.','Evidence opportunity · verification required','Public project pages show approved source metadata only. Direct resource and stored-copy links remain protected.','ProjectPublicDetailBodyV3'])if(!publicComponent.includes(marker))failures.push(`Project Experience V3: frozen public hero/shell lost required marker ${marker}`);
+  for(const marker of ['Decide whether this is the right project for you.','Understand the problem, contribution areas, commitment and quality bar before you submit interest.','Evidence opportunity · verification required','Public project pages show approved source metadata only. Direct resource and stored-copy links remain protected.','ProjectPublicDetailBodyV3'])if(!publicComponent.includes(marker))failures.push(`Project Experience V3: frozen public hero/shell lost required marker ${marker}`);
   for(const forbidden of ['externalUrl','licenceUrl','providerUrl','internal_storage_url'])if(publicComponent.includes(forbidden)||publicBodyV3.includes(forbidden))failures.push(`Project Experience V3: public project experience reintroduced direct resource URL marker ${forbidden}`);
 
-  // Director-approved V3 information architecture and progressive disclosure.
-  for(const marker of ['#overview','#deliverables','#quality','#roles','Project overview','View detailed project context','Project deliverables','Success standards','How you can contribute','qualityGroups(successCriteria)','styles.mobileAction'])if(!publicBodyV3.includes(marker))failures.push(`Project Experience V3: public body lost required marker ${marker}`);
+  for(const marker of ['#overview','#deliverables','#quality','#roles','Project overview','Project context, objectives and questions','Project deliverables','Success standards','How you can contribute','qualityGroups(successCriteria)','styles.mobileAction'])if(!publicBodyV3.includes(marker))failures.push(`Project Experience V3: public body lost required marker ${marker}`);
   for(const marker of ['ProjectPublicDetailBodyV3','ProjectMemberCanonicalSections']){
     if(marker==='ProjectPublicDetailBodyV3'&&!publicComponent.includes(marker))failures.push('Project Experience V3: public shell no longer delegates below-hero body to V3');
     if(marker==='ProjectMemberCanonicalSections'&&memberComponent.includes(marker))failures.push('Project Experience V3: legacy member body was reintroduced below the frozen hero');
@@ -120,8 +126,8 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   if(memberBodyV3.includes("useState(selectableRoles[0]?.id"))failures.push('Project Experience V3: member role selection must require explicit user intent rather than preselecting the first role');
   if(memberBodyV3.includes("role={selectable?'button'"))failures.push('Project Experience V3: nested article-as-button interaction was reintroduced around role details');
 
-  if(!publicDetailContent.includes("row.sensitivity==='public'&&row.publish_policy==='permitted'&&row.governance_status==='green'"))failures.push('Project Experience V2: public resource projection is not GREEN + public + publish-permitted');
-  if(publicDetailContent.includes('internal_storage_url'))failures.push('Project Experience V2: private stored-copy URL leaked into public resource projection');
+  if(!publicDetailContent.includes("row.sensitivity==='public'&&row.publish_policy==='permitted'&&row.governance_status==='green'"))failures.push('Project Experience V2: internal public resource projection is not GREEN + public + publish-permitted');
+  if(publicDetailContent.includes('internal_storage_url'))failures.push('Project Experience V2: private stored-copy URL leaked into internal public resource projection');
   for(const marker of ['grid-template-columns:minmax(0,1.25fr) 350px','@media(max-width:980px)','@media(max-width:700px)','@media(max-width:460px)','prefers-reduced-motion','focus-visible'])if(!publicStyles.includes(marker))failures.push(`Project Experience V2: frozen public hero responsive/accessibility styling lost ${marker}`);
   for(const marker of ['max-width:1040px','min-height:44px','min-height:48px','@media(max-width:980px)','@media(max-width:700px)','@media(max-width:360px)','safe-area-inset-bottom','prefers-reduced-motion','focus-visible'])if(!bodyStylesV3.includes(marker))failures.push(`Project Experience V3: body responsive/accessibility styling lost ${marker}`);
 
@@ -157,4 +163,4 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
 }
 
 if(failures.length){console.error('Critical regression coverage audit failed:');failures.forEach(failure=>console.error(`- ${failure}`));process.exit(1)}
-console.log(`Critical regression coverage audit passed (${journeys.length} journeys + ${projectExperienceContracts.length} Project Experience contracts + frozen hero + V3 Public/Member body redesign).`);
+console.log(`Critical regression coverage audit passed (${journeys.length} journeys + ${projectExperienceContracts.length} Project Experience contracts + secure Phase 4 public projection + frozen hero + V3 Public/Member body redesign).`);

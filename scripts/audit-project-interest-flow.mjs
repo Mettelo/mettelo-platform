@@ -47,7 +47,7 @@ forbid('components/ProjectApplicationForm.tsx',["fetch('/api/project-application
 // Signup/onboarding keeps project intent instead of dumping a new member at Home.
 expect('middleware.ts',['normalizeProjectIntent','mettelo_return_to','request.nextUrl.search','/signin']);
 expect('app/auth/continue-after-onboarding/route.ts',['mettelo_return_to','maxAge:0','NextResponse.redirect']);
-expect('app/onboarding/complete/page.tsx',['/auth/continue-after-onboarding?fallback=%2Fmember']);
+expect('app/onboarding/complete/page.tsx',['safeNext','/auth/continue-after-onboarding?fallback=','encodeURIComponent(next)','href={continueHref}']);
 
 // Saving a project is member-owned and does not create an application.
 expect('app/api/projects/saved/route.ts',[".from('saved_projects')",".from('projects')",'user_id:user.id']);

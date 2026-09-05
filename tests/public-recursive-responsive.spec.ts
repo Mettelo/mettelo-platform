@@ -151,7 +151,8 @@ test.describe('recursive public responsive coverage',()=>{
       const contentBox=await content.boundingBox();
       expect(contentBox,`project detail content should render at ${viewport.width}x${viewport.height}`).not.toBeNull();
       if(contentBox)expect(contentBox.width).toBeLessThanOrEqual(viewport.width+1);
-      await expect(page.getByRole('link',{name:'Continue to apply',exact:true}).last()).toBeVisible();
+      // Phase 4 keeps the responsive public handoff on the governed Submit interest CTA.
+      await expect(page.getByRole('link',{name:'Submit interest',exact:true}).last()).toBeVisible();
     }
   });
 

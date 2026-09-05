@@ -53,37 +53,38 @@ test.describe('Project Experience advanced public Project Detail',()=>{
     expect(memberBody).toContain('id="member-project-main"');
   });
 
-  test('the canonical public page preserves the approved V3 decision-led information architecture',async({page})=>{
+  test('the canonical public page preserves the Phase 4 decision-led information architecture',async({page})=>{
     await page.setViewportSize({width:1440,height:1000});
     await page.goto(`/projects/${projectId}`,{waitUntil:'domcontentloaded'});
 
     await expect(page.getByRole('heading',{level:1,name:'E2E Local Release Project'})).toBeVisible();
     await expect(page.getByRole('heading',{name:'Decide whether this is the right project for you.'})).toBeVisible();
     const sections=page.getByRole('navigation',{name:'Project sections'});
-    for(const label of ['Overview','Deliverables','Success standards','Contribution areas'])await expect(sections.getByRole('link',{name:label,exact:true})).toBeVisible();
+    for(const label of ['Overview','Scope & resources','Deliverables','Success standards','Timeline & Proof','Contribution areas'])await expect(sections.getByRole('link',{name:label,exact:true})).toBeVisible();
 
-    for(const heading of ['Project overview','Project deliverables','Success standards','How you can contribute'])await expect(page.getByRole('heading',{name:heading,exact:true})).toBeVisible();
-    await expect(page.getByText('Project-specific criteria are grouped into scannable review dimensions; the complete quality bar remains available below.')).toBeVisible();
+    for(const heading of ['Project overview','What the project covers','Project deliverables','Success standards','How the work may progress and what it may evidence','How you can contribute'])await expect(page.getByRole('heading',{name:heading,exact:true})).toBeVisible();
+    await expect(page.getByText('These are project quality criteria, not automatic verified Proof.')).toBeVisible();
     await expect(page.locator('#project-content')).toBeVisible();
     await noOverflow(page,'Advanced Project Detail overflowed at desktop width');
   });
 
-  test('the V3 redesign reflows across supported phone, tablet and desktop widths',async({page})=>{
+  test('the Phase 4 public detail reflows across supported phone, tablet and desktop widths',async({page})=>{
     test.setTimeout(60_000);
     for(const width of [320,390,768,1024,1440]){
       await page.setViewportSize({width,height:1000});
       await page.goto(`/projects/${projectId}`,{waitUntil:'domcontentloaded'});
       await expect(page.getByRole('heading',{level:1,name:'E2E Local Release Project'})).toBeVisible();
       await noOverflow(page,`Advanced Project Detail overflowed at ${width}px`);
-      if(width<=700)await expect(page.getByRole('link',{name:'Continue to apply',exact:true}).last()).toBeVisible();
+      if(width<=700)await expect(page.getByRole('link',{name:'Submit interest',exact:true}).last()).toBeVisible();
     }
   });
 
-  test('200 percent text keeps the project page reflow-safe',async({page})=>{
+  test('200 percent text keeps the project page reflow-safe and CTA reachable',async({page})=>{
     await page.setViewportSize({width:768,height:1000});
     await page.goto(`/projects/${projectId}`,{waitUntil:'domcontentloaded'});
     await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});
     await expect(page.getByRole('heading',{level:1,name:'E2E Local Release Project'})).toBeVisible();
+    await expect(page.getByRole('link',{name:'Submit interest',exact:true}).first()).toBeVisible();
     await noOverflow(page,'Advanced Project Detail overflowed at 200% text');
   });
 });

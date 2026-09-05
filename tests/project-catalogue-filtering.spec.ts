@@ -1,6 +1,6 @@
 import {expect,test} from '@playwright/test';
 import {
-  DEFAULT_PROJECT_CATALOGUE_FILTERS,activeProjectCatalogueFilterCount,catalogueDurationOptions,catalogueFacetOptions,catalogueSearchText,durationFacet,filterAndSortProjectCatalogue,normalizeCommitment,normalizeExperienceLevel,projectAvailabilityFacet,projectFormatFacet,projectStageFacet,projectTypeFacet,workingModelFacet,type CatalogueFacet,type ProjectCatalogueFilterable,type ProjectCatalogueFilters
+  DEFAULT_PROJECT_CATALOGUE_FILTERS,activeProjectCatalogueFilterCount,catalogueDurationOptions,catalogueFacetOptions,catalogueSearchText,durationFacet,filterAndSortProjectCatalogue,normalizeCommitment,normalizeExperienceLevel,projectAvailabilityFacet,projectFormatFacet,projectParticipationFacet,projectStageFacet,projectTypeFacet,workingModelFacet,type CatalogueFacet,type ProjectCatalogueFilterable,type ProjectCatalogueFilters
 } from '../lib/project-catalogue-filtering';
 
 const facet=(slug:string,label:string,aliases:string[]=[]):CatalogueFacet=>({slug,label,aliases});
@@ -28,6 +28,10 @@ test('governed display facets use product wording without replacing lifecycle va
   expect(projectTypeFacet('partner')).toEqual({slug:'partner',label:'Partner Projects'});
   expect(projectFormatFacet(1)).toEqual({slug:'solo',label:'Solo'});
   expect(projectFormatFacet(5)).toEqual({slug:'team',label:'Team'});
+  expect(projectParticipationFacet('solo',5)).toEqual({slug:'solo',label:'Solo'});
+  expect(projectParticipationFacet('team',1)).toEqual({slug:'team',label:'Team'});
+  expect(projectParticipationFacet('flexible',1)).toEqual({slug:'flexible',label:'Flexible'});
+  expect(projectParticipationFacet(null,1)).toEqual({slug:'solo',label:'Solo'});
   expect(projectStageFacet('forming')).toEqual({slug:'forming',label:'Team forming'});
   expect(projectAvailabilityFacet({status:'open',applicationsOpen:true,hasCapacity:true})?.slug).toBe('open-to-join');
   expect(projectAvailabilityFacet({status:'forming'})?.slug).toBe('team-forming');
@@ -40,6 +44,13 @@ test('catalogue filters use AND semantics across canonical facets',()=>{
   expect(filterAndSortProjectCatalogue(projects,filters({capability:'forecasting'})).map(value=>value.title)).toEqual(['Finance Forecasting','Healthcare Forecasting']);
   expect(filterAndSortProjectCatalogue(projects,filters({capability:'forecasting',domain:'finance-fintech',tool:'python',duration:'standard',experience:'intermediate',format:'team'})).map(value=>value.title)).toEqual(['Finance Forecasting']);
   expect(filterAndSortProjectCatalogue(projects,filters({capability:'forecasting',domain:'finance-fintech',tool:'sql'}))).toEqual([]);
+});
+
+test('flexible participation filters independently from team and solo',()=>{
+  const flexible=item({title:'Flexible Project',formatFacet:projectParticipationFacet('flexible',1)});
+  const team=item({title:'Team Project',formatFacet:projectParticipationFacet('team',3)});
+  const solo=item({title:'Solo Project',formatFacet:projectParticipationFacet('solo',1)});
+  expect(filterAndSortProjectCatalogue([team,flexible,solo],filters({format:'flexible'})).map(value=>value.title)).toEqual(['Flexible Project']);
 });
 
 test('search covers canonical facets, aliases, methods and project-specific context',()=>{

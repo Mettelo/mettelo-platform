@@ -3,9 +3,13 @@ import {normalizeCareerRole,normalizeCapability} from '@/lib/project-catalogue-t
 
 const PROJECT_STATUSES=['pilot','recruiting','open','forming','active','review','completed'];
 const BATCH_SIZE=200;
-const PRIMARY_SELECT='id,slug,title,summary,status,project_type,partner_name,location,location_type,difficulty_level,team_size_threshold,duration_weeks,weekly_commitment,application_deadline,applications_open,github_url,created_at,project_roles(id,title,discipline,openings,canonical_role_key,skills),project_runs(id,run_number,status,completed_at),project_capabilities(capabilities(id,slug,name)),project_domains(is_primary,domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))';
-const CORE_SELECT='id,slug,title,summary,status,project_type,partner_name,location,location_type,difficulty_level,team_size_threshold,duration_weeks,weekly_commitment,application_deadline,applications_open,github_url,created_at,project_roles(id,title,discipline,openings,canonical_role_key,skills),project_runs(id,run_number,status,completed_at),project_domains(is_primary,domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))';
-const MINIMAL_SELECT='id,slug,title,summary,status,project_type,partner_name,location,location_type,difficulty_level,team_size_threshold,duration_weeks,weekly_commitment,application_deadline,applications_open,github_url,created_at';
+const PROJECT_FIELDS='id,slug,title,summary,status,project_type,partner_name,location,location_type,difficulty_level,participation_mode,min_team_size,target_team_size,max_team_size,team_size_threshold,duration_weeks,weekly_commitment,application_deadline,applications_open,github_url,created_at';
+const PRIMARY_SELECT=`${PROJECT_FIELDS},project_roles(id,title,discipline,openings,canonical_role_key,skills),project_runs(id,run_number,status,completed_at),project_capabilities(capabilities(id,slug,name)),project_domains(is_primary,domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))`;
+const CORE_SELECT=`${PROJECT_FIELDS},project_roles(id,title,discipline,openings,canonical_role_key,skills),project_runs(id,run_number,status,completed_at),project_domains(is_primary,domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))`;
+const LEGACY_PROJECT_FIELDS='id,slug,title,summary,status,project_type,partner_name,location,location_type,difficulty_level,team_size_threshold,duration_weeks,weekly_commitment,application_deadline,applications_open,github_url,created_at';
+const LEGACY_PRIMARY_SELECT=`${LEGACY_PROJECT_FIELDS},project_roles(id,title,discipline,openings,canonical_role_key,skills),project_runs(id,run_number,status,completed_at),project_capabilities(capabilities(id,slug,name)),project_domains(is_primary,domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))`;
+const LEGACY_CORE_SELECT=`${LEGACY_PROJECT_FIELDS},project_roles(id,title,discipline,openings,canonical_role_key,skills),project_runs(id,run_number,status,completed_at),project_domains(is_primary,domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))`;
+const LEGACY_MINIMAL_SELECT=LEGACY_PROJECT_FIELDS;
 
 type PublicDb=NonNullable<ReturnType<typeof createPublicSupabaseClient>>;
 type RoleRow={title?:string|null;canonical_role_key?:string|null;skills?:string[]|null};
@@ -35,4 +39,20 @@ function query(db:PublicDb,select:string,from:number,to:number){return db.from('
 async function all(db:PublicDb,select:string){let from=0;const rows:unknown[]=[];let last:Awaited<ReturnType<typeof query>>|null=null;while(true){const result=await query(db,select,from,from+BATCH_SIZE-1);last=result;if(result.error)return result;const batch=(result.data||[]) as unknown[];rows.push(...batch);if(batch.length<BATCH_SIZE)break;from+=BATCH_SIZE}return last?{...last,data:rows}:query(db,select,0,BATCH_SIZE-1)}
 function enriched<T extends {data:unknown[]|null}>(result:T):T{return {...result,data:(result.data||[]).map(row=>enrichDiscoveryFacets(row as ProjectRow))} as T}
 
-export async function loadPublicProjectCatalogue(db:PublicDb){const primary=await all(db,PRIMARY_SELECT);if(!primary.error)return enriched(primary);console.warn('public Projects enriched query failed; retrying core facets',primary.error.message);const core=await all(db,CORE_SELECT);if(!core.error)return enriched(core);console.warn('public Projects core query failed; retrying scalar fields',core.error.message);return all(db,MINIMAL_SELECT)}
+export async function loadPublicProjectCatalogue(db:PublicDb){
+  const primary=await all(db,PRIMARY_SELECT);
+  if(!primary.error)return enriched(primary);
+  // Phase 4 is stacked on the Phase 3 schema, but the public loader retains a
+  // compatibility path so previews against an older hosted database fail soft
+  // rather than hiding the entire catalogue.
+  console.warn('public Projects canonical query failed; retrying legacy public projection',primary.error.message);
+  const legacyPrimary=await all(db,LEGACY_PRIMARY_SELECT);
+  if(!legacyPrimary.error)return enriched(legacyPrimary);
+  const core=await all(db,CORE_SELECT);
+  if(!core.error)return enriched(core);
+  console.warn('public Projects enriched query failed; retrying core facets',core.error.message);
+  const legacyCore=await all(db,LEGACY_CORE_SELECT);
+  if(!legacyCore.error)return enriched(legacyCore);
+  console.warn('public Projects core query failed; retrying scalar fields',legacyCore.error.message);
+  return all(db,LEGACY_MINIMAL_SELECT);
+}

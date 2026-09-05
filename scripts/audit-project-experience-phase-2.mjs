@@ -43,7 +43,7 @@ const checks=[
  ['critical communications are protected in UI and API',accountPolicy.includes("urgency==='critical'")&&account.includes('disabled={item.required}')&&accountApi.includes('Required account or security communications cannot be disabled.')],
  ['Account status is announced accessibly',account.includes('aria-live="polite"')&&account.includes('aria-atomic="true"')],
  ['profile status is announced accessibly',profile.includes('aria-live="polite"')&&profile.includes('aria-atomic="true"')],
- ['profile remains distinct from Proof',onboarding.includes('not verified Proof')||onboarding.includes('not verified evidence')),
+ ['profile remains distinct from Proof',onboarding.includes('not verified Proof')||onboarding.includes('not verified evidence')],
  ['Account copy explicitly hides internal Auth UUID',account.includes('internal Auth UUID is not shown here')],
  ['Phase 2 authenticated browser/RLS test exists',fs.existsSync('tests/project-experience-phase2-account.spec.ts')]
 ];

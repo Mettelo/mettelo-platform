@@ -15,6 +15,9 @@ export const memberNavGroups:MemberNavGroup[]=[
     {label:'Recommended',href:'/member/recommended',description:'Relevant next work'},
     {label:'Saved',href:'/member/saved',description:'Projects and opportunities'}
   ]},
+  {label:'Account & Preferences',items:[
+    {label:'Account',href:'/member/account',description:'Security, privacy and notifications'}
+  ]},
   {label:'Opportunities & Community',items:[
     {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},
     {label:'Events',href:'/member/events',description:'Mettelo-wide events'},
@@ -35,6 +38,7 @@ export const mobileMoreNav:MemberNavItem[]=[
   {label:'Recommended',href:'/member/recommended',description:'Relevant next work'},
   {label:'Applications',href:'/member/applications',description:'Status and team formation'},
   {label:'Profile',href:'/member/profile',description:'Your professional identity'},
+  {label:'Account',href:'/member/account',description:'Security, privacy and notifications'},
   {label:'Saved',href:'/member/saved',description:'Projects and opportunities'},
   {label:'Opportunities',href:'/opportunities',description:'Jobs and internships'},
   {label:'Events',href:'/member/events',description:'Mettelo-wide events'},

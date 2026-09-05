@@ -13,7 +13,7 @@ export const dynamic='force-dynamic';
 
 type Role={id:string;title:string;description:string|null;skills:string[]|null;openings:number;discipline:string|null;canonical_role_key:string|null};
 type TaxonomyRef={slug:string;name:string};
-type Project={id:string;canonical_project_key:string|null;title:string;summary:string;problem_statement:string|null;status:string;project_type:string|null;applications_open:boolean|null;partner_name:string|null;location:string|null;location_type:string|null;difficulty_level:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;team_size_threshold:number|null;project_roles:Role[]|null;project_domains:{domains:TaxonomyRef|null}[]|null;project_tools:{tools:TaxonomyRef|null}[]|null;project_methods:{methods:TaxonomyRef|null}[]|null};
+type Project={id:string;canonical_project_key:string|null;title:string;summary:string;problem_statement:string|null;status:string;project_type:string|null;applications_open:boolean|null;partner_name:string|null;location:string|null;location_type:string|null;difficulty_level:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;participation_mode:'solo'|'team'|'flexible'|null;min_team_size:number|null;target_team_size:number|null;max_team_size:number|null;team_size_threshold:number|null;project_roles:Role[]|null;project_domains:{domains:TaxonomyRef|null}[]|null;project_tools:{tools:TaxonomyRef|null}[]|null;project_methods:{methods:TaxonomyRef|null}[]|null};
 
 function relationValues(rows:{domains?:TaxonomyRef|null;tools?:TaxonomyRef|null;methods?:TaxonomyRef|null}[]|null|undefined,key:'domains'|'tools'|'methods'){
   return (rows||[]).map(row=>row[key]).filter((value):value is TaxonomyRef=>Boolean(value));
@@ -26,7 +26,7 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
 
   const projectResult=await publicDb
     .from('projects')
-    .select('id,canonical_project_key,title,summary,problem_statement,status,project_type,applications_open,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,team_size_threshold,project_roles(id,title,description,skills,openings,discipline,canonical_role_key),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))')
+    .select('id,canonical_project_key,title,summary,problem_statement,status,project_type,applications_open,partner_name,location,location_type,difficulty_level,duration_weeks,weekly_commitment,application_deadline,participation_mode,min_team_size,target_team_size,max_team_size,team_size_threshold,project_roles(id,title,description,skills,openings,discipline,canonical_role_key),project_domains(domains(slug,name)),project_tools(tools(slug,name)),project_methods(methods(slug,name))')
     .eq('id',id)
     .eq('visibility','public')
     .maybeSingle();
@@ -57,9 +57,14 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   const domains=relationValues(project.project_domains,'domains');
   const tools=relationValues(project.project_tools,'tools');
   const methods=relationValues(project.project_methods,'methods');
+  const legacyMinimum=project.team_size_threshold&&project.team_size_threshold>0?project.team_size_threshold:null;
+  const participationMode=project.participation_mode||(legacyMinimum===1?'solo':legacyMinimum&&legacyMinimum>1?'team':null);
+  const minTeamSize=project.min_team_size||legacyMinimum;
+  const targetTeamSize=project.target_team_size||minTeamSize;
+  const maxTeamSize=project.max_team_size||targetTeamSize;
 
   const model=buildProjectExperienceModel({
-    project:{id:project.id,title:project.title,summary:project.summary,problemStatement:project.problem_statement,status:project.status,projectType:project.project_type,applicationsOpen:project.applications_open,partnerName:project.partner_name,location:project.location,locationType:project.location_type,difficultyLevel:project.difficulty_level,durationWeeks:project.duration_weeks,weeklyCommitment:project.weekly_commitment,applicationDeadline:project.application_deadline,teamSizeThreshold:project.team_size_threshold},
+    project:{id:project.id,title:project.title,summary:project.summary,problemStatement:project.problem_statement,status:project.status,projectType:project.project_type,applicationsOpen:project.applications_open,partnerName:project.partner_name,location:project.location,locationType:project.location_type,difficultyLevel:project.difficulty_level,durationWeeks:project.duration_weeks,weeklyCommitment:project.weekly_commitment,applicationDeadline:project.application_deadline,participationMode,minTeamSize,targetTeamSize,maxTeamSize,teamSizeThreshold:project.team_size_threshold},
     roles:roles.map(role=>{const rich=roleDetails.get(role.id);return{id:role.id,title:role.title,description:role.description,discipline:role.discipline,skills:(role.skills||[]).filter(Boolean),openings:role.openings,responsibilities:rich?.responsibilities||[],recommendedSkills:rich?.recommendedSkills||[],experienceExpectation:rich?.experienceExpectation||null,weeklyCommitment:rich?.weeklyCommitment||null,roleStatus:rich?.roleStatus||null,applicationRequirements:rich?.applicationRequirements||null}}),
     domains,tools,methods,detail,brief:planning.brief,milestones:planning.milestones
   });

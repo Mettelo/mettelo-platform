@@ -28,6 +28,7 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
   const rolePlaces=roles.reduce((sum,role)=>sum+Math.max(0,role.openings),0);
   const proofConfigured=proofSignals.length>0;
   const participationInfo=participation(project);
+  const capacityLabel=participationInfo.detail||(rolePlaces?`${rolePlaces} places`:'Not published');
   const heroTags=[project.difficultyLevel&&titleCase(project.difficultyLevel),project.durationWeeks&&weeks(project.durationWeeks),project.weeklyCommitment,participationInfo.label,workingModel,taxonomy.domains[0]?.name].filter((item):item is string=>Boolean(item));
 
   return <div className={styles.page}>
@@ -49,7 +50,7 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
         <p>Understand the problem, contribution areas, commitment and quality bar before you apply.</p>
         <dl className={styles.metaGrid}>
           <div><dt>Duration</dt><dd>{weeks(project.durationWeeks)}</dd></div><div><dt>Commitment</dt><dd>{project.weeklyCommitment||'Not published'}</dd></div>
-          <div><dt>Participation</dt><dd>{participationInfo.label}</dd></div><div><dt>Capacity</dt><dd>{participationInfo.detail||rolePlaces?`${rolePlaces} places`:'Not published'}</dd></div>
+          <div><dt>Participation</dt><dd>{participationInfo.label}</dd></div><div><dt>Capacity</dt><dd>{capacityLabel}</dd></div>
           <div><dt>Working model</dt><dd>{workingModel}</dd></div><div><dt>Level</dt><dd>{project.difficultyLevel?titleCase(project.difficultyLevel):'Not published'}</dd></div>
           <div><dt>Applications close</dt><dd>{date(project.applicationDeadline)}</dd></div>
         </dl>

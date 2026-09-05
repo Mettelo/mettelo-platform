@@ -4,7 +4,7 @@ export type ParticipationPreference='solo'|'team'|'either';
 export type AdmissionDecision='auto_qualified'|'review_required'|'ineligible';
 
 export const DEFAULT_PROJECT_ADMISSION_MODE:ProjectAdmissionMode='review_required';
-export const DEFAULT_AUTO_START_DELAY_MINUTES=120;
+export const DEFAULT_AUTO_START_DELAY_MINUTES=360;
 
 export function canonicalAdmissionMode(value:unknown):ProjectAdmissionMode{
   return value==='auto'?'auto':'review_required';

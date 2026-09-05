@@ -56,7 +56,7 @@ if(!failures.length){
   if(!memberBody.includes('canApply&&<div className={styles.mobileAction}'))failures.push('member mobile project CTA is not gated on Phase 5 eligibility');
   if(!memberBody.includes('href={`/member/discover/${projectId}/apply`}'))failures.push('member mobile project CTA does not preserve the role-neutral Phase 6 handoff');
   if(!memberApplyPage.includes('MemberProjectApplicationFlow'))failures.push('application page no longer renders the canonical Phase 6 interest form');
-  if(!memberApplyPage.includes('resolveMemberProjectQualification'))failures.push('application page no longer revalidates current member/project qualification');
+  for(const marker of ['calculateMemberReadiness','loadMemberProjectTeamState','resolveMemberProjectState',"state!=='open_eligible'"]){if(!memberApplyPage.includes(marker))failures.push(`application page lost current qualification revalidation marker ${marker}`)}
   if(memberApplyPage.includes('requestedRole')||memberApplyPage.includes('initialRoleId')||memberApplyPage.includes('availableRoles[0]?.id'))failures.push('application page reintroduced a required pre-interest role selection contract');
 
   for(const marker of ['--px-ink:var(--ink)','--mp-ink:var(--ink)','var(--bronze)','var(--indigo)','linear-gradient(138deg,var(--ink)','grid-template-columns:minmax(0,1.58fr) 350px','pdv2SaveUtility'])if(!polish.includes(marker))failures.push(`Project Experience brand/hierarchy polish lost ${marker}`);

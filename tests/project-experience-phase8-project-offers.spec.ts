@@ -132,6 +132,16 @@ test.describe('Project Experience Phase 8 source contract',()=>{
     expect(handoff).toContain("new.status not in ('waiting_for_team','team_complete')");
   });
 
+  test('Offer notification uses canonical expiry and review destination without internal notes',()=>{
+    const adminRoute=read('app/api/admin/applications/route.ts');
+    expect(adminRoute).toContain("type:'project_place_offered'");
+    expect(adminRoute).toContain("actionUrl:'/member/applications'");
+    expect(adminRoute).toContain('offer_expires_at:offer?.expires_at||null');
+    expect(adminRoute).toContain('Respond by');
+    expect(adminRoute).toContain('dedupeKey:status===\'offered\'&&offer?.id?`project-offer:${offer.id}:offered`');
+    expect(adminRoute).not.toContain('payload:{reviewer_notes');
+  });
+
   test('RLS exposes only member-owned offers while writes remain RPC controlled',()=>{
     const migration=read('supabase/migrations/20260905232000_project_experience_phase_8_project_offers.sql');
     expect(migration).toContain('alter table public.project_offers enable row level security');

@@ -6,7 +6,7 @@ Status: **IN PROGRESS — NOT APPROVED**
 
 Make Mettelo Lab the operating environment for project delivery while preserving the existing Lab architecture and consuming canonical Project Experience data.
 
-Phase 12 must not create a second Project Brief, team system, responsibility model, milestone/task authority, resource authority, collaboration system or Proof model.
+Phase 12 must not create a second Project Brief, team system, responsibility model, milestone/task authority, resource authority, collaboration system, analytics store or Proof model.
 
 ## Canonical sources to preserve
 
@@ -17,6 +17,7 @@ Phase 12 must not create a second Project Brief, team system, responsibility mod
 - `project_members` for membership, Project Lead and participation state;
 - `project_member_responsibilities` for Phase 10 delivery responsibility ownership;
 - run-scoped `project_milestones`, `project_tasks`, `project_deliverables`, `project_data_sources` and collaboration records for live execution;
+- `project_activity_log` for privacy-safe project lifecycle/product telemetry;
 - existing Chat, meetings/events, decisions/blockers and Proof/contribution infrastructure.
 
 ## Phase 12 acceptance contract
@@ -69,6 +70,12 @@ Private collaboration tables (`project_discussions`, `project_resources`, `proje
 
 `20260906030100_project_experience_phase_12_task_relation_integrity.sql` adds a PostgreSQL trigger that rejects a task whose milestone or workstream belongs to another project/run, and adds a run+milestone task index. The task API performs the same same-project/same-run milestone validation before insert so users receive a clear error before the database invariant is reached.
 
+### Privacy-safe Lab analytics
+
+`20260906030200_project_experience_phase_12_lab_analytics.sql` adds `phase12_record_lab_open(project_id, run_id)`. It reuses `project_activity_log`, authorizes through `phase12_has_lab_access`, records only `lab_opened` plus `{surface: "mettelo_lab"}`, and deduplicates repeated server renders within five minutes. It intentionally does not log resource URLs, Chat content, task descriptions, application data or internal notes, and it does not instrument every Lab click.
+
+The server workspace gate calls this RPC only after ordinary-member Lab authorization has resolved successfully. Analytics failure is treated as non-critical and cannot grant access or expose data.
+
 ## Security rules
 
 - ordinary access is authenticated;
@@ -78,11 +85,12 @@ Private collaboration tables (`project_discussions`, `project_resources`, `proje
 - private collaboration rows cannot become cross-run-visible by leaving `project_run_id` null;
 - private working-copy resource URLs are projected only when resource governance is `green` and internal storage policy is explicitly `permitted`;
 - service-role use remains server-side and behind explicit authorization; normal member reads/writes use the authenticated Supabase client/RLS;
-- task/milestone/workstream relations are enforced by both API validation and a reproducible database invariant.
+- task/milestone/workstream relations are enforced by both API validation and a reproducible database invariant;
+- Lab telemetry reuses the canonical activity log and contains no private delivery content.
 
 ## Blocking tests and evidence
 
-`tests/project-experience-phase12-canonical-lab.spec.ts` is included in `test:regression` and protects canonical brief separation, resources, responsibilities, overview, roster filtering, active-run RLS, relation integrity, run scoping, navigation and accessibility structure.
+`tests/project-experience-phase12-canonical-lab.spec.ts` is included in `test:regression` and protects canonical brief separation, resources, responsibilities, overview, roster filtering, active-run RLS, relation integrity, run scoping, navigation, accessibility structure and privacy-safe Lab analytics.
 
 `tests/project-experience-phase12-lab-access-e2e.spec.ts` is included in both authenticated `test:e2e:smoke` and `test:e2e:staging`. On the disposable isolated Supabase stack it verifies:
 
@@ -105,7 +113,8 @@ The deterministic Lab audit suite also covers mobile navigation, 320px/device la
 - added anonymous/non-member/wrong-run/removal security journeys;
 - removed waiting members from the active Lab delivery roster;
 - closed the task→milestone cross-run integrity gap at API and PostgreSQL layers;
-- separated shared project-level canonical data from private run-scoped collaboration RLS.
+- separated shared project-level canonical data from private run-scoped collaboration RLS;
+- added authorized, deduplicated and privacy-safe `lab_opened` telemetry using the existing activity-log architecture.
 
 ## Remaining sign-off blockers
 

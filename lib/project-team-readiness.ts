@@ -2,7 +2,7 @@ import {serviceDb} from '@/lib/project-flow';
 
 type Db=NonNullable<ReturnType<typeof serviceDb>>;
 
-type MemberRow={id:string;user_id:string;project_role_id:string|null;team_role:string;membership_status:string;joined_at:string|null};
+type MemberRow={id:string;user_id:string;team_role:string;membership_status:string;joined_at:string|null};
 type Candidate={userId:string;leadershipInterest:boolean;completedProjects:number;activeLeadProjects:number;submittedAt:string;score:number};
 
 export type ProjectTeamReadiness={
@@ -25,14 +25,33 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
   const threshold=Math.max(1,Number(requiredTeamSize||1));
   const {data:memberData,error:memberError}=await db
     .from('project_members')
-    .select('id,user_id,project_role_id,team_role,membership_status,joined_at')
+    .select('id,user_id,team_role,membership_status,joined_at')
     .eq('project_run_id',runId)
     .in('membership_status',['waiting','active']);
   if(memberError)throw memberError;
   const members=(memberData||[]) as MemberRow[];
   const filled=members.length;
   const full=filled>=threshold;
-  const responsibilityCoverageReady=!requireResponsibilityCoverage||(full&&members.every(member=>Boolean(member.project_role_id)));
+
+  // Phase 10 delivery ownership is normalized in project_member_responsibilities.
+  // project_members.project_role_id is a compatibility/application-role field and
+  // must not be treated as delivery responsibility coverage.
+  let responsibilityCoverageReady=!requireResponsibilityCoverage;
+  if(requireResponsibilityCoverage){
+    const memberIds=members.map(member=>member.id);
+    const assignedMembers=new Set<string>();
+    if(memberIds.length){
+      const {data:assignments,error:assignmentError}=await db
+        .from('project_member_responsibilities')
+        .select('project_member_id,assignment_status')
+        .eq('project_run_id',runId)
+        .eq('assignment_status','active')
+        .in('project_member_id',memberIds);
+      if(assignmentError)throw assignmentError;
+      for(const assignment of assignments||[])assignedMembers.add(String(assignment.project_member_id));
+    }
+    responsibilityCoverageReady=full&&members.every(member=>assignedMembers.has(member.id));
+  }
 
   const {data:projectReadiness,error:readinessError}=await db
     .from('project_experience_readiness')
@@ -41,10 +60,14 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
     .maybeSingle();
   const labReady=!readinessError&&projectReadiness?.lab_ready===true;
 
-  let leads=members.filter(member=>member.team_role==='project_lead');
-  let leadAssignedNow=false;
+  const leads=members.filter(member=>member.team_role==='project_lead');
+  const leadAssignedNow=false;
   let recommendation:Candidate|null=null;
 
+  // `assignLead` is retained as a compatibility input for callers that request
+  // lead preparation. Phase 10 now interprets it as recommendation only:
+  // leadership interest is evidence for a candidate, never authority to mutate
+  // canonical Project Lead state. Confirmation uses phase10_confirm_project_lead.
   if(requireLead&&assignLead&&full&&responsibilityCoverageReady&&leads.length===0&&members.length){
     const userIds=members.map(member=>member.user_id);
     const [{data:applications},{data:history}]=await Promise.all([
@@ -63,23 +86,6 @@ export async function assessProjectTeamReadiness({db,projectId,runId,requiredTea
     const volunteers=candidates.filter(candidate=>candidate.leadershipInterest);
     volunteers.sort((a,b)=>b.score-a.score||b.completedProjects-a.completedProjects||a.activeLeadProjects-b.activeLeadProjects||a.submittedAt.localeCompare(b.submittedAt)||a.userId.localeCompare(b.userId));
     recommendation=volunteers[0]||null;
-    if(recommendation){
-      const selected=members.find(member=>member.user_id===recommendation?.userId);
-      if(selected){
-        const {data:assigned,error}=await db.from('project_members').update({team_role:'project_lead'}).eq('id',selected.id).eq('team_role','contributor').select('id').maybeSingle();
-        if(error)throw error;
-        if(assigned){
-          leadAssignedNow=true;
-          await db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'project_lead_auto_assigned',actor_type:'system',from_status:'forming',to_status:'forming',metadata:{user_id:recommendation.userId,leadership_interest:recommendation.leadershipInterest,completed_projects:recommendation.completedProjects,active_lead_projects:recommendation.activeLeadProjects,leadership_readiness_score:recommendation.score,volunteers_available:volunteers.length,candidate_count:candidates.length,selection_policy:'volunteer_interest_then_mettelo_delivery_history_then_current_lead_load_then_submission_order'}});
-          leads=[{...selected,team_role:'project_lead'}];
-        }else{
-          // A concurrent approval may have completed the same deterministic lead assignment.
-          // Re-read canonical membership state rather than selecting a second lead.
-          const {data:currentLeads,error:leadError}=await db.from('project_members').select('id,user_id,project_role_id,team_role,membership_status,joined_at').eq('project_run_id',runId).eq('team_role','project_lead').in('membership_status',['waiting','active']);
-          if(leadError)throw leadError;leads=(currentLeads||[]) as MemberRow[];
-        }
-      }
-    }
   }
 
   const leadReady=!requireLead||leads.length===1;

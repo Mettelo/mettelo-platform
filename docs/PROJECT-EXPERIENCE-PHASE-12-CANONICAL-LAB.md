@@ -36,50 +36,79 @@ Phase 12 must not create a second Project Brief, team system, responsibility mod
 13. Lab regression passes.
 14. Documentation is updated.
 
-## Initial architecture review
+## Implemented Phase 12 slices
 
-### Already present and to preserve
+### Canonical team responsibilities
 
-- the existing `MetteloLabNavigation`, workspace shell and responsive Lab layers;
-- active/completed membership and active/review/completed run entry gate;
-- canonical project definition loader (`getProjectLabCanonicalData`);
-- canonical brief UI (`ProjectLabCanonicalBrief`);
-- run-scoped milestone/task/resource/discussion/meeting queries;
-- existing delivery, Data, Chat, events, Proof and completion panels;
-- current responsive/device/accessibility Lab audits.
+The existing Team surface exposed member identity, `@username`, role and participation state but did not expose the canonical Phase 10 delivery responsibilities required by Phase 12.
 
-### Phase 12 gap fixed in the first implementation slice
+`resolveProjectTeamOverview()` now reads active `project_member_responsibilities` for the authorised run and maps them by canonical user identity. The public team object does not expose the internal membership-row identifier or Member ID. Each existing Lab Team card now presents the member's responsibilities without introducing another responsibility source.
 
-The existing Team surface exposed member identity, `@username`, role and participation state but did not expose the canonical Phase 10 delivery responsibilities required by the Phase 12 contract.
+### Complete Lab overview context
 
-Phase 12 now extends `resolveProjectTeamOverview()` to read active `project_member_responsibilities` for the visible run and displays those responsibilities on each member's existing Lab Team card. No alternate responsibility source was introduced.
+The existing Lab home already exposed progress and a next action. Phase 12 now completes the playbook overview with authenticated, run-scoped reads for:
+
+- project/run status;
+- team;
+- current milestone;
+- next meeting;
+- blocked tasks;
+- upcoming work.
+
+Milestones and tasks remain the existing run-scoped delivery records; no parallel planning model was introduced.
+
+### Active-run RLS boundary
+
+`20260906030000_project_experience_phase_12_lab_access_rls.sql` adds the service-safe `phase12_has_lab_access(project_id, run_id)` predicate and restrictive RLS policies over private Lab execution tables. The restrictive layer composes with existing permissive ownership/leadership policies, so those older policies cannot independently grant Lab access.
+
+The Phase 12 predicate requires an ordinary user to have `active` or `completed` membership in the exact run and requires the run to be `active`, `review` or `completed`. Admin remains explicitly supported. The broad legacy `is_project_member()` helper is deliberately not redefined because it is also used outside the private Lab boundary.
+
+The restrictive layer covers discussions, resources, meetings, tasks, milestones, responsibilities, data sources, data-source versions and deliverables.
 
 ## Security rules
 
 - ordinary access must be authenticated;
 - ordinary members must have active/completed canonical membership;
 - the member's run must be active, review or completed;
-- removed/non-members must not receive private Lab access;
+- waiting, removed and non-members must not receive private Lab access;
 - private working-copy resource URLs are projected only when resource governance is `green` and internal storage policy is explicitly `permitted`;
 - run-specific execution data must stay scoped to the authorised run;
 - service-role reads must remain behind explicit server-side membership/admin checks and must never become a browser-side authority.
 
-## Testing
+## Testing and current evidence
 
-`tests/project-experience-phase12-canonical-lab.spec.ts` protects the first deterministic Phase 12 contract, including:
+`tests/project-experience-phase12-canonical-lab.spec.ts` is now included in the blocking `test:regression` command. It protects canonical brief separation, governed resources, Phase 10 responsibilities, the complete Lab overview, active-run RLS, run-scoped milestones/tasks, preserved navigation and accessibility structure.
 
-- active/completed Lab membership gate;
-- canonical project-level resource/deliverable/timeline separation;
-- governed private working-copy URLs;
-- one canonical Project Brief component;
-- canonical Phase 10 responsibility consumption and display;
-- Project Lead / username / participation state preservation;
-- run-scoped milestones and tasks;
-- existing Lab navigation;
-- accessible Lab skip/label structure;
-- required brief sections.
+`tests/project-experience-phase12-lab-access-e2e.spec.ts` adds disposable isolated-Supabase journeys proving:
 
-This static contract is not sufficient for final sign-off. Phase 12 still requires authenticated RLS/E2E proof for non-member and removed-member denial, resource permission boundaries, milestone/task mutations, responsive/device coverage and exact-head release gates.
+- an active member can read same-run private resources/tasks;
+- a waiting member receives no private resource/task rows;
+- `phase12_has_lab_access` returns false for a waiting member;
+- deleting the active membership immediately revokes private resource/task reads and the Phase 12 access predicate.
+
+The E2E file exists but **must not be counted as blocking sign-off evidence until it is wired into and passes the protected isolated-Supabase smoke/staging command**.
+
+Initial Phase 12 CI evidence before the RLS/overview changes:
+
+- lint passed;
+- typecheck passed;
+- regression-coverage audit passed;
+- persistence shard passed;
+- informational journey shard passed;
+- clean isolated Supabase setup passed on the earlier Phase 12 head;
+- one Phase 1 identity audit failed because the first responsibility projection selected an internal membership-row identifier. That implementation was corrected rather than weakening the Phase 1 audit.
+
+The newest exact head still requires a complete fresh release-gate result after the RLS migration and overview changes.
+
+## Remaining sign-off work
+
+- execute the Phase 12 RLS E2E as a protected blocking isolated-Supabase test;
+- prove milestone/task mutations under active-run RLS, not only reads;
+- confirm clean migration reconstruction with `20260906030000`;
+- confirm responsive/device/200% zoom coverage after the overview and responsibility additions;
+- confirm accessibility and Lab regression suites on the exact head;
+- resolve any exact-head failures without weakening inherited contracts;
+- keep Phase 12 stacked behind Phase 11 / PR #220.
 
 ## Sign-off
 

@@ -67,6 +67,8 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
     const migration=hardening();
     const consume=read('supabase/migrations/20260906002400_project_experience_phase_9_lock_order_hardening.sql');
     const offerGuard=read('supabase/migrations/20260906002500_project_experience_phase_9_offer_lock_order_guard.sql');
+    const response=read('supabase/migrations/20260906002600_project_experience_phase_9_offer_response_lock_order.sql');
+    const readiness=read('supabase/migrations/20260906002800_project_experience_phase_9_readiness_lock_order.sql');
     expect(migration).toContain('phase9_lock_project_capacity');
     expect(migration).toContain("hashtextextended(p_project_id::text,9)");
     expect((migration.match(/perform public\.phase9_lock_project_capacity/g)||[]).length).toBeGreaterThanOrEqual(4);
@@ -74,8 +76,21 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
     expect(consume).toContain('perform public.phase9_lock_project_capacity(new.project_id)');
     expect(consume).not.toContain("hashtextextended(new.project_id::text,7)");
     expect(offerGuard).toContain("old_live and old.project_id is not distinct from new.project_id");
-    expect(offerGuard).toContain('return new;');
     expect(offerGuard).toContain('Only transitions that can ADD or MOVE live reserved capacity');
+    expect(response.indexOf('from public.projects')).toBeLessThan(response.indexOf('perform public.phase9_lock_project_capacity(project.id)'));
+    expect(response.indexOf('perform public.phase9_lock_project_capacity(project.id)')).toBeLessThan(response.indexOf('where id=p_offer_id and user_id=actor\n  for update'));
+    expect(readiness.indexOf('from public.projects')).toBeLessThan(readiness.indexOf('perform public.phase9_lock_project_capacity(project_row.id)'));
+    expect(readiness.indexOf('perform public.phase9_lock_project_capacity(project_row.id)')).toBeLessThan(readiness.indexOf('where id=p_run_id and project_id=project_row.id\n  for update'));
+  });
+
+  test('Offer identity cannot drift away from its application/project/member',()=>{
+    const identity=read('supabase/migrations/20260906002700_project_experience_phase_9_offer_identity_integrity.sql');
+    expect(identity).toContain('OFFER_IDENTITY_IMMUTABLE');
+    expect(identity).toContain('OFFER_APPLICATION_IDENTITY_MISMATCH');
+    expect(identity).toContain('OFFER_RUN_PROJECT_MISMATCH');
+    expect(identity).toContain('new.application_id is distinct from old.application_id');
+    expect(identity).toContain('new.project_id is distinct from old.project_id');
+    expect(identity).toContain('new.user_id is distinct from old.user_id');
   });
 
   test('AUTO readiness uses an exact six-hour window and ordinary additions do not reset it',()=>{

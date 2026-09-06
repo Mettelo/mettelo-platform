@@ -36,7 +36,7 @@ test('Partner review context and Offer boundary are rendered accessibly',async({
  await expect(dialog.getByText(/2 confirmed · 0 offered · 3 open · minimum 2 · target 4 · maximum 5/)).toBeVisible();
  await expect(dialog.getByRole('button',{name:'Start review'})).toBeVisible();
  await expect(dialog.getByRole('button',{name:'Decline'})).toBeVisible();
- await dialog.getByRole('button',{name:/Close project interest detail/i}).click();
+ await dialog.getByRole('button',{name:'Close interest detail'}).click();
 
  const shortlistRow=page.getByRole('button',{name:/Priya Shah/i});
  await shortlistRow.click();

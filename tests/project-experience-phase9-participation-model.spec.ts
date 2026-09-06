@@ -119,6 +119,24 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
     expect(migration).toContain("'state','participation_ready'");
   });
 
+  test('final activation is service-only and atomically revalidates mutable readiness',()=>{
+    const start=read('lib/project-start-service.ts');
+    const activation=read('supabase/migrations/20260906002900_project_experience_phase_9_atomic_run_activation.sql');
+    expect(start).toContain("db.rpc('phase9_activate_project_run'");
+    expect(start).not.toContain("db.from('project_runs').update({");
+    expect(activation).toContain('create or replace function public.phase9_activate_project_run');
+    expect(activation).toContain("filled<required_members");
+    expect(activation).toContain("filled>maximum_members");
+    expect(activation).toContain("project_experience_readiness");
+    expect(activation).toContain("team_role='project_lead'");
+    expect(activation).toContain("set status='active'");
+    expect(activation).toContain("membership_status='active'");
+    expect(activation).toContain("status='team_complete'");
+    expect(activation).toContain('activation_contract');
+    expect(activation).toContain('grant execute on function public.phase9_activate_project_run(uuid,uuid,text,uuid) to service_role');
+    expect(activation).toContain('revoke all on function public.phase9_activate_project_run(uuid,uuid,text,uuid) from public,anon,authenticated');
+  });
+
   test('late joining reuses Phase 6 policy and canonical project_members path',()=>{
     const phase6=read('supabase/migrations/20260905177000_project_experience_phase_6_late_joining_recruitment.sql');
     expect(phase6).toContain('late_joining_enabled');

@@ -6,7 +6,7 @@ function requireText(label,text,needles){for(const needle of needles)if(!text.in
 function forbidText(label,text,needles){for(const needle of needles)if(text.includes(needle)){console.error(`FAIL ${label}: forbidden ${needle}`);failed=true;}}
 
 const applications=read('components/MemberApplicationTracker.tsx');
-requireText('Application actionability guard',applications,['needs:0',"view==='needs'?false",'Nothing needs your attention']);
+requireText('Application actionability guard',applications,["needs:items.filter(item=>item.status==='offered'&&!isClosed(item)).length","view==='needs'?item.status==='offered'&&!isClosed(item)",'Needs action','Nothing needs your attention','Review the Project Place Offer above and explicitly accept or decline before its deadline.']);
 forbidText('Application actionability guard',applications,['actionRequiredStates','Review action','Action required before this application can continue']);
 
 const contributionForm=read('components/ContributionForm.tsx');

@@ -6,6 +6,7 @@ type Db=NonNullable<ReturnType<typeof serviceDb>>;
 type StartSource='auto_scheduler'|'manual'|'admin_retry';
 type StartResult={started:boolean;alreadyStarted?:boolean;paused?:boolean;blocked?:boolean;notReady?:boolean;blockers?:string[];projectId:string;runId:string;runNumber:number;filled:number;requiredTeamSize:number};
 type ActivationRpcResult={started?:boolean;already_started?:boolean;paused?:boolean;blocked?:boolean;not_ready?:boolean;blockers?:string[];run_number?:number;filled?:number;required_team_size?:number;maximum_team_size?:number};
+type Phase11ReadinessRpc={ready?:boolean;blockers?:string[];project?:{ready?:boolean;blockers?:string[]};team?:{ready?:boolean;blockers?:string[];filled?:number;required_team_size?:number};system?:{ready?:boolean;blockers?:string[]}};
 
 async function memberEmail(db:Db,userId:string){const {data}=await db.auth.admin.getUserById(userId);return data.user?.email||null}
 
@@ -37,6 +38,23 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
  }
  if(source==='auto_scheduler'&&(project.auto_start_paused_at||run.auto_start_paused_at)){
   return{started:false,paused:true,projectId,runId,runNumber:run.run_number,filled:0,requiredTeamSize:required};
+ }
+
+ // Phase 11 owns the final pre-start policy projection. This is deliberately a
+ // composition of existing project/team/system truth, not a second lifecycle.
+ // The Phase 9 activation RPC remains the final transactional authority and
+ // repeats mutable safety checks under the canonical project/run locks.
+ const {data:phase11Data,error:phase11Error}=await db.rpc('phase11_project_start_readiness',{
+  p_project_id:projectId,
+  p_run_id:runId
+ });
+ if(phase11Error)throw phase11Error;
+ const phase11=(phase11Data||{}) as Phase11ReadinessRpc;
+ if(!phase11.ready){
+  const blockers=Array.isArray(phase11.blockers)&&phase11.blockers.length?phase11.blockers:['project_readiness'];
+  const filled=Number(phase11.team?.filled||0);
+  const requiredTeamSize=Number(phase11.team?.required_team_size||required);
+  return{started:false,notReady:true,blockers,projectId,runId,runNumber:run.run_number,filled,requiredTeamSize};
  }
 
  // Participation geometry is independent from admission mode. Solo and Flexible
@@ -77,6 +95,6 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
  }
 
  const {data:members}=await db.from('project_members').select('user_id').eq('project_run_id',runId).eq('membership_status','active');
- await Promise.allSettled((members||[]).map(async member=>notifyUser(db,{userId:member.user_id,email:await memberEmail(db,member.user_id),projectId,type:'project_kickoff',title:'Your project is starting',body:`${project.title} is ready. Open the workspace to begin.`,actionUrl:`/member/projects/${projectId}?run=${runId}`,subject:`Your project is starting: ${project.title}`,templateKey:'project_kickoff',payload:{project_title:project.title,team_number:runNumber,participation_mode:participationMode}})));
+ await Promise.allSettled((members||[]).map(async member=>notifyUser(db,{userId:member.user_id,email:await memberEmail(db,member.user_id),projectId,type:'project_kickoff',title:'Your project is starting',body:`${project.title} is ready. Open the workspace to begin.`,actionUrl:`/member/projects/${projectId}?run=${runId}`,subject:`Your project is starting: ${project.title}`,templateKey:'project_kickoff',dedupeKey:`phase11:${runId}:kickoff:${member.user_id}`,payload:{project_title:project.title,team_number:runNumber,participation_mode:participationMode}})));
  return{started:true,projectId,runId,runNumber,filled,requiredTeamSize};
 }

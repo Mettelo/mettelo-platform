@@ -95,6 +95,6 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
  }
 
  const {data:members}=await db.from('project_members').select('user_id').eq('project_run_id',runId).eq('membership_status','active');
- await Promise.allSettled((members||[]).map(async member=>notifyUser(db,{userId:member.user_id,email:await memberEmail(db,member.user_id),projectId,type:'project_kickoff',title:'Your project is starting',body:`${project.title} is ready. Open the workspace to begin.`,actionUrl:`/member/projects/${projectId}?run=${runId}`,subject:`Your project is starting: ${project.title}`,templateKey:'project_kickoff',payload:{project_title:project.title,team_number:runNumber,participation_mode:participationMode}})));
+ await Promise.allSettled((members||[]).map(async member=>notifyUser(db,{userId:member.user_id,email:await memberEmail(db,member.user_id),projectId,type:'project_kickoff',title:'Your project is starting',body:`${project.title} is ready. Open the workspace to begin.`,actionUrl:`/member/projects/${projectId}?run=${runId}`,subject:`Your project is starting: ${project.title}`,templateKey:'project_kickoff',dedupeKey:`phase11:${runId}:kickoff:${member.user_id}`,payload:{project_title:project.title,team_number:runNumber,participation_mode:participationMode}})));
  return{started:true,projectId,runId,runNumber,filled,requiredTeamSize};
 }

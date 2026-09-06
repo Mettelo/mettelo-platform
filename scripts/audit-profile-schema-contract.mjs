@@ -2,19 +2,19 @@ import fs from 'node:fs';
 
 const routePath='app/api/profile/route.ts';
 const migrationPath='supabase/migrations/20260819133000_profile_readiness.sql';
-const atomicSavePath='supabase/migrations/20260905110000_project_experience_phase_2_atomic_profile_save.sql';
+const atomicMigrationPath='supabase/migrations/20260905110000_project_experience_phase_2_atomic_profile_save.sql';
 const canonicalReadinessPath='lib/member-readiness.ts';
 const compatibilityPath='lib/profile-readiness.ts';
 
 const failures=[];
-for(const file of [routePath,migrationPath,atomicSavePath,canonicalReadinessPath,compatibilityPath]){
+for(const file of [routePath,migrationPath,atomicMigrationPath,canonicalReadinessPath,compatibilityPath]){
   if(!fs.existsSync(file))failures.push(`Missing required profile contract file: ${file}`);
 }
 
 if(!failures.length){
   const route=fs.readFileSync(routePath,'utf8');
   const migration=fs.readFileSync(migrationPath,'utf8');
-  const atomicSave=fs.readFileSync(atomicSavePath,'utf8');
+  const atomicMigration=fs.readFileSync(atomicMigrationPath,'utf8');
   const canonical=fs.readFileSync(canonicalReadinessPath,'utf8');
   const compatibility=fs.readFileSync(compatibilityPath,'utf8');
 
@@ -43,8 +43,12 @@ if(!failures.length){
   if(!route.includes('profile_readiness:memberReadiness.legacyProfileReadiness'))failures.push('Profile save must persist the canonical compatibility readiness value.');
   if(!canonical.includes('legacyProfileReadiness:completionPercentage'))failures.push('Compatibility profile_readiness must be derived from canonical profile completion.');
   if(!route.includes('member_readiness:memberReadiness'))failures.push('Profile save must return the canonical readiness result to the client.');
-  const atomicIdempotency=route.includes("rpc('save_member_profile'")&&atomicSave.includes('insert into public.profiles(')&&atomicSave.includes('on conflict(id) do update set');
-  if(!atomicIdempotency)failures.push('Profile save must remain idempotent for existing and historical members through the canonical atomic save contract.');
+
+  const usesAtomicSave=route.includes("supabase.rpc('save_member_profile'");
+  const atomicSaveIsIdempotent=atomicMigration.includes('create or replace function public.save_member_profile')&&atomicMigration.includes('insert into public.profiles')&&atomicMigration.includes('on conflict(id) do update');
+  const legacyDirectUpsert=route.includes("supabase.from('profiles').upsert");
+  if(!(legacyDirectUpsert||(usesAtomicSave&&atomicSaveIsIdempotent)))failures.push('Profile save must remain idempotent for existing and historical members.');
+  if(usesAtomicSave&&!atomicMigration.includes('security invoker'))failures.push('Atomic profile save must preserve caller-scoped RLS authority.');
 
   for(const requiredState of ['profileCompletion','matchingReadiness','applicationReadiness','publicProfileReadiness','proofStatus']){
     if(!canonical.includes(requiredState))failures.push(`Canonical readiness domain must expose ${requiredState}.`);

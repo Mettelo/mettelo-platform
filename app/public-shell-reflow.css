@@ -1,6 +1,34 @@
 /* Shared public-shell reflow hardening.
-   Keep footer content inside the viewport when text is enlarged without
-   changing the approved desktop information architecture. */
+   Keep public chrome inside the viewport when text is enlarged without
+   changing the approved navigation destinations or information architecture. */
+
+/* Desktop text enlargement can make the managed navigation wider than one
+   physical row even while the viewport remains above the mobile breakpoint.
+   Let the header and its navigation wrap instead of increasing document width. */
+@media(min-width:1081px){
+  .siteHeader .nav{
+    height:auto;
+    min-height:80px;
+    flex-wrap:wrap;
+    row-gap:0;
+    padding-block:8px;
+  }
+  .siteHeader .brandImageLink{min-width:0;flex:0 1 auto}
+  .siteHeader .managedDesktopNavigation{
+    min-width:0;
+    flex:1 1 560px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    row-gap:0;
+  }
+  .siteHeader .navActions{
+    min-width:0;
+    flex:0 1 auto;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+}
+
 @media(max-width:1180px){
   footer .footerGrid{
     grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,.75fr))!important;

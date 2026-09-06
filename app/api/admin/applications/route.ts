@@ -21,18 +21,22 @@ async function memberEmail(db:NonNullable<ReturnType<typeof serviceDb>>,userId:s
   return data.user?.email||null;
 }
 
-function defaultMessage(status:string,title:string,reviewerNotes:string){
-  if(status==='in_review')return `Your application for ${title} is now in review. No action is required from you right now. We will update My Mettelo when the next decision is available.`;
-  if(status==='shortlisted')return `You have been shortlisted for ${title}. No action is required right now; we will contact you if we need more information before the final decision.`;
-  if(status==='declined')return `Your application for ${title} was not selected for this team.${reviewerNotes?` ${reviewerNotes}`:''} You can continue exploring other Mettelo projects that match your profile.`;
-  return `Your application for ${title} has been approved. Your place is confirmed and will move into team formation. Keep your availability current while the team is completed.`;
+function defaultMessage(status:string,title:string,reviewerNotes:string,kind:string|null){
+  const noun=kind==='interest'?'interest':'application';
+  if(status==='in_review')return `Your project ${noun} for ${title} is now in review. No action is required from you right now. We will update My Mettelo when the next decision is available.`;
+  if(status==='shortlisted')return `Your project ${noun} for ${title} has progressed to the shortlist. No action is required right now; we will contact you if we need more information before the final decision.`;
+  if(status==='declined')return `Your project ${noun} for ${title} was not selected for this team.${reviewerNotes?` ${reviewerNotes}`:''} You can continue exploring other Mettelo projects that match your profile.`;
+  return kind==='interest'
+    ? `Your project interest for ${title} has been approved. Your place is confirmed for team formation. A formal contribution role can be assigned during team formation before the project starts.`
+    : `Your project application for ${title} has been approved. Your place is confirmed and will move into team formation. Keep your availability current while the team is completed.`;
 }
 
-function notificationMeta(status:string){
-  if(status==='in_review')return{type:'application_in_review',title:'Project application in review',subject:'Your Mettelo project application is in review'};
-  if(status==='shortlisted')return{type:'application_shortlisted',title:'Project application shortlisted',subject:'You have been shortlisted for a Mettelo project'};
-  if(status==='declined')return{type:'application_declined',title:'Project application update',subject:'Your Mettelo project application has been updated'};
-  return{type:'application_approved',title:'Project application approved',subject:'Your Mettelo project application has been approved'};
+function notificationMeta(status:string,kind:string|null){
+  const label=kind==='interest'?'Project interest':'Project application';
+  if(status==='in_review')return{type:'application_in_review',title:`${label} in review`,subject:`Your Mettelo ${label.toLowerCase()} is in review`};
+  if(status==='shortlisted')return{type:'application_shortlisted',title:`${label} shortlisted`,subject:`Your Mettelo ${label.toLowerCase()} has been shortlisted`};
+  if(status==='declined')return{type:'application_declined',title:`${label} update`,subject:`Your Mettelo ${label.toLowerCase()} has been updated`};
+  return{type:'application_approved',title:`${label} approved`,subject:`Your Mettelo ${label.toLowerCase()} has been approved`};
 }
 
 export async function PATCH(request:Request){
@@ -45,25 +49,26 @@ export async function PATCH(request:Request){
     const status=String(body.status||'');
     const reviewerNotes=String(body.reviewer_notes||'').trim().slice(0,1500);
     const customMessage=String(body.custom_message||'').trim().slice(0,1800);
-    if(!id||!statuses.has(status))return NextResponse.json({error:'Choose a valid project application and status.'},{status:400});
+    if(!id||!statuses.has(status))return NextResponse.json({error:'Choose a valid project request and status.'},{status:400});
 
     const {data:application,error:loadError}=await db
       .from('project_applications')
       .select('id,project_id,project_role_id,project_run_id,user_id,status,application_kind,requested_role,projects(id,title,status,project_type,team_size_threshold,kickoff_at,applications_open)')
       .eq('id',id)
       .single();
-    if(loadError||!application)return NextResponse.json({error:'Project application not found.'},{status:404});
+    if(loadError||!application)return NextResponse.json({error:'Project request not found.'},{status:404});
 
     const project=Array.isArray(application.projects)?application.projects[0]:application.projects;
     if(!project)return NextResponse.json({error:'Project not found.'},{status:404});
+    const isInterest=application.application_kind==='interest';
 
     if(status==='declined'&&['approved','waiting_for_team','team_complete','accepted'].includes(application.status)){
       return NextResponse.json({error:'This member has already joined a team. Manage their membership from Project Operations.'},{status:409});
     }
 
     const email=await memberEmail(db,application.user_id);
-    const comm=notificationMeta(status);
-    const memberMessage=customMessage||defaultMessage(status,project.title,reviewerNotes);
+    const comm=notificationMeta(status,application.application_kind);
+    const memberMessage=customMessage||defaultMessage(status,project.title,reviewerNotes,application.application_kind);
 
     if(status!=='approved'){
       const patch:{status:string;reviewer_notes:string|null;decision_reason?:string|null;decision_at?:string}={status,reviewer_notes:reviewerNotes||null};
@@ -83,14 +88,17 @@ export async function PATCH(request:Request){
       return NextResponse.json({error:'This member already has participation history for this canonical project. Their original cohort membership will not be overwritten.'},{status:409});
     }
 
-    if(!application.project_role_id)return NextResponse.json({error:'Assign a valid project role before approving this application.'},{status:409});
-    const {data:role,error:roleError}=await db.from('project_roles').select('id,title,openings').eq('id',application.project_role_id).eq('project_id',application.project_id).maybeSingle();
-    if(roleError)throw roleError;
-    if(!role||Number(role.openings||0)<1)return NextResponse.json({error:'The selected project role is no longer available. Choose another role before approval.'},{status:409});
-
-    const usage=await loadProjectRoleUsage(db,application.project_id,project.project_type);
-    if(!usage.known)return NextResponse.json({error:'Role capacity could not be confirmed. No team place was assigned.'},{status:503});
-    if((usage.filled.get(role.id)||0)>=role.openings)return NextResponse.json({error:`${role.title} is full for the current team. Choose another role or wait for the next Open Project cohort.`},{status:409});
+    let approvedRoleId:string|null=application.project_role_id||null;
+    if(!isInterest){
+      if(!approvedRoleId)return NextResponse.json({error:'Assign a valid project role before approving this application.'},{status:409});
+      const {data:role,error:roleError}=await db.from('project_roles').select('id,title,openings').eq('id',approvedRoleId).eq('project_id',application.project_id).maybeSingle();
+      if(roleError)throw roleError;
+      if(!role||Number(role.openings||0)<1)return NextResponse.json({error:'The selected project role is no longer available. Choose another role before approval.'},{status:409});
+      const usage=await loadProjectRoleUsage(db,application.project_id,project.project_type);
+      if(!usage.known)return NextResponse.json({error:'Role capacity could not be confirmed. No team place was assigned.'},{status:503});
+      if((usage.filled.get(role.id)||0)>=role.openings)return NextResponse.json({error:`${role.title} is full for the current team. Choose another role or wait for the next Open Project cohort.`},{status:409});
+      approvedRoleId=role.id;
+    }
 
     const now=new Date().toISOString();
     let run:{id:string;run_number:number;status:string;required_team_size:number;has_started:boolean}|null=null;
@@ -104,7 +112,7 @@ export async function PATCH(request:Request){
       if(createError){const {data:concurrentRun}=await db.from('project_runs').select('id,run_number,status,required_team_size,has_started').eq('project_id',application.project_id).eq('status','forming').eq('has_started',false).order('run_number',{ascending:true}).limit(1).maybeSingle();if(!concurrentRun)throw createError;run=concurrentRun;}else{run=created;await db.from('project_activity_log').insert({project_id:application.project_id,project_run_id:run.id,event_type:'cohort_created',actor_type:'system',from_status:null,to_status:'forming',metadata:{project_type:project.project_type,run_number:run.run_number,required_team_size:required}});}
     }
 
-    const {error:memberError}=await db.from('project_members').insert({project_id:application.project_id,project_run_id:run.id,user_id:application.user_id,project_role_id:application.project_role_id,team_role:'contributor',membership_status:'waiting'});
+    const {error:memberError}=await db.from('project_members').insert({project_id:application.project_id,project_run_id:run.id,user_id:application.user_id,project_role_id:approvedRoleId,team_role:'contributor',membership_status:'waiting'});
     if(memberError){if(['23505','23514'].includes(memberError.code||''))return NextResponse.json({error:'That team place changed while this approval was being processed. No existing cohort history was overwritten.'},{status:409});throw memberError;}
     await db.from('project_applications').update({project_run_id:run.id}).eq('id',id);
 
@@ -132,5 +140,5 @@ export async function PATCH(request:Request){
     }
 
     return NextResponse.json({ok:true,application:updated,team:{id:run.id,filled:readiness.filled,threshold:readiness.threshold,full:readiness.full,lead_user_id:readiness.leadUserId,lead_ready:readiness.leadReady,responsibility_coverage_ready:readiness.responsibilityCoverageReady,lab_ready:readiness.labReady,ready:readiness.ready,blockers:readiness.blockers,run_number:run.run_number,status:readiness.ready&&project.project_type==='open'?'active':'forming'},project_status:project.project_type==='open'?'open':'forming',communication:{body:memberMessage}});
-  }catch(error){console.error('project request review error',error);return NextResponse.json({error:'Unable to update this project application.'},{status:500});}
+  }catch(error){console.error('project request review error',error);return NextResponse.json({error:'Unable to update this project request.'},{status:500});}
 }

@@ -20,7 +20,7 @@ expect('supabase/migrations/20260819193000_member_discover_application_integrity
 expect('supabase/migrations/20260905170000_project_experience_phase_5_interest_uniqueness.sql',['drop index if exists public.project_applications_one_interest_per_project_user','project_applications_one_active_interest_per_project_user',"application_kind='interest'","status not in ('declined','withdrawn')"]);
 
 // Team formation is readiness-driven, opt-in for automatic leadership, and single-winner under concurrency.
-expect('lib/project-team-readiness.ts',['const volunteers=candidates.filter(candidate=>candidate.leadershipInterest)','recommendation=volunteers[0]||null',".eq('team_role','contributor')",".select('id')",'if(assigned){','A concurrent approval may have completed the same deterministic lead',"if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')"]);
+expect('lib/project-team-readiness.ts',['const volunteers=candidates.filter(candidate=>candidate.leadershipInterest)','recommendation=volunteers[0]||null',".eq('team_role','contributor')",".select('id')",'if(assigned){',"const {data:currentLeads,error:leadError}=await db.from('project_members')","leads=(currentLeads||[]) as MemberRow[]","if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')"]);
 expect('supabase/migrations/20260902122350_project_team_single_lead_invariant.sql',['create unique index if not exists project_members_one_current_lead_per_run','on public.project_members(project_run_id)',"team_role='project_lead'","membership_status in ('waiting','active')"]);
 
 // Authenticated Discover stays in My Mettelo and shares the governed catalogue filter model.

@@ -40,7 +40,7 @@ async function memberIdentity(client:ReturnType<typeof serviceDb>){
   return member;
 }
 
-async function withTimeout<T>(promise:Promise<T>,milliseconds=8000){
+async function withTimeout<T>(promise:PromiseLike<T>,milliseconds=8000){
   let timer:ReturnType<typeof setTimeout>|undefined;
   try{
     return await Promise.race([

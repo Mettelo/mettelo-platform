@@ -11,8 +11,12 @@ type NextTask={title:string;due_at:string|null}|null;
 type NextMeeting={title:string;starts_at:string}|null;
 type Props={projectId:string;projectRunId:string|null;projectTitle:string;projectSummary:string|null;projectType:string;runNumber:number|null;runStatus:string;currentUserId:string;workspaceRole:string;team:TeamMember[];projectArchitectName:string|null;canManageSubmissionPermissions:boolean;completedMilestones:number;totalMilestones:number;completedTasks:number;totalTasks:number;nextTask:NextTask;nextMeeting:NextMeeting;recentDiscussions:Discussion[];reviewSlot?:ReactNode};
 
+type MilestoneSnapshot={title:string;status:string;due_at:string|null};
+type WorkSnapshot={title:string;status:string;due_at:string|null};
+
 function humanise(value:string){return value.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase())}
 function formatDate(value:string){return new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}
+function shortDate(value:string|null){return value?new Intl.DateTimeFormat('en-GB',{dateStyle:'medium'}).format(new Date(value)):null}
 function initials(name:string){return name.split(/\s+/).map(part=>part[0]).join('').slice(0,2).toUpperCase()}
 function roleLabel(role:string){return role==='project_lead'?'Leader':role==='project_architect'?'Architect':role==='reviewer'?'Reviewer':role.replaceAll('_',' ')}
 function progress(completed:number,total:number){if(total<=0)return 0;return Math.max(0,Math.min(100,Math.round((completed/total)*100)))}
@@ -29,6 +33,19 @@ export default async function MetteloLabPanel(props:Props){
  const architect=props.projectArchitectName||props.team.find(member=>member.role==='project_architect')?.name||null;
  const names=new Map(props.team.map(member=>[member.id,member.name]));
  const noTeam=!props.projectRunId;
+ let currentMilestone:MilestoneSnapshot|null=null;
+ let blockedWork:WorkSnapshot[]=[];
+ let upcomingWork:WorkSnapshot[]=[];
+ if(props.projectRunId){
+  const [milestoneResult,blockedResult,upcomingResult]=await Promise.all([
+   auth.from('project_milestones').select('title,status,due_at').eq('project_id',props.projectId).eq('project_run_id',props.projectRunId).neq('status','completed').order('sort_order',{ascending:true}).order('due_at',{ascending:true,nullsFirst:false}).limit(1).maybeSingle(),
+   auth.from('project_tasks').select('title,status,due_at').eq('project_id',props.projectId).eq('project_run_id',props.projectRunId).eq('status','blocked').order('due_at',{ascending:true,nullsFirst:false}).limit(5),
+   auth.from('project_tasks').select('title,status,due_at').eq('project_id',props.projectId).eq('project_run_id',props.projectRunId).neq('status','done').neq('status','blocked').order('due_at',{ascending:true,nullsFirst:false}).limit(3)
+  ]);
+  currentMilestone=(milestoneResult.data||null) as MilestoneSnapshot|null;
+  blockedWork=(blockedResult.data||[]) as WorkSnapshot[];
+  upcomingWork=(upcomingResult.data||[]) as WorkSnapshot[];
+ }
  const viewHref=(view:string)=>{const query=new URLSearchParams({...(props.projectRunId?{run:props.projectRunId}:{}),view});return `/member/projects/${props.projectId}?${query.toString()}`};
  const actionTitle=noTeam?'Your team is still being formed':props.nextTask?.title||'No task needs your attention yet';
  const actionCopy=noTeam?'We’ll notify you when you are placed into a team.':props.nextTask?(props.nextTask.due_at?`Due ${new Intl.DateTimeFormat('en-GB',{dateStyle:'medium'}).format(new Date(props.nextTask.due_at))}.`:'Open the task to review what is required.'):(props.nextMeeting?`Next team event: ${props.nextMeeting.title} · ${formatDate(props.nextMeeting.starts_at)}`:'Your Project Lead will notify you when the next action is ready.');
@@ -36,6 +53,10 @@ export default async function MetteloLabPanel(props:Props){
  const actionLabel=noTeam?'View team status':props.nextTask?'Continue task':props.nextMeeting?'View next event':'View team';
  const milestoneProgress=progress(props.completedMilestones,props.totalMilestones);
  const taskProgress=progress(props.completedTasks,props.totalTasks);
+ const milestoneLabel=currentMilestone?`${currentMilestone.title}${shortDate(currentMilestone.due_at)?` · ${shortDate(currentMilestone.due_at)}`:''}`:'No current milestone';
+ const meetingLabel=props.nextMeeting?`${props.nextMeeting.title} · ${formatDate(props.nextMeeting.starts_at)}`:'No upcoming meeting';
+ const blockerLabel=blockedWork.length?`${blockedWork.length} blocked task${blockedWork.length===1?'':'s'} · ${blockedWork.map(item=>item.title).slice(0,2).join(' · ')}`:'No active blockers';
+ const upcomingLabel=upcomingWork.length?upcomingWork.map(item=>`${item.title}${shortDate(item.due_at)?` · ${shortDate(item.due_at)}`:''}`).join(' · '):'No upcoming tasks';
  return <section className={styles.metteloLab} id="mettelo-lab" aria-labelledby="mettelo-lab-title">
   <header className={styles.labHeader} data-lab-home-section>
    <div className={styles.headerMain}><span className={styles.labEyebrow}>METTELO LAB / HOME</span><h2 id="mettelo-lab-title">{props.projectTitle}</h2><p>{props.projectSummary||'Your workspace for contributing to this project, working with your team and building evidence around the work you deliver.'}</p></div>
@@ -44,7 +65,8 @@ export default async function MetteloLabPanel(props:Props){
   <ProjectLabCanonicalBrief projectId={props.projectId}/>
   <section className={styles.nextAction} data-lab-home-section aria-labelledby="lab-next-action"><div className={styles.nextActionCopy}><span className={styles.labLabel}>UP NEXT</span><h3 id="lab-next-action">{actionTitle}</h3><p>{actionCopy}</p></div><a className={styles.labButton} href={actionHref}>{actionLabel}<span aria-hidden="true">→</span></a></section>
   <section className={styles.summary} data-lab-home-section aria-labelledby="lab-summary-title">
-   <div className={styles.sectionTitle}><span className={styles.labLabel}>PROJECT PROGRESS</span><h3 id="lab-summary-title">Where things stand</h3><p>Track completed work and see what your team still needs to deliver.</p></div>
+   <div className={styles.sectionTitle}><span className={styles.labLabel}>PROJECT OVERVIEW</span><h3 id="lab-summary-title">Where things stand</h3><p>See the active run, current milestone, next meeting, blockers and upcoming delivery work from one canonical workspace.</p></div>
+   <div className={styles.summaryGrid} aria-label="Current project delivery context"><Stat label="Project status" value={humanise(props.runStatus)}/><Stat label="Team" value={current?`Team ${current.run_number} · ${current.members.length} member${current.members.length===1?'':'s'}`:'Team forming'}/><Stat label="Current milestone" value={milestoneLabel}/><Stat label="Next meeting" value={meetingLabel}/><Stat label="Blockers" value={blockerLabel}/><Stat label="Upcoming work" value={upcomingLabel}/></div>
    <div className={styles.progressGrid}>
     <ProgressCard label="Milestones" completed={props.completedMilestones} total={props.totalMilestones} percent={milestoneProgress}/>
     <ProgressCard label="Tasks" completed={props.completedTasks} total={props.totalTasks} percent={taskProgress}/>

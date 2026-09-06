@@ -12,7 +12,7 @@ async function cleanup(){const db=service();await db.from('project_runs').delete
 
 async function seed(){
  const db=service();await cleanup();
- const {error:projectError}=await db.from('projects').insert({id:projectId,slug:'phase7-run-privacy',title:'Phase 7 run privacy fixture',summary:'Disposable Phase 7 run privacy fixture.',problem_statement:'Validate safe public run status without exposing Admin operational metadata.',status:'open',visibility:'public',project_type:'open',applications_open:false,team_size_threshold:1,min_team_size:1,target_team_size:1,max_team_size:2,participation_mode:'team',admission_mode:'auto'});if(projectError)throw projectError;
+ const {error:projectError}=await db.from('projects').insert({id:projectId,slug:'phase7-run-privacy',title:'Phase 7 run privacy fixture',summary:'Disposable Phase 7 run privacy fixture.',problem_statement:'Validate safe public run status without exposing Admin operational metadata.',status:'open',visibility:'public',project_type:'open',applications_open:false,team_size_threshold:1,min_team_size:1,target_team_size:1,max_team_size:2,participation_mode:'flexible',admission_mode:'auto'});if(projectError)throw projectError;
  const {data,error}=await db.from('project_runs').insert({project_id:projectId,run_number:1,status:'forming',team_size_threshold:1,required_team_size:1,has_started:false,recruitment_open:true,auto_start_pause_reason:'Private governance note',auto_start_block_reason:'Private security note',auto_start_failure:'private-diagnostic'}).select('id').single();if(error||!data)throw error||new Error('Could not seed Phase 7 run privacy fixture.');return data.id;
 }
 

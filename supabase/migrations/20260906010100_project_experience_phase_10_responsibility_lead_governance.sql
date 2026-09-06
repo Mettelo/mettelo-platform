@@ -147,7 +147,20 @@ declare
   role_project_id uuid;
   lead_count integer:=0;
   run_project_id uuid;
+  project_lock_id uuid;
 begin
+  -- Match the Phase 9 canonical order even when a privileged/direct writer hits
+  -- this defence-in-depth trigger before another membership trigger:
+  -- project row -> project-capacity lock -> run row.
+  select id into project_lock_id
+  from public.projects
+  where id=new.project_id
+  for update;
+  if project_lock_id is null then
+    raise exception using errcode='P0002',message='PROJECT_NOT_FOUND';
+  end if;
+  perform public.phase9_lock_project_capacity(project_lock_id);
+
   if new.project_role_id is not null then
     select project_id into role_project_id
     from public.project_roles

@@ -7,6 +7,10 @@ const css=read('app/member/projects/member-projects.module.css');
 const shell=read('components/MemberAppShell.tsx');
 const nav=read('lib/member-navigation.ts');
 const gate=read('app/member/projects/[id]/layout.tsx');
+const preparingMarker='<div className={styles.eyebrow}>PREPARING TO START</div>';
+const preparingStart=page.indexOf(preparingMarker);
+const preparingEnd=preparingStart>=0?page.indexOf('\n    </>}',preparingStart):-1;
+const preparingSection=preparingStart>=0&&preparingEnd>preparingStart?page.slice(preparingStart,preparingEnd):'';
 
 const checks=[
  ['Projects remains server authenticated',page.includes('createServerSupabaseClient')&&page.includes("redirect('/signin?next=/member/projects')")],
@@ -15,7 +19,7 @@ const checks=[
  ['active project CTA opens Mettelo Lab',page.includes('Open Mettelo Lab')&&page.includes('labHref(')],
  ['Lab authorization remains server side',gate.includes("['active','completed'].includes(membership.membership_status)")&&gate.includes("['active','review','completed'].includes(runStatus)" )],
  ['Team Forming is plain language and no action state is explicit',page.includes('Team forming')&&page.includes('No action needed right now')],
- ['preparing projects do not expose Lab entry',page.includes('href="/member/applications"')&&page.includes('Mettelo Lab remains closed until final readiness passes and the canonical start succeeds.')&&!/filteredPreparing[\s\S]*Open Mettelo Lab/.test(page.slice(page.indexOf('filteredPreparing'),page.indexOf('{showCompleted')))],
+ ['preparing projects do not expose Lab entry',preparingSection.includes('href="/member/applications"')&&preparingSection.includes('Mettelo Lab remains closed until final readiness passes and the canonical start succeeds.')&&!preparingSection.includes('Open Mettelo Lab')&&!preparingSection.includes('labHref(')],
  ['completed Proof links require verified contribution state',page.includes("verification_status','verified'")&&page.includes('proofProjects.has(item.project_id)')],
  ['Discover and Recommended remain distinct member journeys',page.includes('href="/member/discover"')&&page.includes('href="/member/recommended"')&&!page.includes('href="/projects"')],
  ['search state and role filtering are accessible',page.includes('aria-label="Search my projects"')&&page.includes('aria-label="Project state"')&&page.includes('aria-label="Filter by project role"')],

@@ -63,21 +63,27 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
     expect(migration).toContain('occupied+reserved>=maximum_members');
   });
 
-  test('one Phase 9 capacity lock protects membership and Offer reservation paths',()=>{
+  test('one Phase 9 capacity lock protects membership and Offer reservation paths without cross-phase lock inversion',()=>{
     const migration=hardening();
+    const lockOrder=read('supabase/migrations/20260906002400_project_experience_phase_9_lock_order_hardening.sql');
     expect(migration).toContain('phase9_lock_project_capacity');
     expect(migration).toContain("hashtextextended(p_project_id::text,9)");
     expect((migration.match(/perform public\.phase9_lock_project_capacity/g)||[]).length).toBeGreaterThanOrEqual(4);
+    expect(lockOrder).toContain('phase8_consume_offer_reservation_on_membership');
+    expect(lockOrder).toContain('perform public.phase9_lock_project_capacity(new.project_id)');
+    expect(lockOrder).not.toContain("hashtextextended(new.project_id::text,7)");
   });
 
   test('AUTO readiness uses an exact six-hour window and ordinary additions do not reset it',()=>{
     const admission=read('lib/project-admission.ts');
     const migration=hardening();
+    const guard=read('supabase/migrations/20260906002200_project_experience_phase_9_auto_window_guard.sql');
     expect(admission).toContain('DEFAULT_AUTO_START_DELAY_MINUTES=360');
     expect(migration).toContain('auto_start_delay_minutes=360');
     expect(migration).toContain("due_at:=coalesce(run_row.start_ready_at,now_at)+interval '6 hours'");
     expect(migration).toContain('run_row.scheduled_start_at is null');
     expect(migration).toContain('Do not reset an existing valid schedule');
+    expect(guard).toContain('new.auto_start_delay_minutes:=360');
   });
 
   test('minimum loss invalidates schedule and restored readiness can create a fresh window',()=>{
@@ -121,7 +127,7 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
     expect(start).toContain('participation_mode:participationMode');
   });
 
-  test('public and member project surfaces explain participation and readiness separately',()=>{
+  test('public and member project surfaces explain participation and readiness separately and Solo is independent work',()=>{
     const publicDetail=read('components/project-experience/ProjectPublicDetailV2.tsx');
     const memberDetail=read('components/project-experience/MemberProjectDetailV2.tsx');
     const admin=read('components/ArchitectProjectParticipationPanel.tsx');
@@ -130,15 +136,20 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
     expect(memberDetail).toContain('<dt>Minimum to start</dt>');
     expect(memberDetail).toContain('<dt>Target team</dt>');
     expect(memberDetail).toContain('<dt>Maximum team</dt>');
+    expect(memberDetail).toContain("const isSolo=project.participationMode==='solo'");
+    expect(memberDetail).toContain("'Working independently'");
+    expect(memberDetail).toContain('aria-label="Solo participation capacity"');
     expect(admin).toContain("value.participation_mode==='flexible'?'Team minimum':'Minimum to start'");
     expect(admin).toContain('Target is desirable planning capacity');
   });
 
   test('accepted Offer history remains compatible with later canonical membership',()=>{
     const phase8=read('supabase/migrations/20260905232700_project_experience_phase_8_reservation_consumption.sql');
+    const lockOrder=read('supabase/migrations/20260906002400_project_experience_phase_9_lock_order_hardening.sql');
     expect(phase8).toContain('capacity_consumed_at');
     expect(phase8).toContain('project_member_phase8_offer_consumption');
     expect(phase8).toContain("status='accepted'");
     expect(phase8).not.toContain('delete from public.project_offers');
+    expect(lockOrder).toContain("set capacity_consumed_at=now()");
   });
 });

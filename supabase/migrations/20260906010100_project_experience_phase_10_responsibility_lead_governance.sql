@@ -20,11 +20,8 @@ declare
   run_row public.project_runs%rowtype;
   role_project_id uuid;
   current_lead public.project_members%rowtype;
-  next_team_role text:='contributor';
-  now_at timestamptz:=now();
+  next_team_role text;
 begin
-  -- Read only the project hint before locks; canonical mutable state is reread
-  -- after the shared project lock is acquired.
   select project_id into member_row.project_id
   from public.project_members
   where id=p_membership_id;
@@ -78,6 +75,9 @@ begin
       raise exception using errcode='23514',message='PROJECT_ROLE_PROJECT_MISMATCH';
     end if;
   end if;
+
+  -- Responsibility edits do not implicitly demote an existing Project Lead.
+  next_team_role:=coalesce(member_row.team_role,'contributor');
 
   if p_make_project_lead then
     if greatest(coalesce(run_row.required_team_size,run_row.team_size_threshold,1),1)<=1 then
@@ -137,9 +137,6 @@ $$;
 revoke all on function public.phase10_assign_member_responsibility(uuid,uuid,boolean,uuid) from public,anon,authenticated;
 grant execute on function public.phase10_assign_member_responsibility(uuid,uuid,boolean,uuid) to service_role;
 
--- Defence in depth for any privileged/direct writer that bypasses the Phase 10
--- RPC. Role references must belong to the same project and at most one live lead
--- may exist per run. The run row serialises concurrent lead assignment attempts.
 create or replace function public.phase10_validate_member_formation_assignment()
 returns trigger
 language plpgsql

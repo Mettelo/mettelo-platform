@@ -11,6 +11,7 @@ const gate=read('app/member/projects/[id]/layout.tsx');
 const delivery=read('app/api/project-delivery/route.ts');
 const labRls=read('supabase/migrations/20260906030000_project_experience_phase_12_lab_access_rls.sql');
 const taskIntegrity=read('supabase/migrations/20260906030100_project_experience_phase_12_task_relation_integrity.sql');
+const labAnalytics=read('supabase/migrations/20260906030200_project_experience_phase_12_lab_analytics.sql');
 const packageJson=read('package.json');
 
 const cases:[string,boolean][]=[
@@ -34,6 +35,9 @@ const cases:[string,boolean][]=[
  ['existing Lab navigation remains composed through the workspace shell',gate.includes('MetteloLabNavigation')&&gate.includes('placement="rail-primary"')&&gate.includes('placement="mobile"')],
  ['workspace keeps an accessible skip target and labelled Lab region',gate.includes('Skip to Mettelo Lab content')&&panel.includes('aria-labelledby="mettelo-lab-title"')],
  ['canonical brief exposes problem, context, use case, objectives, questions, scope and success criteria',brief.includes('Problem Statement')&&brief.includes('Business Context')&&brief.includes('Primary Use Case')&&brief.includes('Primary Objective')&&brief.includes('Key questions')&&brief.includes('In scope')&&brief.includes('Success criteria')],
+ ['Lab open analytics reuses canonical activity log only after active-run authorization',labAnalytics.includes("phase12_has_lab_access(p_project_id,p_run_id)")&&labAnalytics.includes("insert into public.project_activity_log")&&labAnalytics.includes("'lab_opened'")&&gate.includes("supabase.rpc('phase12_record_lab_open'")],
+ ['Lab analytics stores only aggregate surface metadata and no private content',labAnalytics.includes("jsonb_build_object('surface','mettelo_lab')")&&!labAnalytics.includes('resource_url')&&!labAnalytics.includes('chat')&&!labAnalytics.includes('task_description')&&!labAnalytics.includes('application')],
+ ['Lab analytics is deduplicated rather than tracking every navigation click',labAnalytics.includes("now()-interval '5 minutes'")&&labAnalytics.includes("log.event_type='lab_opened'")],
  ['Phase 12 canonical Lab contract is part of the blocking regression suite',packageJson.includes('tests/project-experience-phase12-canonical-lab.spec.ts')],
  ['Phase 12 direct RLS E2E is part of authenticated smoke and staging gates',(packageJson.match(/tests\/project-experience-phase12-lab-access-e2e\.spec\.ts/g)||[]).length>=2]
 ];

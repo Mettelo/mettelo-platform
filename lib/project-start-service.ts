@@ -5,6 +5,7 @@ import {canonicalParticipationMode,effectiveProjectAdmissionMode} from '@/lib/pr
 type Db=NonNullable<ReturnType<typeof serviceDb>>;
 type StartSource='auto_scheduler'|'manual'|'admin_retry';
 type StartResult={started:boolean;alreadyStarted?:boolean;paused?:boolean;blocked?:boolean;notReady?:boolean;blockers?:string[];projectId:string;runId:string;runNumber:number;filled:number;requiredTeamSize:number};
+type ActivationRpcResult={started?:boolean;already_started?:boolean;paused?:boolean;blocked?:boolean;not_ready?:boolean;blockers?:string[];run_number?:number;filled?:number;required_team_size?:number;maximum_team_size?:number};
 
 async function memberEmail(db:Db,userId:string){const {data}=await db.auth.admin.getUserById(userId);return data.user?.email||null}
 
@@ -39,9 +40,9 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
  }
 
  // Participation geometry is independent from admission mode. Solo and Flexible
- // runs are allowed to become ready at one member; REVIEW_REQUIRED acceptance must
- // not be forced through Team-only lead/responsibility gates merely because it did
- // not originate from AUTO qualification.
+ // one-person runs do not inherit Team-only lead/responsibility gates merely
+ // because admission was REVIEW_REQUIRED. Multi-member runs still use the
+ // existing deterministic lead/readiness preparation before atomic activation.
  const oneMemberParticipation=(participationMode==='solo'||participationMode==='flexible')&&required===1;
  const readiness=await assessProjectTeamReadiness({db,projectId,runId,requiredTeamSize:required,assignLead:!oneMemberParticipation,requireResponsibilityCoverage:!oneMemberParticipation,requireLead:!oneMemberParticipation});
  if(!readiness.ready)return{started:false,notReady:true,blockers:readiness.blockers,projectId,runId,runNumber:run.run_number,filled:readiness.filled,requiredTeamSize:required};
@@ -53,45 +54,28 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
   return{started:false,notReady:true,blockers:['capacity'],projectId,runId,runNumber:run.run_number,filled:readiness.filled,requiredTeamSize:required};
  }
 
- const now=new Date().toISOString();
- const {data:started,error:startError}=await db.from('project_runs').update({
-  status:'active',
-  has_started:true,
-  started_at:now,
-  kickoff_at:now,
-  scheduled_start_at:null,
-  start_scheduled_at:null,
-  start_ready_at:null,
-  auto_start_failure:null,
-  auto_start_paused_at:null,
-  auto_start_pause_reason:null,
-  auto_start_paused_by_user_id:null,
-  updated_at:now
- }).eq('id',runId).eq('status','forming').eq('has_started',false).is('auto_start_blocked_at',null).select('id').maybeSingle();
- if(startError)throw startError;
- if(!started)return{started:false,alreadyStarted:true,projectId,runId,runNumber:run.run_number,filled:readiness.filled,requiredTeamSize:required};
-
- await db.from('project_members').update({membership_status:'active',activated_at:now}).eq('project_run_id',runId).eq('membership_status','waiting');
- await db.from('project_applications').update({status:'team_complete',updated_at:now}).eq('project_run_id',runId).in('status',['approved','waiting_for_team','accepted']);
- if(project.project_type==='partner'){
-  await db.from('projects').update({status:'active',applications_open:false,kickoff_at:now,starts_at:now,updated_at:now}).eq('id',projectId);
- }else{
-  await db.from('projects').update({updated_at:now}).eq('id',projectId);
+ // The database transaction is the final authority. It rechecks mutable
+ // membership/capacity/Lab/lead state under canonical project/run locks and
+ // atomically activates the run, waiting memberships and linked applications.
+ const {data:activation,error:activationError}=await db.rpc('phase9_activate_project_run',{
+  p_project_id:projectId,
+  p_run_id:runId,
+  p_source:source,
+  p_actor_user_id:actorUserId
+ });
+ if(activationError)throw activationError;
+ const result=(activation||{}) as ActivationRpcResult;
+ const runNumber=Number(result.run_number??run.run_number);
+ const filled=Number(result.filled??readiness.filled);
+ const requiredTeamSize=Number(result.required_team_size??required);
+ if(!result.started){
+  if(result.already_started)return{started:false,alreadyStarted:true,projectId,runId,runNumber,filled,requiredTeamSize};
+  if(result.paused)return{started:false,paused:true,projectId,runId,runNumber,filled,requiredTeamSize};
+  if(result.blocked)return{started:false,blocked:true,blockers:result.blockers||['auto_start_blocked'],projectId,runId,runNumber,filled,requiredTeamSize};
+  return{started:false,notReady:true,blockers:result.blockers||['project_readiness'],projectId,runId,runNumber,filled,requiredTeamSize};
  }
 
- const eventType=source==='auto_scheduler'?'project_auto_started':source==='admin_retry'?'project_auto_start_retry_started':'project_manual_started';
- await db.from('project_activity_log').insert({
-  project_id:projectId,
-  project_run_id:runId,
-  event_type:eventType,
-  actor_type:source==='auto_scheduler'?'system':'user',
-  actor_user_id:actorUserId,
-  from_status:'forming',
-  to_status:'active',
-  metadata:{run_number:run.run_number,filled:readiness.filled,required_team_size:required,maximum_team_size:maximum,participation_mode:participationMode,lead_user_id:readiness.leadUserId,responsibility_coverage_ready:readiness.responsibilityCoverageReady,lab_ready:readiness.labReady,admission_mode:effectiveMode}
- });
-
  const {data:members}=await db.from('project_members').select('user_id').eq('project_run_id',runId).eq('membership_status','active');
- await Promise.allSettled((members||[]).map(async member=>notifyUser(db,{userId:member.user_id,email:await memberEmail(db,member.user_id),projectId,type:'project_kickoff',title:'Your project is starting',body:`${project.title} is ready. Open the workspace to begin.`,actionUrl:`/member/projects/${projectId}?run=${runId}`,subject:`Your project is starting: ${project.title}`,templateKey:'project_kickoff',payload:{project_title:project.title,team_number:run.run_number,participation_mode:participationMode}})));
- return{started:true,projectId,runId,runNumber:run.run_number,filled:readiness.filled,requiredTeamSize:required};
+ await Promise.allSettled((members||[]).map(async member=>notifyUser(db,{userId:member.user_id,email:await memberEmail(db,member.user_id),projectId,type:'project_kickoff',title:'Your project is starting',body:`${project.title} is ready. Open the workspace to begin.`,actionUrl:`/member/projects/${projectId}?run=${runId}`,subject:`Your project is starting: ${project.title}`,templateKey:'project_kickoff',payload:{project_title:project.title,team_number:runNumber,participation_mode:participationMode}})));
+ return{started:true,projectId,runId,runNumber,filled,requiredTeamSize};
 }

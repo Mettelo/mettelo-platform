@@ -69,7 +69,9 @@ const v2Files={
   memberApplication:'components/MemberProjectApplicationFlow.tsx',
   memberApplicationRoute:'app/api/project-applications/route.ts',
   adminApplicationRoute:'app/api/admin/applications/route.ts',
-  adminTeamRoute:'app/api/admin/project-flow/route.ts'
+  adminTeamRoute:'app/api/admin/project-flow/route.ts',
+  projectStartService:'lib/project-start-service.ts',
+  projectFormationCron:'app/api/cron/project-formation/route.ts'
 };
 for(const [name,file] of Object.entries(v2Files)){if(!fs.existsSync(file))failures.push(`Project Experience V2: missing ${name} implementation ${file}`)}
 
@@ -103,6 +105,8 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   const memberApplicationRoute=fs.readFileSync(v2Files.memberApplicationRoute,'utf8');
   const adminApplicationRoute=fs.readFileSync(v2Files.adminApplicationRoute,'utf8');
   const adminTeamRoute=fs.readFileSync(v2Files.adminTeamRoute,'utf8');
+  const projectStartService=fs.readFileSync(v2Files.projectStartService,'utf8');
+  const projectFormationCron=fs.readFileSync(v2Files.projectFormationCron,'utf8');
 
   for(const marker of ['getPublicProjectExperienceData','buildProjectExperienceModel','ProjectPublicDetailV2'])if(!publicPage.includes(marker))failures.push(`Project Experience Phase 4: public detail is missing secure canonical wiring marker ${marker}`);
   for(const forbidden of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails'])if(publicPage.includes(forbidden))failures.push(`Project Experience Phase 4: public detail reintroduced privileged helper ${forbidden}`);
@@ -157,8 +161,8 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   if(!memberApplication.includes('I would be willing to lead this project team if selected.'))failures.push('Project Experience V2: application UI lost leadership willingness');
   if(!memberApplicationRoute.includes('leadership_interest:leadershipInterest'))failures.push('Project Experience Phase 5: interest/application endpoint does not persist leadership willingness');
   for(const marker of ["members.every(member=>Boolean(member.project_role_id))",".from('project_experience_readiness')","if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')","leadershipInterest?60:0",'activeLeadProjects*25'])if(!teamReadiness.includes(marker))failures.push(`Project Experience V2: team readiness lost ${marker}`);
-  if(!adminApplicationRoute.includes("if(readiness.ready&&project.project_type==='open'&&!run.has_started)"))failures.push('Project Experience V2: Open Project auto-start is not gated on complete team readiness');
-  if(adminApplicationRoute.includes("if(full&&project.project_type==='open'&&!run.has_started)"))failures.push('Project Experience V2: legacy headcount-only auto-start was reintroduced');
+  if(!projectStartService.includes('assessProjectTeamReadiness')||!projectFormationCron.includes("source:'auto_scheduler'"))failures.push('Project Experience V2: Open Project auto-start is not gated through the canonical team-readiness/start service');
+  if(projectStartService.includes("if(full&&project.project_type==='open'&&!run.has_started)")||projectFormationCron.includes("if(full&&project.project_type==='open'&&!run.has_started)"))failures.push('Project Experience V2: legacy headcount-only auto-start was reintroduced');
   if(!adminTeamRoute.includes("Project Lead can only be changed while the team is still forming."))failures.push('Project Experience V2: Admin can change leadership after team lock');
   if(!adminTeamRoute.includes('if(!readiness.ready)return NextResponse.json'))failures.push('Project Experience V2: Admin team start can bypass readiness');
 }

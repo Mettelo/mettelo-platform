@@ -11,8 +11,13 @@ expect('app/api/project-applications/route.ts',["application_kind:isInterest?'in
 forbid('app/api/project-applications/route.ts',['termsAttachmentId','communication_template_attachments',"template_key','project_application_terms","await Promise.all([notifyUser"]);
 expect('supabase/migrations/20260904220500_project_application_submission_contract.sql',['add column if not exists leadership_interest boolean','add column if not exists terms_version text','project_applications_terms_acceptance_pair_check']);
 expect('supabase/migrations/20260903215500_project_interest_inline_terms.sql',['add column if not exists terms_version text','Version identifier of inline Mettelo Project Participation Terms']);
-expect('app/api/admin/applications/route.ts',['loadProjectRoleUsage(db,application.project_id,project.project_type)','already has participation history for this canonical project',".from('project_members')",'.insert({','No existing cohort history was overwritten.','if(createError){const {data:concurrentRun}=await db','if(!concurrentRun)throw createError','run=concurrentRun','const {data:startedRun,error:startError}=await db',".eq('status','forming')",".eq('has_started',false)","if(startedRun){"]);
-forbid('app/api/admin/applications/route.ts',[".from('project_members').upsert"]);
+
+// Phase 7 replaces legacy Admin approval->membership coupling with governed review->Offer.
+expect('app/api/admin/applications/route.ts',["'clarification_requested'","auth.rpc('phase7_transition_review_request'",'creates_membership:false','AUTO admissions are managed through the scheduled-start controls']);
+forbid('app/api/admin/applications/route.ts',[".from('project_members').insert",".from('project_members').upsert",'startProjectRun(']);
+expect('supabase/migrations/20260905178000_project_experience_phase_7_review_offer_boundary.sql',['phase7_transition_review_request','OFFER_CAPACITY_FULL',"'creates_membership',false","'requires_member_acceptance',p_to_status='offered'",'pg_advisory_xact_lock']);
+expect('lib/project-start-service.ts',['assessProjectTeamReadiness',"source==='auto_scheduler'",'auto_start_blocked']);
+expect('app/api/cron/project-formation/route.ts',["effectiveProjectAdmissionMode(project.project_type,project.admission_mode)!=='auto'","source:'auto_scheduler'",'project_auto_start_policy_blocked']);
 expect('lib/project-role-capacity.ts',[".eq('status','forming')",".eq('has_started',false)",".eq('project_run_id',run.id)",".in('membership_status',['waiting','active'])",".eq('project_id',projectId)"]);
 expect('supabase/migrations/20260901193000_project_lifecycle_invariants.sql',['pg_advisory_xact_lock','Project cohort capacity exceeded','Project role capacity exceeded for this cohort','Application-open projects require complete decision content and team size','Application-open projects require enough role capacity for the full team','Partner Projects support one engagement run only','Projects with operational history cannot return to Draft']);
 expect('supabase/migrations/20260901194000_imported_open_project_default_roles.sql',['after update of status on public.capability_path_import_batches',"'Project Contributor'",'greatest(coalesce(p.team_size_threshold,1),1)','origin.was_existing=false','not exists']);
@@ -56,4 +61,4 @@ expect('app/api/projects/saved/route.ts',[".from('saved_projects')",".from('proj
 forbid('app/api/projects/saved/route.ts',['project_applications','career_applications']);
 expect('app/member/saved/page.tsx',['Saving a project never creates an application.','/member/discover/','/member/saved-opportunities']);
 expect('app/admin/project-operations/applications/page.tsx',['const db=privilegedDb||auth',".from('project_applications')",'if(privilegedDb){const users']);
-console.log('Project interest, member Discover and Phase 5 role-neutral handoff contract passed.');
+console.log('Project interest, member Discover and Phase 7 governed review handoff contract passed.');

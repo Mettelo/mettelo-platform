@@ -6,6 +6,7 @@ const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
 const formation=()=>read('supabase/migrations/20260906010000_project_experience_phase_10_canonical_formation.sql');
 const governance=()=>read('supabase/migrations/20260906010100_project_experience_phase_10_responsibility_lead_governance.sql');
+const responsibilities=()=>read('supabase/migrations/20260906010200_project_experience_phase_10_delivery_responsibilities.sql');
 
 test.describe('Project Experience Phase 10 canonical team-formation contract',()=>{
   test('formation reuses project_runs and project_members rather than creating another team authority',()=>{
@@ -20,8 +21,8 @@ test.describe('Project Experience Phase 10 canonical team-formation contract',()
   test('accepted REVIEW_REQUIRED Offer is mandatory and AUTO membership is not duplicated',()=>{
     const sql=formation();
     expect(sql).toContain("offer_row.status<>'accepted'");
-    expect(sql).toContain("FORMATION_REQUIRES_REVIEW_REQUIRED");
-    expect(sql).toContain("AUTO_MEMBERSHIP_ALREADY_OWNED_BY_PHASE6");
+    expect(sql).toContain('FORMATION_REQUIRES_REVIEW_REQUIRED');
+    expect(sql).toContain('AUTO_MEMBERSHIP_ALREADY_OWNED_BY_PHASE6');
     expect(sql).toContain("membership_status in ('waiting','active')");
     expect(sql).toContain("'already_formed',true");
   });
@@ -61,27 +62,57 @@ test.describe('Project Experience Phase 10 canonical team-formation contract',()
     expect(consumption).toContain('set capacity_consumed_at=now()');
   });
 
-  test('formation and responsibility writers remain service-role only',()=>{
+  test('delivery responsibility ownership is many-to-many assignment state, not another catalogue',()=>{
+    const sql=responsibilities();
+    expect(sql).toContain('create table if not exists public.project_member_responsibilities');
+    expect(sql).toContain('project_member_id uuid not null references public.project_members');
+    expect(sql).toContain('source_project_role_id uuid references public.project_roles');
+    expect(sql).toContain('unnest(coalesce(pr.responsibilities,array[]::text[]))');
+    expect(sql).not.toMatch(/create table(?: if not exists)? public\.project_responsibilit(?:y|ies)/i);
+    expect(sql).toContain('project_member_responsibilities_one_live_assignment');
+  });
+
+  test('one member can own several responsibilities and one responsibility can be shared',()=>{
+    const sql=responsibilities();
+    expect(sql).toContain('project_member_id,lower(btrim(responsibility))');
+    expect(sql).not.toContain('unique (project_run_id,responsibility)');
+    expect(sql).not.toContain('unique(project_run_id,responsibility)');
+    expect(sql).toContain("assignment_status='active'");
+  });
+
+  test('delivery responsibility assignment validates canonical project definitions and is auditable/releasable',()=>{
+    const sql=responsibilities();
+    expect(sql).toContain('RESPONSIBILITY_NOT_DEFINED_FOR_PROJECT');
+    expect(sql).toContain('RESPONSIBILITY_MEMBERSHIP_CONTEXT_MISMATCH');
+    expect(sql).toContain('formation_responsibility_assigned');
+    expect(sql).toContain('formation_responsibility_released');
+    expect(sql).toContain('phase10_release_delivery_responsibility');
+    expect(sql).not.toContain('set project_role_id=');
+  });
+
+  test('formation, responsibility and Lead writers remain service-role only',()=>{
     expect(formation()).toContain('revoke all on function public.phase10_form_accepted_offer(uuid) from public,anon,authenticated');
     expect(formation()).toContain('grant execute on function public.phase10_form_accepted_offer(uuid) to service_role');
-    expect(governance()).toContain('revoke all on function public.phase10_assign_member_responsibility(uuid,uuid,boolean,uuid) from public,anon,authenticated');
-    expect(governance()).toContain('grant execute on function public.phase10_assign_member_responsibility(uuid,uuid,boolean,uuid) to service_role');
+    expect(responsibilities()).toContain('revoke all on function public.phase10_assign_delivery_responsibility(uuid,text,uuid,uuid,text) from public,anon,authenticated');
+    expect(responsibilities()).toContain('grant execute on function public.phase10_assign_delivery_responsibility(uuid,text,uuid,uuid,text) to service_role');
+    expect(responsibilities()).toContain('revoke all on function public.phase10_confirm_project_lead(uuid,uuid,text) from public,anon,authenticated');
+    expect(responsibilities()).toContain('grant execute on function public.phase10_confirm_project_lead(uuid,uuid,text) to service_role');
   });
 
-  test('responsibility assignment validates role ownership and preserves a selected lead',()=>{
-    const sql=governance();
-    expect(sql).toContain('PROJECT_ROLE_PROJECT_MISMATCH');
-    expect(sql).toContain("next_team_role:=coalesce(member_row.team_role,'contributor')");
-    expect(sql).toContain('FORMATION_ASSIGNMENT_REQUIRES_FORMING_RUN');
-    expect(sql).toContain("'project_active',false");
-  });
-
-  test('multi-member formation allows exactly one live Project Lead and independent runs require none',()=>{
-    const sql=governance();
+  test('Project Lead reuses project_members team_role and supports audited reassignment',()=>{
+    const sql=responsibilities();
+    expect(sql).toContain("set team_role='project_lead'");
+    expect(sql).toContain("set team_role='contributor'");
+    expect(sql).toContain('previous_membership_id');
+    expect(sql).toContain('project_lead_confirmed');
+    expect(sql).toContain('project_members_one_live_project_lead_per_run');
     expect(sql).toContain('PROJECT_LEAD_NOT_REQUIRED_FOR_INDEPENDENT_RUN');
-    expect(sql).toContain('PROJECT_LEAD_ALREADY_ASSIGNED');
-    expect(sql).toContain("team_role='project_lead'");
-    expect(sql).toContain("membership_status in ('waiting','active')");
+  });
+
+  test('legacy single project_role_id responsibility writer is removed',()=>{
+    const sql=responsibilities();
+    expect(sql).toContain('drop function if exists public.phase10_assign_member_responsibility(uuid,uuid,boolean,uuid)');
+    expect(sql).toContain('Phase 10 no longer mutates it');
   });
 
   test('formation guard follows Phase 9 canonical project capacity run lock order',()=>{
@@ -100,6 +131,6 @@ test.describe('Project Experience Phase 10 canonical team-formation contract',()
     expect(start).toContain("db.rpc('phase9_activate_project_run'");
     expect(activation).toContain('create or replace function public.phase9_activate_project_run');
     expect(formation()).not.toContain('phase9_activate_project_run');
-    expect(governance()).not.toContain('phase9_activate_project_run');
+    expect(responsibilities()).not.toContain('phase9_activate_project_run');
   });
 });

@@ -9,6 +9,7 @@ function expect(name,condition){checks.push({name,ok:Boolean(condition)});}
 const schema=read('supabase/migrations/20260905123000_project_experience_phase_3_canonical_project_governance.sql');
 const atomic=read('supabase/migrations/20260905123500_project_experience_phase_3_atomic_participation_revision.sql');
 const focusedAtomic=read('supabase/migrations/20260905124500_project_participation_atomic_revision.sql');
+const phase9Hardening=read('supabase/migrations/20260906002000_project_experience_phase_9_participation_hardening.sql');
 const helper=read('lib/project-participation.ts');
 const createRoute=read('app/api/architect-projects/route.ts');
 const draftRoute=read('app/api/architect-projects/[id]/route.ts');
@@ -48,7 +49,12 @@ expect('focused participation RPC is private',focusedAtomic.includes('revoke all
 expect('shared parser supports all modes',['solo','team','flexible'].every(mode=>helper.includes(`'${mode}'`)));
 expect('shared parser keeps threshold equal to minimum',helper.includes('team_size_threshold:min'));
 expect('shared validation enforces team minimum',helper.includes("participation_mode==='team'&&value.min_team_size<2"));
-expect('shared validation enforces flexible minimum',helper.includes("participation_mode==='flexible'&&value.min_team_size!==1"));
+expect('shared validation preserves Phase 9 flexible collaborative minimum',
+  helper.includes('Flexible keeps a real collaborative minimum')
+  && !helper.includes("participation_mode==='flexible'&&value.min_team_size!==1")
+  && phase9Hardening.includes("or participation_mode='flexible'")
+  && phase9Hardening.includes("when p_mode='flexible' and p_preference in ('solo','either') then 1")
+);
 
 expect('creator visibly supports Solo Team Flexible',creator.includes('Participation mode')&&creator.includes('<option value="solo">Solo</option>')&&creator.includes('<option value="team">Team</option>')&&creator.includes('<option value="flexible">Flexible</option>'));
 expect('creator captures min target max',creator.includes('Minimum participants')&&creator.includes('Target participants')&&creator.includes('Maximum participants'));

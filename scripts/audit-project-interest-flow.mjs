@@ -24,8 +24,11 @@ expect('supabase/migrations/20260901194000_imported_open_project_default_roles.s
 expect('supabase/migrations/20260819193000_member_discover_application_integrity.sql',['project_applications_one_active_application_per_project_user',"application_kind='application'",'saved_projects','enable row level security','auth.uid()']);
 expect('supabase/migrations/20260905170000_project_experience_phase_5_interest_uniqueness.sql',['drop index if exists public.project_applications_one_interest_per_project_user','project_applications_one_active_interest_per_project_user',"application_kind='interest'","status not in ('declined','withdrawn')"]);
 
-// Team formation is readiness-driven, opt-in for automatic leadership, and single-winner under concurrency.
-expect('lib/project-team-readiness.ts',['const volunteers=candidates.filter(candidate=>candidate.leadershipInterest)','recommendation=volunteers[0]||null',".eq('team_role','contributor')",".select('id')",'if(assigned){','A concurrent approval may have completed the same deterministic lead',"if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')"]);
+// Team formation is readiness-driven. Leadership interest can recommend a candidate,
+// but Phase 10 never lets the readiness reader mutate canonical Lead state.
+expect('lib/project-team-readiness.ts',['const volunteers=candidates.filter(candidate=>candidate.leadershipInterest)','recommendation=volunteers[0]||null',"from('project_member_responsibilities')",".eq('assignment_status','active')",'responsibilityCoverageReady=full&&members.every(member=>assignedMembers.has(member.id))','Confirmation uses phase10_confirm_project_lead.',"if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')"]);
+forbid('lib/project-team-readiness.ts',[".update({team_role:'project_lead'})",".eq('team_role','contributor')"]);
+expect('supabase/migrations/20260906010200_project_experience_phase_10_delivery_responsibilities.sql',['project_member_responsibilities_one_live_assignment','phase10_assign_delivery_responsibility','phase10_confirm_project_lead','project_members_one_live_project_lead_per_run','grant execute on function public.phase10_confirm_project_lead','revoke all on function public.phase10_confirm_project_lead']);
 expect('supabase/migrations/20260902122350_project_team_single_lead_invariant.sql',['create unique index if not exists project_members_one_current_lead_per_run','on public.project_members(project_run_id)',"team_role='project_lead'","membership_status in ('waiting','active')"]);
 
 // Authenticated Discover stays in My Mettelo and shares the governed catalogue filter model.

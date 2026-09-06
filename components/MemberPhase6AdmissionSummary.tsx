@@ -1,3 +1,5 @@
+'use client';
+
 type Item={id:string;status:string;admission_decision?:string|null;participation_preference?:string|null;projects:{title:string;status?:string}|null;formation?:{filled:number;threshold:number;status:string;scheduled_start_at?:string|null;run_number:number|null;auto_start_paused_at?:string|null;auto_start_blocked_at?:string|null;auto_start_failure?:string|null}|null};
 
 function status(item:Item){

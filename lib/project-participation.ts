@@ -34,7 +34,14 @@ export function parseProjectParticipation(input:Record<string,unknown>):ProjectP
     ? rawMode as ProjectParticipationMode
     : legacy===1?'solo':'team';
 
-  if(mode==='solo')return{participation_mode:'solo',min_team_size:1,target_team_size:1,max_team_size:1,team_size_threshold:1};
+  if(mode==='solo'){
+    // Solo means the project may become participation-ready with one member. It
+    // does not mean the project can never add a collaborator later. Preserve a
+    // configurable target/maximum for Phase 15/18 same-run collaboration.
+    const target=boundedInteger(input.target_team_size,1);
+    const max=boundedInteger(input.max_team_size,Math.max(target,1));
+    return{participation_mode:'solo',min_team_size:1,target_team_size:target,max_team_size:Math.max(max,target),team_size_threshold:1};
+  }
 
   // Flexible keeps a real collaborative minimum. Solo/Either preference resolves
   // to an effective threshold of one at runtime; Team preference uses this value.
@@ -46,22 +53,22 @@ export function parseProjectParticipation(input:Record<string,unknown>):ProjectP
 
 export function validateProjectParticipation(value:ProjectParticipation){
   if(value.min_team_size<1||value.target_team_size<1||value.max_team_size<1){
-    return 'Team capacity values must be positive.';
+    return 'Project capacity values must be positive.';
   }
   if(value.min_team_size>value.target_team_size||value.target_team_size>value.max_team_size){
-    return 'Team capacity must follow minimum ≤ target ≤ maximum.';
+    return 'Project capacity must follow minimum ≤ target ≤ maximum.';
   }
   if(value.participation_mode==='team'&&value.min_team_size<2){
     return 'Team projects require a minimum team size of at least 2.';
   }
-  if(value.participation_mode==='solo'&&(value.min_team_size!==1||value.target_team_size!==1||value.max_team_size!==1)){
-    return 'Solo projects use one participant for minimum, target, and maximum.';
+  if(value.participation_mode==='solo'&&value.min_team_size!==1){
+    return 'Solo projects always use one participant as the start threshold.';
   }
   return null;
 }
 
 export function projectParticipationLabel(value:Pick<ProjectParticipation,'participation_mode'|'min_team_size'|'target_team_size'|'max_team_size'>){
-  if(value.participation_mode==='solo')return 'Solo · 1 participant';
+  if(value.participation_mode==='solo')return `Solo · start 1 · target ${value.target_team_size} · max ${value.max_team_size}`;
   const mode=value.participation_mode==='flexible'?'Flexible':'Team';
   return `${mode} · min ${value.min_team_size} · target ${value.target_team_size} · max ${value.max_team_size}`;
 }

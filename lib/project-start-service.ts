@@ -47,9 +47,10 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
  const readiness=await assessProjectTeamReadiness({db,projectId,runId,requiredTeamSize:required,assignLead:!oneMemberParticipation,requireResponsibilityCoverage:!oneMemberParticipation,requireLead:!oneMemberParticipation});
  if(!readiness.ready)return{started:false,notReady:true,blockers:readiness.blockers,projectId,runId,runNumber:run.run_number,filled:readiness.filled,requiredTeamSize:required};
 
- const maximum=participationMode==='solo'
-  ?1
-  :Math.max(required,Number(project.max_team_size||project.target_team_size||project.team_size_threshold||required));
+ // Solo controls start geometry, not permanent headcount. A Solo project may
+ // intentionally allow later collaborators on the same run, so maximum always
+ // comes from the canonical project capacity configuration.
+ const maximum=Math.max(required,Number(project.max_team_size||project.target_team_size||project.team_size_threshold||required));
  if(readiness.filled>maximum){
   return{started:false,notReady:true,blockers:['capacity'],projectId,runId,runNumber:run.run_number,filled:readiness.filled,requiredTeamSize:required};
  }

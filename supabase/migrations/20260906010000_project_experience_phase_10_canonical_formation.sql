@@ -22,25 +22,25 @@ declare
   project_row public.projects%rowtype;
   run_row public.project_runs%rowtype;
   existing_member public.project_members%rowtype;
+  project_id_hint uuid;
   preference text;
   required_members integer:=1;
   next_run integer:=1;
   team_geometry boolean:=false;
   now_at timestamptz:=now();
 begin
-  -- Resolve the project without locking application/Offer rows first so every
-  -- capacity-changing Phase 9/10 path keeps one lock order.
-  select a.project_id
-  into app.project_id
+  -- Resolve only the project hint before locks so every capacity-changing
+  -- Phase 9/10 path can keep the same lock order.
+  select a.project_id into project_id_hint
   from public.project_applications a
   where a.id=p_application_id;
-  if app.project_id is null then
+  if project_id_hint is null then
     raise exception using errcode='P0002',message='APPLICATION_NOT_FOUND';
   end if;
 
   select * into project_row
   from public.projects
-  where id=app.project_id
+  where id=project_id_hint
   for update;
   if project_row.id is null then
     raise exception using errcode='P0002',message='PROJECT_NOT_FOUND';

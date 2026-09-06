@@ -1,8 +1,9 @@
 import {createClient} from '@supabase/supabase-js';
-import {expect,test} from '@playwright/test';
+import {expect,test,type Page} from '@playwright/test';
 import {PROJECT_PARTICIPATION_TERMS_VERSION} from '../lib/project-participation-terms';
 
 const projectId='00000000-0000-4000-8000-00000000c909';
+const existingProjectId='00000000-0000-4000-8000-00000000e2e1';
 
 function required(name:string){
   const value=process.env[name]?.trim();
@@ -49,6 +50,37 @@ async function withTimeout<T>(promise:Promise<T>,milliseconds=8000){
   }finally{
     if(timer)clearTimeout(timer);
   }
+}
+
+async function signIn(page:Page,prefix:'MEMBER'|'ADMIN',next:string){
+  const email=required(`E2E_${prefix}_EMAIL`);
+  const password=required(`E2E_${prefix}_PASSWORD`);
+  await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});
+  const main=page.locator('#main-content');
+  await main.locator('input[type="email"]').fill(email);
+  await main.locator('input[type="password"]').fill(password);
+  await main.getByRole('button',{name:'Sign in →'}).click();
+  await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000});
+}
+
+async function expectNoOverflow(page:Page,label:string){
+  const size=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
+  expect(size.scrollWidth,label).toBeLessThanOrEqual(size.clientWidth+1);
+}
+
+async function expectVisibleFocus(page:Page){
+  let found=false;
+  for(let i=0;i<40;i++){
+    await page.keyboard.press('Tab');
+    const focus=await page.evaluate(()=>{
+      const element=document.activeElement as HTMLElement|null;
+      if(!element||element===document.body)return null;
+      const style=getComputedStyle(element);
+      return{outline:style.outlineStyle,width:parseFloat(style.outlineWidth||'0'),shadow:style.boxShadow};
+    });
+    if(focus&&((focus.outline!=='none'&&focus.width>0)||focus.shadow!=='none')){found=true;break}
+  }
+  expect(found,'Phase 9 interactive controls need visible keyboard focus').toBe(true);
 }
 
 test.describe('Project Experience Phase 9 Offer/membership lock ordering',()=>{
@@ -158,5 +190,62 @@ test.describe('Project Experience Phase 9 Offer/membership lock ordering',()=>{
     }finally{
       await cleanup(client);
     }
+  });
+});
+
+test.describe('Project Experience Phase 9 real-surface responsive and accessibility contract',()=>{
+  test('Member Project participation capacity reflows from 320px through desktop with semantic labels',async({page})=>{
+    test.slow();
+    await signIn(page,'MEMBER',`/member/discover/${existingProjectId}`);
+    for(const viewport of [
+      {name:'320px',width:320,height:900},
+      {name:'phone landscape',width:844,height:390},
+      {name:'tablet',width:768,height:1000},
+      {name:'desktop',width:1440,height:1000},
+    ]){
+      await page.setViewportSize({width:viewport.width,height:viewport.height});
+      const response=await page.goto(`/member/discover/${existingProjectId}`,{waitUntil:'networkidle'});
+      expect(response?.status(),`Member Project should render at ${viewport.name}`).toBe(200);
+      await expect(page.getByRole('heading',{level:1})).toBeVisible();
+      await expect(page.getByText('Participation',{exact:true}).first()).toBeVisible();
+      await expect(page.getByText('Minimum to start',{exact:true}).first()).toBeVisible();
+      await expect(page.getByText('Target team',{exact:true}).first()).toBeVisible();
+      await expect(page.getByText('Maximum team',{exact:true}).first()).toBeVisible();
+      await expectNoOverflow(page,`Member Project participation overflowed at ${viewport.name}`);
+    }
+  });
+
+  test('Admin participation controls are accessible, responsive and expose fixed six-hour AUTO policy',async({page})=>{
+    test.slow();
+    await signIn(page,'ADMIN',`/admin/project-operations/projects/${existingProjectId}`);
+    for(const viewport of [
+      {name:'320px',width:320,height:900},
+      {name:'phone landscape',width:844,height:390},
+      {name:'tablet',width:768,height:1000},
+      {name:'desktop',width:1440,height:1000},
+    ]){
+      await page.setViewportSize({width:viewport.width,height:viewport.height});
+      const response=await page.goto(`/admin/project-operations/projects/${existingProjectId}`,{waitUntil:'networkidle'});
+      expect(response?.status(),`Admin Project Operations should render at ${viewport.name}`).toBe(200);
+      await expect(page.getByRole('heading',{name:'How this project forms and stays open'})).toBeVisible();
+      for(const label of ['TEAM','SOLO','FLEXIBLE'])await expect(page.getByText(label,{exact:true}).first()).toBeVisible();
+      await expect(page.getByLabel('Auto-start intervention window')).toBeDisabled();
+      await expect(page.getByLabel('Auto-start intervention window')).toHaveValue(/6 hours|Not applicable/);
+      await expectNoOverflow(page,`Admin Phase 9 policy overflowed at ${viewport.name}`);
+    }
+    await expectVisibleFocus(page);
+  });
+
+  test('Phase 9 project surfaces reflow at 200 percent and retain readable text status',async({page})=>{
+    await signIn(page,'ADMIN',`/admin/project-operations/projects/${existingProjectId}`);
+    await page.setViewportSize({width:640,height:900});
+    await page.goto(`/admin/project-operations/projects/${existingProjectId}`,{waitUntil:'networkidle'});
+    await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});
+    await expect(page.getByRole('heading',{name:'How this project forms and stays open'})).toBeVisible();
+    await expect(page.getByText(/Minimum controls participation readiness/)).toBeVisible();
+    await expectNoOverflow(page,'Phase 9 Admin policy overflowed at 200% text size');
+    const radios=page.getByRole('radio',{name:/TEAM|SOLO|FLEXIBLE/i});
+    expect(await radios.count()).toBeGreaterThanOrEqual(3);
+    for(let i=0;i<await radios.count();i++)await expect(radios.nth(i)).toHaveAccessibleName(/\S+/);
   });
 });

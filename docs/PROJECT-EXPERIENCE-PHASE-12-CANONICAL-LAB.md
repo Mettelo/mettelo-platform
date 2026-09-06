@@ -38,80 +38,83 @@ Phase 12 must not create a second Project Brief, team system, responsibility mod
 
 ## Implemented Phase 12 slices
 
-### Canonical team responsibilities
+### Canonical team responsibilities and active delivery roster
 
-The existing Team surface exposed member identity, `@username`, role and participation state but did not expose the canonical Phase 10 delivery responsibilities required by Phase 12.
+`resolveProjectTeamOverview()` continues to serve the shared formation/team model and now reads active `project_member_responsibilities` for the authorised run. The Lab presentation filters that shared result to active delivery participants (and completed participants only for a completed run), so pre-start `waiting` members do not appear as active Lab collaborators. Existing Phase 10 formation behaviour remains unchanged.
 
-`resolveProjectTeamOverview()` now reads active `project_member_responsibilities` for the authorised run and maps them by canonical user identity. The public team object does not expose the internal membership-row identifier or Member ID. Each existing Lab Team card now presents the member's responsibilities without introducing another responsibility source.
+The Team cards present canonical `@username`, participation state, Project Lead role and delivery responsibilities without introducing another responsibility or identity source.
 
 ### Complete Lab overview context
 
-The existing Lab home already exposed progress and a next action. Phase 12 now completes the playbook overview with authenticated, run-scoped reads for:
+The existing Lab home now presents authenticated, run-scoped:
 
 - project/run status;
-- team;
+- active team summary;
 - current milestone;
 - next meeting;
 - blocked tasks;
 - upcoming work.
 
-Milestones and tasks remain the existing run-scoped delivery records; no parallel planning model was introduced.
+Intentional empty states are provided for no milestone, no meeting, no blockers and no upcoming tasks. Milestones and tasks remain the existing run-scoped delivery records; no parallel planning model was introduced.
 
 ### Active-run RLS boundary
 
-`20260906030000_project_experience_phase_12_lab_access_rls.sql` adds the service-safe `phase12_has_lab_access(project_id, run_id)` predicate and restrictive RLS policies over private Lab execution tables. The restrictive layer composes with existing permissive ownership/leadership policies, so those older policies cannot independently grant Lab access.
+`20260906030000_project_experience_phase_12_lab_access_rls.sql` adds `phase12_has_lab_access(project_id, run_id)` and restrictive RLS policies over private Lab execution tables. The restrictive layer composes with existing ownership/leadership policies, so a broad legacy project-member policy cannot independently grant Lab access.
 
-The Phase 12 predicate requires an ordinary user to have `active` or `completed` membership in the exact run and requires the run to be `active`, `review` or `completed`. Admin remains explicitly supported. The broad legacy `is_project_member()` helper is deliberately not redefined because it is also used outside the private Lab boundary.
+Ordinary users require `active` or `completed` membership in the exact run and an `active`, `review` or `completed` run. Admin remains explicitly supported. The broad legacy `is_project_member()` helper is deliberately not redefined because it is also required by pre-start architecture.
 
-The restrictive layer covers discussions, resources, meetings, tasks, milestones, responsibilities, data sources, data-source versions and deliverables.
+Private collaboration tables (`project_discussions`, `project_resources`, `project_meetings`, `project_tasks`) and responsibility rows additionally require a concrete non-null run. Canonical project-definition rows on milestones, data sources, deliverables and source versions may remain project-level where the existing model permits them.
+
+### Task relation integrity
+
+`20260906030100_project_experience_phase_12_task_relation_integrity.sql` adds a PostgreSQL trigger that rejects a task whose milestone or workstream belongs to another project/run, and adds a run+milestone task index. The task API performs the same same-project/same-run milestone validation before insert so users receive a clear error before the database invariant is reached.
 
 ## Security rules
 
-- ordinary access must be authenticated;
-- ordinary members must have active/completed canonical membership;
-- the member's run must be active, review or completed;
-- waiting, removed and non-members must not receive private Lab access;
+- ordinary access is authenticated;
+- ordinary members require active/completed canonical membership;
+- private execution rows require the exact canonical run;
+- waiting, removed and non-members do not receive private Lab access;
+- private collaboration rows cannot become cross-run-visible by leaving `project_run_id` null;
 - private working-copy resource URLs are projected only when resource governance is `green` and internal storage policy is explicitly `permitted`;
-- run-specific execution data must stay scoped to the authorised run;
-- service-role reads must remain behind explicit server-side membership/admin checks and must never become a browser-side authority.
+- service-role use remains server-side and behind explicit authorization; normal member reads/writes use the authenticated Supabase client/RLS;
+- task/milestone/workstream relations are enforced by both API validation and a reproducible database invariant.
 
-## Testing and current evidence
+## Blocking tests and evidence
 
-`tests/project-experience-phase12-canonical-lab.spec.ts` is now included in the blocking `test:regression` command. It protects canonical brief separation, governed resources, Phase 10 responsibilities, the complete Lab overview, active-run RLS, run-scoped milestones/tasks, preserved navigation and accessibility structure.
+`tests/project-experience-phase12-canonical-lab.spec.ts` is included in `test:regression` and protects canonical brief separation, resources, responsibilities, overview, roster filtering, active-run RLS, relation integrity, run scoping, navigation and accessibility structure.
 
-`tests/project-experience-phase12-lab-access-e2e.spec.ts` adds disposable isolated-Supabase journeys proving:
+`tests/project-experience-phase12-lab-access-e2e.spec.ts` is included in both authenticated `test:e2e:smoke` and `test:e2e:staging`. On the disposable isolated Supabase stack it verifies:
 
-- an active member can read same-run private resources/tasks;
-- a waiting member receives no private resource/task rows;
-- `phase12_has_lab_access` returns false for a waiting member;
-- deleting the active membership immediately revokes private resource/task reads and the Phase 12 access predicate.
+- active same-run resource/task reads;
+- waiting-member denial;
+- anonymous and signed-in non-member denial;
+- same-project/wrong-run IDOR denial;
+- cross-run task mutation denial;
+- null-run private resource denial;
+- immediate access revocation after membership deletion;
+- PostgreSQL rejection of a cross-run task→milestone relationship.
 
-The E2E file exists but **must not be counted as blocking sign-off evidence until it is wired into and passes the protected isolated-Supabase smoke/staging command**.
+The deterministic Lab audit suite also covers mobile navigation, 320px/device layouts, 200% zoom/reflow, overflow, keyboard/focus contracts and interaction feedback. Final sign-off still requires those checks and all exact-head GitHub release gates to complete successfully on the final commit.
 
-Initial Phase 12 CI evidence before the RLS/overview changes:
+## Release-review defects fixed
 
-- lint passed;
-- typecheck passed;
-- regression-coverage audit passed;
-- persistence shard passed;
-- informational journey shard passed;
-- clean isolated Supabase setup passed on the earlier Phase 12 head;
-- one Phase 1 identity audit failed because the first responsibility projection selected an internal membership-row identifier. That implementation was corrected rather than weakening the Phase 1 audit.
+- corrected a stale My Projects audit that crossed the Preparing/Active section boundary while preserving the no-early-Lab product rule;
+- updated stale Member Journey assertions to the current `/member/applications` lifecycle CTA and atomic `save_member_profile` RPC contract rather than reverting safer product behaviour;
+- wired Phase 12 RLS E2E into the protected authenticated smoke and staging suites;
+- added anonymous/non-member/wrong-run/removal security journeys;
+- removed waiting members from the active Lab delivery roster;
+- closed the task→milestone cross-run integrity gap at API and PostgreSQL layers;
+- separated shared project-level canonical data from private run-scoped collaboration RLS.
 
-The newest exact head still requires a complete fresh release-gate result after the RLS migration and overview changes.
+## Remaining sign-off blockers
 
-## Remaining sign-off work
-
-- execute the Phase 12 RLS E2E as a protected blocking isolated-Supabase test;
-- prove milestone/task mutations under active-run RLS, not only reads;
-- confirm clean migration reconstruction with `20260906030000`;
-- confirm responsive/device/200% zoom coverage after the overview and responsibility additions;
-- confirm accessibility and Lab regression suites on the exact head;
+- complete the exact-head Mettelo CI, isolated Supabase reconstruction, authenticated browser/E2E and protected Release Gate on the final Phase 12 commit;
 - resolve any exact-head failures without weakening inherited contracts;
-- keep Phase 12 stacked behind Phase 11 / PR #220.
+- Phase 11 / PR #220 remains an explicit upstream dependency and is itself still marked NOT APPROVED; Phase 12 must not merge or receive final product approval ahead of that prerequisite.
 
 ## Sign-off
 
 **NOT APPROVED.**
 
-Do not merge Phase 12 until all 14 acceptance criteria and the complete exact-head test matrix are green, and do not merge ahead of Phase 11 / PR #220.
+Do not merge Phase 12 until all Phase 12 exact-head gates are green and the Phase 11 prerequisite is approved/resolved.

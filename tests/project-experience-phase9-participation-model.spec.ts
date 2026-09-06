@@ -63,15 +63,19 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
     expect(migration).toContain('occupied+reserved>=maximum_members');
   });
 
-  test('one Phase 9 capacity lock protects membership and Offer reservation paths without cross-phase lock inversion',()=>{
+  test('one Phase 9 capacity lock protects capacity-changing paths without lock inversion',()=>{
     const migration=hardening();
-    const lockOrder=read('supabase/migrations/20260906002400_project_experience_phase_9_lock_order_hardening.sql');
+    const consume=read('supabase/migrations/20260906002400_project_experience_phase_9_lock_order_hardening.sql');
+    const offerGuard=read('supabase/migrations/20260906002500_project_experience_phase_9_offer_lock_order_guard.sql');
     expect(migration).toContain('phase9_lock_project_capacity');
     expect(migration).toContain("hashtextextended(p_project_id::text,9)");
     expect((migration.match(/perform public\.phase9_lock_project_capacity/g)||[]).length).toBeGreaterThanOrEqual(4);
-    expect(lockOrder).toContain('phase8_consume_offer_reservation_on_membership');
-    expect(lockOrder).toContain('perform public.phase9_lock_project_capacity(new.project_id)');
-    expect(lockOrder).not.toContain("hashtextextended(new.project_id::text,7)");
+    expect(consume).toContain('phase8_consume_offer_reservation_on_membership');
+    expect(consume).toContain('perform public.phase9_lock_project_capacity(new.project_id)');
+    expect(consume).not.toContain("hashtextextended(new.project_id::text,7)");
+    expect(offerGuard).toContain("old_live and old.project_id is not distinct from new.project_id");
+    expect(offerGuard).toContain('return new;');
+    expect(offerGuard).toContain('Only transitions that can ADD or MOVE live reserved capacity');
   });
 
   test('AUTO readiness uses an exact six-hour window and ordinary additions do not reset it',()=>{

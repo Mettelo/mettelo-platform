@@ -201,7 +201,7 @@ begin
       );
     end if;
 
-    select count(*)::integer,min(user_id) into lead_count,lead_user_id
+    select count(*)::integer into lead_count
     from public.project_members
     where project_run_id=run_row.id
       and membership_status in ('waiting','active')
@@ -227,6 +227,13 @@ begin
         'required_team_size',required_members
       );
     end if;
+
+    select user_id into lead_user_id
+    from public.project_members
+    where project_run_id=run_row.id
+      and membership_status in ('waiting','active')
+      and team_role='project_lead'
+    limit 1;
   end if;
 
   update public.project_runs

@@ -4,14 +4,16 @@ import path from 'node:path';
 
 const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
-const formation=()=>read('supabase/migrations/20260906010000_project_experience_phase_10_canonical_formation.sql');
+const originalFormation=()=>read('supabase/migrations/20260906010000_project_experience_phase_10_canonical_formation.sql');
+const formation=()=>read('supabase/migrations/20260906010300_project_experience_phase_10_review_late_join_hardening.sql');
 const governance=()=>read('supabase/migrations/20260906010100_project_experience_phase_10_responsibility_lead_governance.sql');
 const responsibilities=()=>read('supabase/migrations/20260906010200_project_experience_phase_10_delivery_responsibilities.sql');
+const activation=()=>read('supabase/migrations/20260906010400_project_experience_phase_10_atomic_activation_responsibility_handoff.sql');
 
 test.describe('Project Experience Phase 10 canonical team-formation contract',()=>{
   test('formation reuses project_runs and project_members rather than creating another team authority',()=>{
     const sql=formation();
-    expect(sql).toContain('existing\n-- project_runs + project_members architecture');
+    expect(sql).toContain('existing project_runs');
     expect(sql).toContain('insert into public.project_runs');
     expect(sql).toContain('insert into public.project_members');
     expect(sql).not.toMatch(/create table(?: if not exists)? public\.project_teams/i);
@@ -35,21 +37,32 @@ test.describe('Project Experience Phase 10 canonical team-formation contract',()
     expect(sql).toContain('required_team_size=required_members');
   });
 
-  test('collaborative formation reuses a forming run while independent formation can create its own run',()=>{
+  test('collaborative pre-start formation reuses a forming run while independent formation can create its own run',()=>{
     const sql=formation();
     expect(sql).toContain('if team_geometry then');
-    expect(sql).toContain("where project_id=project_row.id\n      and status='forming'");
+    expect(sql).toContain("status='forming'");
     expect(sql).toContain('if run_row.id is null then');
     expect(sql).toContain("'source','phase10_accepted_offer_formation'");
   });
 
-  test('formation remains waiting and never activates the project or run',()=>{
+  test('active REVIEW_REQUIRED late joining reuses the current run and never manufactures a new cohort',()=>{
     const sql=formation();
-    expect(sql).toContain("'contributor','waiting'");
-    expect(sql).toContain("status='waiting_for_team'");
-    expect(sql).toContain("'creates_active_project',false");
-    expect(sql).toContain("'project_active',false");
-    expect(sql).not.toContain("set status='active'");
+    const activeAt=sql.indexOf("status='active'\n    and coalesce(has_started,false)=true");
+    const newRunAt=sql.indexOf('insert into public.project_runs');
+    expect(activeAt).toBeGreaterThan(-1);
+    expect(newRunAt).toBeGreaterThan(activeAt);
+    expect(sql).toContain('public.phase9_project_run_capacity(project_row.id,run_row.id)');
+    expect(sql).toContain("capacity_snapshot->>'late_join_allowed'");
+    expect(sql).toContain('LATE_JOIN_NOT_ALLOWED');
+    expect(sql).toContain("'reused_active_run',late_join");
+  });
+
+  test('late joining activates only the new membership and does not restart the project/run or readiness timer',()=>{
+    const sql=formation();
+    expect(sql).toContain("case when late_join then 'active' else 'waiting' end");
+    expect(sql).toContain("case when late_join then 'team_complete' else 'waiting_for_team' end");
+    expect(sql).toContain('if not late_join then\n    perform public.phase9_reconcile_run_participation(run_row.id)');
+    expect(sql).not.toContain("update public.project_runs\n  set status='active'");
     expect(sql).not.toContain('has_started=true');
   });
 
@@ -109,10 +122,36 @@ test.describe('Project Experience Phase 10 canonical team-formation contract',()
     expect(sql).toContain('PROJECT_LEAD_NOT_REQUIRED_FOR_INDEPENDENT_RUN');
   });
 
+  test('leadership interest is recommendation input and never auto-confirms authority',()=>{
+    const readiness=read('lib/project-team-readiness.ts');
+    expect(readiness).toContain('recommendation=volunteers[0]||null');
+    expect(readiness).toContain('phase10_confirm_project_lead');
+    expect(readiness).not.toContain(".update({team_role:'project_lead'})");
+    expect(readiness).not.toContain('project_lead_auto_assigned');
+  });
+
   test('legacy single project_role_id responsibility writer is removed',()=>{
     const sql=responsibilities();
     expect(sql).toContain('drop function if exists public.phase10_assign_member_responsibility(uuid,uuid,boolean,uuid)');
     expect(sql).toContain('Phase 10 no longer mutates it');
+  });
+
+  test('Phase 11 service readiness reads normalized responsibility assignments',()=>{
+    const readiness=read('lib/project-team-readiness.ts');
+    expect(readiness).toContain("from('project_member_responsibilities')");
+    expect(readiness).toContain(".eq('assignment_status','active')");
+    expect(readiness).not.toContain('member.project_role_id');
+  });
+
+  test('atomic activation revalidates normalized responsibility coverage and canonical Lead state',()=>{
+    const sql=activation();
+    expect(sql).toContain('create or replace function public.phase9_activate_project_run');
+    expect(sql).toContain('from public.project_member_responsibilities r');
+    expect(sql).toContain("r.assignment_status='active'");
+    expect(sql).toContain("team_role='project_lead'");
+    expect(sql).toContain("'responsibility_contract','phase10_normalized_assignments'");
+    expect(sql).not.toContain('project_role_id is null');
+    expect(sql).toContain('grant execute on function public.phase9_activate_project_run(uuid,uuid,text,uuid) to service_role');
   });
 
   test('formation guard follows Phase 9 canonical project capacity run lock order',()=>{
@@ -127,9 +166,9 @@ test.describe('Project Experience Phase 10 canonical team-formation contract',()
 
   test('Phase 11 start authority remains the existing canonical atomic activation boundary',()=>{
     const start=read('lib/project-start-service.ts');
-    const activation=read('supabase/migrations/20260906002900_project_experience_phase_9_atomic_run_activation.sql');
     expect(start).toContain("db.rpc('phase9_activate_project_run'");
-    expect(activation).toContain('create or replace function public.phase9_activate_project_run');
+    expect(activation()).toContain('create or replace function public.phase9_activate_project_run');
+    expect(originalFormation()).not.toContain('phase9_activate_project_run');
     expect(formation()).not.toContain('phase9_activate_project_run');
     expect(responsibilities()).not.toContain('phase9_activate_project_run');
   });

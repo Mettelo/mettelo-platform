@@ -12,10 +12,10 @@ function anon(){return createClient(localUrl(),required('E2E_SUPABASE_ANON_KEY')
 function mondayUtc(value=new Date()){const date=new Date(Date.UTC(value.getUTCFullYear(),value.getUTCMonth(),value.getUTCDate()));const day=date.getUTCDay()||7;date.setUTCDate(date.getUTCDate()-day+1);return date.toISOString().slice(0,10)}
 async function userIdByEmail(db:ReturnType<typeof service>,email:string){const {data,error}=await db.auth.admin.listUsers({page:1,perPage:1000});if(error)throw error;const user=data.users.find(item=>item.email===email);if(!user)throw new Error(`Disposable identity ${email} was not seeded.`);return user.id}
 async function signInClient(client:SupabaseClient,email:string,userPassword:string){const {error}=await client.auth.signInWithPassword({email,password:userPassword});if(error)throw error;return client}
-async function signInMemberPage(page:Page){await page.goto(`/signin?next=${encodeURIComponent(`/member/projects/${projectId}?run=${runId}`)}`,{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(required('E2E_MEMBER_EMAIL'));await main.locator('input[type="password"]').fill(required('E2E_MEMBER_PASSWORD'));await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000})}
+async function signInPage(page:Page,email:string,userPassword:string,next:string,origin=''){await page.goto(`${origin}/signin?next=${encodeURIComponent(next)}`,{waitUntil:'networkidle'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(email);await main.locator('input[type="password"]').fill(userPassword);await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000})}
 
 test.describe('Project Experience Phase 14 weekly pulse',()=>{
- test('member pulse, private RLS and Lead/Admin aggregate health work end to end',async({page})=>{
+ test('member pulse, private RLS and Lead/Admin aggregate health work end to end',async({page,browser})=>{
   test.slow();
   const db=service();
   const memberEmail=required('E2E_MEMBER_EMAIL'),adminEmail=required('E2E_ADMIN_EMAIL');
@@ -37,7 +37,7 @@ test.describe('Project Experience Phase 14 weekly pulse',()=>{
    const runActive=await db.from('project_runs').update({status:'active'}).eq('id',runId);if(runActive.error)throw runActive.error;
    const leadMembership=await db.from('project_members').insert({project_id:projectId,project_run_id:runId,user_id:leadId,team_role:'project_lead',membership_status:'active',activated_at:new Date().toISOString()});if(leadMembership.error)throw leadMembership.error;
 
-   await signInMemberPage(page);
+   await signInPage(page,memberEmail,required('E2E_MEMBER_PASSWORD'),`/member/projects/${projectId}?run=${runId}`);
    await expect(page.getByRole('heading',{name:'How is the project feeling this week?'})).toBeVisible();
    await expect(page.getByText('Your individual response is private.')).toBeVisible();
    const submitted=await page.context().request.post('/api/project-pulse',{data:{project_id:projectId,project_run_id:runId,progress:'some_risk',workload:'heavy',team_state:'some_friction',support_need:'maybe',note:'Private context for Phase 14 RLS verification.'}});expect(submitted.status()).toBe(200);
@@ -59,6 +59,19 @@ test.describe('Project Experience Phase 14 weekly pulse',()=>{
 
    const adminClient=await signInClient(anon(),adminEmail,required('E2E_ADMIN_PASSWORD'));
    const adminHealth=await adminClient.rpc('project_weekly_pulse_health',{target_project:projectId,target_run:runId,target_period:periodStart});if(adminHealth.error)throw adminHealth.error;const adminRow=Array.isArray(adminHealth.data)?adminHealth.data[0]:adminHealth.data;expect(Number(adminRow.submissions)).toBe(1);expect(Number(adminRow.blocked)).toBe(1);expect(Number(adminRow.unsustainable)).toBe(1);expect(Number(adminRow.significant_concern)).toBe(1);expect(Number(adminRow.support_yes)).toBe(1);expect('note' in adminRow).toBeFalsy();expect('user_id' in adminRow).toBeFalsy();
+
+   const origin=new URL(page.url()).origin;
+   const adminBrowserContext=await browser.newContext();
+   try{
+    const adminPage=await adminBrowserContext.newPage();
+    await signInPage(adminPage,adminEmail,required('E2E_ADMIN_PASSWORD'),'/admin/project-governance',origin);
+    await expect(adminPage).toHaveURL(/\/admin\/project-governance/);
+    const healthSection=adminPage.locator('section').filter({has:adminPage.getByRole('heading',{name:'Team health signals'})});
+    await expect(healthSection).toBeVisible();
+    await expect(healthSection.getByText('Individual responses, member identities and private notes are not shown here.')).toBeVisible();
+    await expect(healthSection.getByText('Submitted')).toBeVisible();
+    await expect(healthSection.getByText('Blocked')).toBeVisible();
+   }finally{await adminBrowserContext.close()}
   }finally{
    await db.from('project_weekly_pulses').delete().eq('project_run_id',runId).in('user_id',[memberId,leadId,outsiderId]);
    await db.from('project_members').delete().eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',leadId);

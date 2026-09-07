@@ -56,8 +56,10 @@ test.describe('Project Experience Phase 11 start readiness contract',()=>{
     expect(finalAuthority).toContain('a.user_id=m.user_id');
     expect(finalAuthority).toContain("o.status='accepted'");
     expect(finalAuthority).toContain('o.accepted_at is not null');
-    expect(finalAuthority).toContain('o.reservation_released_at is null');
-    expect(finalAuthority).toContain('o.reservation_consumed_at is not null');
+    expect(finalAuthority).toContain('o.capacity_released_at is null');
+    expect(finalAuthority).toContain('o.capacity_consumed_at is not null');
+    expect(finalAuthority).not.toContain('reservation_released_at');
+    expect(finalAuthority).not.toContain('reservation_consumed_at');
   });
 
   test('preserves Phase 10 lead and normalized responsibility authority',()=>{

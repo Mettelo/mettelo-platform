@@ -27,32 +27,51 @@ create or replace function public.project_pulse_team_applicable(
   target_period date
 )
 returns boolean
-language sql
+language plpgsql
 stable
 security definer
 set search_path = public
 as $$
-  with project_contract as (
-    select p.participation_mode
-    from public.projects p
-    join public.project_runs r on r.id = target_run and r.project_id = p.id
-    where p.id = target_project
-  ), eligible_members as (
-    select count(*)::integer as member_count
-    from public.project_members pm
-    where pm.project_id = target_project
-      and pm.project_run_id = target_run
-      and coalesce(pm.activated_at, pm.joined_at) is not null
-      and coalesce(pm.activated_at, pm.joined_at) < (target_period + interval '7 days')
-      and coalesce(pm.left_at, pm.completed_at, 'infinity'::timestamptz) >= target_period::timestamptz
-  )
-  select case
-    when pc.participation_mode = 'solo' then false
-    when pc.participation_mode = 'team' then true
-    when pc.participation_mode = 'flexible' then em.member_count > 1
-    else em.member_count > 1
-  end
-  from project_contract pc cross join eligible_members em;
+declare
+  participation text;
+  member_count integer;
+begin
+  if auth.role() <> 'service_role'
+    and not public.is_admin()
+    and not public.mettelo_is_run_lead(target_run)
+    and not exists (
+      select 1 from public.project_members pm
+      where pm.project_id = target_project
+        and pm.project_run_id = target_run
+        and pm.user_id = auth.uid()
+        and pm.membership_status = 'active'
+    ) then
+    raise exception 'Project membership, Project Lead or Admin access required';
+  end if;
+
+  select p.participation_mode into participation
+  from public.projects p
+  join public.project_runs r on r.id = target_run and r.project_id = p.id
+  where p.id = target_project;
+  if participation is null then
+    raise exception 'Project run does not belong to project';
+  end if;
+
+  select count(*)::integer into member_count
+  from public.project_members pm
+  where pm.project_id = target_project
+    and pm.project_run_id = target_run
+    and coalesce(pm.activated_at, pm.joined_at) is not null
+    and coalesce(pm.activated_at, pm.joined_at) < (target_period + interval '7 days')
+    and coalesce(pm.left_at, pm.completed_at, 'infinity'::timestamptz) >= target_period::timestamptz;
+
+  return case
+    when participation = 'solo' then false
+    when participation = 'team' then true
+    when participation = 'flexible' then member_count > 1
+    else member_count > 1
+  end;
+end;
 $$;
 
 revoke all on function public.project_pulse_team_applicable(uuid, uuid, date) from public, anon;
@@ -193,6 +212,6 @@ revoke all on function public.project_weekly_pulse_health(uuid, uuid, date) from
 grant execute on function public.project_weekly_pulse_health(uuid, uuid, date) to authenticated;
 
 comment on function public.project_pulse_team_applicable(uuid, uuid, date) is
-  'Phase 14 team-question applicability derived from Phase 9 participation mode plus period-valid run membership. Solo and Flexible-Solo periods do not require team-state answers.';
+  'Phase 14 team-question applicability derived from Phase 9 participation mode plus period-valid run membership. Callable only in the exact member, Project Lead, Admin or service context.';
 comment on function public.project_weekly_pulse_health(uuid, uuid, date) is
   'Phase 14 explainable Project Lead/Admin health state and structured reasons. Expected membership is period-relative; raw member identity and private note content are never returned.';

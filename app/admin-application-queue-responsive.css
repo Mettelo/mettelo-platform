@@ -1,0 +1,40 @@
+.adminApplications{min-width:0;max-width:100%}
+.adminApplications .applicationToolbar{min-width:0;max-width:100%}
+.adminApplications .applicationToolbar label,
+.adminApplications .messagePreview{min-width:0}
+.adminApplications .applicationToolbar select,
+.adminApplications .applicationToolbar input,
+.adminApplications .messagePreview textarea{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.adminApplications .applicationTableWrap,
+.adminApplications .applicationMobileList,
+.adminApplications .pagination,
+.adminApplications .detailGrid,
+.adminApplications .mobileAppTop{min-width:0;max-width:100%}
+.adminApplications .mobileAppTop>button,
+.adminApplications .projectCell,
+.adminApplications .modalHead>div,
+.adminApplications .detailGrid>section,
+.adminApplications .detailGrid dd{min-width:0}
+.adminApplications .mobileAppTop strong,
+.adminApplications .mobileAppTop small,
+.adminApplications .projectCell a,
+.adminApplications .projectCell small,
+.adminApplications .detailGrid p,
+.adminApplications .detailGrid dd,
+.adminApplications .modalHead p{overflow-wrap:anywhere;word-break:break-word}
+
+@media(max-width:1050px){
+ .adminApplications .applicationToolbar{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+@media(max-width:900px){
+ .adminApplications .applicationTableWrap{display:none!important}
+ .adminApplications .applicationMobileList{display:grid!important;gap:8px}
+ .adminApplications .applicationToolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(max-width:480px){
+ .adminApplications .applicationToolbar{grid-template-columns:minmax(0,1fr)}
+ .adminApplications .mobileAppTop{grid-template-columns:auto minmax(0,1fr) auto}
+ .adminApplications .rowMenu>div{right:0;max-width:min(210px,calc(100vw - 32px))}
+}

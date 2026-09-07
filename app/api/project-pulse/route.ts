@@ -22,7 +22,7 @@ async function context(projectId:string,runId:string){
  const db=serviceDb();
  if(!db)return{supabase,user,membership:null,run:null};
  const [{data:membership},{data:run}]=await Promise.all([
-  db.from('project_members').select('team_role,membership_status').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).limit(1).maybeSingle(),
+  db.from('project_members').select('id,team_role,membership_status').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).limit(1).maybeSingle(),
   db.from('project_runs').select('id,status').eq('id',runId).eq('project_id',projectId).maybeSingle()
  ]);
  return{supabase,user,membership,run};
@@ -75,7 +75,7 @@ export async function POST(request:Request){
   const progress=clean(body.progress,40),workload=clean(body.workload,40),teamState=clean(body.team_state,40),supportNeed=clean(body.support_need,40),note=clean(body.note,2000);
   if(!progressValues.has(progress)||!workloadValues.has(workload)||!supportValues.has(supportNeed)||(applies&&!teamStateValues.has(teamState)))return NextResponse.json({error:applies?'Complete all four pulse questions.':'Complete the progress, workload and support questions.'},{status:400});
   const now=new Date().toISOString();
-  const {data,error}=await ctx.supabase.from('project_weekly_pulses').upsert({project_id:projectId,project_run_id:runId,user_id:ctx.user.id,period_start:periodStart,progress,workload,team_state:applies?teamState:null,support_need:supportNeed,note:note||null,submitted_at:now,updated_at:now},{onConflict:'project_run_id,user_id,period_start'}).select('id,period_start,progress,workload,team_state,support_need,note,submitted_at,updated_at').single();
+  const {data,error}=await ctx.supabase.from('project_weekly_pulses').upsert({project_member_id:ctx.membership.id,project_id:projectId,project_run_id:runId,user_id:ctx.user.id,period_start:periodStart,progress,workload,team_state:applies?teamState:null,support_need:supportNeed,note:note||null,submitted_at:now,updated_at:now},{onConflict:'project_run_id,user_id,period_start'}).select('id,period_start,progress,workload,team_state,support_need,note,submitted_at,updated_at').single();
   if(error)throw error;
   return NextResponse.json({ok:true,item:data,team_question_applicable:applies},{headers:{'Cache-Control':'private, no-store'}});
  }catch(error){console.error('project pulse submit error',error instanceof Error?error.message:'pulse submit failed');return NextResponse.json({error:'Unable to save your weekly project pulse.'},{status:500,headers:{'Cache-Control':'private, no-store'}})}

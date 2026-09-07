@@ -28,6 +28,12 @@ async function context(projectId:string,runId:string){
  return{supabase,user,membership,run};
 }
 
+async function teamApplicable(supabase:Awaited<ReturnType<typeof createServerSupabaseClient>>,projectId:string,runId:string,periodStart:string){
+ const {data,error}=await supabase.rpc('project_pulse_team_applicable',{target_project:projectId,target_run:runId,target_period:periodStart});
+ if(error)throw error;
+ return Boolean(data);
+}
+
 export async function GET(request:Request){
  try{
   const url=new URL(request.url);
@@ -40,6 +46,7 @@ export async function GET(request:Request){
   if(!ctx.run)return NextResponse.json({error:'Project run not found.'},{status:404});
   if(!ctx.membership&&!isAdmin)return NextResponse.json({error:'Project membership is required.'},{status:403});
   const periodStart=mondayUtc();
+  const applies=await teamApplicable(ctx.supabase,projectId,runId,periodStart);
   const {data:item,error}=await ctx.supabase.from('project_weekly_pulses').select('id,period_start,progress,workload,team_state,support_need,note,submitted_at,updated_at').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',ctx.user.id).eq('period_start',periodStart).maybeSingle();
   if(error)throw error;
   const canViewHealth=isAdmin||ctx.membership?.team_role==='project_lead';
@@ -49,8 +56,8 @@ export async function GET(request:Request){
    if(healthError)throw healthError;
    health=Array.isArray(data)?data[0]||null:data||null;
   }
-  return NextResponse.json({period_start:periodStart,item:item||null,health,can_submit:ctx.membership?.membership_status==='active'&&ctx.run.status==='active',can_view_health:canViewHealth});
- }catch(error){console.error('project pulse read error',error);return NextResponse.json({error:'Unable to load this week’s project pulse.'},{status:500})}
+  return NextResponse.json({period_start:periodStart,period_timezone:'UTC',item:item||null,health,team_question_applicable:applies,can_submit:ctx.membership?.membership_status==='active'&&ctx.run.status==='active',can_view_health:canViewHealth},{headers:{'Cache-Control':'private, no-store'}});
+ }catch(error){console.error('project pulse read error',error instanceof Error?error.message:'pulse read failed');return NextResponse.json({error:'Unable to load this week’s project pulse.'},{status:500,headers:{'Cache-Control':'private, no-store'}})}
 }
 
 export async function POST(request:Request){
@@ -63,11 +70,13 @@ export async function POST(request:Request){
   if(!ctx.run)return NextResponse.json({error:'Project run not found.'},{status:404});
   if(!ctx.membership||ctx.membership.membership_status!=='active')return NextResponse.json({error:'Only active project members can submit a weekly pulse.'},{status:403});
   if(ctx.run.status!=='active')return NextResponse.json({error:'Weekly pulse is available only while this project run is active.'},{status:409});
+  const periodStart=mondayUtc();
+  const applies=await teamApplicable(ctx.supabase,projectId,runId,periodStart);
   const progress=clean(body.progress,40),workload=clean(body.workload,40),teamState=clean(body.team_state,40),supportNeed=clean(body.support_need,40),note=clean(body.note,2000);
-  if(!progressValues.has(progress)||!workloadValues.has(workload)||!teamStateValues.has(teamState)||!supportValues.has(supportNeed))return NextResponse.json({error:'Complete all four pulse questions.'},{status:400});
-  const periodStart=mondayUtc(),now=new Date().toISOString();
-  const {data,error}=await ctx.supabase.from('project_weekly_pulses').upsert({project_id:projectId,project_run_id:runId,user_id:ctx.user.id,period_start:periodStart,progress,workload,team_state:teamState,support_need:supportNeed,note:note||null,submitted_at:now,updated_at:now},{onConflict:'project_run_id,user_id,period_start'}).select('id,period_start,progress,workload,team_state,support_need,note,submitted_at,updated_at').single();
+  if(!progressValues.has(progress)||!workloadValues.has(workload)||!supportValues.has(supportNeed)||(applies&&!teamStateValues.has(teamState)))return NextResponse.json({error:applies?'Complete all four pulse questions.':'Complete the progress, workload and support questions.'},{status:400});
+  const now=new Date().toISOString();
+  const {data,error}=await ctx.supabase.from('project_weekly_pulses').upsert({project_id:projectId,project_run_id:runId,user_id:ctx.user.id,period_start:periodStart,progress,workload,team_state:applies?teamState:null,support_need:supportNeed,note:note||null,submitted_at:now,updated_at:now},{onConflict:'project_run_id,user_id,period_start'}).select('id,period_start,progress,workload,team_state,support_need,note,submitted_at,updated_at').single();
   if(error)throw error;
-  return NextResponse.json({ok:true,item:data});
- }catch(error){console.error('project pulse submit error',error);return NextResponse.json({error:'Unable to save your weekly project pulse.'},{status:500})}
+  return NextResponse.json({ok:true,item:data,team_question_applicable:applies},{headers:{'Cache-Control':'private, no-store'}});
+ }catch(error){console.error('project pulse submit error',error instanceof Error?error.message:'pulse submit failed');return NextResponse.json({error:'Unable to save your weekly project pulse.'},{status:500,headers:{'Cache-Control':'private, no-store'}})}
 }

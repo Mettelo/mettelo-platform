@@ -1,110 +1,17 @@
 import {expect,test} from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-
 const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
 
 test.describe('Project Experience Phase 15 solo delivery contract',()=>{
- test('Lab shows independent delivery from the canonical active run',()=>{
-  const lab=read('components/MetteloLabPanel.tsx');
-  const section=read('components/project-experience/ProjectSoloDeliverySection.tsx');
-  const controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx');
-  expect(lab).toContain('ProjectSoloDeliverySection');
-  expect(lab).toContain('activeMemberCount={visibleMembers.length}');
-  expect(section).toContain("runStatus!=='active'||activeMemberCount!==1");
-  expect(section).toContain("['solo','flexible'].includes(project.participation_mode)");
-  expect(controls).toContain('WORKING INDEPENDENTLY');
-  expect(controls).toContain('Current project state');
-  expect(controls).toContain('Target team');
-  expect(controls).toContain('Joining availability');
- });
-
- test('opening collaboration reuses Phase 9 capacity and the same run recruitment flag',()=>{
-  const route=read('app/api/project-joining-availability/route.ts');
-  expect(route).toContain("db.rpc('phase9_project_run_capacity'");
-  expect(route).toContain(".eq('project_run_id',runId)");
-  expect(route).toContain("project.participation_mode!=='flexible'");
-  expect(route).toContain("(activeCount||0)!==1");
-  expect(route).toContain("db.from('project_runs').update({recruitment_open:recruitmentOpen");
-  expect(route).toContain(".eq('id',runId).eq('project_id',projectId)");
-  expect(route).not.toContain("from('project_runs').insert");
-  expect(route).not.toContain("from('project_members').insert");
-  expect(route).not.toContain('project_invitations');
- });
-
- test('joining controls do not bypass late-joining or maximum-capacity policy',()=>{
-  const route=read('app/api/project-joining-availability/route.ts');
-  const phase9=read('supabase/migrations/20260906002000_project_experience_phase_9_participation_hardening.sql');
-  expect(route).toContain("project.late_joining_enabled===false");
-  expect(route).toContain("Date.now()>=cutoff");
-  expect(route).toContain("capacity.capacity_available!==true");
-  expect(phase9).toContain("'available',greatest(maximum_members-used_capacity,0)");
-  expect(phase9).toContain("'late_join_allowed',late_join_allowed");
-  expect(phase9).toContain('phase9_lock_project_capacity');
- });
-
- test('strict Team cannot surface independent-delivery controls and strict Solo cannot open collaboration',()=>{
-  const section=read('components/project-experience/ProjectSoloDeliverySection.tsx');
-  const controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx');
-  const route=read('app/api/project-joining-availability/route.ts');
-  expect(section).toContain("if(!['solo','flexible'].includes(project.participation_mode))return null");
-  expect(controls).toContain("const flexible=props.participationMode==='flexible'");
-  expect(controls).toContain('Independent delivery only');
-  expect(route).toContain('Only Flexible projects can open a collaboration place after starting independently.');
- });
-
- test('same-run history remains canonical when a collaboration place is opened',()=>{
-  const controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx');
-  const route=read('app/api/project-joining-availability/route.ts');
-  const phase9Model=read('tests/project-experience-phase9-participation-model.spec.ts');
-  expect(controls).toContain('this same project run');
-  expect(controls).toContain('does not restart or replace your work');
-  expect(route).not.toContain('delete(');
-  expect(route).not.toContain("from('project_tasks')");
-  expect(route).not.toContain("from('project_milestones')");
-  expect(route).not.toContain("from('project_discussions')");
-  expect(route).not.toContain("from('project_resources')");
-  expect(phase9Model).toContain('late joining reuses Phase 6 policy and canonical project_members path');
- });
-
- test('solo delivery never auto-awards Collaboration or Peer Leadership proof',()=>{
-  const controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx');
-  const route=read('app/api/project-joining-availability/route.ts');
-  const contributions=read('app/api/contributions/route.ts');
-  expect(controls).toContain('Collaboration or peer-leadership evidence requires actual collaborative activity');
-  expect(route).not.toContain("from('contributions')");
-  expect(route).not.toContain('verification_status');
-  expect(contributions).toContain("verification_status:'pending'");
-  expect(contributions).toContain('Contribution evidence requires membership in a specific project run.');
-  expect(contributions).not.toContain("verification_status:'verified'");
- });
-
- test('Phase 15 does not create a duplicate invitation or conversion state machine',()=>{
-  const route=read('app/api/project-joining-availability/route.ts');
-  const controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx');
-  expect(route).not.toContain('invitation');
-  expect(route).not.toContain('conversion');
-  expect(controls).not.toContain('Invite collaborator');
-  expect(controls).toContain('Open collaboration place');
- });
-
- test('new solo control has release-grade touch and keyboard focus treatment',()=>{
-  const css=read('components/project-experience/ProjectSoloDeliveryControls.module.css');
-  expect(css).toContain('min-height:44px');
-  expect(css).toContain('.action button:focus-visible');
-  expect(css).toContain('outline-offset:3px');
- });
-
- test('real Phase 15 Supabase/browser journey is blocking in smoke and staging',()=>{
-  const pkg=read('package.json');
-  const e2e=read('tests/project-experience-phase15-solo-conversion-e2e.spec.ts');
-  const references=pkg.match(/tests\/project-experience-phase15-solo-conversion-e2e\.spec\.ts/g)||[];
-  expect(references).toHaveLength(2);
-  expect(e2e).toContain("Phase 15 tests refuse non-local Supabase hosts.");
-  expect(e2e).toContain("getByRole('button',{name:'Open collaboration place'})");
-  expect(e2e).toContain("expect(result.status).toBe(403)");
-  expect(e2e).toContain("direct.data?.length===0");
-  expect(e2e).toContain("runs:1,members:2,tasks:1,milestones:1,resources:1,contributions:0");
- });
+ test('Lab shows independent delivery from the canonical active run',()=>{const lab=read('components/MetteloLabPanel.tsx'),section=read('components/project-experience/ProjectSoloDeliverySection.tsx'),controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx');expect(lab).toContain('ProjectSoloDeliverySection');expect(lab).toContain('activeMemberCount={visibleMembers.length}');expect(section).toContain("runStatus!=='active'||activeMemberCount!==1");expect(section).toContain("['solo','flexible'].includes(project.participation_mode)");for(const text of ['WORKING INDEPENDENTLY','Current project state','Target team','Joining availability'])expect(controls).toContain(text)});
+ test('opening collaboration reuses Phase 9 capacity and the same run recruitment flag',()=>{const route=read('app/api/project-joining-availability/route.ts');for(const text of ["db.rpc('phase9_project_run_capacity'",".eq('project_run_id',runId)","project.participation_mode!=='flexible'","(activeCount||0)!==1","db.from('project_runs').update({recruitment_open:recruitmentOpen",".eq('id',runId).eq('project_id',projectId)"])expect(route).toContain(text);for(const text of ["from('project_runs').insert","from('project_members').insert",'project_invitations'])expect(route).not.toContain(text)});
+ test('joining controls do not bypass late-joining or maximum-capacity policy',()=>{const route=read('app/api/project-joining-availability/route.ts'),phase9=read('supabase/migrations/20260906002000_project_experience_phase_9_participation_hardening.sql');for(const text of ["project.late_joining_enabled===false","Date.now()>=cutoff","capacity.capacity_available!==true"])expect(route).toContain(text);for(const text of ["'available',greatest(maximum_members-used_capacity,0)","'late_join_allowed',late_join_allowed",'phase9_lock_project_capacity'])expect(phase9).toContain(text)});
+ test('strict Team cannot surface independent controls and strict Solo cannot open collaboration',()=>{const section=read('components/project-experience/ProjectSoloDeliverySection.tsx'),controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx'),route=read('app/api/project-joining-availability/route.ts');expect(section).toContain("if(!['solo','flexible'].includes(project.participation_mode))return null");expect(controls).toContain("const flexible=props.participationMode==='flexible'");expect(controls).toContain('Independent delivery only');expect(route).toContain('Only Flexible projects can open a collaboration place after starting independently.')});
+ test('same-run history remains canonical when collaboration opens',()=>{const controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx'),route=read('app/api/project-joining-availability/route.ts'),phase9=read('tests/project-experience-phase9-participation-model.spec.ts');expect(controls).toContain('this same project run');expect(controls).toContain('does not restart or replace your work');for(const text of ['delete(',"from('project_tasks')","from('project_milestones')","from('project_discussions')","from('project_resources')"])expect(route).not.toContain(text);expect(phase9).toContain('late joining reuses Phase 6 policy and canonical project_members path')});
+ test('solo delivery never auto-awards Collaboration or Peer Leadership proof',()=>{const controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx'),route=read('app/api/project-joining-availability/route.ts'),contributions=read('app/api/contributions/route.ts');expect(controls).toContain('Collaboration or peer-leadership evidence requires actual collaborative activity');expect(route).not.toContain("from('contributions')");expect(route).not.toContain('verification_status');expect(contributions).toContain("verification_status:'pending'");expect(contributions).toContain('Contribution evidence requires membership in a specific project run.');expect(contributions).not.toContain("verification_status:'verified'")});
+ test('Phase 15 does not create a duplicate invitation or conversion state machine',()=>{const route=read('app/api/project-joining-availability/route.ts'),controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx');expect(route).not.toContain('invitation');expect(route).not.toContain('conversion');expect(controls).not.toContain('Invite collaborator');expect(controls).toContain('Open collaboration place')});
+ test('solo control has release-grade touch, focus and feedback semantics',()=>{const css=read('components/project-experience/ProjectSoloDeliveryControls.module.css'),controls=read('components/project-experience/ProjectSoloDeliveryControls.tsx');expect(css).toContain('min-height:44px');expect(css).toContain('.action button:focus-visible');expect(css).toContain('outline-offset:3px');expect(controls).toContain("role={error?'alert':'status'}");expect(controls).toContain("aria-live={error?'assertive':'polite'}")});
+ test('real Phase 15 Supabase/browser journey is blocking in smoke and staging',()=>{const pkg=read('package.json'),e2e=read('tests/project-experience-phase15-solo-conversion-e2e.spec.ts');expect(pkg.match(/tests\/project-experience-phase15-solo-conversion-e2e\.spec\.ts/g)||[]).toHaveLength(2);for(const text of ["Phase 15 tests refuse non-local Supabase hosts.","getByRole('button',{name:'Open collaboration place'})","expect(denied.status).toBe(403)","direct.data?.length===0","toEqual([1,2,1,1,1,0])","getByRole('alert')"])expect(e2e).toContain(text)});
 });

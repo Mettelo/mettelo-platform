@@ -44,7 +44,7 @@ export async function GET(request:Request){
     if(error||!data)return NextResponse.json({error:'Project not found.'},{status:404});
     if(runError)throw runError;
     return NextResponse.json({
-      item:{...data,effective_admission_mode:effectiveProjectAdmissionMode(data.project_type,data.admission_mode)},
+      item:{...data,auto_start_delay_minutes:360,effective_admission_mode:effectiveProjectAdmissionMode(data.project_type,data.admission_mode)},
       runs:runs||[]
     });
   }catch(error){
@@ -116,7 +116,7 @@ export async function PATCH(request:Request){
         if(!run.auto_start_blocked_at)return NextResponse.json({ok:true,action,status:'scheduled',already_unblocked:true});
         const readiness=await minimumReady(db,runId,run.required_team_size);
         if(!readiness.ready)return NextResponse.json({ok:false,status:'team_forming',blockers:['team_size'],filled:readiness.filled,required_team_size:readiness.required,error:'This team is below its minimum. Keep the run blocked until the start condition is restored.'},{status:409});
-        const delay=safeAutoStartDelayMinutes(project.auto_start_delay_minutes);
+        const delay=safeAutoStartDelayMinutes(360);
         const due=new Date(Date.now()+delay*60_000).toISOString();
         const {data:updated,error}=await db.from('project_runs').update({
           auto_start_blocked_at:null,
@@ -136,7 +136,7 @@ export async function PATCH(request:Request){
       if(action==='resume_run'){
         const readiness=await minimumReady(db,runId,run.required_team_size);
         if(!readiness.ready)return NextResponse.json({ok:false,status:'team_forming',blockers:['team_size'],filled:readiness.filled,required_team_size:readiness.required,error:'This team is below its minimum. Automatic start cannot resume until the start condition is restored.'},{status:409});
-        const delay=safeAutoStartDelayMinutes(project.auto_start_delay_minutes);
+        const delay=safeAutoStartDelayMinutes(360);
         const due=new Date(Date.now()+delay*60_000).toISOString();
         const {data:updated,error}=await db.from('project_runs').update({
           auto_start_paused_at:null,
@@ -172,7 +172,7 @@ export async function PATCH(request:Request){
       return NextResponse.json({error:'Use the explicit “Convert to review required” action so waiting AUTO memberships and schedules are unwound safely and audited.'},{status:409});
     }
 
-    const delay=safeAutoStartDelayMinutes(body.auto_start_delay_minutes);
+    const delay=360;
     const pause=body.auto_start_paused===true;
     const lateJoining=body.late_joining_enabled!==false;
     const sharing=body.project_sharing_enabled!==false;
@@ -196,9 +196,9 @@ export async function PATCH(request:Request){
     await db.from('project_activity_log').insert({
       project_id:projectId,event_type:'project_admission_policy_updated',actor_type:'user',actor_user_id:user.id,
       from_status:effectiveMode,to_status:effectiveProjectAdmissionMode(project.project_type,requestedMode),
-      metadata:{previous_delay_minutes:project.auto_start_delay_minutes,new_delay_minutes:delay,auto_start_paused:pause,late_joining_enabled:lateJoining,late_joining_cutoff_at:lateJoiningCutoff,project_sharing_enabled:sharing,member_invites_enabled:invites,project_type:project.project_type,partner_name:project.partner_name||null}
+      metadata:{previous_delay_minutes:project.auto_start_delay_minutes,new_delay_minutes:360,auto_start_paused:pause,late_joining_enabled:lateJoining,late_joining_cutoff_at:lateJoiningCutoff,project_sharing_enabled:sharing,member_invites_enabled:invites,project_type:project.project_type,partner_name:project.partner_name||null}
     });
-    return NextResponse.json({ok:true,item:{...data,effective_admission_mode:effectiveProjectAdmissionMode(data.project_type,data.admission_mode)}});
+    return NextResponse.json({ok:true,item:{...data,auto_start_delay_minutes:360,effective_admission_mode:effectiveProjectAdmissionMode(data.project_type,data.admission_mode)}});
   }catch(error){
     console.error('project admission configuration error',error);
     return NextResponse.json({error:'Unable to update project admission policy.'},{status:500});

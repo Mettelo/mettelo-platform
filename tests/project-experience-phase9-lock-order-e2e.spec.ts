@@ -20,6 +20,7 @@ function serviceDb(){
 }
 
 async function cleanup(client:ReturnType<typeof serviceDb>){
+  await client.from('projects').update({applications_open:false}).eq('id',projectId);
   const {data:apps}=await client.from('project_applications').select('id').eq('project_id',projectId);
   const appIds=(apps||[]).map(row=>row.id);
   await client.from('project_activity_log').delete().eq('project_id',projectId);
@@ -98,7 +99,7 @@ test.describe('Project Experience Phase 9 Offer/membership lock ordering',()=>{
         status:'open',
         visibility:'public',
         project_type:'open',
-        applications_open:true,
+        applications_open:false,
         team_size_threshold:1,
         participation_mode:'solo',
         min_team_size:1,
@@ -107,6 +108,17 @@ test.describe('Project Experience Phase 9 Offer/membership lock ordering',()=>{
         admission_mode:'review_required',
       });
       if(project.error)throw project.error;
+      const role=await client.from('project_roles').insert({
+        project_id:projectId,
+        title:'Phase 9 lock-order contributor',
+        discipline:'Data & AI',
+        description:'Disposable role capacity for the Phase 9 final-place concurrency fixture.',
+        skills:['Collaboration'],
+        openings:1,
+      });
+      if(role.error)throw role.error;
+      const opened=await client.from('projects').update({applications_open:true}).eq('id',projectId);
+      if(opened.error)throw opened.error;
 
       const runResult=await client.from('project_runs').insert({
         project_id:projectId,

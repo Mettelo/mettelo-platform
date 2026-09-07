@@ -42,9 +42,9 @@ as $$
     from public.project_members pm
     where pm.project_id = target_project
       and pm.project_run_id = target_run
-      and coalesce(pm.activated_at, pm.started_at) is not null
-      and coalesce(pm.activated_at, pm.started_at) < (target_period + interval '7 days')
-      and coalesce(pm.ended_at, pm.completed_at, 'infinity'::timestamptz) >= target_period::timestamptz
+      and coalesce(pm.activated_at, pm.joined_at) is not null
+      and coalesce(pm.activated_at, pm.joined_at) < (target_period + interval '7 days')
+      and coalesce(pm.left_at, pm.completed_at, 'infinity'::timestamptz) >= target_period::timestamptz
   )
   select case
     when pc.participation_mode = 'solo' then false
@@ -146,9 +146,9 @@ begin
   from public.project_members pm
   where pm.project_id = target_project
     and pm.project_run_id = target_run
-    and coalesce(pm.activated_at, pm.started_at) is not null
-    and coalesce(pm.activated_at, pm.started_at) < (target_period + interval '7 days')
-    and coalesce(pm.ended_at, pm.completed_at, 'infinity'::timestamptz) >= target_period::timestamptz;
+    and coalesce(pm.activated_at, pm.joined_at) is not null
+    and coalesce(pm.activated_at, pm.joined_at) < (target_period + interval '7 days')
+    and coalesce(pm.left_at, pm.completed_at, 'infinity'::timestamptz) >= target_period::timestamptz;
 
   select
     count(*)::bigint,

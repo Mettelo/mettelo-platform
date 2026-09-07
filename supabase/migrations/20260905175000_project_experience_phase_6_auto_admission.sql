@@ -20,7 +20,8 @@ alter table public.project_applications
   add column if not exists admission_decision text,
   add column if not exists participation_preference text,
   add column if not exists admission_decided_at timestamptz,
-  add column if not exists auto_qualified_at timestamptz;
+  add column if not exists auto_qualified_at timestamptz,
+  add column if not exists approved_at timestamptz;
 
 alter table public.project_applications drop constraint if exists project_applications_admission_mode_snapshot_check;
 alter table public.project_applications add constraint project_applications_admission_mode_snapshot_check
@@ -145,8 +146,6 @@ begin
     values(project.id,run.id,'cohort_created','system',null,'forming',jsonb_build_object('source','phase6_auto_admission','run_number',run.run_number,'required_team_size',required_members,'participation_preference',preference));
   end if;
 
-  -- The first AUTO team member establishes the run minimum. Existing team-forming
-  -- runs retain their canonical threshold; target size never blocks start.
   required_members:=greatest(coalesce(run.required_team_size,required_members),1);
   maximum_members:=greatest(maximum_members,required_members);
 

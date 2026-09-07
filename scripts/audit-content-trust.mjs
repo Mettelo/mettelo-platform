@@ -6,8 +6,11 @@ function requireText(label,text,needles){for(const needle of needles)if(!text.in
 function forbidText(label,text,needles){for(const needle of needles)if(text.includes(needle)){console.error(`FAIL ${label}: forbidden ${needle}`);failed=true;}}
 
 const applications=read('components/MemberApplicationTracker.tsx');
-requireText('Application actionability guard',applications,['needs:0',"view==='needs'?false",'Nothing needs your attention']);
-forbidText('Application actionability guard',applications,['actionRequiredStates','Review action','Action required before this application can continue']);
+requireText('Application actionability guard',applications,["needs:items.filter(item=>item.status==='offered'&&!isClosed(item)).length","view==='needs'?item.status==='offered'&&!isClosed(item)",'Nothing needs your attention']);
+forbidText('Application actionability guard',applications,['actionRequiredStates','Review action','Action required before this application can continue','Accept place','Decline place']);
+const projectOffers=read('components/MemberProjectOffers.tsx');
+requireText('Project Offer action ownership',projectOffers,['PROJECT PLACE OFFERS','Accept place','Decline',"fetch('/api/project-offers'",'does not start the project or unlock the private workspace yet']);
+forbidText('Project Offer action ownership',projectOffers,['project_members','startProjectRun']);
 
 const contributionForm=read('components/ContributionForm.tsx');
 requireText('Contribution submission semantics',contributionForm,['YOUR CONTRIBUTION','Record what you contributed','FOR REVIEW','Submit contribution for review →','Spotlight or Showcase publication remains a separate consent process.']);

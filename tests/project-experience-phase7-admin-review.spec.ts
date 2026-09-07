@@ -104,7 +104,8 @@ test.describe('Project Experience Phase 7 source contract',()=>{
   expect(queue).toContain('Self-declared professional profile');
   expect(queue).toContain('They are not verified Mettelo Proof');
   expect(queue).toContain('Verified Mettelo Proof');
-  expect(queue).toContain('Open places');
+  expect(queue).toContain("function openPlaces(item:Item){return Math.max(0,item.capacity.maximum-item.capacity.confirmed-(item.capacity.reservedOffers||0))}");
+  expect(queue).toContain('{openPlaces(detail)} open');
   expect(page).toContain('Partner / review required');
   expect(page).toContain('AUTO start scheduled');
   expect(page).toContain('AUTO needs attention');

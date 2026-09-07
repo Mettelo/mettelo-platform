@@ -33,7 +33,7 @@ test('anon rich projection is visible only while the project is public and omits
   const {url,anon,service}=env();
   const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
   const publicDb=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
-  const {data:project,error}=await admin.from('projects').select('id,visibility,status').eq('visibility','public').in('status',['pilot','recruiting','open','forming','active','review','completed']).limit(1).maybeSingle();
+  const {data:project,error}=await admin.from('projects').select('id,visibility,status,applications_open').eq('visibility','public').in('status',['pilot','recruiting','open','forming','active','review','completed']).limit(1).maybeSingle();
   if(error)throw error;
   test.skip(!project,'Fixture has no public project available for Phase 4 security verification.');
   const visible=await publicDb.rpc('get_public_project_experience_detail',{p_project_id:project!.id});
@@ -43,6 +43,11 @@ test('anon rich projection is visible only while the project is public and omits
   for(const protectedName of protectedProjectionFields)expect(serialized).not.toContain(`\"${protectedName}\"`);
 
   const originalVisibility=project!.visibility;
+  const originalApplicationsOpen=Boolean(project!.applications_open);
+  if(originalApplicationsOpen){
+    const closed=await admin.from('projects').update({applications_open:false}).eq('id',project!.id).select('id').single();
+    if(closed.error)throw closed.error;
+  }
   const hidden=await admin.from('projects').update({visibility:'private'}).eq('id',project!.id).select('id').single();
   if(hidden.error)throw hidden.error;
   try{
@@ -50,7 +55,11 @@ test('anon rich projection is visible only while the project is public and omits
     expect(blocked.error).toBeNull();
     expect(blocked.data).toBeNull();
   }finally{
-    const restored=await admin.from('projects').update({visibility:originalVisibility}).eq('id',project!.id);
-    if(restored.error)throw restored.error;
+    const restoredVisibility=await admin.from('projects').update({visibility:originalVisibility}).eq('id',project!.id);
+    if(restoredVisibility.error)throw restoredVisibility.error;
+    if(originalApplicationsOpen){
+      const restoredApplications=await admin.from('projects').update({applications_open:true}).eq('id',project!.id);
+      if(restoredApplications.error)throw restoredApplications.error;
+    }
   }
 });

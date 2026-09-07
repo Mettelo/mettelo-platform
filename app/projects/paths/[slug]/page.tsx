@@ -6,7 +6,7 @@ import '../../capability-paths-public.css';
 export const dynamic='force-dynamic';
 
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
- const {slug}=await params;const path=await getPublishedCapabilityPath(slug);if(!path)return{title:'Capability Path'};
+ const {slug}=await params;const path=await getPublishedCapabilityPath(slug);if(!path)notFound();
  return{title:`${path.name} Capability Path`,description:path.short_description||path.progression_summary||`Build toward ${path.target_outcome} through real Mettelo projects.`,alternates:{canonical:`/projects/paths/${path.slug}`}};
 }
 

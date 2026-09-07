@@ -37,11 +37,20 @@ export async function POST(request:Request){
   if(!db)return NextResponse.json({error:'Project service is not configured.'},{status:503});
 
   const [{data:membership},{data:run}]=await Promise.all([
-   db.from('project_members').select('id,membership_status,departure_state,team_role').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).maybeSingle(),
+   db.from('project_members').select('id,membership_status,departure_state,team_role,left_at').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).maybeSingle(),
    db.from('project_runs').select('id,status,has_started,run_number').eq('id',runId).eq('project_id',projectId).maybeSingle()
   ]);
   if(!run)return NextResponse.json({error:'Project run not found.'},{status:404});
-  if(!membership||membership.membership_status!=='active')return NextResponse.json({error:'Only an active member of this exact project run can use the departure flow.'},{status:403});
+  if(!membership)return NextResponse.json({error:'Only a member of this exact project run can use the departure flow.'},{status:403});
+
+  // Completing departure is an idempotent command. A browser retry after the
+  // canonical transition has committed must not fail or emit notifications a
+  // second time. New requests remain restricted to active exact-run members.
+  if(action==='complete'&&membership.membership_status==='left'&&membership.departure_state==='left'){
+   return NextResponse.json({ok:true,state:'left',already_completed:true,left_at:membership.left_at??null},{headers:{'Cache-Control':'private, no-store'}});
+  }
+
+  if(membership.membership_status!=='active')return NextResponse.json({error:'Only an active member of this exact project run can use the departure flow.'},{status:403});
   if(run.status!=='active'||run.has_started!==true)return NextResponse.json({error:'Member departure is available only after the project run has started.'},{status:409});
   if(action==='complete'&&membership.departure_state!=='leaving')return NextResponse.json({error:'Record the handover before completing departure.'},{status:409});
 

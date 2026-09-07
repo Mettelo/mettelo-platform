@@ -96,7 +96,7 @@ test.describe('Project Experience Phase 9 Offer/membership lock ordering',()=>{
         summary:'Disposable Phase 9 concurrency fixture.',
         problem_statement:'Verify accepted Offer reservation handoff cannot deadlock against canonical membership creation.',
         status:'open',
-        visibility:'private',
+        visibility:'public',
         project_type:'open',
         applications_open:true,
         team_size_threshold:1,

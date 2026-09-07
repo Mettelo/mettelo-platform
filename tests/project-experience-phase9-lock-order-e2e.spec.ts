@@ -94,7 +94,7 @@ test.describe('Project Experience Phase 9 Offer/membership lock ordering',()=>{
         id:projectId,
         slug:'phase9-lock-order-race',
         title:'Phase 9 lock order race',
-        summary:'Disposable Phase 9 concurrency fixture.',
+        summary:'Disposable Phase 9 concurrency fixture for canonical reservation handoff testing.',
         problem_statement:'Verify accepted Offer reservation handoff cannot deadlock against canonical membership creation.',
         status:'open',
         visibility:'public',

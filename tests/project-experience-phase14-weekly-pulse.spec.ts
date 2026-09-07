@@ -7,6 +7,7 @@ const api=read('app/api/project-pulse/route.ts');
 const ui=read('components/project-experience/ProjectWeeklyPulse.tsx');
 const lab=read('components/MetteloLabPanel.tsx');
 const packageJson=read('package.json');
+const healthReturn=migration.match(/returns table \(([\s\S]*?)\)\nlanguage plpgsql/i)?.[1]||'';
 
 const cases:[string,boolean][]=[
  ['Phase 14 creates one canonical weekly pulse table',migration.includes('create table if not exists public.project_weekly_pulses')&&migration.includes('project_weekly_pulses_one_per_week unique (project_run_id, user_id, period_start)')],
@@ -15,7 +16,7 @@ const cases:[string,boolean][]=[
  ['Raw pulse RLS is own-user only',migration.includes('members read own weekly pulse')&&migration.includes('user_id = (select auth.uid())')],
  ['Only active exact project/run members can submit or update',migration.includes("pm.project_id = project_weekly_pulses.project_id")&&migration.includes("pm.project_run_id = project_weekly_pulses.project_run_id")&&migration.includes("pm.membership_status = 'active'")],
  ['Project/run integrity is enforced in the database',migration.includes('mettelo_validate_project_pulse_run')&&migration.includes('Project pulse run does not belong to project')],
- ['Lead/Admin health is aggregate-only and excludes notes and identities',migration.includes('project_weekly_pulse_health')&&migration.includes('public.mettelo_is_run_lead(target_run)')&&!migration.match(/returns table[\s\S]*note/i)&&!migration.match(/returns table[\s\S]*user_id/i)],
+ ['Lead/Admin health is aggregate-only and excludes notes and identities',migration.includes('project_weekly_pulse_health')&&migration.includes('public.mettelo_is_run_lead(target_run)')&&Boolean(healthReturn)&&!healthReturn.includes('note')&&!healthReturn.includes('user_id')],
  ['No opaque project health score is created',!migration.includes('health_score')&&!api.includes('health_score')&&!ui.includes('health_score')],
  ['Reminder communication has a dedicated preference event',migration.includes("'project_pulse_reminder'")&&migration.includes("'email_and_in_app'")&&migration.includes('active = true')],
  ['API derives the week server-side and does not trust a client period',api.includes('const periodStart=mondayUtc()')&&!api.includes('body.period_start')],

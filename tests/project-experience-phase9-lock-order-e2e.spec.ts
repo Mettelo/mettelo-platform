@@ -162,14 +162,14 @@ test.describe('Project Experience Phase 9 Offer/membership lock ordering',()=>{
       expect(accept.data).toMatchObject({status:'accepted'});
       if(membership.error){
         expect(membership.error.message).toContain('PARTICIPATION_CAPACITY_FULL');
-        const retry=await withTimeout(client.from('project_members').insert({
+        const retry=await withTimeout(Promise.resolve(client.from('project_members').insert({
           project_id:projectId,
           project_run_id:runId,
           user_id:member.id,
           project_role_id:null,
           team_role:'contributor',
           membership_status:'waiting',
-        }).select('id').single());
+        }).select('id').single()));
         if(retry.error)throw retry.error;
       }
 

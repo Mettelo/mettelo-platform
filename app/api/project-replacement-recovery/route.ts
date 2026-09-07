@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
+import {hasAdminCapability} from '@/lib/admin-capabilities';
 
 function clean(value:unknown,max=80){return String(value??'').trim().slice(0,max)}
 function message(error:unknown){return typeof error==='object'&&error&&'message'in error?String((error as{message?:unknown}).message||''):''}
@@ -23,7 +24,7 @@ export async function POST(request:Request){
   ]);
   if(!run)return NextResponse.json({error:'Project run not found.'},{status:404});
   if(run.status!=='active'||run.has_started!==true)return NextResponse.json({error:'Replacement recovery is only available for an active started run.'},{status:409});
-  const isAdmin=user.app_metadata?.role==='admin';
+  const isAdmin=hasAdminCapability(user,'projects.manage');
   const isLead=membership?.membership_status==='active'&&membership.team_role==='project_lead';
   if(!isAdmin&&!isLead)return NextResponse.json({error:'Only the active Project Lead or an authorized Admin can request replacement recovery.'},{status:403});
   if(run.replacement_needed!==true)return NextResponse.json({ok:true,requested:false,already_recovered:true,recruitment_open:run.recruitment_open},{headers:{'Cache-Control':'private, no-store'}});

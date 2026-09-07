@@ -27,7 +27,7 @@ expect('participation mode database constraint',schema.includes("participation_m
 expect('capacity ordering database constraint',schema.includes('min_team_size <= target_team_size')&&schema.includes('target_team_size <= max_team_size'));
 expect('solo invariant',schema.includes("participation_mode = 'solo'")&&schema.includes('min_team_size = 1'));
 expect('team minimum invariant',schema.includes("participation_mode = 'team' and min_team_size >= 2"));
-expect('flexible minimum invariant',schema.includes("participation_mode = 'flexible' and min_team_size = 1"));
+expect('Phase 3 migration preserves original flexible minimum invariant',schema.includes("participation_mode = 'flexible' and min_team_size = 1"));
 expect('legacy threshold backfill preserved',schema.includes('coalesce(team_size_threshold, 5)'));
 expect('compatibility trigger exists',schema.includes('sync_project_participation_contract'));
 expect('readiness blocks participation capacity',schema.includes("then 'participation_capacity' end"));
@@ -48,7 +48,16 @@ expect('focused participation RPC is private',focusedAtomic.includes('revoke all
 expect('shared parser supports all modes',['solo','team','flexible'].every(mode=>helper.includes(`'${mode}'`)));
 expect('shared parser keeps threshold equal to minimum',helper.includes('team_size_threshold:min'));
 expect('shared validation enforces team minimum',helper.includes("participation_mode==='team'&&value.min_team_size<2"));
-expect('shared validation enforces flexible minimum',helper.includes("participation_mode==='flexible'&&value.min_team_size!==1"));
+// Phase 9 deliberately evolves Flexible from the Phase 3 fixed minimum of one
+// into a configurable collaborative minimum. Preserve the historical migration
+// assertion above, while requiring the current shared helper to keep that
+// governed minimum positive/ordered instead of reintroducing a fixed-one guard.
+expect('shared validation preserves Phase 9 flexible governed minimum',
+  helper.includes("value.min_team_size<1||value.target_team_size<1||value.max_team_size<1")&&
+  helper.includes('value.min_team_size>value.target_team_size||value.target_team_size>value.max_team_size')&&
+  helper.includes('Flexible keeps a real collaborative minimum')&&
+  !helper.includes("participation_mode==='flexible'&&value.min_team_size!==1")
+);
 
 expect('creator visibly supports Solo Team Flexible',creator.includes('Participation mode')&&creator.includes('<option value="solo">Solo</option>')&&creator.includes('<option value="team">Team</option>')&&creator.includes('<option value="flexible">Flexible</option>'));
 expect('creator captures min target max',creator.includes('Minimum participants')&&creator.includes('Target participants')&&creator.includes('Maximum participants'));

@@ -1,7 +1,7 @@
 -- Project Experience Phase 14: Weekly Project Pulse & Team Health.
 --
 -- Privacy contract:
--- * one updatable pulse per active member/project/run/week;
+-- * one updatable pulse per active canonical member/project/run/week;
 -- * members can read/write only their own raw pulse row;
 -- * Project Leads/Admins receive explainable aggregate counts through a controlled RPC;
 -- * optional notes never appear in team-health aggregates;
@@ -9,6 +9,7 @@
 
 create table if not exists public.project_weekly_pulses (
   id uuid primary key default gen_random_uuid(),
+  project_member_id uuid not null references public.project_members(id) on delete restrict,
   project_id uuid not null references public.projects(id) on delete cascade,
   project_run_id uuid not null references public.project_runs(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -21,11 +22,14 @@ create table if not exists public.project_weekly_pulses (
   submitted_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint project_weekly_pulses_monday_period check (extract(isodow from period_start) = 1),
+  constraint project_weekly_pulses_one_per_membership_period unique (project_member_id, period_start),
   constraint project_weekly_pulses_one_per_week unique (project_run_id, user_id, period_start)
 );
 
 create index if not exists idx_project_weekly_pulses_project_run_period
   on public.project_weekly_pulses(project_id, project_run_id, period_start desc);
+create index if not exists idx_project_weekly_pulses_member_period
+  on public.project_weekly_pulses(project_member_id, period_start desc);
 create index if not exists idx_project_weekly_pulses_user_period
   on public.project_weekly_pulses(user_id, period_start desc);
 
@@ -37,11 +41,19 @@ set search_path = public
 as $$
 begin
   if not exists (
-    select 1 from public.project_runs r
-    where r.id = new.project_run_id
+    select 1
+    from public.project_members pm
+    join public.project_runs r
+      on r.id = pm.project_run_id
+     and r.project_id = pm.project_id
+    where pm.id = new.project_member_id
+      and pm.project_id = new.project_id
+      and pm.project_run_id = new.project_run_id
+      and pm.user_id = new.user_id
+      and r.id = new.project_run_id
       and r.project_id = new.project_id
   ) then
-    raise exception 'Project pulse run does not belong to project';
+    raise exception 'Project pulse member, project and run do not match';
   end if;
   return new;
 end;
@@ -49,7 +61,7 @@ $$;
 
 drop trigger if exists project_weekly_pulses_validate_run on public.project_weekly_pulses;
 create trigger project_weekly_pulses_validate_run
-before insert or update of project_id, project_run_id
+before insert or update of project_member_id, project_id, project_run_id, user_id
 on public.project_weekly_pulses
 for each row execute function public.mettelo_validate_project_pulse_run();
 
@@ -72,7 +84,8 @@ with check (
   and exists (
     select 1
     from public.project_members pm
-    where pm.project_id = project_weekly_pulses.project_id
+    where pm.id = project_weekly_pulses.project_member_id
+      and pm.project_id = project_weekly_pulses.project_id
       and pm.project_run_id = project_weekly_pulses.project_run_id
       and pm.user_id = (select auth.uid())
       and pm.membership_status = 'active'
@@ -90,7 +103,8 @@ with check (
   and exists (
     select 1
     from public.project_members pm
-    where pm.project_id = project_weekly_pulses.project_id
+    where pm.id = project_weekly_pulses.project_member_id
+      and pm.project_id = project_weekly_pulses.project_id
       and pm.project_run_id = project_weekly_pulses.project_run_id
       and pm.user_id = (select auth.uid())
       and pm.membership_status = 'active'
@@ -198,6 +212,6 @@ on conflict (event_key) do update set
   updated_at = now();
 
 comment on table public.project_weekly_pulses is
-  'Phase 14 private weekly member pulse. Raw rows are own-user only; team health is exposed only as explainable aggregate counts.';
+  'Phase 14 private weekly member pulse. Each row is bound to one canonical project_members row; raw rows are own-user only and team health is exposed only as explainable aggregate counts.';
 comment on function public.project_weekly_pulse_health(uuid, uuid, date) is
   'Phase 14 Project Lead/Admin aggregate pulse counts. Never returns member identity, note content, or an opaque score.';

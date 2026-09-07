@@ -68,8 +68,6 @@ using (
   )
 );
 
--- No authenticated INSERT/UPDATE/DELETE policy: handover writes are performed by
--- the service-only governed departure command after ordinary server authentication.
 revoke insert,update,delete on public.project_member_handovers from anon,authenticated;
 grant select on public.project_member_handovers to authenticated;
 
@@ -144,8 +142,7 @@ begin
   if project_row.id is null then raise exception using errcode='P0002',message='PROJECT_NOT_FOUND'; end if;
   perform public.phase9_lock_project_capacity(project_row.id);
 
-  select * into run_row from public.project_runs
-  where id=p_run_id and project_id=p_project_id for update;
+  select * into run_row from public.project_runs where id=p_run_id and project_id=p_project_id for update;
   if run_row.id is null then raise exception using errcode='P0002',message='PROJECT_RUN_NOT_FOUND'; end if;
   if run_row.status<>'active' or coalesce(run_row.has_started,false)=false then
     raise exception using errcode='23514',message='ACTIVE_STARTED_RUN_REQUIRED';
@@ -158,21 +155,15 @@ begin
   is_departing_lead:=member_row.team_role='project_lead';
 
   if p_action='request' then
-    if member_row.membership_status<>'active' then
-      raise exception using errcode='23514',message='ACTIVE_MEMBERSHIP_REQUIRED';
-    end if;
+    if member_row.membership_status<>'active' then raise exception using errcode='23514',message='ACTIVE_MEMBERSHIP_REQUIRED'; end if;
     if reason not in ('availability_changed','workload','personal_circumstances','role_fit','technical_access','other') then
       raise exception using errcode='23514',message='EXIT_REASON_REQUIRED';
     end if;
-    if context_text is not null and char_length(context_text)>1000 then
-      raise exception using errcode='23514',message='EXIT_CONTEXT_TOO_LONG';
-    end if;
+    if context_text is not null and char_length(context_text)>1000 then raise exception using errcode='23514',message='EXIT_CONTEXT_TOO_LONG'; end if;
     if coalesce(completed_text,open_text,files_text,decisions_text,risks_text,recommendations_text,responsibilities_text,legacy_note) is null then
       raise exception using errcode='23514',message='HANDOVER_CONTENT_REQUIRED';
     end if;
-    if member_row.departure_state='left' then
-      raise exception using errcode='23514',message='MEMBER_ALREADY_LEFT';
-    end if;
+    if member_row.departure_state='left' then raise exception using errcode='23514',message='MEMBER_ALREADY_LEFT'; end if;
 
     insert into public.project_member_handovers(
       project_id,project_run_id,project_member_id,departing_user_id,reason_category,optional_context,
@@ -188,33 +179,22 @@ begin
       open_responsibilities=excluded.open_responsibilities,handover_availability=excluded.handover_availability,updated_at=now();
 
     update public.project_members
-    set departure_state='leaving',
-        leaving_at=coalesce(leaving_at,now()),
-        handover_note=coalesce(completed_text,legacy_note),
-        departure_source=source_value,
-        exit_reason_category=reason,
-        exit_optional_context=context_text
+    set departure_state='leaving',leaving_at=coalesce(leaving_at,now()),handover_note=coalesce(completed_text,legacy_note),
+        departure_source=source_value,exit_reason_category=reason,exit_optional_context=context_text
     where id=member_row.id;
 
-    insert into public.project_activity_log(
-      project_id,project_run_id,event_type,actor_type,actor_user_id,from_status,to_status,metadata
-    ) values (
-      p_project_id,p_run_id,'project_leave_started','user',p_user_id,
-      'active','leaving',jsonb_build_object(
-        'membership_id',member_row.id,'handover_recorded',true,'reason_category',reason,
-        'departure_source',source_value,'sensitive_context_included',false
-      )
-    );
-
+    insert into public.project_activity_log(project_id,project_run_id,event_type,actor_type,actor_user_id,from_status,to_status,metadata)
+    values(p_project_id,p_run_id,'project_leave_started','user',p_user_id,'active','leaving',jsonb_build_object(
+      'membership_id',member_row.id,'handover_recorded',true,'reason_category',reason,
+      'departure_source',source_value,'sensitive_context_included',false
+    ));
     return jsonb_build_object('state','leaving','membership_id',member_row.id,'run_id',p_run_id,'capacity_released',false);
   end if;
 
   if member_row.membership_status='left' and member_row.departure_state='left' then
     return jsonb_build_object('state','left','membership_id',member_row.id,'run_id',p_run_id,'already_left',true,'recruitment_open',run_row.recruitment_open,'replacement_needed',run_row.replacement_needed);
   end if;
-  if member_row.membership_status<>'active' or member_row.departure_state<>'leaving' then
-    raise exception using errcode='23514',message='DEPARTURE_REQUEST_REQUIRED';
-  end if;
+  if member_row.membership_status<>'active' or member_row.departure_state<>'leaving' then raise exception using errcode='23514',message='DEPARTURE_REQUEST_REQUIRED'; end if;
 
   update public.project_member_responsibilities
   set assignment_status='released',released_at=coalesce(released_at,now()),updated_at=now()
@@ -224,20 +204,12 @@ begin
   set revoked_at=coalesce(revoked_at,now()),revoked_by_user_id=coalesce(revoked_by_user_id,p_user_id)
   where project_run_id=p_run_id and user_id=p_user_id and revoked_at is null;
 
-  update public.project_members
-  set membership_status='left',departure_state='left',left_at=coalesce(left_at,now())
-  where id=member_row.id;
+  update public.project_members set membership_status='left',departure_state='left',left_at=coalesce(left_at,now()) where id=member_row.id;
 
-  select count(*)::integer into active_members
-  from public.project_members
-  where project_run_id=p_run_id and membership_status='active';
-
+  select count(*)::integer into active_members from public.project_members where project_run_id=p_run_id and membership_status='active';
   target_members:=greatest(coalesce(project_row.target_team_size,project_row.min_team_size,project_row.team_size_threshold,1),1);
-  maximum_members:=case when project_row.participation_mode='solo' then 1
-    else greatest(target_members,coalesce(project_row.max_team_size,target_members)) end;
+  maximum_members:=case when project_row.participation_mode='solo' then 1 else greatest(target_members,coalesce(project_row.max_team_size,target_members)) end;
 
-  -- The run stays ACTIVE even below its original minimum. The operational gap is
-  -- represented explicitly instead of rewinding project start history.
   update public.project_runs
   set replacement_needed=active_members<target_members,
       replacement_needed_at=case when active_members<target_members then coalesce(replacement_needed_at,now()) else null end,
@@ -256,27 +228,21 @@ begin
     where id=p_run_id and project_id=p_project_id and status='active' and has_started=true;
   end if;
 
-  insert into public.project_activity_log(
-    project_id,project_run_id,event_type,actor_type,actor_user_id,from_status,to_status,metadata
-  ) values (
-    p_project_id,p_run_id,'project_member_left','user',p_user_id,
-    'leaving','left',jsonb_build_object(
-      'membership_id',member_row.id,'capacity_released',true,'recruitment_reopened',should_reopen,
-      'replacement_needed',active_members<target_members,'lead_vacancy',is_departing_lead,
-      'reason_category',member_row.exit_reason_category,'departure_source',coalesce(member_row.departure_source,source_value)
-    )
-  );
+  insert into public.project_activity_log(project_id,project_run_id,event_type,actor_type,actor_user_id,from_status,to_status,metadata)
+  values(p_project_id,p_run_id,'project_member_left','user',p_user_id,'leaving','left',jsonb_build_object(
+    'membership_id',member_row.id,'capacity_released',true,'recruitment_reopened',should_reopen,
+    'replacement_needed',active_members<target_members,'lead_vacancy',is_departing_lead,
+    'reason_category',member_row.exit_reason_category,'departure_source',coalesce(member_row.departure_source,source_value)
+  ));
 
-  return jsonb_build_object(
-    'state','left','membership_id',member_row.id,'run_id',p_run_id,
+  return jsonb_build_object('state','left','membership_id',member_row.id,'run_id',p_run_id,
     'capacity_released',true,'recruitment_open',should_reopen,
-    'replacement_needed',active_members<target_members,'lead_replacement_needed',is_departing_lead
-  );
+    'replacement_needed',active_members<target_members,'lead_replacement_needed',is_departing_lead);
 end;
 $$;
 
-revoke all on function public.phase16_transition_member_departure(uuid,uuid,uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text) from public,anon,authenticated;
-grant execute on function public.phase16_transition_member_departure(uuid,uuid,uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text) to service_role;
+revoke all on function public.phase16_transition_member_departure(uuid,uuid,uuid,text,text,text,text,text,text,text,text,text,text,text,text,text) from public,anon,authenticated;
+grant execute on function public.phase16_transition_member_departure(uuid,uuid,uuid,text,text,text,text,text,text,text,text,text,text,text,text,text) to service_role;
 
 comment on table public.project_member_handovers is
   'Phase 16 run-scoped operational handover. Readable only by the departing member, active members of the same run, and authorized Admin. Never public profile or analytics content.';

@@ -131,8 +131,10 @@ begin
   maximum_members:=case when project_row.participation_mode='solo' then 1
     else greatest(coalesce(project_row.max_team_size,project_row.target_team_size,project_row.min_team_size,1),1) end;
 
+  -- Phase 9 treats NULL late_joining_enabled as the established enabled default.
+  -- Keep Phase 16 reopening semantically identical: only explicit false disables.
   should_reopen:=project_row.participation_mode<>'solo'
-    and coalesce(project_row.late_joining_enabled,false)=true
+    and coalesce(project_row.late_joining_enabled,true)=true
     and (project_row.late_joining_cutoff_at is null or now()<project_row.late_joining_cutoff_at)
     and active_members<maximum_members;
 

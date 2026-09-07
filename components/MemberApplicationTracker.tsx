@@ -4,15 +4,15 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 
 type AppEvent={id:string;application_id:string;from_status:string|null;to_status:string;created_at:string};
 type Formation={filled:number;threshold:number;status:string;is_full:boolean;kickoff_at:string|null;forming_deadline:string|null;run_number:number|null};
-type Application={id:string;status:string;submitted_at:string;updated_at:string;project_id:string;project_run_id?:string|null;application_kind?:string;requested_role?:string|null;projects:{title:string;status?:string;project_type?:string}|null;project_roles:{title:string}|null;formation?:Formation|null;events?:AppEvent[]};
+type Application={id:string;status:string;submitted_at:string;updated_at:string;project_id:string;project_run_id?:string|null;application_kind?:string;requested_role?:string|null;admission_decision?:string|null;projects:{title:string;status?:string;project_type?:string}|null;project_roles:{title:string}|null;formation?:Formation|null;events?:AppEvent[]};
 type ViewState='current'|'needs'|'closed'|'all';
 type CardState='review'|'forming'|'confirmed'|'paused'|'closed';
 
-const labels:Record<string,string>={submitted:'Submitted',in_review:'In review',shortlisted:'Shortlisted',offered:'Place offered',approved:'Team forming',accepted:'Team forming',waiting_for_team:'Team forming',team_complete:'Project confirmed',declined:'Not selected',withdrawn:'Withdrawn'};
+const labels:Record<string,string>={submitted:'Submitted',in_review:'In review',shortlisted:'Shortlisted',offered:'Place offered',approved:'Team forming',accepted:'Place accepted',waiting_for_team:'Team forming',team_complete:'Project confirmed',declined:'Not selected',expired:'Offer expired',withdrawn:'Withdrawn'};
 const reviewStates=new Set(['submitted','in_review','shortlisted','offered']);
 const formingStates=new Set(['approved','accepted','waiting_for_team']);
-const closedStates=new Set(['declined','withdrawn']);
-const withdrawable=new Set(['submitted','in_review','shortlisted','approved','accepted','waiting_for_team']);
+const closedStates=new Set(['declined','expired','withdrawn']);
+const ordinaryWithdrawable=new Set(['submitted','in_review','shortlisted','approved','waiting_for_team']);
 
 function isInterest(item:Application){return item.application_kind==='interest'}
 function requestNoun(item:Application){return isInterest(item)?'interest':'application'}
@@ -25,11 +25,14 @@ function isPaused(item:Application){return item.formation?.status==='paused'}
 function isConfirmed(item:Application){return !isPaused(item)&&(item.status==='team_complete'||item.projects?.status==='active'||item.formation?.status==='active')}
 function isForming(item:Application){return isPaused(item)||formingStates.has(item.status)}
 function isClosed(item:Application){return closedStates.has(item.status)||item.projects?.status==='cancelled'}
+function canWithdraw(item:Application){return ordinaryWithdrawable.has(item.status)||(item.status==='accepted'&&item.admission_decision==='auto_qualified')}
 function cardState(item:Application):CardState{if(isClosed(item))return'closed';if(isConfirmed(item))return'confirmed';if(isPaused(item))return'paused';if(isForming(item))return'forming';return'review'}
-function statusLabel(item:Application){if(item.projects?.status==='cancelled')return'Project cancelled';if(item.status==='offered')return'→ Place offered';const state=cardState(item);if(state==='confirmed')return'✓ Project confirmed';if(state==='forming')return'◷ Team forming';if(state==='paused')return'◷ Team paused';if(state==='closed')return timelineLabel(item.status);return'● In review'}
+function statusLabel(item:Application){if(item.projects?.status==='cancelled')return'Project cancelled';if(item.status==='offered')return'→ Place offered';if(item.status==='accepted')return'✓ Place accepted';const state=cardState(item);if(state==='confirmed')return'✓ Project confirmed';if(state==='forming')return'◷ Team forming';if(state==='paused')return'◷ Team paused';if(state==='closed')return timelineLabel(item.status);return'● In review'}
 function requestCopy(item:Application){
   const state=cardState(item);const noun=requestNoun(item);
-  if(item.status==='offered')return{body:'Mettelo has offered you a place on this project. Selection does not enrol you automatically, and no project membership has been created from this offer.',sideLabel:'PLACE OFFERED',sideTitle:'Your offer is recorded',sideBody:'Explicit acceptance is the next commitment boundary and will be handled through the governed offer step.'};
+  if(item.status==='offered')return{body:'Mettelo has offered you a place on this project. Selection does not enrol you automatically, and no project membership has been created from this offer.',sideLabel:'PLACE OFFERED',sideTitle:'Your offer is recorded',sideBody:'Review the Project Place Offer above and explicitly accept or decline before its deadline.'};
+  if(item.status==='accepted'&&item.admission_decision==='review_required')return{body:'You accepted this project place. Your explicit commitment is recorded, but project membership and private workspace access still depend on the governed team-formation and start-readiness journey.',sideLabel:'PLACE ACCEPTED',sideTitle:'Your commitment is recorded',sideBody:'Mettelo will move the accepted place into team formation and readiness. Acceptance does not mean the project has started.'};
+  if(item.status==='expired')return{body:'This project place Offer expired before an acceptance was recorded. The reservation has been released and the Offer remains in your history.',sideLabel:'OFFER HISTORY',sideTitle:'Offer expired',sideBody:'No further action is available on this Offer. You can return to Discover for another project.'};
   if(state==='confirmed')return{body:`Your project ${noun} has successfully become project work. Ongoing status and access now live in Projects.`,sideLabel:'NEXT DESTINATION',sideTitle:'Continue in Projects',sideBody:'Projects is now the source of truth for this work.'};
   if(state==='forming')return{body:`You’ve progressed beyond ${noun} review. Mettelo is forming the delivery team before the project becomes active.`,sideLabel:'WHAT HAPPENS NEXT',sideTitle:'Mettelo is forming the team',sideBody:'When your team and delivery run are confirmed, this work will move into Projects.'};
   if(state==='paused')return{body:'Your project team is temporarily paused. Mettelo will update you when the delivery plan changes.',sideLabel:'WHAT HAPPENS NEXT',sideTitle:'The team is temporarily paused',sideBody:'There is nothing you need to do while Mettelo reviews the delivery plan.'};
@@ -56,7 +59,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
 
   const roles=useMemo(()=>[...new Set(items.map(roleOf).filter((value):value is string=>Boolean(value)))].sort((a,b)=>a.localeCompare(b)),[items]);
   const counts=useMemo(()=>({
-    needs:0,
+    needs:items.filter(item=>item.status==='offered'&&!isClosed(item)).length,
     review:items.filter(item=>reviewStates.has(item.status)&&!isClosed(item)&&!isConfirmed(item)&&!isForming(item)).length,
     forming:items.filter(item=>isForming(item)&&!isConfirmed(item)&&!isClosed(item)).length,
     closed:items.filter(item=>isClosed(item)).length
@@ -67,7 +70,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
     const haystack=`${item.projects?.title||''} ${itemRole||''} ${requestTitle(item)} ${statusLabel(item)}`.toLowerCase();
     const matchesQuery=!query.trim()||haystack.includes(query.trim().toLowerCase());
     const matchesRole=role==='all'||itemRole===role;
-    const matchesView=view==='all'||(view==='needs'?false:view==='closed'?isClosed(item):!isClosed(item));
+    const matchesView=view==='all'||(view==='needs'?item.status==='offered'&&!isClosed(item):view==='closed'?isClosed(item):!isClosed(item));
     return matchesQuery&&matchesRole&&matchesView;
   }),[items,query,role,view]);
 
@@ -114,7 +117,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
       {roles.length>0&&<select className="mmaSelect" aria-label="Filter legacy requests by project role" value={role} onChange={event=>setRole(event.target.value)}><option value="all">All roles</option>{roles.map(value=><option value={value} key={value}>{value}</option>)}</select>}
     </section>
 
-    {view==='needs'&&<section className="mmaEmpty" aria-live="polite"><h3>Nothing needs your attention</h3><p>There are no project-request actions waiting for you right now.</p></section>}
+    {view==='needs'&&filtered.length===0&&<section className="mmaEmpty" aria-live="polite"><h3>Nothing needs your attention</h3><p>There are no project-request actions waiting for you right now.</p></section>}
     {view!=='needs'&&filtered.length===0&&<section className="mmaEmpty" aria-live="polite"><h3>No project requests match these filters</h3><p>Try a different state, role or search term.</p><button className="mmaBtn mmaPrimary" type="button" onClick={reset}>Clear filters</button></section>}
 
     {current.length>0&&<section className="mmaSection" aria-labelledby="applications-progress-title">
@@ -145,7 +148,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
           <section className="mmaTimeline" aria-labelledby="mma-timeline-title"><h3 id="mma-timeline-title">Project request history</h3><ol>{timelineFor(selected).map((event,index,array)=><li className={index===array.length-1?'mmaCurrentEvent':''} key={event.id}><strong>{timelineLabel(event.to_status)}</strong><small>{dateTime(event.created_at)}</small></li>)}</ol></section>
           {confirming===selected.id&&<div className="mmaConfirmBox" role="group" aria-label={`Confirm ${requestNoun(selected)} withdrawal`}><p>{isForming(selected)?`Release this confirmed place? Your team capacity will be released and the ${requestNoun(selected)} will close.`:`Withdraw this ${requestNoun(selected)}? Mettelo will stop progressing it for this project.`}</p><div className="mmaActions"><button className="mmaBtn" type="button" disabled={working===selected.id} onClick={()=>setConfirming('')}>Keep {requestNoun(selected)}</button><button className="mmaBtn mmaDanger" type="button" disabled={working===selected.id} onClick={()=>withdraw(selected.id)}>{working===selected.id?'Working…':'Confirm withdrawal'}</button></div></div>}
         </div>
-        <div className="mmaDialogActions">{withdrawable.has(selected.status)&&!isClosed(selected)&&!isConfirmed(selected)&&!isPaused(selected)&&confirming!==selected.id&&<button className="mmaTextButton" type="button" onClick={()=>setConfirming(selected.id)}>{isForming(selected)?'Release my place':`Withdraw ${requestNoun(selected)}`}</button>}<button className="mmaBtn" type="button" onClick={closeDialog}>Close</button></div>
+        <div className="mmaDialogActions">{canWithdraw(selected)&&!isClosed(selected)&&!isConfirmed(selected)&&!isPaused(selected)&&confirming!==selected.id&&<button className="mmaTextButton" type="button" onClick={()=>setConfirming(selected.id)}>{isForming(selected)?'Release my place':`Withdraw ${requestNoun(selected)}`}</button>}<button className="mmaBtn" type="button" onClick={closeDialog}>Close</button></div>
       </>}
     </dialog>
 
@@ -154,7 +157,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
 }
 
 function CurrentCard({item,onOpen}:{item:Application;onOpen:(item:Application)=>void}){
-  const state=cardState(item);const copy=requestCopy(item);const confirmed=state==='confirmed';const forming=state==='forming';const paused=state==='paused';const offered=item.status==='offered';const itemRole=roleOf(item);
+  const state=cardState(item);const copy=requestCopy(item);const confirmed=state==='confirmed';const forming=state==='forming';const paused=state==='paused';const offered=item.status==='offered';const accepted=item.status==='accepted'&&item.admission_decision==='review_required';const itemRole=roleOf(item);
   const cardClass=['mmaApplicationCard',forming?'mmaForming':'',confirmed?'mmaConfirmed':'',paused?'mmaPaused':''].filter(Boolean).join(' ');
   const statusClass=['mmaStatus',state==='review'?'mmaReview':forming?'mmaFormingStatus':confirmed?'mmaConfirmedStatus':'mmaPausedStatus'].join(' ');
   return <article className={cardClass}>
@@ -165,9 +168,9 @@ function CurrentCard({item,onOpen}:{item:Application;onOpen:(item:Application)=>
       <div className="mmaMeta">
         {itemRole&&<span>{confirmed?'Your role:':'Applied as'} {itemRole}</span>}
         <span>{confirmed?'Confirmed':isInterest(item)?'Interest submitted':'Applied'} {date(confirmed?item.updated_at:item.submitted_at)}</span>
-        {forming&&<span>Team not yet confirmed</span>}
+        {forming&&!accepted&&<span>Team not yet confirmed</span>}
       </div>
-      {!confirmed&&<div className="mmaNoAction"><span aria-hidden="true">{offered?'→':'✓'}</span> {offered?'Your place is offered; acceptance is the next governed step':paused?'No action needed while the team is paused':forming?'No action needed right now':'No action needed'}</div>}
+      {!confirmed&&<div className="mmaNoAction"><span aria-hidden="true">{offered?'→':'✓'}</span> {offered?'Your place is offered; review the Project Place Offer above':accepted?'Your place is accepted; team formation and start readiness come next':paused?'No action needed while the team is paused':forming?'No action needed right now':'No action needed'}</div>}
       {confirmed&&<div className="mmaHandoff"><span className="mmaHandoffIcon" aria-hidden="true">→</span><div><strong>This project request has handed off to Projects</strong><p>Request history remains here. Delivery now belongs in Projects, then Mettelo Lab when ready.</p></div></div>}
     </div>
     <aside className="mmaActionbox" aria-label={`Actions for ${item.projects?.title||'project request'}`}>
@@ -179,7 +182,7 @@ function CurrentCard({item,onOpen}:{item:Application;onOpen:(item:Application)=>
 
 function HistoryCard({item,onOpen}:{item:Application;onOpen:(item:Application)=>void}){
   const itemRole=roleOf(item);const cancelled=item.projects?.status==='cancelled';
-  return <article className="mmaHistoryCard"><div><span className="mmaStatus">{statusLabel(item)}</span><h3>{item.projects?.title||'Mettelo project'}</h3><p>{itemRole?`${itemRole} · `:''}{item.status==='withdrawn'?'Withdrawn':cancelled?'Project cancelled':'Closed'} {date(item.updated_at)}</p></div><button className="mmaBtn" type="button" onClick={()=>onOpen(item)}>{isInterest(item)?'View interest':'View application'}</button></article>;
+  return <article className="mmaHistoryCard"><div><span className="mmaStatus">{statusLabel(item)}</span><h3>{item.projects?.title||'Mettelo project'}</h3><p>{itemRole?`${itemRole} · `:''}{item.status==='withdrawn'?'Withdrawn':item.status==='expired'?'Offer expired':cancelled?'Project cancelled':'Closed'} {date(item.updated_at)}</p></div><button className="mmaBtn" type="button" onClick={()=>onOpen(item)}>{isInterest(item)?'View interest':'View application'}</button></article>;
 }
 
 function Explore(){return <section className="mmaExplore" id="explore" aria-labelledby="mma-explore-title"><div><div className="mmaEyebrow">EXPLORE &amp; GROW</div><h2 id="mma-explore-title">Looking for another project?</h2><p>Discover gives you the full project catalogue. Recommended gives you projects matched to your profile. Careers remains a separate recruitment journey.</p></div><div className="mmaActions"><a className="mmaBtn mmaPrimary" href="/projects">Discover projects</a><a className="mmaBtn" href="/member/recommended">Recommended</a></div></section>}

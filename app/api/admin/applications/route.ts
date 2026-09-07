@@ -90,6 +90,13 @@ export async function PATCH(request:Request){
       return NextResponse.json({ok:true,already_in_state:true,application:{id:result.id,status:result.status},selection:{status:result.status,creates_membership:false,requires_member_acceptance:result.status==='offered'}});
     }
 
+    const {data:offer}=status==='offered'
+      ?await db.from('project_offers').select('id,expires_at').eq('application_id',id).maybeSingle()
+      :{data:null};
+    const expiryCopy=offer?.expires_at
+      ?` Respond by ${new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/London'}).format(new Date(offer.expires_at))} UK time.`
+      :'';
+
     const activityInsert=await db.from('project_activity_log').insert({
       project_id:application.project_id,
       project_run_id:application.project_run_id||null,
@@ -106,13 +113,15 @@ export async function PATCH(request:Request){
         project_type:project.project_type,
         partner_name:project.partner_name||null,
         creates_membership:false,
-        capacity:result.capacity||null
+        capacity:result.capacity||null,
+        offer_id:offer?.id||null,
+        offer_expires_at:offer?.expires_at||null
       }
     });
     if(activityInsert.error)console.error('project review activity log error',activityInsert.error);
 
     const comm=notificationMeta(status,application.application_kind);
-    const memberMessage=customMessage||defaultMessage(status,project.title,reviewerNotes,application.application_kind,project.partner_name||null);
+    const memberMessage=`${customMessage||defaultMessage(status,project.title,reviewerNotes,application.application_kind,project.partner_name||null)}${expiryCopy}`;
     let communicationRecorded=true;
     try{
       await notifyUser(db,{
@@ -126,7 +135,8 @@ export async function PATCH(request:Request){
         actionUrl:'/member/applications',
         subject:`${comm.subject}: ${project.title}`,
         templateKey:comm.type,
-        payload:{project_title:project.title,project_type:project.project_type,partner_name:project.partner_name||null,review_status:status}
+        payload:{project_title:project.title,project_type:project.project_type,partner_name:project.partner_name||null,review_status:status,offer_id:offer?.id||null,offer_expires_at:offer?.expires_at||null},
+        dedupeKey:status==='offered'&&offer?.id?`project-offer:${offer.id}:offered`:undefined
       });
     }catch(error){
       communicationRecorded=false;
@@ -136,7 +146,7 @@ export async function PATCH(request:Request){
     return NextResponse.json({
       ok:true,
       application:{id:result.id,status:result.status},
-      selection:{status:result.status,creates_membership:false,requires_member_acceptance:result.status==='offered',capacity:result.capacity||null},
+      selection:{status:result.status,creates_membership:false,requires_member_acceptance:result.status==='offered',capacity:result.capacity||null,offer:offer?{id:offer.id,expires_at:offer.expires_at}:null},
       communication:{body:memberMessage,recorded:communicationRecorded}
     });
   }catch(error){

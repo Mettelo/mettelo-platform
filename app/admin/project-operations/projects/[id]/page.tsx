@@ -7,6 +7,7 @@ import AdminCompletionRequirements from '@/components/AdminCompletionRequirement
 import AdminProjectCapabilityPaths from '@/components/AdminProjectCapabilityPaths';
 import AdminProjectCapabilities from '@/components/AdminProjectCapabilities';
 import AdminProjectAdmissionPolicy from '@/components/AdminProjectAdmissionPolicy';
+import AdminProjectOfferSummary from '@/components/AdminProjectOfferSummary';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
 import {effectiveProjectAdmissionMode} from '@/lib/project-admission';
@@ -38,12 +39,14 @@ export default async function AdminProjectDetailPage({params}:{params:Promise<{i
   const currentRun=runCards.find(run=>!['completed','cancelled'].includes(run.status))||runCards[runCards.length-1]||null;
   const skillSet=[...new Set((roles||[]).flatMap(role=>role.skills||[]))];
   const totalMembers=(members||[]).length;
+  const maximumCapacity=Math.max(1,Number(project.max_team_size||project.target_team_size||project.team_size_threshold||project.min_team_size||1));
 
   return <section className="section softSection"><div className="shell projectDetailPage">
     <header className="projectDetailHeader"><div><div className="eyebrow">Admin / Projects / Projects / {project.title}</div><div className="titleWithStatus"><h1>{project.title}</h1><AdminStatusBadge status={project.status}/><span className="projectTypeBadge">{project.project_type==='partner'?'Partner':'Open'}</span><span className="projectTypeBadge">{effectiveAdmission==='auto'?'AUTO':'REVIEW REQUIRED'}</span>{project.project_type_review_required&&<span className="reviewBadge">TYPE REVIEW REQUIRED</span>}</div><p>{project.summary}</p></div><AdminProjectDetailActions project={project} currentRun={currentRun?{id:currentRun.id,run_number:currentRun.run_number,status:currentRun.status,required_team_size:currentRun.required_team_size||currentRun.team_size_threshold||project.team_size_threshold||5,filled:currentRun.filled,has_started:Boolean(currentRun.has_started)}:null}/></header>
     <nav className="projectDetailTabs" aria-label="Project detail sections"><a aria-current="page" href="#overview">Overview</a><a href={`/admin/project-operations/applications?project=${id}`}>Applications</a><a href={`/admin/project-operations/team-formation?project=${id}`}>Team</a></nav>
     <div className="projectDetailGrid" id="overview"><main>
       <AdminProjectAdmissionPolicy projectId={project.id} projectType={project.project_type} partnerName={project.partner_name||null} admissionMode={effectiveAdmission} autoStartDelayMinutes={Number(project.auto_start_delay_minutes??360)} autoStartPaused={Boolean(project.auto_start_paused_at)} lateJoiningEnabled={project.late_joining_enabled!==false} lateJoiningCutoffAt={project.late_joining_cutoff_at||null} projectSharingEnabled={project.project_sharing_enabled!==false} memberInvitesEnabled={project.member_invites_enabled===true}/>
+      <AdminProjectOfferSummary projectId={project.id} maximum={maximumCapacity}/>
       <section className="detailPanel"><span className="eyebrow">DESCRIPTION</span><h2>Project brief</h2><AdminExpandableText text={project.problem_statement||project.summary}/></section>
       <section className="detailPanel"><span className="eyebrow">BRIEF DETAILS</span><h2>What the project expects</h2><dl className="briefFacts"><div><dt>Roles</dt><dd>{roles?.length?roles.map(role=>role.title).join(', '):'No project roles configured'}</dd></div><div><dt>Expected work</dt><dd>{project.summary}</dd></div><div><dt>Commitment</dt><dd>{project.weekly_commitment||'Not specified'}</dd></div><div><dt>Duration</dt><dd>{project.duration_weeks?`${project.duration_weeks} weeks`:'Not specified'}</dd></div><div><dt>Skills required</dt><dd>{skillSet.length?skillSet.join(', '):'Defined by each project role'}</dd></div><div><dt>Expected Proof</dt><dd>Verified contribution evidence is captured when project work is completed and reviewed.</dd></div></dl></section>
       <AdminCompletionRequirements project={{id:project.id,project_type:project.project_type,presentation_required:Boolean(project.presentation_required),github_repo_required:Boolean(project.github_repo_required),final_proof_required:project.final_proof_required!==false}}/>

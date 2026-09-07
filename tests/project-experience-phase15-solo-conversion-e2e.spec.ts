@@ -1,5 +1,6 @@
 import {createClient} from '@supabase/supabase-js';
 import {expect,test,type Page} from '@playwright/test';
+import './project-experience-phase16-member-exit-e2e.spec';
 
 const PROJECT='00000000-0000-4000-8000-00000000d150';
 const OTHER_RUN='00000000-0000-4000-8000-00000000d152';

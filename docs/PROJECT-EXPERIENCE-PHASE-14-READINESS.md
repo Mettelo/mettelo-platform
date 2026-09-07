@@ -45,6 +45,7 @@ Phase 14 extends rather than replaces:
 - Supabase Auth identity
 - existing project/run Lead authority helpers
 - Mettelo Lab
+- Admin Project Governance
 - canonical notification catalogue/preferences/in-app/email delivery
 - existing cron authorization pattern
 - existing Phase 13 collaboration and Events systems
@@ -83,7 +84,7 @@ The health RPC returns only operational counts such as submissions, blocked memb
 
 - server derives the current Monday period; clients cannot choose an arbitrary pulse period;
 - GET returns the authenticated member's own current-week pulse;
-- Lead/Admin health is resolved through the aggregate RPC;
+- Project Lead/Admin health is resolved through the aggregate RPC;
 - POST requires exact active project/run membership and an active run;
 - responses are validated against the approved Phase 14 values;
 - current-week submission uses conflict-safe upsert rather than duplicate rows.
@@ -101,7 +102,26 @@ The canonical Mettelo Lab now surfaces the pulse for project runs. The UI:
 - supports update-in-week behaviour;
 - uses fieldset/legend radio groups and a status region;
 - has a single-column mobile layout;
-- gives Leads/Admins explainable aggregate health counts only.
+- gives Project Leads explainable aggregate health counts without exposing raw teammate rows.
+
+### Admin Project Governance
+
+`components/AdminProjectPulseHealth.tsx`
+
+`components/AdminProjectPulseHealth.module.css`
+
+`app/admin/project-governance/page.tsx`
+
+The existing Admin governance page now contains an explicit Phase 14 team-health surface for active project runs. It calls the same controlled aggregate RPC with the authenticated Admin session and shows only:
+
+- submitted / active-member counts;
+- missing check-ins;
+- blocked count;
+- heavy / unsustainable workload count;
+- team friction / significant-concern count;
+- support maybe / yes count.
+
+The Admin surface does not query raw `project_weekly_pulses`, does not expose member identities or notes, and does not create a health score.
 
 ### Bounded reminders
 
@@ -117,7 +137,21 @@ The canonical Mettelo Lab now surfaces the pulse for project runs. The UI:
 - uses a stable per-run/per-week/per-user dedupe key, making reminder delivery bounded to one notification event per weekly period even though the cron is scheduled daily;
 - therefore independently honours the member's existing in-app/email notification preference settings.
 
-## Blocking regression contract
+### Authenticated RLS / authority coverage
+
+`tests/project-experience-phase14-weekly-pulse-e2e.spec.ts`
+
+The Phase 14 authenticated test is wired into both smoke and staging. It verifies against isolated Supabase that:
+
+- an active member can submit and update one current-week pulse;
+- the member can read their own raw pulse;
+- another authenticated Project Lead cannot read that member's raw row;
+- the Project Lead can read aggregate health;
+- a non-member cannot submit and cannot call the health RPC;
+- Admin can read aggregate health;
+- Lead/Admin aggregate output contains no note, user identity or health score.
+
+### Blocking regression contract
 
 `tests/project-experience-phase14-weekly-pulse.spec.ts`
 
@@ -127,34 +161,37 @@ The Phase 14 static contract is included in `npm run test:regression` and protec
 - weekly frequency;
 - own-row privacy;
 - exact active membership authority;
-- aggregate-only Lead/Admin health;
+- aggregate-only Project Lead/Admin health;
 - no score architecture;
 - preference-event registration;
+- bounded reminder authorization, Thursday eligibility, submitted-member skip and weekly dedupe;
+- Vercel reminder scheduling;
 - server-derived period;
 - active-run submission boundary;
 - updatable current-week response;
 - approved UI wording;
 - privacy explanation;
-- responsive/accessibility structure;
-- canonical Mettelo Lab integration.
+- canonical Mettelo Lab integration;
+- canonical Admin Project Governance integration;
+- responsive/accessibility structure.
 
 ## Phase 14 success criteria status
 
-1. Weekly pulse model exists — **IMPLEMENTED / CI PENDING**
-2. Exact approved response options — **IMPLEMENTED / CI PENDING**
-3. Member/project/run/period ownership — **IMPLEMENTED / CI PENDING**
-4. Frequency rule — **IMPLEMENTED / CI PENDING**
-5. Member can submit own pulse — **IMPLEMENTED / AUTHENTICATED E2E PENDING**
-6. Member can update own current-week pulse — **IMPLEMENTED / AUTHENTICATED E2E PENDING**
-7. Raw pulse is private by default — **IMPLEMENTED / RLS E2E PENDING**
-8. Project Lead receives appropriate health view — **IMPLEMENTED AS AGGREGATES / E2E PENDING**
-9. Admin receives appropriate health view — **IMPLEMENTED AS AGGREGATES / E2E PENDING**
-10. No surveillance/pseudo-scientific score — **IMPLEMENTED / REGRESSION PENDING**
-11. Reminder behaviour is bounded — **IMPLEMENTED / E2E PENDING**
-12. Communication preferences honoured — **IMPLEMENTED THROUGH CANONICAL NOTIFYUSER / E2E PENDING**
+1. Weekly pulse model exists — **IMPLEMENTED / EXACT-HEAD CI PENDING**
+2. Exact approved response options — **IMPLEMENTED / EXACT-HEAD CI PENDING**
+3. Member/project/run/period ownership — **IMPLEMENTED / EXACT-HEAD CI PENDING**
+4. Frequency rule — **IMPLEMENTED / EXACT-HEAD CI PENDING**
+5. Member can submit own pulse — **IMPLEMENTED / AUTHENTICATED E2E WIRED / EXACT-HEAD RESULT PENDING**
+6. Member can update own current-week pulse — **IMPLEMENTED / AUTHENTICATED E2E WIRED / EXACT-HEAD RESULT PENDING**
+7. Raw pulse is private by default — **IMPLEMENTED / RLS E2E WIRED / EXACT-HEAD RESULT PENDING**
+8. Project Lead receives appropriate health view — **IMPLEMENTED AS AGGREGATES / E2E WIRED / EXACT-HEAD RESULT PENDING**
+9. Admin receives appropriate health view — **IMPLEMENTED IN ADMIN PROJECT GOVERNANCE / E2E AUTHORITY WIRED / EXACT-HEAD RESULT PENDING**
+10. No surveillance/pseudo-scientific score — **IMPLEMENTED / BLOCKING REGRESSION WIRED / EXACT-HEAD RESULT PENDING**
+11. Reminder behaviour is bounded — **IMPLEMENTED / BLOCKING REGRESSION WIRED / EXACT-HEAD RESULT PENDING**
+12. Communication preferences honoured — **IMPLEMENTED THROUGH CANONICAL `notifyUser()` / EXACT-HEAD RESULT PENDING**
 13. Mobile/tablet/desktop quality — **RESPONSIVE IMPLEMENTATION PRESENT / VISUAL QA PENDING**
 14. Accessibility passes — **SEMANTIC IMPLEMENTATION PRESENT / AUDIT PENDING**
-15. Collaboration/team-health regression passes — **TEST WIRED / EXACT-HEAD CI PENDING**
+15. Collaboration/team-health regression passes — **TESTS WIRED / EXACT-HEAD CI PENDING**
 
 ## Mandatory sign-off still outstanding
 
@@ -164,7 +201,7 @@ Phase 14 remains **NOT APPROVED** until the current exact head has all required 
 - typecheck
 - build
 - blocking regression
-- authenticated Phase 14 member/Lead/Admin/RLS E2E
+- authenticated Phase 14 member/Project Lead/Admin/RLS E2E
 - isolated Supabase migration reconstruction
 - responsive visual QA
 - accessibility audit

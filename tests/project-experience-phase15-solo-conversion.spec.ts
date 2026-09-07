@@ -88,4 +88,23 @@ test.describe('Project Experience Phase 15 solo delivery contract',()=>{
   expect(controls).not.toContain('Invite collaborator');
   expect(controls).toContain('Open collaboration place');
  });
+
+ test('new solo control has release-grade touch and keyboard focus treatment',()=>{
+  const css=read('components/project-experience/ProjectSoloDeliveryControls.module.css');
+  expect(css).toContain('min-height:44px');
+  expect(css).toContain('.action button:focus-visible');
+  expect(css).toContain('outline-offset:3px');
+ });
+
+ test('real Phase 15 Supabase/browser journey is blocking in smoke and staging',()=>{
+  const pkg=read('package.json');
+  const e2e=read('tests/project-experience-phase15-solo-conversion-e2e.spec.ts');
+  const references=pkg.match(/tests\/project-experience-phase15-solo-conversion-e2e\.spec\.ts/g)||[];
+  expect(references).toHaveLength(2);
+  expect(e2e).toContain("Phase 15 tests refuse non-local Supabase hosts.");
+  expect(e2e).toContain("getByRole('button',{name:'Open collaboration place'})");
+  expect(e2e).toContain("expect(result.status).toBe(403)");
+  expect(e2e).toContain("direct.data?.length===0");
+  expect(e2e).toContain("runs:1,members:2,tasks:1,milestones:1,resources:1,contributions:0");
+ });
 });

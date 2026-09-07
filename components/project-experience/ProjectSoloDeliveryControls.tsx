@@ -27,11 +27,12 @@ export default function ProjectSoloDeliveryControls(props:Props){
  const[open,setOpen]=useState(props.recruitmentOpen);
  const[busy,setBusy]=useState(false);
  const[message,setMessage]=useState('');
+ const[error,setError]=useState(false);
  const flexible=props.participationMode==='flexible';
  const joiningAvailable=flexible&&open&&props.availablePlaces>0;
 
  async function setAvailability(next:boolean){
-  setBusy(true);setMessage(next?'Opening a collaboration place…':'Closing the collaboration place…');
+  setBusy(true);setError(false);setMessage(next?'Opening a collaboration place…':'Closing the collaboration place…');
   try{
    const response=await fetch('/api/project-joining-availability',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({project_id:props.projectId,project_run_id:props.projectRunId,recruitment_open:next})});
    const body=await response.json().catch(()=>({}));
@@ -39,7 +40,7 @@ export default function ProjectSoloDeliveryControls(props:Props){
    setOpen(Boolean(body.recruitment_open));
    setMessage(next?'A collaboration place is now open. Eligible collaborators must still use the governed joining flow.':'The collaboration place is closed. Your existing project work is unchanged.');
    router.refresh();
-  }catch(error){setMessage(error instanceof Error?error.message:'Unable to update joining availability.')}finally{setBusy(false)}
+  }catch(caught){setError(true);setMessage(caught instanceof Error?caught.message:'Unable to update joining availability.')}finally{setBusy(false)}
  }
 
  return <section className={styles.panel} aria-labelledby="solo-delivery-title" data-solo-delivery-controls>
@@ -60,6 +61,6 @@ export default function ProjectSoloDeliveryControls(props:Props){
   </div>:<div className={styles.note}><strong>Independent delivery only</strong><p>This project is configured for Solo participation, so collaborator joining is not available in the current capacity contract.</p></div>}
   {flexible&&!open&&!props.canOpenCollaboration?<p className={styles.unavailable}>A collaboration place cannot be opened because the joining window or available capacity no longer permits it.</p>:null}
   <p className={styles.proof}>Independent work can support evidence such as technical delivery, ownership, problem solving, documentation and communication. Collaboration or peer-leadership evidence requires actual collaborative activity and is never inferred from solo delivery.</p>
-  <div className={styles.status} role="status" aria-live="polite">{message}</div>
+  <div className={styles.status} role={error?'alert':'status'} aria-live={error?'assertive':'polite'}>{message}</div>
  </section>;
 }

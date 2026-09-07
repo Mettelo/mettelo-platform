@@ -106,6 +106,12 @@ begin
 end;
 $$;
 
+-- PostgreSQL cannot change a RETURNS TABLE / OUT-parameter row shape with
+-- CREATE OR REPLACE FUNCTION. Phase 14 expands the initial health projection
+-- with applicability, health state and structured reasons, so remove the
+-- immediately preceding Phase 14 signature before recreating it.
+drop function if exists public.project_weekly_pulse_health(uuid, uuid, date);
+
 create or replace function public.project_weekly_pulse_health(
   target_project uuid,
   target_run uuid,

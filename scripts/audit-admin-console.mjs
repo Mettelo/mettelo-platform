@@ -19,7 +19,7 @@ const checks=[
   ['app/admin/page.tsx',['NEEDS ATTENTION','WORKSPACE SHORTCUTS','Nothing needs attention right now','Applications to review','Teams forming','overviewStats','Platform settings','/admin/settings']],
   ['app/admin/settings/page.tsx',['Settings unavailable','AdminPlatformSettings','platform_settings','project_role_catalogue']],
   ['components/AdminPlatformSettings.tsx',['PLATFORM CONFIGURATION','Social channels','Contact details','Contribution-role catalogue','Add role','aria-live','@media(max-width:480px)']],
-  ['app/api/admin/settings/route.ts',['platform.settings.manage','Platform settings capability required.','platform.setting.updated','recordAdminAudit','platform.settings','updated_by']],
+  ['app/api/admin/settings/route.ts',['platform.settings.manage','Platform settings capability required.','platform.setting.updated','recordAdminAudit','platform_settings','updated_by']],
   ['components/PlatformSocialLinks.tsx',['platform_settings','public_read','social_instagram','social_youtube','aria-label']],
   ['supabase/migrations/20260818184000_platform_settings.sql',['platform_settings','contact_email','social_linkedin','social_x','public_read']],
   ['app/admin/project-operations/projects/page.tsx',['Admin / Projects / Projects','AdminProjectCreateButton','AdminProjectManager']],

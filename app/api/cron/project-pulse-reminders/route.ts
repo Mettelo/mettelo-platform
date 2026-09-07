@@ -8,28 +8,17 @@ export async function GET(request:Request){
  if(!authorised(request))return NextResponse.json({error:'Unauthorized'},{status:401});
  const db=serviceDb();if(!db)return NextResponse.json({error:'Project pulse reminder service is not configured.'},{status:503});
  try{
-  const now=new Date();
-  const day=now.getUTCDay()||7;
-  if(day<4)return NextResponse.json({ok:true,notified:0,reason:'Pulse reminders begin on Thursday.'});
-  const periodStart=mondayUtc(now);
-  const {data:runs,error:runsError}=await db.from('project_runs').select('id,project_id').eq('status','active');
-  if(runsError)throw runsError;
-  let notified=0;
+  const now=new Date();const day=now.getUTCDay()||7;if(day<4)return NextResponse.json({ok:true,notified:0,reason:'Pulse reminders begin on Thursday.'});
+  const periodStart=mondayUtc(now);const {data:runs,error:runsError}=await db.from('project_runs').select('id,project_id').eq('status','active');if(runsError)throw runsError;let notified=0;
   for(const run of runs||[]){
-   const [{data:members,error:membersError},{data:submitted,error:pulseError},{data:project}]=await Promise.all([
-    db.from('project_members').select('user_id').eq('project_id',run.project_id).eq('project_run_id',run.id).eq('membership_status','active'),
-    db.from('project_weekly_pulses').select('user_id').eq('project_id',run.project_id).eq('project_run_id',run.id).eq('period_start',periodStart),
-    db.from('projects').select('title').eq('id',run.project_id).maybeSingle()
-   ]);
-   if(membersError)throw membersError;if(pulseError)throw pulseError;
-   const submittedIds=new Set((submitted||[]).map(row=>row.user_id));
+   const [{data:members,error:membersError},{data:project}]=await Promise.all([db.from('project_members').select('user_id').eq('project_id',run.project_id).eq('project_run_id',run.id).eq('membership_status','active'),db.from('projects').select('title').eq('id',run.project_id).maybeSingle()]);if(membersError)throw membersError;
    for(const member of members||[]){
-    if(submittedIds.has(member.user_id))continue;
+    // Re-check immediately before delivery so a concurrent submission wins over a stale reminder.
+    const {data:existing,error:pulseError}=await db.from('project_weekly_pulses').select('id').eq('project_id',run.project_id).eq('project_run_id',run.id).eq('user_id',member.user_id).eq('period_start',periodStart).maybeSingle();if(pulseError)throw pulseError;if(existing)continue;
     const {data:recipient}=await db.auth.admin.getUserById(member.user_id);
-    await notifyUser(db,{userId:member.user_id,email:recipient.user?.email||null,projectId:run.project_id,type:'project_pulse_reminder',eventKey:'project_pulse_reminder',title:'Your weekly project pulse is ready',body:`Share a short check-in for ${project?.title||'your Mettelo project'} before the week closes.`,actionUrl:`/member/projects/${run.project_id}?run=${run.id}#mettelo-lab`,subject:`Weekly project pulse: ${project?.title||'Mettelo'}`,dedupeKey:`project-pulse:${run.id}:${periodStart}:${member.user_id}`});
-    notified++;
+    await notifyUser(db,{userId:member.user_id,email:recipient.user?.email||null,projectId:run.project_id,type:'project_pulse_reminder',eventKey:'project_pulse_reminder',title:'Your weekly project pulse is ready',body:`Share a short check-in for ${project?.title||'your Mettelo project'} before the week closes.`,actionUrl:`/member/projects/${run.project_id}?run=${run.id}#mettelo-lab`,subject:`Weekly project pulse: ${project?.title||'Mettelo'}`,dedupeKey:`project-pulse:${run.id}:${periodStart}:${member.user_id}`});notified++;
    }
   }
-  return NextResponse.json({ok:true,notified,period_start:periodStart});
- }catch(error){console.error('project pulse reminders error',error);return NextResponse.json({error:'Project pulse reminders failed.'},{status:500})}
+  return NextResponse.json({ok:true,notified,period_start:periodStart,period_timezone:'UTC'});
+ }catch(error){console.error('project pulse reminders error',error instanceof Error?error.message:'pulse reminder failure');return NextResponse.json({error:'Project pulse reminders failed.'},{status:500})}
 }

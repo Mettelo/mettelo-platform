@@ -7,6 +7,7 @@ import {notifyUser} from '@/lib/notifications';
 const ACTIONS=new Set(['reassign_responsibility','change_lead','request_replacement','remove_member']);
 function clean(value:unknown,max=200){return String(value??'').trim().slice(0,max)}
 function message(error:unknown){return typeof error==='object'&&error&&'message'in error?String((error as{message?:unknown}).message||''):''}
+function safeErrorCode(error:unknown){if(error&&typeof error==='object'){const value=error as{code?:unknown;name?:unknown};if(typeof value.code==='string'&&value.code)return value.code;if(typeof value.name==='string'&&value.name)return value.name}return'UNCLASSIFIED'}
 
 async function recoveryContext(){
  const auth=await createServerSupabaseClient();
@@ -37,7 +38,7 @@ export async function GET(request:Request){
   if(responsibilityResult.error)throw responsibilityResult.error;
   return NextResponse.json({case:{id:current.id,status:current.status,updated_at:current.updated_at},members:memberResult.data??[],responsibilities:responsibilityResult.data??[],pause_supported:false,pause_reason:'No canonical paused-membership lifecycle exists yet.'},{headers:{'Cache-Control':'private, no-store'}});
  }catch(error){
-  console.error('support recovery context error',error instanceof Error?error.message:'recovery context failed');
+  console.error('support recovery context error',{code:safeErrorCode(error)});
   return NextResponse.json({error:'Unable to load governed recovery options right now.'},{status:500,headers:{'Cache-Control':'private, no-store'}});
  }
 }
@@ -80,10 +81,10 @@ export async function POST(request:Request){
   try{
    const {data:reporter}=await db.auth.admin.getUserById(current.reporter_user_id);
    await notifyUser(db,{userId:current.reporter_user_id,email:reporter.user?.email||null,projectId:current.project_id,type:'project_support_case_update',eventKey:'project_support_case',title:'Your private support case has an update',body:'A recovery action has been recorded on your private project support case. Open Mettelo to review the secure case status.',actionUrl:`/member/projects/${current.project_id}?run=${encodeURIComponent(current.project_run_id)}&view=support`,dedupeKey:`phase17:support:${caseId}:recovery:${action}:${updated?.updated_at||expectedUpdatedAt}`});
-  }catch(notificationError){console.error('support recovery notification error',notificationError instanceof Error?notificationError.message:'notification failed')}
+  }catch(notificationError){console.error('support recovery notification error',{code:safeErrorCode(notificationError)})}
   return NextResponse.json({ok:true,result,case:updated},{headers:{'Cache-Control':'private, no-store'}});
  }catch(error){
-  console.error('support recovery action error',error instanceof Error?error.message:'recovery action failed');
+  console.error('support recovery action error',{code:safeErrorCode(error)});
   return NextResponse.json({error:'Unable to apply this support recovery action right now.'},{status:500,headers:{'Cache-Control':'private, no-store'}});
  }
 }

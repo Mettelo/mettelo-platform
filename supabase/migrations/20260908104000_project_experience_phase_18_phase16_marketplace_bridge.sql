@@ -1,8 +1,8 @@
 -- Project Experience Phase 18B: Phase 16 replacement -> canonical collaboration marketplace.
 --
--- Phase 16 remains the authority for departures and replacement_needed. This trigger
--- projects that existing state into project_collaboration_needs for the SAME run.
--- It never creates a new run, Lab, application, Offer or membership path.
+-- Phase 16 remains the authority for departures and replacement_needed. These
+-- triggers project that existing state into project_collaboration_needs for the
+-- SAME run. They never create a new run, Lab, application, Offer or membership path.
 
 create or replace function public.phase18_sync_phase16_replacement_need()
 returns trigger
@@ -28,13 +28,18 @@ begin
   end if;
 
   if new.replacement_source_membership_id is null then return new; end if;
-  select * into source_member from public.project_members where id=new.replacement_source_membership_id and project_id=new.project_id and project_run_id=new.id;
+  select * into source_member
+  from public.project_members
+  where id=new.replacement_source_membership_id and project_id=new.project_id and project_run_id=new.id;
   if source_member.id is null then return new; end if;
 
   for responsibility_row in
     select responsibility,source_project_role_id
     from public.project_member_responsibilities
-    where project_member_id=source_member.id and project_id=new.project_id and project_run_id=new.id and assignment_status='released'
+    where project_member_id=source_member.id
+      and project_id=new.project_id
+      and project_run_id=new.id
+      and assignment_status='released'
     order by released_at desc nulls last,assigned_at desc
   loop
     insert into public.project_collaboration_needs(
@@ -66,30 +71,22 @@ $$;
 
 revoke all on function public.phase18_sync_phase16_replacement_need() from public,anon,authenticated;
 
-drop trigger if exists phase18_phase16_replacement_marketplace_sync on public.project_runs;
-create trigger phase18_phase16_replacement_marketplace_sync
-after insert or update of replacement_needed,replacement_source_membership_id,recruitment_open,status
-on public.project_runs
+drop trigger if exists phase18_phase16_replacement_marketplace_sync_insert on public.project_runs;
+create trigger phase18_phase16_replacement_marketplace_sync_insert
+after insert on public.project_runs
 for each row
-when (new.replacement_needed=true or old.replacement_needed is distinct from new.replacement_needed)
+when (new.replacement_needed=true)
 execute function public.phase18_sync_phase16_replacement_need();
 
--- Backfill any live Phase 16 replacement state that predates Phase 18B deployment.
-do $$
-declare
-  run_row public.project_runs%rowtype;
-begin
-  for run_row in
-    select * from public.project_runs
-    where replacement_needed=true and status='active' and coalesce(has_started,false)=true and coalesce(recruitment_open,true)=true
-  loop
-    perform public.phase18_sync_phase16_replacement_need();
-  end loop;
-exception when others then
-  -- Existing replacement state remains authoritative even if no historical source
-  -- membership can be projected. Runtime updates will continue to synchronize.
-  null;
-end $$;
+drop trigger if exists phase18_phase16_replacement_marketplace_sync_update on public.project_runs;
+create trigger phase18_phase16_replacement_marketplace_sync_update
+after update of replacement_needed,replacement_source_membership_id,recruitment_open,status on public.project_runs
+for each row
+when (
+  new.replacement_needed=true
+  or old.replacement_needed is distinct from new.replacement_needed
+)
+execute function public.phase18_sync_phase16_replacement_need();
 
 comment on function public.phase18_sync_phase16_replacement_need() is
   'Projects canonical Phase 16 replacement_needed state into Phase 18 collaboration needs for the same run. No alternate replacement or admission system is created.';

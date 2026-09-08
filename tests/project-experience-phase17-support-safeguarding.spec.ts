@@ -69,9 +69,14 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
   for(const text of ['Consequential project recovery','I confirm this consequential action','Participation pause is not offered'])expect(admin).toContain(text);
   expect(recovery).not.toContain("membership_status='paused'");
  });
+ test('private support Admin URLs are excluded from general analytics',()=>{
+  const analytics=read('components/Analytics.tsx');
+  expect(analytics).toContain("if(window.location.pathname.indexOf('/admin/project-support')===0)return;");
+  expect(analytics.indexOf("if(window.location.pathname.indexOf('/admin/project-support')===0)return;")).toBeLessThan(analytics.indexOf("gtag('config'"));
+ });
  test('real recovery and responsive evidence are release-blocking rather than imported between Playwright files',()=>{
   const pkg=read('package.json'),e2e=read('tests/project-experience-phase17-support-e2e.spec.ts'),responsive=read('tests/project-experience-phase17-responsive-e2e.spec.ts'),phase15=read('tests/project-experience-phase15-solo-conversion-e2e.spec.ts');
-  expect(pkg.match(/tests\/project-experience-phase17-support-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-responsive-e2e\.spec\.ts/g)||[]).toHaveLength(2);
+  expect(pkg.match(/tests\/project-experience-phase17-support-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-rls-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-recovery-concurrency-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-responsive-e2e\.spec\.ts/g)||[]).toHaveLength(2);
   for(const text of ['responsibility_reassigned','lead_changed','member_removed','replacement_requested','staleLead.response.status()).toBe(409)'])expect(e2e).toContain(text);
   for(const text of ['width:320','fontSize=\'200%\'','noHorizontalOverflow(page)','Consequential project recovery'])expect(responsive).toContain(text);
   expect(phase15).not.toContain("import './project-experience-phase16-member-exit-e2e.spec'");

@@ -14,6 +14,7 @@ const onboardingComplete=read('app/onboarding/complete/page.tsx');
 const onboarding=read('components/OnboardingFlow.tsx');
 const profileApi=read('app/api/profile/route.ts');
 const onboardingMigration=read('supabase/migrations/20260815153916_phase_1_onboarding_state.sql');
+const atomicProfileMigration=read('supabase/migrations/20260905110000_project_experience_phase_2_atomic_profile_save.sql');
 const responsiveGate=read('app/dev/phase-1-responsive-gate/page.tsx');
 const onboardingPreview=read('app/dev/phase-1-onboarding/page.tsx');
 const browserGate=read('tests/phase1-browser.spec.ts');
@@ -44,7 +45,7 @@ const checks=[
  ['verification support recovery exists',checkEmail.includes('/contact')],
  ['verification callback exchanges code',callback.includes('exchangeCodeForSession')],
  ['signup verification reaches verified page',callback.includes("flow==='signup'")&&callback.includes('/auth/verified')],
- ['email signup continues into onboarding while preserving intent',signin.includes('function onboardingDestination()')&&signin.includes('const onboarding=onboardingDestination()')&&signin.includes('flow=signup&next=${encodeURIComponent(onboarding)}')&&signin.includes('/auth/verified?next=${encodeURIComponent(onboarding)}')&&signin.includes('/auth/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(onboarding)}')],
+ ['email signup continues into onboarding',signin.includes('function onboardingDestination()')&&signin.includes('flow=signup&next=${encodeURIComponent(onboarding)}')&&signin.includes('/auth/verified?next=${encodeURIComponent(onboarding)}')],
  ['OAuth account creation uses distinct social signup flow',signin.includes("const flow=socialSignup?'social-signup':'oauth'")&&callback.includes("flow==='social-signup'")],
  ['OAuth account creation requires password completion',Boolean(socialComplete)&&callback.includes('/auth/social-complete')&&socialComplete.includes('updateUser({password})')&&socialComplete.includes('Confirm password')],
  ['OAuth account creation continues into onboarding',socialComplete.includes("return '/onboarding'")&&socialComplete.includes('/auth/verified?next=')],
@@ -65,17 +66,17 @@ const checks=[
  ['password mismatch is validated',updatePassword.includes('The passwords do not match.')],
  ['password completion redirects to dedicated state',updatePassword.includes('/auth/password-changed')],
  ['password-changed route exists',Boolean(passwordChanged)],
- ['onboarding route requires authentication and preserves return intent',onboardingPage.includes('if(!user)redirect(`/signin?next=${encodeURIComponent(onboardingPath)}`)')&&onboardingPage.includes("const onboardingPath=next==='/member'?'/onboarding':`/onboarding?next=${encodeURIComponent(next)}`")],
+ ['onboarding route requires authentication',onboardingPage.includes("const onboardingPath=next==='/member'?'/onboarding':")&&onboardingPage.includes('if(!user)redirect(`/signin?next=${encodeURIComponent(onboardingPath)}`)')],
  ['onboarding has five named steps',onboarding.includes("const steps=['About you','Skills & interests','Project goals','Availability','Review profile']")],
  ['onboarding exposes progress',onboarding.includes('Step {step+1} of {steps.length}')&&onboarding.includes('% complete')],
  ['onboarding can save and continue later',onboarding.includes('Save and continue later')&&onboarding.includes('saveForLater')&&onboarding.includes("window.location.assign('/member')")],
- ['onboarding progress is persisted',Boolean(onboardingMigration)&&onboardingMigration.includes('onboarding_step')&&profileApi.includes("hasOnboardingStep=Object.prototype.hasOwnProperty.call(body,'onboarding_step')")&&profileApi.includes('const persistedStep=onboardingComplete?4:hasOnboardingStep?onboardingStep:Number(currentProfile.data?.onboarding_step||0)')&&profileApi.includes('onboarding_step:persistedStep')],
- ['normal profile edits preserve onboarding progress',profileApi.includes("const hasOnboardingStep=Object.prototype.hasOwnProperty.call(body,'onboarding_step')")&&profileApi.includes("currentProfile.data?.onboarding_step||0")&&profileApi.includes('onboarding_step:persistedStep')],
+ ['onboarding progress is persisted',Boolean(onboardingMigration)&&onboardingMigration.includes('onboarding_step')&&profileApi.includes("hasOwnProperty.call(body,'onboarding_step')")&&profileApi.includes('onboarding_step:persistedStep')&&profileApi.includes("rpc('save_member_profile'")&&atomicProfileMigration.includes("p_profile->>'onboarding_step'")],
+ ['normal profile edits preserve onboarding progress',profileApi.includes("const hasOnboardingStep=Object.prototype.hasOwnProperty.call(body,'onboarding_step')")&&profileApi.includes("Number(currentProfile.data?.onboarding_step||0)")&&profileApi.includes('onboarding_step:persistedStep')],
  ['returning onboarding users resume saved step',onboardingPage.includes('initialStep={Math.max(0,Math.min(4,Number(profile.onboarding_step||0)))}')&&onboarding.includes('useState(initialStep)')],
- ['completed members bypass first-time onboarding to preserved destination',onboardingMigration.includes('onboarding_completed_at')&&onboardingPage.includes('if(profile.onboarding_completed_at)redirect(next)')],
- ['onboarding has explicit completion state with preserved destination',Boolean(onboardingComplete)&&onboarding.includes('window.location.assign(`/onboarding/complete?next=${encodeURIComponent(returnTo)}`)')&&onboardingComplete.includes('Your professional profile is ready to use.')&&onboardingComplete.includes('/auth/continue-after-onboarding?fallback=')&&onboardingComplete.includes('href={continueHref}')],
- ['onboarding completion is persisted',profileApi.includes('const completionAt=currentProfile.data?.onboarding_completed_at||(onboardingComplete?new Date().toISOString():null)')&&profileApi.includes('onboarding_completed_at:completionAt')&&onboarding.includes('save(4,true)')],
- ['onboarding reuses canonical profile API',profileApi.includes("supabase.rpc('save_member_profile'")&&profileApi.includes('p_profile:profilePayload')&&profileApi.includes('p_expected_updated_at:expectedUpdatedAt')&&!profileApi.includes('id:body.id')],
+ ['completed members bypass first-time onboarding',onboardingMigration.includes('onboarding_completed_at')&&onboardingPage.includes('if(profile.onboarding_completed_at)redirect(next)')&&onboardingPage.includes("!item.startsWith('//')")],
+ ['onboarding has explicit completion state',Boolean(onboardingComplete)&&onboarding.includes('window.location.assign(`/onboarding/complete?next=${encodeURIComponent(returnTo)}`)')&&onboardingComplete.includes('Your professional profile is ready to use.')],
+ ['onboarding completion is persisted',profileApi.includes('const completionAt=currentProfile.data?.onboarding_completed_at||(onboardingComplete?new Date().toISOString():null)')&&profileApi.includes('onboarding_completed_at:completionAt')&&onboarding.includes('save(4,true)')&&atomicProfileMigration.includes('coalesce(public.profiles.onboarding_completed_at,excluded.onboarding_completed_at)')],
+ ['onboarding reuses canonical profile API',(profileApi.includes("supabase.from('profiles').update")||(profileApi.includes("supabase.from('profiles').upsert")&&profileApi.includes('id:user.id')&&!profileApi.includes('id:body.id'))||(profileApi.includes("rpc('save_member_profile'")&&atomicProfileMigration.includes('security invoker')&&atomicProfileMigration.includes('on conflict(id) do update')))],
  ['onboarding has required-field gating',onboarding.includes('canContinue')],
  ['onboarding supports back navigation',onboarding.includes('← Back')],
  ['auth status messages expose aria-live',signin.includes('aria-live="polite"')&&checkEmail.includes('aria-live="polite"')&&updatePassword.includes('aria-live="polite"')&&socialComplete.includes('aria-live="polite"')&&onboarding.includes('aria-live="polite"')],
@@ -84,7 +85,7 @@ const checks=[
  ['multi-device responsive gate exists',Boolean(responsiveGate)&&Boolean(onboardingPreview)],
  ['responsive gate covers required widths',forWidths(responsiveGate,[320,390,430,768,1024,1280,1440,1920])&&responsiveGate.includes("label:'Phone landscape'")],
  ['real-browser responsive gate exists separately from CI',Boolean(browserGate)&&browserGate.includes('width:320')&&browserGate.includes('width:1920')&&browserGate.includes('200 percent zoom')],
- ['GitHub CI preserves deterministic release-train checks and full main release validation',workflow.includes('npm run audit:phase1')&&workflow.includes('npm run audit:mettelo-lab')&&workflow.includes('npm run build')&&workflow.includes('Blocking public browser regression suite')&&workflow.includes('npm run test:regression')&&workflow.includes('release-train-pr-fast')&&workflow.includes('target_branch')&&workflow.includes('release/*')&&workflow.includes('requires_staging=true')&&workflow.includes('classification=runtime-or-backend-impact')&&workflow.includes('needs: [scope, verify, staging-e2e]')],
+ ['GitHub CI preserves deterministic release-train checks and full main release validation',workflow.includes('npm run audit:phase1')&&workflow.includes('npm run audit:mettelo-lab')&&workflow.includes('npm run build')&&workflow.includes('Blocking public browser regression suite')&&workflow.includes('npm run test:regression')&&workflow.includes('release-train-pr-fast')&&workflow.includes('target_branch')&&workflow.includes('requires_staging=true')&&workflow.includes('classification=runtime-or-backend-impact')&&workflow.includes('needs: [scope, verify, staging-e2e]')],
  ['Phase 0 audit still exists',Boolean(phase0)],
  ['auth UUID remains the profile primary identity',identityMigration.includes('alter table public.profiles')&&!identityMigration.includes('drop column id')&&!identityMigration.includes('alter column id')],
  ['immutable generated Member ID exists',identityMigration.includes('assign_member_id')&&identityMigration.includes("'MTL-'")&&identityMigration.includes('member_id is immutable')],

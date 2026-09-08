@@ -7,9 +7,8 @@ const css=read('app/member/projects/member-projects.module.css');
 const shell=read('components/MemberAppShell.tsx');
 const nav=read('lib/member-navigation.ts');
 const gate=read('app/member/projects/[id]/layout.tsx');
-const preparingMarker='<div className={styles.eyebrow}>PREPARING TO START</div>';
-const preparingStart=page.indexOf(preparingMarker);
-const preparingEnd=preparingStart>=0?page.indexOf('\n    </>}',preparingStart):-1;
+const preparingStart=page.indexOf('aria-labelledby="preparing-title"');
+const preparingEnd=page.indexOf('{showCompleted',preparingStart);
 const preparingSection=preparingStart>=0&&preparingEnd>preparingStart?page.slice(preparingStart,preparingEnd):'';
 
 const checks=[

@@ -1,6 +1,6 @@
 # Project Experience Phase 12 — Mettelo Lab Canonical Project Experience
 
-Status: **IN PROGRESS — NOT APPROVED**
+Status: **RELEASE CANDIDATE — exact-head sign-off required before merge**
 
 ## Objective
 
@@ -41,7 +41,7 @@ Phase 12 must not create a second Project Brief, team system, responsibility mod
 
 ### Canonical team responsibilities and active delivery roster
 
-`resolveProjectTeamOverview()` continues to serve the shared formation/team model and now reads active `project_member_responsibilities` for the authorised run. The Lab presentation filters that shared result to active delivery participants (and completed participants only for a completed run), so pre-start `waiting` members do not appear as active Lab collaborators. Existing Phase 10 formation behaviour remains unchanged.
+`resolveProjectTeamOverview()` continues to serve the shared formation/team model and now reads active `project_member_responsibilities` for the authorised run. Responsibility aggregation is keyed by both canonical `project_run_id` and member identity, so a person who appears in multiple readable runs cannot inherit responsibility labels from another run. The Lab presentation filters that shared result to active delivery participants (and completed participants only for a completed run), so pre-start `waiting` members do not appear as active Lab collaborators. Existing Phase 10 formation behaviour remains unchanged.
 
 The Team cards present canonical `@username`, participation state, Project Lead role and delivery responsibilities without introducing another responsibility or identity source.
 
@@ -90,7 +90,7 @@ The server workspace gate calls this RPC only after ordinary-member Lab authoriz
 
 ## Blocking tests and evidence
 
-`tests/project-experience-phase12-canonical-lab.spec.ts` is included in `test:regression` and protects canonical brief separation, resources, responsibilities, overview, roster filtering, active-run RLS, relation integrity, run scoping, navigation, accessibility structure and privacy-safe Lab analytics.
+`tests/project-experience-phase12-canonical-lab.spec.ts` is included in `test:regression` and protects canonical brief separation, resources, exact-run responsibilities, overview, roster filtering, active-run RLS, relation integrity, run scoping, navigation, accessibility structure and privacy-safe Lab analytics.
 
 `tests/project-experience-phase12-lab-access-e2e.spec.ts` is included in both authenticated `test:e2e:smoke` and `test:e2e:staging`. On the disposable isolated Supabase stack it verifies:
 
@@ -112,6 +112,7 @@ The deterministic Lab audit suite also covers mobile navigation, 320px/device la
 - wired Phase 12 RLS E2E into the protected authenticated smoke and staging suites;
 - added anonymous/non-member/wrong-run/removal security journeys;
 - removed waiting members from the active Lab delivery roster;
+- scoped canonical responsibility aggregation by run + member to prevent cross-run responsibility mixing;
 - closed the task→milestone cross-run integrity gap at API and PostgreSQL layers;
 - separated shared project-level canonical data from private run-scoped collaboration RLS;
 - added authorized, deduplicated and privacy-safe `lab_opened` telemetry using the existing activity-log architecture.
@@ -120,10 +121,8 @@ The deterministic Lab audit suite also covers mobile navigation, 320px/device la
 
 - complete the exact-head Mettelo CI, isolated Supabase reconstruction, authenticated browser/E2E and protected Release Gate on the final Phase 12 commit;
 - resolve any exact-head failures without weakening inherited contracts;
-- Phase 11 / PR #220 remains an explicit upstream dependency and is itself still marked NOT APPROVED; Phase 12 must not merge or receive final product approval ahead of that prerequisite.
+- Phase 11 / PR #220 is now merged into `main`, so the upstream Phase 11 prerequisite is satisfied.
 
 ## Sign-off
 
-**NOT APPROVED.**
-
-Do not merge Phase 12 until all Phase 12 exact-head gates are green and the Phase 11 prerequisite is approved/resolved.
+Phase 12 is approved only when PR #221 is merged after all required exact-head release gates are green. Until then it remains a release candidate and must not be merged.

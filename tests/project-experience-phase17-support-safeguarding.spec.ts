@@ -61,6 +61,12 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
   for(const action of ['review','assign_self','assign_admin','request_information','record_recovery_plan','escalate_safeguarding','resolve','close','reopen'])expect(route).toContain(`'${action}'`);
   expect(route).toContain("if(current.status!=='resolved')return NextResponse.json({error:'Resolve the case before closing it.'}");expect(route).toContain("patch.internal_notes=[current.internal_notes,note]");expect(route).toContain(".eq('updated_at',current.updated_at)");expect(route).toContain('This support case changed before your action was saved.');expect(privacy).toContain('safeguarding_escalated_at timestamptz');expect(privacy).toContain('Permanent sensitivity marker');
  });
+ test('Admin UI preserves permanent safeguarding visibility, recovery loading and action-specific content limits',()=>{
+  const route=read('app/api/admin/project-support-cases/route.ts'),admin=read('app/admin/project-support/page.tsx');
+  for(const text of ['SAFEGUARDING — RESTRICTED','including after resolution or closure','Loading governed recovery options…','recoveryLoading','const noteLimit=','memberContentAction?6000:12000','maxLength={noteLimit}'])expect(admin).toContain(text);
+  for(const text of ['MEMBER_CONTENT_ACTIONS','note.length>6000','cannot exceed 6,000 characters','note.length>12000','would exceed the 12,000-character secure-note limit'])expect(route).toContain(text);
+  expect(route).not.toContain('memberBody=note.slice(0,6000)');expect(route).not.toContain('patch.recovery_plan=note.slice(0,6000)');expect(route).not.toContain('patch.resolution=note.slice(0,6000)');
+ });
  test('consequential recovery reuses Phase 10 and 16 authorities and keeps private text out of handover',()=>{
   const recovery=read('supabase/migrations/20260908012000_project_experience_phase_17_canonical_recovery_actions.sql');const route=read('app/api/admin/project-support-recovery/route.ts');const admin=read('app/admin/project-support/page.tsx');
   for(const text of ['phase10_release_delivery_responsibility','phase10_assign_delivery_responsibility','phase10_confirm_project_lead','phase16_request_replacement','phase16_transition_member_departure',"'support_resolution'",'SUPPORT_CASE_STALE',"set status='recovery_in_progress'",'grant execute on function public.phase17_execute_support_recovery'])expect(recovery).toContain(text);
@@ -78,7 +84,7 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
   const pkg=read('package.json'),e2e=read('tests/project-experience-phase17-support-e2e.spec.ts'),responsive=read('tests/project-experience-phase17-responsive-e2e.spec.ts'),phase15=read('tests/project-experience-phase15-solo-conversion-e2e.spec.ts');
   expect(pkg.match(/tests\/project-experience-phase17-support-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-rls-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-recovery-concurrency-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-responsive-e2e\.spec\.ts/g)||[]).toHaveLength(2);
   for(const text of ['responsibility_reassigned','lead_changed','member_removed','replacement_requested','staleLead.response.status()).toBe(409)'])expect(e2e).toContain(text);
-  for(const text of ['width:320','fontSize=\'200%\'','noHorizontalOverflow(page)','Consequential project recovery'])expect(responsive).toContain(text);
+  for(const text of ['width:320','width:768','width:1280',"fontSize='200%'",'noHorizontalOverflow(page)','Consequential project recovery'])expect(responsive).toContain(text);
   expect(phase15).not.toContain("import './project-experience-phase16-member-exit-e2e.spec'");
  });
  test('member Lab surface provides private entry, safe reference, tracker and secure information response',()=>{

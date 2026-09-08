@@ -45,8 +45,11 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
   });
 
   test('target is planning capacity and never the start threshold',()=>{
+    const runtimeSql=runtime();
     const migration=hardening();
-    expect(runtime()).toContain('Target is deliberately NOT a start threshold');
+    expect(runtimeSql).toContain('set required_team_size=case');
+    expect(runtimeSql).toContain("when p.participation_mode in ('solo','flexible') then 1");
+    expect(runtimeSql).toContain('else greatest(coalesce(p.min_team_size,p.team_size_threshold,1),1)');
     expect(migration).toContain("'target_reached',occupied>=target_members");
     expect(migration).toContain("'ready',occupied>=minimum_members");
     expect(migration).toContain('target never blocks');

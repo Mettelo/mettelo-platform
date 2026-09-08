@@ -1,6 +1,6 @@
 # Phase 18 — Member Discovery, Collaboration Marketplace, Project Sharing & Invitations
 
-Status: DRAFT / PROGRAMME SPLIT APPROVED — NOT APPROVED
+Status: DRAFT / SINGLE-PR EXECUTION ACTIVE — NOT APPROVED
 
 ## Acceptance authority
 
@@ -32,11 +32,11 @@ INVITE / INTEREST
 
 Revalidate project, run, admission mode, eligibility, profile readiness, capacity, joining window, recruitment, invitation/interest validity and existing membership at the authoritative transition.
 
-## Why Phase 18 is split
+## Single-PR implementation model
 
-The full scope crosses member discovery, recommendations, invitation/admission, opportunity marketplace, public sharing/auth continuation, same-run replacement, Supabase/RLS/concurrency, responsive/accessibility, analytics and Admin governance. Shipping all 273 stories in one review unit would make defects, rollback and Director sign-off unnecessarily risky.
+Phase 18 is delivered through **three implementation checkpoints on the same branch and the same PR #227**. The checkpoints remain useful for scope ownership and review sequencing, but they are not separate PRs and do not merge independently.
 
-Phase 18 is therefore delivered as **three stacked implementation sub-phases**. They remain one product phase and final Phase 18 approval requires all three to pass.
+Moving to 18B or 18C does not mark earlier work PASS by assumption. Any unresolved 18A/18B acceptance evidence remains part of PR #227 and blocks final Phase 18 approval.
 
 # PHASE 18A — COLLABORATION FOUNDATION, MEMBER DISCOVERY & DIRECT INVITATIONS
 
@@ -79,9 +79,11 @@ Phase 18A owns:
 
 18A must not be marked approved merely because its UI works. Direct authenticated Supabase/RLS and race/idempotency evidence are mandatory.
 
+Current status: IMPLEMENTATION / EVIDENCE REMAINS PART OF PR #227; NOT YET SIGNED OFF.
+
 # PHASE 18B — COLLABORATION MARKETPLACE, INTEREST, EXTERNAL DISCOVERY & SHARING
 
-18B will be stacked on the accepted exact head of 18A.
+Current implementation focus on PR #227.
 
 ### User-story ownership
 
@@ -116,9 +118,11 @@ Phase 18B owns:
 
 18B owns **Tests 40–88** from the governing Phase 18 contract.
 
+Current status: IN PROGRESS ON PR #227.
+
 # PHASE 18C — PRODUCT INTEGRATION, GOVERNANCE, RESPONSIVE/A11Y, ANALYTICS & RELEASE SIGN-OFF
 
-18C will be stacked on the accepted exact head of 18B.
+18C continues on PR #227 after the 18B implementation checkpoint.
 
 ### User-story ownership
 
@@ -149,6 +153,8 @@ Phase 18C owns:
 ### Mandatory journey allocation
 
 18C owns **Tests 108–137**, including responsive/accessibility, all inherited regression suites, migration/security review, invitation/marketplace/social-share E2E and Release Gate.
+
+Current status: NOT STARTED; SAME PR #227.
 
 # Coverage proof
 
@@ -230,6 +236,6 @@ Do **not** approve Phase 18 if any of the following remain true:
 
 ## Dependency rule
 
-Phase 18A is stacked on Phase 17 / PR #226. Phase 18B must stack on the accepted exact head of 18A. Phase 18C must stack on the accepted exact head of 18B.
+Phase 18A, 18B and 18C are sequential checkpoints **inside PR #227**. PR #227 itself remains stacked on Phase 17 / PR #226 and must not merge ahead of that dependency.
 
-No Phase 18 sub-phase may merge ahead of its dependency chain. Final Phase 18 approval occurs only after 18A + 18B + 18C are complete and the final exact-head release gates are green.
+No Phase 18 checkpoint merges independently. Final Phase 18 approval occurs only after 18A + 18B + 18C are complete and the final exact-head release gates are green.

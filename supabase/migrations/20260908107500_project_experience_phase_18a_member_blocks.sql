@@ -28,6 +28,59 @@ drop policy if exists member_blocks_delete_own on public.member_interaction_bloc
 create policy member_blocks_delete_own on public.member_interaction_blocks
 for delete to authenticated using (blocker_user_id=auth.uid());
 
+-- A block immediately makes any still-pending invitation unusable in either direction.
+create or replace function public.phase18_invalidate_member_invitations_on_block()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $$
+begin
+  update public.project_member_collaboration_invitations
+  set status='invalidated',invalidated_at=now(),updated_at=now()
+  where status='pending'
+    and ((invited_by=new.blocker_user_id and invitee_user_id=new.blocked_user_id)
+      or (invited_by=new.blocked_user_id and invitee_user_id=new.blocker_user_id));
+  return new;
+end;
+$$;
+revoke all on function public.phase18_invalidate_member_invitations_on_block() from public,anon,authenticated;
+drop trigger if exists phase18_member_block_invalidates_invites on public.member_interaction_blocks;
+create trigger phase18_member_block_invalidates_invites
+after insert on public.member_interaction_blocks
+for each row execute function public.phase18_invalidate_member_invitations_on_block();
+
+-- Strengthen the invitation table itself so future service paths cannot bypass a block.
+create or replace function public.phase18_guard_member_collaboration_invite()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  need_row public.project_collaboration_needs%rowtype;
+  run_row public.project_runs%rowtype;
+begin
+  select * into need_row from public.project_collaboration_needs where id=new.collaboration_need_id;
+  if need_row.id is null then raise exception using errcode='P0002',message='COLLABORATION_NEED_NOT_FOUND'; end if;
+  if need_row.project_id<>new.project_id or need_row.project_run_id<>new.project_run_id then
+    raise exception using errcode='23514',message='MEMBER_INVITE_NEED_CONTEXT_MISMATCH';
+  end if;
+  select * into run_row from public.project_runs where id=new.project_run_id and project_id=new.project_id;
+  if run_row.id is null then raise exception using errcode='23514',message='MEMBER_INVITE_RUN_PROJECT_MISMATCH'; end if;
+  if exists (
+    select 1 from public.member_interaction_blocks b
+    where (b.blocker_user_id=new.invited_by and b.blocked_user_id=new.invitee_user_id)
+       or (b.blocker_user_id=new.invitee_user_id and b.blocked_user_id=new.invited_by)
+  ) then
+    raise exception using errcode='23514',message='MEMBER_INVITE_BLOCKED';
+  end if;
+  new.updated_at:=now();
+  return new;
+end;
+$$;
+revoke all on function public.phase18_guard_member_collaboration_invite() from public,anon,authenticated;
+
 -- Replace the original privacy-safe projection so blocking is enforced before a
 -- discoverable member can be returned. No block relationship is returned to callers.
 create or replace function public.phase18_search_discoverable_members(

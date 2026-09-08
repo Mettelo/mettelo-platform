@@ -108,7 +108,14 @@ using (
 
 revoke all on table public.project_collaboration_needs from anon,authenticated;
 revoke all on table public.project_collaboration_need_capabilities from anon,authenticated;
-grant select on table public.project_collaboration_needs to authenticated;
+-- created_by is intentionally excluded from the authenticated column grant so a
+-- collaboration board cannot become an Auth/profile UUID directory. Server code
+-- may resolve a permitted display username separately when product UX requires it.
+grant select (
+  id,project_id,project_run_id,source_project_role_id,responsibility,
+  target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,
+  member_message,status,source,closed_reason,closed_at,created_at,updated_at
+) on table public.project_collaboration_needs to authenticated;
 grant select on table public.project_collaboration_need_capabilities to authenticated;
 grant all on table public.project_collaboration_needs to service_role;
 grant all on table public.project_collaboration_need_capabilities to service_role;

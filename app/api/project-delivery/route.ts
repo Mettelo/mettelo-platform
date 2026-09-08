@@ -67,7 +67,7 @@ export async function POST(request:Request){
     const isRequired=body.is_required!==false&&body.is_required!=='false';
     const workstreamId=String(body.workstream_id||'')||null;
     if(!title)return NextResponse.json({error:'Title is required.'},{status:400});
-    if(workstreamId){const {data}=await access.supabase.from('project_workstreams').select('id').eq('id',workstreamId).eq('project_run_id',runId).maybeSingle();if(!data)return NextResponse.json({error:'Choose a workstream from this project team.'},{status:400});}
+    if(workstreamId){const {data}=await access.supabase.from('project_workstreams').select('id').eq('id',workstreamId).eq('project_id',projectId).eq('project_run_id',runId).maybeSingle();if(!data)return NextResponse.json({error:'Choose a workstream from this project team.'},{status:400});}
 
     if(resource==='milestone'){
       const status=String(body.status||'planned');
@@ -85,6 +85,11 @@ export async function POST(request:Request){
       const acceptanceCriteria=String(body.acceptance_criteria||'').trim().slice(0,2500)||null;
       const priority=String(body.priority||'normal');
       if(!['low','normal','high','urgent'].includes(priority))return NextResponse.json({error:'Choose a valid task priority.'},{status:400});
+
+      if(milestoneId){
+        const {data:milestone}=await access.supabase.from('project_milestones').select('id').eq('id',milestoneId).eq('project_id',projectId).eq('project_run_id',runId).maybeSingle();
+        if(!milestone)return NextResponse.json({error:'Task milestone must belong to this project team.'},{status:400});
+      }
 
       if(assignee){
         let query=access.supabase.from('project_members').select('id').eq('project_id',projectId).eq('user_id',assignee).eq('membership_status','active');

@@ -48,6 +48,12 @@ A Phase 17 support case retains:
 - The private `/admin/project-support` workspace is excluded from general Google Analytics initialization so case identifiers in Admin URLs are not sent as general page-view data.
 - Phase 17 server logging records operation plus non-sensitive error code/name only; raw database messages and case content are not written by the support routes.
 
+## Notification integration
+
+Phase 17 reuses the canonical Mettelo notification/outbox engine; it does not create a second delivery system. Support notifications use the `project_support_case` event key and therefore pass through the existing `notification_preferences` lookup. When no explicit preference row exists, the current notification engine defaults the channel to enabled, matching its established behaviour. Email/outbox payloads remain generic and contain no private support description, internal note or safeguarding detail.
+
+A separate user-facing preference taxonomy for private project-support notices is not introduced by Phase 17 because no existing approved preference category for that event was identified during this review. Any future preference-control change should be made in the canonical notification-preference model rather than inside the support feature.
+
 ## Admin capability boundary
 
 - `projects.support.manage` is required for private support access.

@@ -12,6 +12,8 @@ const delivery=read('app/api/project-delivery/route.ts');
 const labRls=read('supabase/migrations/20260906030000_project_experience_phase_12_lab_access_rls.sql');
 const taskIntegrity=read('supabase/migrations/20260906030100_project_experience_phase_12_task_relation_integrity.sql');
 const labAnalytics=read('supabase/migrations/20260906030200_project_experience_phase_12_lab_analytics.sql');
+const labMutations=read('supabase/migrations/20260906030300_project_experience_phase_12_lab_mutation_rls.sql');
+const labGrants=read('supabase/migrations/20260906030400_project_experience_phase_12_authenticated_lab_grants.sql');
 // Privacy assertions inspect executable SQL rather than comments. The migration
 // deliberately documents the categories it does not store, so matching the
 // entire source for those words would turn accurate documentation into a false
@@ -34,6 +36,8 @@ const cases:[string,boolean][]=[
  ['workspace access denies non-active members and non-active delivery runs',gate.includes("['active','completed'].includes(membership.membership_status)")&&gate.includes("['active','review','completed'].includes(runStatus)")],
  ['database Lab access requires active or completed membership in the exact run',labRls.includes("pm.membership_status in ('active','completed')")&&labRls.includes('pm.project_run_id=p_run_id')&&labRls.includes("pr.status in ('active','review','completed')")],
  ['restrictive RLS protects discussions resources meetings tasks milestones responsibilities and data',labRls.includes('as restrictive')&&['project_discussions','project_resources','project_meetings','project_tasks','project_milestones','project_member_responsibilities','project_data_sources','project_data_source_versions','project_deliverables'].every(table=>labRls.includes(`public.${table}`))],
+ ['completed Lab history is read-only while active runs retain mutation authority',labMutations.includes("pm.membership_status='active'")&&labMutations.includes("pr.status in ('active','review')")&&labMutations.includes('as restrictive for update to authenticated')],
+ ['authenticated Lab table privileges reach RLS while anon private-table access stays revoked',labGrants.includes('grant select, insert, update, delete on table public.project_resources to authenticated')&&labGrants.includes('grant select, insert, update, delete on table public.project_tasks to authenticated')&&labGrants.includes('grant select on table public.project_member_responsibilities to authenticated')&&labGrants.includes('revoke all on table public.project_resources from anon')&&labGrants.includes('revoke all on table public.project_tasks from anon')],
  ['task creation verifies milestone belongs to the same canonical project run',delivery.includes(".from('project_milestones').select('id').eq('id',milestoneId).eq('project_id',projectId).eq('project_run_id',runId)")&&delivery.includes('Task milestone must belong to this project team.')],
  ['database enforces task milestone and workstream run integrity',taskIntegrity.includes('TASK_MILESTONE_RUN_MISMATCH')&&taskIntegrity.includes('TASK_WORKSTREAM_RUN_MISMATCH')&&taskIntegrity.includes('project_task_phase12_relation_guard')],
  ['live milestones and tasks remain run scoped',page.includes("milestoneQuery=milestoneQuery.eq('project_run_id',runId)")&&page.includes("taskQuery=taskQuery.eq('project_run_id',runId)")],

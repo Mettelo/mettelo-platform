@@ -121,17 +121,28 @@ using (
 -- No authenticated UPDATE/DELETE policies are defined. Admin case mutation is
 -- server-mediated with service_role only after existing Admin capability checks.
 -- This keeps private notes and safeguarding detail outside Project Lead/member RLS.
+-- Row-level privacy is reinforced with column-level privileges: the reporter can
+-- never request Admin-only columns such as internal_notes through PostgREST, even
+-- on a row they legitimately own.
+revoke all on public.project_support_cases from anon,authenticated;
+revoke all on public.project_support_case_updates from anon,authenticated;
 
-grant select,insert on public.project_support_cases to authenticated;
-grant select on public.project_support_case_updates to authenticated;
-revoke update,delete on public.project_support_cases from authenticated;
-revoke insert,update,delete on public.project_support_case_updates from authenticated;
+grant select (
+  id,project_id,project_run_id,reporter_user_id,category,description,status,
+  resolution,recovery_plan,created_at,updated_at,resolved_at,closed_at
+) on public.project_support_cases to authenticated;
+grant insert (
+  project_id,project_run_id,reporter_user_id,category,description
+) on public.project_support_cases to authenticated;
+grant select (
+  id,case_id,action,body,created_at
+) on public.project_support_case_updates to authenticated;
 
 comment on table public.project_support_cases is
   'Phase 17 private member support/conflict/safeguarding cases. Project Lead membership does not grant case access.';
 comment on column public.project_support_cases.description is
   'Confidential in-app member report. Never copy this field into notification or email bodies.';
 comment on column public.project_support_cases.internal_notes is
-  'Restricted Admin-only notes. Never expose through member APIs, RLS, notifications or email.';
+  'Restricted Admin-only notes. Column privileges deny reporter access even to their own case row.';
 comment on table public.project_support_case_updates is
   'Phase 17 auditable case actions. Reporter RLS exposes only rows explicitly marked member_visible.';

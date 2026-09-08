@@ -81,8 +81,8 @@ begin
           and o.user_id=m.user_id
           and o.status='accepted'
           and o.accepted_at is not null
-          and o.reservation_released_at is null
-          and o.reservation_consumed_at is not null
+          and o.capacity_released_at is null
+          and o.capacity_consumed_at is not null
       );
 
     if exact_offer_gaps>0 then

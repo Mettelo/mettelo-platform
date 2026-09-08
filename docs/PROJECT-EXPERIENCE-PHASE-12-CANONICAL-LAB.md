@@ -1,6 +1,6 @@
 # Project Experience Phase 12 — Mettelo Lab Canonical Project Experience
 
-Status: **IN PROGRESS — NOT APPROVED**
+Status: **RELEASE CANDIDATE — exact-head sign-off required before merge**
 
 ## Objective
 
@@ -120,10 +120,8 @@ The deterministic Lab audit suite also covers mobile navigation, 320px/device la
 
 - complete the exact-head Mettelo CI, isolated Supabase reconstruction, authenticated browser/E2E and protected Release Gate on the final Phase 12 commit;
 - resolve any exact-head failures without weakening inherited contracts;
-- Phase 11 / PR #220 remains an explicit upstream dependency and is itself still marked NOT APPROVED; Phase 12 must not merge or receive final product approval ahead of that prerequisite.
+- Phase 11 / PR #220 is now merged into `main`, so the upstream Phase 11 prerequisite is satisfied.
 
 ## Sign-off
 
-**NOT APPROVED.**
-
-Do not merge Phase 12 until all Phase 12 exact-head gates are green and the Phase 11 prerequisite is approved/resolved.
+Phase 12 is approved only when PR #221 is merged after all required exact-head release gates are green. Until then it remains a release candidate and must not be merged.

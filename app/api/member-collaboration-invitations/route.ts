@@ -26,6 +26,13 @@ async function senderAllowed(db:NonNullable<ReturnType<typeof serviceDb>>,user:{
  return data?.team_role==='project_lead';
 }
 
+async function blocked(db:NonNullable<ReturnType<typeof serviceDb>>,left:string,right:string){
+ const [{data:forward},{data:reverse}]=await Promise.all([
+  db.from('member_interaction_blocks').select('blocker_user_id').eq('blocker_user_id',left).eq('blocked_user_id',right).maybeSingle(),
+  db.from('member_interaction_blocks').select('blocker_user_id').eq('blocker_user_id',right).eq('blocked_user_id',left).maybeSingle()
+ ]);return Boolean(forward||reverse);
+}
+
 export async function GET(request:Request){
  try{
   const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});
@@ -45,12 +52,13 @@ export async function POST(request:Request){
   const live=await liveNeed(db,needId);if(!live.need||!live.project||!live.run||!live.accepting)return NextResponse.json({error:'This collaboration opportunity is no longer accepting member invitations.'},{status:409});
   if(!await senderAllowed(db,user,live.need.project_id,live.need.project_run_id))return NextResponse.json({error:'Only the active Project Lead can invite an existing member to this project run.'},{status:403});
   const {data:invitee}=await db.from('profiles').select('id,username,is_public').ilike('username',username).maybeSingle();if(!invitee||invitee.is_public!==true)return NextResponse.json({error:'That member is not available for project invitations.'},{status:404});if(invitee.id===user.id)return NextResponse.json({error:'You cannot invite yourself.'},{status:400});
-  const [{data:privacy},{data:membership},{data:application}]=await Promise.all([
+  const [{data:privacy},{data:membership},{data:application},isBlocked]=await Promise.all([
    db.from('member_privacy_preferences').select('allow_project_invitations').eq('user_id',invitee.id).maybeSingle(),
    db.from('project_members').select('id').eq('project_id',live.need.project_id).eq('project_run_id',live.need.project_run_id).eq('user_id',invitee.id).in('membership_status',['waiting','active','completed']).limit(1).maybeSingle(),
-   db.from('project_applications').select('id,status').eq('project_id',live.need.project_id).eq('user_id',invitee.id).not('status','in','(declined,withdrawn)').limit(1).maybeSingle()
+   db.from('project_applications').select('id,status').eq('project_id',live.need.project_id).eq('user_id',invitee.id).not('status','in','(declined,withdrawn)').limit(1).maybeSingle(),
+   blocked(db,user.id,invitee.id)
   ]);
-  if(privacy?.allow_project_invitations===false)return NextResponse.json({error:'That member has chosen not to receive project invitations.'},{status:409,headers:{'Cache-Control':'private, no-store'}});if(membership)return NextResponse.json({error:'That member is already part of this project run.'},{status:409});if(application)return NextResponse.json({error:'That member already has active interest in this project.'},{status:409});
+  if(isBlocked)return NextResponse.json({error:'That member is not available for project invitations.'},{status:404,headers:{'Cache-Control':'private, no-store'}});if(privacy?.allow_project_invitations===false)return NextResponse.json({error:'That member has chosen not to receive project invitations.'},{status:409,headers:{'Cache-Control':'private, no-store'}});if(membership)return NextResponse.json({error:'That member is already part of this project run.'},{status:409});if(application)return NextResponse.json({error:'That member already has active interest in this project.'},{status:409});
   const {error:limitError}=await db.rpc('phase18_consume_member_invite_rate_limit',{p_actor:user.id});if(limitError){if(String(limitError.message||'').includes('MEMBER_INVITE_RATE_LIMITED'))return NextResponse.json({error:'You have reached the hourly member-invitation limit. Try again later.'},{status:429});throw limitError}
   const expiresAt=new Date(Date.now()+7*24*60*60*1000).toISOString();const {data:invite,error}=await db.from('project_member_collaboration_invitations').insert({collaboration_need_id:live.need.id,project_id:live.need.project_id,project_run_id:live.need.project_run_id,invited_by:user.id,invitee_user_id:invitee.id,status:'pending',expires_at:expiresAt}).select('id,status,expires_at').single();
   if(error){if(error.code==='23505')return NextResponse.json({error:'A pending invitation already exists for this member and opportunity.',code:'INVITE_ALREADY_PENDING'},{status:409});throw error}
@@ -69,7 +77,7 @@ export async function PATCH(request:Request){
   if(action==='revoke'){
    if(!isAdmin(user)&&invite.invited_by!==user.id)return NextResponse.json({error:'You cannot revoke this invitation.'},{status:403});const timestamp=now.toISOString();const {data:updated,error}=await db.from('project_member_collaboration_invitations').update({status:'revoked',revoked_at:timestamp,updated_at:timestamp}).eq('id',id).eq('status','pending').select('id,status').maybeSingle();if(error)throw error;if(!updated)return NextResponse.json({error:'Invitation changed before it could be revoked.'},{status:409});return NextResponse.json({ok:true,status:'revoked'});
   }
-  if(invite.invitee_user_id!==user.id)return NextResponse.json({error:'This invitation is not for the signed-in member.'},{status:403});
+  if(invite.invitee_user_id!==user.id)return NextResponse.json({error:'This invitation is not for the signed-in member.'},{status:403});if(await blocked(db,invite.invited_by,invite.invitee_user_id))return NextResponse.json({error:'This invitation is no longer available.',code:'INVITATION_BLOCKED'},{status:409});
   if(action==='accept'){
    const live=await liveNeed(db,invite.collaboration_need_id);if(!live.need||!live.accepting)return NextResponse.json({error:'This collaboration opportunity is no longer accepting people.',code:'OPPORTUNITY_CLOSED'},{status:409});const timestamp=now.toISOString();const {data:updated,error}=await db.from('project_member_collaboration_invitations').update({status:'accepted',responded_at:timestamp,updated_at:timestamp}).eq('id',id).eq('status','pending').select('id,status').maybeSingle();if(error)throw error;if(!updated)return NextResponse.json({error:'Invitation changed before it could be accepted.',code:'INVITE_REPLAYED'},{status:409});await db.from('project_activity_log').insert({project_id:invite.project_id,project_run_id:invite.project_run_id,event_type:'member_collaboration_invite_accepted',actor_type:'user',actor_user_id:user.id,metadata:{member_invite_id:id,collaboration_need_id:invite.collaboration_need_id}});return NextResponse.json({ok:true,status:'accepted',interest_target:`/member/discover/${invite.project_id}?collaboration_need=${encodeURIComponent(invite.collaboration_need_id)}`});
   }

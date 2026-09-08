@@ -29,6 +29,7 @@ const cases:[string,boolean][]=[
  ['private working copy requires green governance and explicit storage permission',canonical.includes("governanceStatus==='green'")&&canonical.includes("row.internal_storage_policy==='permitted'")],
  ['Lab renders the canonical project brief rather than recreating it in the workspace page',panel.includes('<ProjectLabCanonicalBrief projectId={props.projectId}/>')&&!page.includes('CANONICAL PROJECT BRIEF')],
  ['team overview consumes canonical Phase 10 responsibility assignments',team.includes("from('project_member_responsibilities')")&&team.includes(".eq('assignment_status','active')")],
+ ['responsibilities stay scoped to exact run plus member identity',team.includes("select('project_run_id,responsibility,project_members!inner(user_id)')")&&team.includes('responsibilityKey(row.project_run_id,relation.user_id)')&&team.includes('responsibilityKey(run.id,member.user_id)')],
  ['team roster displays canonical responsibilities',panel.includes('Responsibilities · {responsibilityLabel}')],
  ['active Lab roster excludes pre-start waiting members while preserving completed-run history',panel.includes("member.status==='active'||(props.runStatus==='completed'&&member.status==='completed')")&&panel.includes('active members')],
  ['team roster preserves username, Project Lead role and participation state',panel.includes('@{member.username}')&&panel.includes("role==='project_lead'")&&panel.includes('Status · {humanise(member.status)}')],

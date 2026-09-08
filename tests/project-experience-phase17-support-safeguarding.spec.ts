@@ -49,7 +49,7 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
   const route=read('app/api/admin/project-support-cases/route.ts');const capabilities=read('lib/admin-capabilities.ts');
   for(const text of ["hasAdminCapability(user,'projects.support.manage')","hasAdminCapability(user,'projects.safeguarding.manage')",'project_support_case_updates','project_activity_log',"actor_type:'admin'",'support_case_id:caseId','safeguarding_escalated_at','Confirm safeguarding escalation before continuing.'])expect(route).toContain(text);
   expect(capabilities).toContain("'projects.support.manage'");expect(capabilities).toContain("'projects.safeguarding.manage'");expect(capabilities).toContain('EXPLICIT_ONLY_CAPABILITIES');
-  const email=route.slice(route.indexOf('await notifyUser'),route.indexOf('}catch(notificationError)'));expect(email).toContain('A secure update is available on your private project support case in Mettelo.');for(const privateField of ['note,','current.description','internal_notes','current.resolution','current.recovery_plan'])expect(email).not.toContain(privateField);
+  const memberNotifyStart=route.indexOf("if(memberVisible){try{const {data:reporter}");const email=route.slice(memberNotifyStart,route.indexOf('}catch(notificationError)',memberNotifyStart));expect(email).toContain('A secure update is available on your private project support case in Mettelo.');for(const privateField of ['note,','current.description','internal_notes','current.resolution','current.recovery_plan'])expect(email).not.toContain(privateField);
  });
  test('governed handler reassignment requires elevated authority and an already-authorized support target',()=>{
   const route=read('app/api/admin/project-support-cases/route.ts'),admin=read('app/admin/project-support/page.tsx');
@@ -84,7 +84,7 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
   const pkg=read('package.json'),e2e=read('tests/project-experience-phase17-support-e2e.spec.ts'),responsive=read('tests/project-experience-phase17-responsive-e2e.spec.ts'),phase15=read('tests/project-experience-phase15-solo-conversion-e2e.spec.ts');
   expect(pkg.match(/tests\/project-experience-phase17-support-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-rls-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-recovery-concurrency-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-responsive-e2e\.spec\.ts/g)||[]).toHaveLength(2);
   for(const text of ['responsibility_reassigned','lead_changed','member_removed','replacement_requested','staleLead.response.status()).toBe(409)'])expect(e2e).toContain(text);
-  for(const text of ['width:320','width:768','width:1280',"fontSize='200%'",'noHorizontalOverflow(page)','Consequential project recovery'])expect(responsive).toContain(text);
+  for(const text of ['width:320','verifyViewport(page,768','verifyViewport(page,1280',"fontSize='200%'",'noHorizontalOverflow(page)','Consequential project recovery'])expect(responsive).toContain(text);
   expect(phase15).not.toContain("import './project-experience-phase16-member-exit-e2e.spec'");
  });
  test('member Lab surface provides private entry, safe reference, tracker and secure information response',()=>{

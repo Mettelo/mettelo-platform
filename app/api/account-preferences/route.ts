@@ -12,7 +12,7 @@ export async function GET(){
 
     const [profileResult,privacyResult,catalogueResult,notificationResult]=await Promise.all([
       supabase.from('profiles').select('full_name,username,member_id,is_public').eq('id',user.id).maybeSingle(),
-      supabase.from('member_privacy_preferences').select('allow_project_invitations,allow_member_messages').eq('user_id',user.id).maybeSingle(),
+      supabase.from('member_privacy_preferences').select('allow_project_invitations,allow_member_messages,allow_collaboration_recommendations').eq('user_id',user.id).maybeSingle(),
       supabase.from('notification_event_catalogue').select('event_key,product_area,description,default_channel,urgency,action_required').eq('active',true).order('product_area').order('event_key'),
       supabase.from('notification_preferences').select('event_key,in_app_enabled,email_enabled').eq('user_id',user.id)
     ]);
@@ -29,7 +29,7 @@ export async function GET(){
 
     return NextResponse.json({
       account:{email:user.email||'',full_name:profileResult.data?.full_name||'',username:profileResult.data?.username||null,member_id:profileResult.data?.member_id||null},
-      privacy:{profile_discoverable:Boolean(profileResult.data?.is_public),allow_project_invitations:privacyResult.data?.allow_project_invitations??true,allow_member_messages:privacyResult.data?.allow_member_messages??true},
+      privacy:{profile_discoverable:Boolean(profileResult.data?.is_public),allow_project_invitations:privacyResult.data?.allow_project_invitations??true,allow_member_messages:privacyResult.data?.allow_member_messages??true,allow_collaboration_recommendations:privacyResult.data?.allow_collaboration_recommendations??true},
       notifications
     });
   }catch(error){console.error('account preferences load failed',error);return NextResponse.json({error:'Account preferences are unavailable.'},{status:503});}
@@ -47,12 +47,15 @@ export async function PATCH(request:Request){
       const profileDiscoverable=bool(body.profile_discoverable);
       const allowProjectInvitations=bool(body.allow_project_invitations);
       const allowMemberMessages=bool(body.allow_member_messages);
+      const allowCollaborationRecommendations=body.allow_collaboration_recommendations!==false;
       const {error}=await supabase.rpc('save_member_privacy_preferences',{
         p_profile_discoverable:profileDiscoverable,
         p_allow_project_invitations:allowProjectInvitations,
         p_allow_member_messages:allowMemberMessages
       });
       if(error){console.error('account privacy atomic save failed',{code:error.code,message:error.message});return NextResponse.json({error:'Unable to save privacy preferences. No privacy changes were applied.'},{status:500});}
+      const {error:recommendationError}=await supabase.from('member_privacy_preferences').update({allow_collaboration_recommendations:allowCollaborationRecommendations,updated_at:new Date().toISOString()}).eq('user_id',user.id);
+      if(recommendationError){console.error('collaboration recommendation preference save failed',{code:recommendationError.code,message:recommendationError.message});return NextResponse.json({error:'Core privacy preferences were saved, but collaboration recommendations could not be updated. Please try that setting again.'},{status:500});}
       return NextResponse.json({ok:true,message:'Privacy preferences saved.'});
     }
 

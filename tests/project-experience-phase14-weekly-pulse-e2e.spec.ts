@@ -72,8 +72,8 @@ test.describe('Project Experience Phase 14 weekly pulse',()=>{
     const healthSection=adminPage.getByRole('region',{name:'Project health triage'});
     await expect(healthSection).toBeVisible();
     await expect(healthSection.getByText('Individual responses, identities, private notes and productivity scores are not shown.')).toBeVisible();
-    await expect(healthSection.getByText('Submitted')).toBeVisible();
-    await expect(healthSection.getByText('Blocked')).toBeVisible();
+    await expect(healthSection.getByText('Submitted',{exact:true})).toBeVisible();
+    await expect(healthSection.getByText('Blocked',{exact:true})).toBeVisible();
    }finally{await adminBrowserContext.close()}
   }finally{
    await db.from('project_weekly_pulses').delete().eq('project_run_id',runId).in('user_id',[memberId,leadId,outsiderId]);

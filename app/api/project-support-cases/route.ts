@@ -76,7 +76,7 @@ export async function POST(request:Request){
     projectId,type:'project_support_case',eventKey:'project_support_case',
     title:'A private project support case needs review',
     body:'A project member submitted a private support case. Open Mettelo Admin to review it securely.',
-    actionUrl:`/admin/project-operations/support?case=${encodeURIComponent(created.id)}`,
+    actionUrl:`/admin/project-support?case=${encodeURIComponent(created.id)}`,
     dedupeKey:`phase17:support:${created.id}:created`
    });
   }catch(notificationError){
@@ -137,7 +137,7 @@ export async function PATCH(request:Request){
     projectId:current.project_id,type:'project_support_case_update',eventKey:'project_support_case',
     title:'A private support case has a member response',
     body:'A member responded to a secure support information request. Open Mettelo Admin to review it.',
-    actionUrl:`/admin/project-operations/support?case=${encodeURIComponent(caseId)}`,
+    actionUrl:`/admin/project-support?case=${encodeURIComponent(caseId)}`,
     dedupeKey:`phase17:support:${caseId}:member-response:${updated.updated_at}`
    });
   }catch(notificationError){

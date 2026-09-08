@@ -31,7 +31,7 @@ test('Partner review context and Offer boundary are rendered accessibly',async({
  const dialog=page.getByRole('dialog',{name:'Amina Okafor'});
  await expect(dialog).toBeVisible();
  await expect(dialog.getByText('Self-declared professional profile')).toBeVisible();
- await expect(dialog.getByText('Verified Mettelo Proof')).toBeVisible();
+ await expect(dialog.getByRole('heading',{name:'Verified Mettelo Proof'})).toBeVisible();
  await expect(dialog.getByText('Partner organisation')).toBeVisible();
  await expect(dialog.getByText(/2 confirmed · 0 offered · 3 open · minimum 2 · target 4 · maximum 5/)).toBeVisible();
  await expect(dialog.getByRole('button',{name:'Start review'})).toBeVisible();

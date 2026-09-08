@@ -6,6 +6,12 @@ Governing contract: 273 user stories, 137 mandatory journeys, 112 Director sign-
 
 This matrix prevents silent scope loss. Every user story is assigned to exactly one Phase 18 implementation sub-phase. Completion requires implementation + canonical integration + required test/security evidence.
 
+## Single-PR execution model
+
+All three Phase 18 implementation sub-phases — 18A, 18B and 18C — are delivered on the same Phase 18 branch and the same PR (#227). They are sequential implementation/review checkpoints inside one pull request, not separate stacked PRs.
+
+Moving to a later sub-phase does not silently mark an earlier sub-phase PASS. Any unresolved evidence from 18A remains part of the same PR and must be closed before final Phase 18 approval.
+
 ## Phase 18A — Collaboration Foundation, Member Discovery & Direct Invitations
 
 Owned stories:
@@ -19,7 +25,7 @@ Owned mandatory journeys:
 - TEST001–TEST039
 - TEST089–TEST107
 
-Current status: IMPLEMENTATION NOT YET SIGNED OFF.
+Current status: IMPLEMENTATION / EVIDENCE REMAINS PART OF THIS PR; NOT YET SIGNED OFF.
 
 ## Phase 18B — Collaboration Marketplace, Interest, External Discovery & Sharing
 
@@ -33,7 +39,7 @@ Owned mandatory journeys:
 
 - TEST040–TEST088
 
-Current status: BLOCKED ON 18A.
+Current status: IN PROGRESS — CURRENT IMPLEMENTATION FOCUS ON PR #227.
 
 ## Phase 18C — Integration, Governance, Responsive/A11Y, Analytics & Release
 
@@ -45,7 +51,7 @@ Owned mandatory journeys:
 
 - TEST108–TEST137
 
-Current status: BLOCKED ON 18B.
+Current status: NOT STARTED — WILL CONTINUE ON THIS SAME PR AFTER 18B.
 
 ## Coverage proof
 
@@ -106,7 +112,7 @@ The generated branded social share image/card is optional/non-blocking only beca
 ## Status convention
 
 - NOT STARTED — implementation has not begun.
-- IN PROGRESS — implementation exists but evidence/gates are incomplete.
+- IN PROGRESS — implementation exists or is the active execution focus but evidence/gates are incomplete.
 - PASS — implementation, integration and required evidence are complete at the exact reviewed head.
 - BLOCKED — cannot proceed safely until dependency/policy is resolved.
 

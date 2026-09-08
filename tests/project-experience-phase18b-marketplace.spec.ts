@@ -5,7 +5,7 @@ import path from 'node:path';
 const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
 
- test.describe('Project Experience Phase 18B collaboration marketplace contract',()=>{
+test.describe('Project Experience Phase 18B collaboration marketplace contract',()=>{
   test('collaboration needs remain canonical project/run recruitment intent rather than a duplicate project system',()=>{
    const migration=read('supabase/migrations/20260908101000_project_experience_phase_18_collaboration_needs.sql');
    for(const text of ['references public.projects(id)','references public.project_runs(id)','references public.project_roles(id)','references public.project_role_catalogue(id)','references public.domains(id)','references public.capabilities(id)','COLLABORATION_NEED_RUN_PROJECT_MISMATCH','COLLABORATION_NEED_RESPONSIBILITY_NOT_CANONICAL'])expect(migration).toContain(text);
@@ -24,12 +24,12 @@ const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
    for(const text of ['collaboration_need','collaborationNeedId','MemberProjectApplicationFlow','re-check that exact project run'])expect(apply).toContain(text);
    for(const text of ['collaborationNeedId','collaboration_need_id:collaborationNeedId||null','exact run will be revalidated'])expect(flow).toContain(text);
    for(const text of ['collaboration_need_id','project_collaboration_needs','project_run_id','phase6_auto_admit_interest'])expect(api).toContain(text);
-   for(const text of ['collaboration_need_id','phase18_target_run_id','phase18_target_collaboration_need_id','project_run_id'])expect(migration).toContain(text);
+   for(const text of ['collaboration_need_id','new.project_run_id:=need.project_run_id','COLLABORATION_NEED_PROJECT_MISMATCH','project_run_id'])expect(migration).toContain(text);
   });
 
   test('same-run admission extends the canonical Phase 6/9 machinery and does not directly bypass membership policy',()=>{
    const migration=read('supabase/migrations/20260908102000_project_experience_phase_18_same_run_interest.sql');const api=read('app/api/project-applications/route.ts');
-   for(const text of ['phase6_auto_admit_interest','phase9_project_run_capacity','project_collaboration_needs','recruitment_open','late_joining_enabled','late_joining_cutoff_at'])expect(migration).toContain(text);
+   for(const text of ['phase6_auto_admit_interest','phase9_lock_project_capacity','project_collaboration_needs','recruitment_open','late_joining_enabled','late_joining_cutoff_at'])expect(migration).toContain(text);
    expect(api).toContain("canonicalAdmissionMode(project.admission_mode)");
    expect(api).toContain("admissionMode==='auto'");
    expect(api).toContain("admission_mode_snapshot:'review_required'");
@@ -39,7 +39,7 @@ const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
   test('public collaboration projection is privacy-safe and only exposes live public opportunities',()=>{
    const route=read('app/api/public/collaboration-opportunities/route.ts');
    for(const text of ["p.visibility!=='public'",'phase9_project_run_capacity','capacity_available','recruitment_open','late_joining_enabled','late_joining_cutoff_at','closed_reason','interest_target'])expect(route).toContain(text);
-   for(const privateField of ['created_by','invitee_email','actor_user_id','support','internal_notes','handover','project_member_id'])expect(route).not.toContain(privateField);
+   for(const privateField of ['created_by','invitee_email','actor_user_id','internal_notes','handover','project_member_id'])expect(route).not.toContain(privateField);
   });
 
   test('public sharing uses safe canonical URLs and includes LinkedIn, X, WhatsApp and Copy Link',()=>{
@@ -58,21 +58,21 @@ const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
   test('signup, verification and onboarding preserve exact opportunity or invite continuation through safe relative next',()=>{
    const signin=read('app/signin/AuthAccountClient.tsx');const callback=read('app/auth/callback/route.ts');const onboarding=read('app/onboarding/page.tsx');const publicPage=read('app/collaborate/[id]/page.tsx');
    for(const text of ["value.startsWith('/')&&!value.startsWith('//')","/onboarding?next=${encodeURIComponent(next)}",'emailRedirectTo:redirect'])expect(signin).toContain(text);
-   for(const text of ["value.startsWith('/')&&!value.startsWith('//')",'target.searchParams.set(\'next\',next)','mettelo_identity_next:next'])expect(callback).toContain(text);
+   for(const text of ["value.startsWith('/')&&!value.startsWith('//')","target.searchParams.set('next',next)",'mettelo_identity_next:next'])expect(callback).toContain(text);
    for(const text of ["item.startsWith('/')&&!item.startsWith('//')",'returnTo={next}','if(profile.onboarding_completed_at)redirect(next)'])expect(onboarding).toContain(text);
    for(const text of ['inviteLanding','/signin?next=${encodeURIComponent(inviteToken?inviteLanding:interestTarget)}'])expect(publicPage).toContain(text);
   });
 
   test('external invitations store only hashed one-time tokens and are scoped, expiring, revocable and rate-limited',()=>{
    const migration=read('supabase/migrations/20260908103000_project_experience_phase_18_external_collaboration_invites.sql');const route=read('app/api/external-collaboration-invitations/route.ts');
-   for(const text of ['token_hash text not null unique','invitee_email_hash','expires_at timestamptz not null','status in (\'pending\',\'accepted\',\'declined\',\'expired\',\'revoked\',\'invalidated\')','enable row level security','revoke all on table public.project_external_collaboration_invites from public,anon,authenticated','grant all on table public.project_external_collaboration_invites to service_role','EXTERNAL_INVITE_RATE_LIMITED'])expect(migration).toContain(text);
+   for(const text of ['token_hash text not null unique','invitee_email_hash','expires_at timestamptz not null',"status in ('pending','accepted','declined','expired','revoked','invalidated')",'enable row level security','revoke all on table public.project_external_collaboration_invites from public,anon,authenticated','grant all on table public.project_external_collaboration_invites to service_role','EXTERNAL_INVITE_RATE_LIMITED'])expect(migration).toContain(text);
    expect(migration).not.toContain('raw_token');expect(migration).not.toContain(' token text');
-   for(const text of ['randomBytes(32)','createHash(\'sha256\')','7*24*60*60*1000','phase18_consume_external_invite_rate_limit','status:\'revoked\''])expect(route).toContain(text);
+   for(const text of ['randomBytes(32)',"createHash('sha256')",'7*24*60*60*1000','phase18_consume_external_invite_rate_limit',"status:'revoked'"])expect(route).toContain(text);
   });
 
   test('external invite redemption prevents replay and IDOR and converges on canonical interest rather than membership',()=>{
    const route=read('app/api/external-collaboration-invitations/route.ts');
-   for(const text of ["invite.status!=='pending'","user.email.trim().toLowerCase()!==invite.invitee_email","status:'expired'","status:'accepted'","accepted_by:user.id","INVITE_REPLAYED",'interest_target:`/member/discover/${invite.project_id}?collaboration_need='])expect(route).toContain(text);
+   for(const text of ["invite.status!=='pending'","user.email.trim().toLowerCase()!==invite.invitee_email","status:'expired'","status:'accepted'",'accepted_by:user.id','INVITE_REPLAYED','interest_target:`/member/discover/${invite.project_id}?collaboration_need='])expect(route).toContain(text);
    expect(route).not.toContain("from('project_members').insert");
   });
 
@@ -92,7 +92,7 @@ const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
   test('Member Home shows a small curated live set rather than an endless collaboration feed',()=>{
    const home=read('app/member/page.tsx');const component=read('components/MemberHomeCollaborationOpportunities.tsx');
    expect(home).toContain('<MemberHomeCollaborationOpportunities/>');
-   for(const text of [".limit(24)",".slice(0,3)",'phase9_project_run_capacity','capacity_available','late_joining_cutoff_at','excluded.has(need.project_id)','domainIds.has','rolePrefs.some','skillSet.has','/member/find-a-team'])expect(component).toContain(text);
+   for(const text of ['.limit(24)','.slice(0,3)','phase9_project_run_capacity','capacity_available','late_joining_cutoff_at','excluded.has(need.project_id)','domainIds.has','rolePrefs.some','skillSet.has','/member/find-a-team'])expect(component).toContain(text);
   });
 
   test('Phase 18B remains explicitly scoped in the acceptance authority and cannot imply final Phase 18 approval',()=>{

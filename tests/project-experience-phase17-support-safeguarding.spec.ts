@@ -1,25 +1,43 @@
 import {expect,test} from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import {hasAdminCapability} from '../lib/admin-capabilities';
 const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
 
 test.describe('Project Experience Phase 17 support, conflict and safeguarding contract',()=>{
  test('support cases attach to canonical project/run/membership without creating parallel systems',()=>{
   const migration=read('supabase/migrations/20260908010000_project_experience_phase_17_support_conflict_safeguarding.sql');
+  const hardening=read('supabase/migrations/20260908013000_project_experience_phase_17_signoff_hardening.sql');
   for(const text of ['references public.projects(id)','references public.project_runs(id)','public.project_members pm','pm.project_run_id=project_support_cases.project_run_id','pm.user_id=auth.uid()'])expect(migration).toContain(text);
+  for(const text of ['SUPPORT_CASE_PROJECT_RUN_MISMATCH','SUPPORT_CASE_ACTIVE_REPORTER_MEMBERSHIP_REQUIRED','before insert or update of project_id,project_run_id,reporter_user_id'])expect(hardening).toContain(text);
   for(const text of ['create table public.project_members','create table public.project_runs','create table public.projects'])expect(migration).not.toContain(text);
  });
- test('case categories and states match the Phase 17 contract',()=>{
+ test('case categories and states match the Phase 17 contract and unsupported pause is rejected by the final schema',()=>{
   const migration=read('supabase/migrations/20260908010000_project_experience_phase_17_support_conflict_safeguarding.sql');
+  const hardening=read('supabase/migrations/20260908013000_project_experience_phase_17_signoff_hardening.sql');
   for(const text of ['technical_access','resource_data','project_scope','project_lead_support','team_collaboration','workload','conduct','accessibility_adjustment','other'])expect(migration).toContain(text);
   for(const text of ['open','under_review','awaiting_member','recovery_in_progress','escalated','resolved','closed'])expect(migration).toContain(text);
+  expect(hardening).not.toContain("'participation_paused'");
+  for(const action of ['created','reviewed','assigned','information_requested','member_update','recovery_plan_recorded','responsibility_reassigned','lead_changed','replacement_approved','member_removed','safeguarding_escalated','resolved','closed','reopened'])expect(hardening).toContain(`'${action}'`);
  });
  test('RLS plus column privileges keep cases reporter-private and internal notes unreadable',()=>{
   const migration=read('supabase/migrations/20260908010000_project_experience_phase_17_support_conflict_safeguarding.sql');
   for(const text of ['enable row level security','reporter_user_id=auth.uid()','member_visible=true',"membership_status='active'",'revoke all on public.project_support_cases from anon,authenticated','grant select ('])expect(migration).toContain(text);
   const safeGrant=migration.slice(migration.indexOf('grant select ('),migration.indexOf(') on public.project_support_cases to authenticated;'));
   expect(safeGrant).not.toContain('internal_notes');expect(safeGrant).not.toContain('assigned_admin_user_id');expect(migration).not.toContain("team_role='project_lead'");expect(migration).not.toContain('for update to authenticated');expect(migration).not.toContain('for delete to authenticated');
+ });
+ test('legacy Admin compatibility does not implicitly grant Phase 17 private-support or safeguarding authority',()=>{
+  const legacy={app_metadata:{role:'admin'}};
+  expect(hasAdminCapability(legacy,'projects.manage')).toBe(true);
+  expect(hasAdminCapability(legacy,'projects.support.manage')).toBe(false);
+  expect(hasAdminCapability(legacy,'projects.safeguarding.manage')).toBe(false);
+  const supportOnly={app_metadata:{role:'admin',admin_capabilities:['projects.support.manage']}};
+  expect(hasAdminCapability(supportOnly,'projects.support.manage')).toBe(true);
+  expect(hasAdminCapability(supportOnly,'projects.safeguarding.manage')).toBe(false);
+  const explicit={app_metadata:{role:'admin',admin_capabilities:['projects.support.manage','projects.safeguarding.manage']}};
+  expect(hasAdminCapability(explicit,'projects.support.manage')).toBe(true);
+  expect(hasAdminCapability(explicit,'projects.safeguarding.manage')).toBe(true);
  });
  test('member API authenticates exact-run membership, supports secure reporter response and keeps notification copy generic',()=>{
   const route=read('app/api/project-support-cases/route.ts');
@@ -30,7 +48,7 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
  test('Admin workflow requires explicit support capability and safeguarding access is narrower',()=>{
   const route=read('app/api/admin/project-support-cases/route.ts');const capabilities=read('lib/admin-capabilities.ts');
   for(const text of ["hasAdminCapability(user,'projects.support.manage')","hasAdminCapability(user,'projects.safeguarding.manage')",'project_support_case_updates','project_activity_log',"actor_type:'admin'",'support_case_id:caseId','safeguarding_escalated_at','Confirm safeguarding escalation before continuing.'])expect(route).toContain(text);
-  expect(capabilities).toContain("'projects.support.manage'");expect(capabilities).toContain("'projects.safeguarding.manage'");
+  expect(capabilities).toContain("'projects.support.manage'");expect(capabilities).toContain("'projects.safeguarding.manage'");expect(capabilities).toContain('EXPLICIT_ONLY_CAPABILITIES');
   const email=route.slice(route.indexOf('await notifyUser'),route.indexOf('}catch(notificationError)'));expect(email).toContain('A secure update is available on your private project support case in Mettelo.');for(const privateField of ['note,','current.description','internal_notes','current.resolution','current.recovery_plan'])expect(email).not.toContain(privateField);
  });
  test('governed handler reassignment requires elevated authority and an already-authorized support target',()=>{

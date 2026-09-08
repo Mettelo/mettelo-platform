@@ -51,6 +51,8 @@ after insert on public.member_interaction_blocks
 for each row execute function public.phase18_invalidate_member_invitations_on_block();
 
 -- Strengthen the invitation table itself so future service paths cannot bypass a block.
+-- The block-trigger is allowed to move an existing pending invite to invalidated;
+-- all INSERTs and any update that leaves an invite pending remain blocked.
 create or replace function public.phase18_guard_member_collaboration_invite()
 returns trigger
 language plpgsql
@@ -60,6 +62,7 @@ as $$
 declare
   need_row public.project_collaboration_needs%rowtype;
   run_row public.project_runs%rowtype;
+  blocked_pair boolean:=false;
 begin
   select * into need_row from public.project_collaboration_needs where id=new.collaboration_need_id;
   if need_row.id is null then raise exception using errcode='P0002',message='COLLABORATION_NEED_NOT_FOUND'; end if;
@@ -68,13 +71,17 @@ begin
   end if;
   select * into run_row from public.project_runs where id=new.project_run_id and project_id=new.project_id;
   if run_row.id is null then raise exception using errcode='23514',message='MEMBER_INVITE_RUN_PROJECT_MISMATCH'; end if;
-  if exists (
+
+  select exists (
     select 1 from public.member_interaction_blocks b
     where (b.blocker_user_id=new.invited_by and b.blocked_user_id=new.invitee_user_id)
        or (b.blocker_user_id=new.invitee_user_id and b.blocked_user_id=new.invited_by)
-  ) then
+  ) into blocked_pair;
+
+  if blocked_pair and (tg_op='INSERT' or new.status='pending') then
     raise exception using errcode='23514',message='MEMBER_INVITE_BLOCKED';
   end if;
+
   new.updated_at:=now();
   return new;
 end;

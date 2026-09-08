@@ -5,6 +5,7 @@ import {hasAdminCapability} from '@/lib/admin-capabilities';
 import {notifyUser} from '@/lib/notifications';
 
 function clean(value:unknown,max=12000){return String(value??'').trim().slice(0,max)}
+function safeErrorCode(error:unknown){if(error&&typeof error==='object'){const value=error as{code?:unknown;name?:unknown};if(typeof value.code==='string'&&value.code)return value.code;if(typeof value.name==='string'&&value.name)return value.name}return'UNCLASSIFIED'}
 const ACTIONS=new Set(['review','assign_self','assign_admin','request_information','record_recovery_plan','escalate_safeguarding','resolve','close','reopen']);
 
 async function adminContext(){
@@ -39,7 +40,7 @@ export async function GET(request:Request){
   }
   return NextResponse.json({cases:cases??[],updates,handlers,can_assign_handlers:canAssignHandlers},{headers:{'Cache-Control':'private, no-store'}});
  }catch(error){
-  console.error('admin support case read error',error instanceof Error?error.message:'admin support read failed');
+  console.error('admin support case read error',{code:safeErrorCode(error)});
   return NextResponse.json({error:'Unable to load private support cases right now.'},{status:500,headers:{'Cache-Control':'private, no-store'}});
  }
 }
@@ -97,11 +98,11 @@ export async function POST(request:Request){
   const {error:auditError}=await db.from('project_activity_log').insert({project_id:current.project_id,project_run_id:current.project_run_id,event_type:`support_case_${auditAction}`,actor_type:'admin',actor_user_id:user.id,from_status:current.status,to_status:updated.status,metadata:{support_case_id:caseId,action:auditAction,member_visible:memberVisible,...(assignedHandler?{assigned_admin_user_id:assignedHandler.id}:{})}});
   if(auditError)throw auditError;
 
-  if(assignedHandler){try{await notifyUser(db,{userId:assignedHandler.id,email:assignedHandler.email,projectId:current.project_id,type:'project_support_case_assignment',eventKey:'project_support_case',title:'A private project support case was assigned to you',body:'A private project support case requires your authorized review in Mettelo Admin.',actionUrl:`/admin/project-support?case=${encodeURIComponent(caseId)}`,dedupeKey:`phase17:support:${caseId}:assigned:${assignedHandler.id}:${updated.updated_at}`});}catch(notificationError){console.error('support assignment notification error',notificationError instanceof Error?notificationError.message:'notification failed')}}
-  if(memberVisible){try{const {data:reporter}=await db.auth.admin.getUserById(current.reporter_user_id);await notifyUser(db,{userId:current.reporter_user_id,email:reporter.user?.email||null,projectId:current.project_id,type:'project_support_case_update',eventKey:'project_support_case',title:'Your private support case has an update',body:'A secure update is available on your private project support case in Mettelo.',actionUrl:`/member/projects/${current.project_id}?run=${encodeURIComponent(current.project_run_id)}&view=support`,dedupeKey:`phase17:support:${caseId}:${auditAction}:${updated.updated_at}`});}catch(notificationError){console.error('admin support notification error',notificationError instanceof Error?notificationError.message:'notification failed')}}
+  if(assignedHandler){try{await notifyUser(db,{userId:assignedHandler.id,email:assignedHandler.email,projectId:current.project_id,type:'project_support_case_assignment',eventKey:'project_support_case',title:'A private project support case was assigned to you',body:'A private project support case requires your authorized review in Mettelo Admin.',actionUrl:`/admin/project-support?case=${encodeURIComponent(caseId)}`,dedupeKey:`phase17:support:${caseId}:assigned:${assignedHandler.id}:${updated.updated_at}`});}catch(notificationError){console.error('support assignment notification error',{code:safeErrorCode(notificationError)})}}
+  if(memberVisible){try{const {data:reporter}=await db.auth.admin.getUserById(current.reporter_user_id);await notifyUser(db,{userId:current.reporter_user_id,email:reporter.user?.email||null,projectId:current.project_id,type:'project_support_case_update',eventKey:'project_support_case',title:'Your private support case has an update',body:'A secure update is available on your private project support case in Mettelo.',actionUrl:`/member/projects/${current.project_id}?run=${encodeURIComponent(current.project_run_id)}&view=support`,dedupeKey:`phase17:support:${caseId}:${auditAction}:${updated.updated_at}`});}catch(notificationError){console.error('admin support notification error',{code:safeErrorCode(notificationError)})}}
   return NextResponse.json({ok:true,case:updated},{headers:{'Cache-Control':'private, no-store'}});
  }catch(error){
-  console.error('admin support case action error',error instanceof Error?error.message:'admin support action failed');
+  console.error('admin support case action error',{code:safeErrorCode(error)});
   return NextResponse.json({error:'Unable to update this private support case right now.'},{status:500,headers:{'Cache-Control':'private, no-store'}});
  }
 }

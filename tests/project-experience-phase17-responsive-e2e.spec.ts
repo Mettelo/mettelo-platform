@@ -12,20 +12,23 @@ async function seed(){const db=service(),ids=await identities();await cleanup(db
 async function noHorizontalOverflow(page:Page){const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)}
 async function minimumTarget(locator:ReturnType<Page['locator']>){const box=await locator.boundingBox();expect(box).not.toBeNull();expect(box?.height||0).toBeGreaterThanOrEqual(44)}
 async function xssDidNotRun(page:Page){expect(await page.evaluate(()=>Boolean((window as unknown as Record<string,unknown>).__phase17Xss))).toBe(false)}
+async function verifyViewport(page:Page,width:number,height:number,visible:ReturnType<Page['locator']>){await page.setViewportSize({width,height});await expect(visible).toBeVisible();await noHorizontalOverflow(page)}
 
 test.describe('Project Experience Phase 17 responsive and keyboard evidence',()=>{
- test('member tracker and Admin workspace remain usable at 320px and 200% text with inert case content',async({page})=>{test.slow();const fixture=await seed();const memberUrl=`/member/projects/${PROJECT}?run=${fixture.runId}&view=home`;try{
+ test('member tracker and Admin workspace remain usable across mobile, tablet, desktop and 200% text with inert case content',async({page})=>{test.slow();const fixture=await seed();const memberUrl=`/member/projects/${PROJECT}?run=${fixture.runId}&view=home`;try{
    await page.setViewportSize({width:320,height:900});
    await login(page,'MEMBER',memberUrl);await page.goto(memberUrl,{waitUntil:'networkidle'});
-   const section=page.locator('[data-lab-support-section]');await expect(section).toBeVisible();await noHorizontalOverflow(page);
+   const section=page.locator('[data-lab-support-section]');await expect(section).toBeVisible();await expect(section.getByRole('heading',{name:'Get help with your project'})).toBeVisible();await expect(section.getByRole('note')).toContainText('Keep sensitive details in Mettelo.');await noHorizontalOverflow(page);
    const category=section.getByLabel('What do you need help with?');const description=section.getByLabel('Tell the support team what is happening');const submit=section.getByRole('button',{name:'Submit private support case'});
    await minimumTarget(category);await minimumTarget(description);await minimumTarget(submit);await category.focus();await expect(category).toBeFocused();await page.keyboard.press('Tab');await expect(description).toBeFocused();
    await category.selectOption('project_scope');await description.fill(XSS_MARKER);await submit.click();await expect(section.getByRole('status')).toContainText('Support case created. Reference');await expect(section.getByText(XSS_MARKER,{exact:true})).toBeVisible();await xssDidNotRun(page);
    await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});await noHorizontalOverflow(page);await expect(section.getByText('Your support cases')).toBeVisible();await xssDidNotRun(page);await page.evaluate(()=>{document.documentElement.style.fontSize=''});
+   await verifyViewport(page,768,1024,section);await verifyViewport(page,1280,900,section);
 
    await fixture.db.auth.admin.updateUserById(fixture.admin.id,{app_metadata:{role:'admin',admin_capabilities:['projects.support.manage','projects.manage']}});
-   await login(page,'ADMIN','/admin/project-support');await page.goto('/admin/project-support',{waitUntil:'networkidle'});await expect(page.getByRole('heading',{name:'Private support cases'})).toBeVisible();await expect(page.getByText(XSS_MARKER,{exact:true})).toBeVisible();await xssDidNotRun(page);await noHorizontalOverflow(page);
+   await page.setViewportSize({width:320,height:900});await login(page,'ADMIN','/admin/project-support');await page.goto('/admin/project-support',{waitUntil:'networkidle'});const adminMain=page.getByRole('main');await expect(page.getByRole('heading',{name:'Private support cases'})).toBeVisible();await expect(adminMain.getByLabel('Support case queue')).toBeVisible();await expect(page.getByText(XSS_MARKER,{exact:true})).toBeVisible();await xssDidNotRun(page);await noHorizontalOverflow(page);
    const caseAction=page.getByLabel('Case action');const note=page.getByLabel('Secure case note / update');const caseButton=page.getByRole('button',{name:'Apply case action'});await minimumTarget(caseAction);await minimumTarget(note);await minimumTarget(caseButton);await caseAction.focus();await expect(caseAction).toBeFocused();await page.keyboard.press('Tab');await expect(note).toBeFocused();
    await page.evaluate(()=>{document.documentElement.style.fontSize='200%'});await noHorizontalOverflow(page);await expect(page.getByRole('heading',{name:'Consequential project recovery'})).toBeVisible();await xssDidNotRun(page);await page.evaluate(()=>{document.documentElement.style.fontSize=''});
+   await verifyViewport(page,768,1024,adminMain);await verifyViewport(page,1280,900,adminMain);
   }finally{await cleanup(fixture.db)}});
 });

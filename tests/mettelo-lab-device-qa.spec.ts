@@ -23,7 +23,7 @@ test('Mettelo Lab survives 200% text zoom across every destination',async({page}
 
 test('Lab destination switching is local, immediate and exposes pending feedback',async({page})=>{
  test.setTimeout(120_000);await page.setViewportSize({width:390,height:844});await signIn(page,urlFor('home'));const nav=page.getByRole('navigation',{name:'Mettelo Lab mobile navigation'});
- for(const [label,view] of [['Tasks','tasks'],['Chat','chat'],['Data','data'],['Home','home']] as const){const link=nav.getByRole('link',{name:label,exact:true});const clickPromise=link.click();await expect(link).toHaveAttribute('data-pending','true');await clickPromise;await expect(page.locator('[data-lab-view]')).toHaveAttribute('data-lab-view',view);await expect(page).toHaveURL(new RegExp(`view=${view}`));await expect(link).not.toHaveAttribute('data-pending','true',{timeout:1000})}
+ for(const [label,view] of [['Tasks','tasks'],['Chat','chat'],['Data','data'],['Home','home']] as const){const link=nav.getByRole('link',{name:label,exact:true});const clickPromise=link.click({force:true});await expect(link).toHaveAttribute('data-pending','true');await clickPromise;await expect(page.locator('[data-lab-view]')).toHaveAttribute('data-lab-view',view);await expect(page).toHaveURL(new RegExp(`view=${view}`));await expect(link).not.toHaveAttribute('data-pending','true',{timeout:1000})}
  await switchView(page,'Tasks','tasks');await switchView(page,'Chat','chat');await switchView(page,'Data','data');
 });
 

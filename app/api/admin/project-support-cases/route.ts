@@ -5,8 +5,10 @@ import {hasAdminCapability} from '@/lib/admin-capabilities';
 import {notifyUser} from '@/lib/notifications';
 
 function clean(value:unknown,max=12000){return String(value??'').trim().slice(0,max)}
+function rawText(value:unknown){return String(value??'').trim()}
 function safeErrorCode(error:unknown){if(error&&typeof error==='object'){const value=error as{code?:unknown;name?:unknown};if(typeof value.code==='string'&&value.code)return value.code;if(typeof value.name==='string'&&value.name)return value.name}return'UNCLASSIFIED'}
 const ACTIONS=new Set(['review','assign_self','assign_admin','request_information','record_recovery_plan','escalate_safeguarding','resolve','close','reopen']);
+const MEMBER_CONTENT_ACTIONS=new Set(['request_information','record_recovery_plan','resolve']);
 
 async function adminContext(){
  const auth=await createServerSupabaseClient();
@@ -51,9 +53,11 @@ export async function POST(request:Request){
   if('error'in context)return context.error;
   const {user,db,canSafeguard,canAssignHandlers}=context;
   const body=await request.json();
-  const caseId=clean(body.case_id,80),action=clean(body.action,64),note=clean(body.note,12000),assignedAdminUserId=clean(body.assigned_admin_user_id,80);
+  const caseId=clean(body.case_id,80),action=clean(body.action,64),note=rawText(body.note),assignedAdminUserId=clean(body.assigned_admin_user_id,80);
   if(!caseId||!ACTIONS.has(action))return NextResponse.json({error:'Support case and valid action are required.'},{status:400});
-  if(['request_information','record_recovery_plan','resolve'].includes(action)&&!note)return NextResponse.json({error:'Add the required case update before continuing.'},{status:422});
+  if(note.length>12000)return NextResponse.json({error:'Secure case notes cannot exceed 12,000 characters.'},{status:422});
+  if(MEMBER_CONTENT_ACTIONS.has(action)&&note.length>6000)return NextResponse.json({error:'This member-visible case update cannot exceed 6,000 characters.'},{status:422});
+  if(MEMBER_CONTENT_ACTIONS.has(action)&&!note)return NextResponse.json({error:'Add the required case update before continuing.'},{status:422});
   if(action==='escalate_safeguarding'&&body.confirmed!==true)return NextResponse.json({error:'Confirm safeguarding escalation before continuing.'},{status:422});
   if(action==='assign_admin'&&!canAssignHandlers)return NextResponse.json({error:'Reassigning private support ownership requires Admin-access management capability.'},{status:403});
   if(action==='assign_admin'&&!assignedAdminUserId)return NextResponse.json({error:'Choose an authorized support Admin.'},{status:422});
@@ -63,6 +67,7 @@ export async function POST(request:Request){
   if(!current)return NextResponse.json({error:'Support case not found.'},{status:404});
   if(current.safeguarding_escalated_at&&!canSafeguard)return NextResponse.json({error:'This safeguarding case requires explicit safeguarding capability.'},{status:403});
   if(action==='escalate_safeguarding'&&!canSafeguard)return NextResponse.json({error:'Safeguarding escalation requires explicit safeguarding capability.'},{status:403});
+  if(action==='escalate_safeguarding'&&note){const combined=[current.internal_notes,note].filter(Boolean).join('\n\n');if(combined.length>12000)return NextResponse.json({error:'This safeguarding note would exceed the 12,000-character secure-note limit. Shorten the new note before continuing.'},{status:422});}
   if(current.status==='closed'&&action!=='reopen')return NextResponse.json({error:'Reopen the case before applying another action.'},{status:409});
   if(current.status==='resolved'&&!['close','reopen'].includes(action))return NextResponse.json({error:'Resolved cases can only be closed or reopened.'},{status:409});
   if(action==='review'&&current.status!=='open')return NextResponse.json({error:'Only an open case can enter review directly.'},{status:409});
@@ -82,10 +87,10 @@ export async function POST(request:Request){
   if(action==='review'){patch.status='under_review';auditAction='reviewed';}
   if(action==='assign_self'){patch.assigned_admin_user_id=user.id;if(current.status==='open')patch.status='under_review';auditAction='assigned';auditMetadata.assigned_admin_user_id=user.id;}
   if(action==='assign_admin'&&assignedHandler){patch.assigned_admin_user_id=assignedHandler.id;if(current.status==='open')patch.status='under_review';auditAction='assigned';auditMetadata.assigned_admin_user_id=assignedHandler.id;auditMetadata.reassigned_by=user.id;}
-  if(action==='request_information'){patch.status='awaiting_member';auditAction='information_requested';memberVisible=true;memberBody=note.slice(0,6000);}
-  if(action==='record_recovery_plan'){patch.recovery_plan=note.slice(0,6000);patch.status='recovery_in_progress';auditAction='recovery_plan_recorded';memberVisible=true;memberBody='A recovery plan has been recorded for your support case. Open the case in Mettelo to review the secure update.';}
-  if(action==='escalate_safeguarding'){patch.status='escalated';patch.safeguarding_escalated_at=current.safeguarding_escalated_at||new Date().toISOString();auditAction='safeguarding_escalated';if(note)patch.internal_notes=[current.internal_notes,note].filter(Boolean).join('\n\n').slice(0,12000);}
-  if(action==='resolve'){patch.status='resolved';patch.resolution=note.slice(0,6000);patch.resolved_at=new Date().toISOString();auditAction='resolved';memberVisible=true;memberBody='Your private support case has been marked resolved. Open Mettelo to review the secure resolution.';}
+  if(action==='request_information'){patch.status='awaiting_member';auditAction='information_requested';memberVisible=true;memberBody=note;}
+  if(action==='record_recovery_plan'){patch.recovery_plan=note;patch.status='recovery_in_progress';auditAction='recovery_plan_recorded';memberVisible=true;memberBody='A recovery plan has been recorded for your support case. Open the case in Mettelo to review the secure update.';}
+  if(action==='escalate_safeguarding'){patch.status='escalated';patch.safeguarding_escalated_at=current.safeguarding_escalated_at||new Date().toISOString();auditAction='safeguarding_escalated';if(note)patch.internal_notes=[current.internal_notes,note].filter(Boolean).join('\n\n');}
+  if(action==='resolve'){patch.status='resolved';patch.resolution=note;patch.resolved_at=new Date().toISOString();auditAction='resolved';memberVisible=true;memberBody='Your private support case has been marked resolved. Open Mettelo to review the secure resolution.';}
   if(action==='close'){if(current.status!=='resolved')return NextResponse.json({error:'Resolve the case before closing it.'},{status:409});patch.status='closed';patch.closed_at=new Date().toISOString();auditAction='closed';memberVisible=true;memberBody='Your private support case has been closed. Its secure history remains available in Mettelo.';}
   if(action==='reopen'){if(!['resolved','closed'].includes(current.status))return NextResponse.json({error:'Only a resolved or closed case can be reopened.'},{status:409});patch.status=current.safeguarding_escalated_at?'escalated':'under_review';patch.resolved_at=null;patch.closed_at=null;auditAction='reopened';memberVisible=true;memberBody='Your private support case has been reopened for further review.';}
 

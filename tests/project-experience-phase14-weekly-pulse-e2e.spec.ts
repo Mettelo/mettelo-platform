@@ -69,7 +69,7 @@ test.describe('Project Experience Phase 14 weekly pulse',()=>{
     const adminPage=await adminBrowserContext.newPage();
     await signInPage(adminPage,adminEmail,required('E2E_ADMIN_PASSWORD'),'/admin/project-governance',origin);
     await expect(adminPage).toHaveURL(/\/admin\/project-governance/);
-    const healthSection=adminPage.locator('section').filter({has:adminPage.getByRole('heading',{name:'Project health triage'})});
+    const healthSection=adminPage.getByRole('region',{name:'Project health triage'});
     await expect(healthSection).toBeVisible();
     await expect(healthSection.getByText('Individual responses, identities, private notes and productivity scores are not shown.')).toBeVisible();
     await expect(healthSection.getByText('Submitted')).toBeVisible();

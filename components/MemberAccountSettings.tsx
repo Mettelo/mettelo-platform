@@ -5,7 +5,7 @@ import {createClient} from '@/lib/supabase/client';
 import styles from './MemberAccountSettings.module.css';
 
 type Account={email:string;full_name:string;username:string|null;member_id:string|null};
-type Privacy={profile_discoverable:boolean;allow_project_invitations:boolean;allow_member_messages:boolean};
+type Privacy={profile_discoverable:boolean;allow_project_invitations:boolean;allow_member_messages:boolean;allow_collaboration_recommendations:boolean};
 type NotificationPreference={event_key:string;product_area:string;description:string;default_channel:string;urgency:string;action_required:boolean;required:boolean;in_app_enabled:boolean;email_enabled:boolean};
 type Props={account:Account;privacy:Privacy;notifications:NotificationPreference[]};
 type Status='idle'|'saving'|'success'|'error';
@@ -61,6 +61,7 @@ export default function MemberAccountSettings({account:initialAccount,privacy:in
         <label className={styles.toggle}><input type="checkbox" checked={privacy.profile_discoverable} onChange={event=>setPrivacy(current=>({...current,profile_discoverable:event.target.checked}))}/><span><strong>Profile discoverability</strong><small>Allow other Mettelo members to find your professional profile when public-profile requirements are satisfied.</small></span></label>
         <label className={styles.toggle}><input type="checkbox" checked={privacy.allow_project_invitations} onChange={event=>setPrivacy(current=>({...current,allow_project_invitations:event.target.checked}))}/><span><strong>Allow project invitations</strong><small>Allow eligible project teams to invite you to projects. Turning this off does not stop you joining or applying to projects yourself.</small></span></label>
         <label className={styles.toggle}><input type="checkbox" checked={privacy.allow_member_messages} onChange={event=>setPrivacy(current=>({...current,allow_member_messages:event.target.checked}))}/><span><strong>Allow member messages</strong><small>Allow direct member contact when member-to-member messaging is available. Project-team Chat permissions are governed separately.</small></span></label>
+        <label className={styles.toggle}><input type="checkbox" checked={privacy.allow_collaboration_recommendations} onChange={event=>setPrivacy(current=>({...current,allow_collaboration_recommendations:event.target.checked}))}/><span><strong>Show collaboration recommendations</strong><small>Show a small explainable set of collaborator-needed opportunities on Member Home. Turning this off never changes your eligibility, applications, invitations or access to Find a Team.</small></span></label>
         <button className="button dark" type="submit" disabled={status==='saving'}>Save privacy →</button>
       </form></article>
 

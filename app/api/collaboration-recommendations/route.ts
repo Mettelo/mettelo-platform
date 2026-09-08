@@ -18,7 +18,7 @@ export async function POST(request:Request){
 export async function PATCH(request:Request){
  try{
   const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});const body=await request.json();const enabled=body.enabled===true;
-  const {error}=await supabase.from('member_privacy_preferences').upsert({user_id:user.id,allow_collaboration_recommendations:enabled,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)return NextResponse.json({error:'Unable to save collaboration recommendation preference.'},{status:500});
+  const {error}=await supabase.rpc('phase18_set_collaboration_recommendations',{p_enabled:enabled});if(error)return NextResponse.json({error:'Unable to save collaboration recommendation preference.'},{status:500});
   return NextResponse.json({ok:true,enabled,message:enabled?'Collaboration recommendations enabled.':'Collaboration recommendations hidden. You can still browse Find a Team and apply normally.'},{headers:{'Cache-Control':'private, no-store'}});
  }catch(error){console.error('collaboration recommendation preference failed',error);return NextResponse.json({error:'Unable to save collaboration recommendation preference.'},{status:500})}
 }

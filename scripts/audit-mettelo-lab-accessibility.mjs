@@ -19,7 +19,7 @@ assert(accessibility.includes('var(--lab-shell-focus)'),'focus treatment must us
 assert(layout.includes('Skip to Mettelo Lab content'),'Lab skip link must remain available');
 assert(layout.includes('aria-label="Mettelo Lab workspace"'),'Lab workspace landmark must remain labelled');
 assert(nav.includes("aria-current={active===item.view?'page':undefined}"),'navigation must continue exposing current-page semantics');
-assert(chat.includes('aria-label="Send message"'),'Chat send control must remain explicitly named');
+assert(chat.includes('aria-label={`Send ${messageType}`}'),'Chat send control must remain explicitly and contextually named for the selected message type');
 assert(chat.includes('role="log"')&&chat.includes('aria-live="polite"'),'Chat feed/live feedback semantics must remain available');
 assert(visual.includes("page.emulateMedia({reducedMotion:'reduce'})"),'Chromium Lab QA must continue exercising reduced motion');
 assert(visual.includes("document.documentElement.style.fontSize='200%'"),'Chromium Lab QA must continue exercising 200% text zoom');

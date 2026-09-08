@@ -42,6 +42,10 @@ export const ADMIN_CAPABILITY_META:Record<AdminCapability,{group:string;label:st
 };
 
 type AdminIdentity={app_metadata?:Record<string,unknown>|null};
+const EXPLICIT_ONLY_CAPABILITIES=new Set<AdminCapability>([
+  'projects.support.manage',
+  'projects.safeguarding.manage'
+]);
 
 export function isTrustedAdmin(user:AdminIdentity|null|undefined){
   return user?.app_metadata?.role==='admin';
@@ -60,10 +64,10 @@ export function hasAdminCapability(user:AdminIdentity|null|undefined,capability:
   const metadata=user?.app_metadata||{};
   const configured=metadata.admin_capabilities;
 
-  // Backward compatibility: existing trusted Admins have no capability array yet.
-  // Once an explicit array exists it becomes authoritative. Any malformed or unknown
-  // entry fails the entire configuration closed instead of being silently ignored.
-  if(configured===undefined||configured===null)return true;
+  // Backward compatibility remains for established Admin capabilities only.
+  // Phase 17 private support and safeguarding are sensitive new surfaces and must
+  // be granted explicitly; a legacy role=admin account must not inherit them.
+  if(configured===undefined||configured===null)return !EXPLICIT_ONLY_CAPABILITIES.has(capability);
   if(!Array.isArray(configured)||!configured.every(isValidConfiguredCapability))return false;
   if(configured.includes('*'))return true;
   return configured.includes(capability);

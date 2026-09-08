@@ -11,19 +11,20 @@ async function adminContext(){
  const auth=await createServerSupabaseClient();
  const {data:{user}}=await auth.auth.getUser();
  if(!user)return {error:NextResponse.json({error:'Authentication required.'},{status:401})};
- if(!hasAdminCapability(user,'projects.manage'))return {error:NextResponse.json({error:'Project support access requires authorized project-management capability.'},{status:403})};
+ if(!hasAdminCapability(user,'projects.support.manage'))return {error:NextResponse.json({error:'Private project support access requires explicit support-case capability.'},{status:403})};
  const db=serviceDb();
  if(!db)return {error:NextResponse.json({error:'Project service is not configured.'},{status:503})};
- return {user,db};
+ return {user,db,canSafeguard:hasAdminCapability(user,'projects.safeguarding.manage')};
 }
 
 export async function GET(request:Request){
  try{
   const context=await adminContext();
   if('error'in context)return context.error;
-  const {db}=context;
+  const {db,canSafeguard}=context;
   const url=new URL(request.url),caseId=clean(url.searchParams.get('case'),80);
   let query=db.from('project_support_cases').select('*').order('updated_at',{ascending:false}).limit(100);
+  if(!canSafeguard)query=query.is('safeguarding_escalated_at',null);
   if(caseId)query=query.eq('id',caseId);
   const {data:cases,error}=await query;
   if(error)throw error;
@@ -45,7 +46,7 @@ export async function POST(request:Request){
  try{
   const context=await adminContext();
   if('error'in context)return context.error;
-  const {user,db}=context;
+  const {user,db,canSafeguard}=context;
   const body=await request.json();
   const caseId=clean(body.case_id,80),action=clean(body.action,64),note=clean(body.note,12000);
   if(!caseId||!ACTIONS.has(action))return NextResponse.json({error:'Support case and valid action are required.'},{status:400});
@@ -54,7 +55,12 @@ export async function POST(request:Request){
   const {data:current,error:loadError}=await db.from('project_support_cases').select('*').eq('id',caseId).maybeSingle();
   if(loadError)throw loadError;
   if(!current)return NextResponse.json({error:'Support case not found.'},{status:404});
+  if(current.safeguarding_escalated_at&&!canSafeguard)return NextResponse.json({error:'This safeguarding case requires explicit safeguarding capability.'},{status:403});
+  if(action==='escalate_safeguarding'&&!canSafeguard)return NextResponse.json({error:'Safeguarding escalation requires explicit safeguarding capability.'},{status:403});
   if(current.status==='closed'&&action!=='reopen')return NextResponse.json({error:'Reopen the case before applying another action.'},{status:409});
+  if(current.status==='resolved'&&!['close','reopen'].includes(action))return NextResponse.json({error:'Resolved cases can only be closed or reopened.'},{status:409});
+  if(action==='review'&&current.status!=='open')return NextResponse.json({error:'Only an open case can enter review directly.'},{status:409});
+  if(action==='assign_self'&&current.assigned_admin_user_id&&current.assigned_admin_user_id!==user.id)return NextResponse.json({error:'This case is already assigned to another authorized handler. Refresh before reassigning it.'},{status:409});
 
   const patch:Record<string,unknown>={};
   let auditAction='reviewed',memberVisible=false,memberBody:string|null=null;
@@ -69,7 +75,7 @@ export async function POST(request:Request){
    memberVisible=true;memberBody='A recovery plan has been recorded for your support case. Open the case in Mettelo to review the secure update.';
   }
   if(action==='escalate_safeguarding'){
-   patch.status='escalated';auditAction='safeguarding_escalated';
+   patch.status='escalated';patch.safeguarding_escalated_at=current.safeguarding_escalated_at||new Date().toISOString();auditAction='safeguarding_escalated';
    if(note)patch.internal_notes=[current.internal_notes,note].filter(Boolean).join('\n\n').slice(0,12000);
   }
   if(action==='resolve'){
@@ -83,12 +89,17 @@ export async function POST(request:Request){
   }
   if(action==='reopen'){
    if(!['resolved','closed'].includes(current.status))return NextResponse.json({error:'Only a resolved or closed case can be reopened.'},{status:409});
-   patch.status='under_review';patch.resolved_at=null;patch.closed_at=null;auditAction='reopened';memberVisible=true;
+   patch.status=current.safeguarding_escalated_at?'escalated':'under_review';patch.resolved_at=null;patch.closed_at=null;auditAction='reopened';memberVisible=true;
    memberBody='Your private support case has been reopened for further review.';
   }
 
-  const {data:updated,error:updateError}=await db.from('project_support_cases').update(patch).eq('id',caseId).select('*').single();
+  // Optimistic concurrency guard: a second Admin acting on a stale copy receives
+  // a conflict instead of silently overwriting the canonical assignment/status.
+  const {data:updated,error:updateError}=await db.from('project_support_cases').update(patch)
+   .eq('id',caseId).eq('updated_at',current.updated_at).select('*').maybeSingle();
   if(updateError)throw updateError;
+  if(!updated)return NextResponse.json({error:'This support case changed before your action was saved. Refresh and review the latest state.'},{status:409});
+
   const {error:eventError}=await db.from('project_support_case_updates').insert({
    case_id:caseId,actor_user_id:user.id,action:auditAction,body:memberVisible?memberBody:(note||null),member_visible:memberVisible,
    metadata:{from_status:current.status,to_status:updated.status,admin_action:true}

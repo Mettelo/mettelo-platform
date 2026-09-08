@@ -12,6 +12,7 @@ export const memberNavGroups:MemberNavGroup[]=[
   {label:'Direction & Discovery',items:[
     {label:'Capability Paths',href:'/member/paths',description:'Professional directions'},
     {label:'Discover',href:'/member/discover',description:'Browse all eligible projects'},
+    {label:'Find a Team',href:'/member/find-a-team',description:'Projects looking for collaborators'},
     {label:'Recommended',href:'/member/recommended',description:'Relevant next work'},
     {label:'Saved',href:'/member/saved',description:'Projects and opportunities'}
   ]},
@@ -35,6 +36,7 @@ export const mobilePersistentNav:MemberNavItem[]=[
 
 export const mobileMoreNav:MemberNavItem[]=[
   {label:'Capability Paths',href:'/member/paths',description:'Professional directions'},
+  {label:'Find a Team',href:'/member/find-a-team',description:'Projects looking for collaborators'},
   {label:'Recommended',href:'/member/recommended',description:'Relevant next work'},
   {label:'Applications',href:'/member/applications',description:'Status and team formation'},
   {label:'Profile',href:'/member/profile',description:'Your professional identity'},

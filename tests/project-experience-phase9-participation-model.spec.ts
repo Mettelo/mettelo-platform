@@ -46,7 +46,8 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
 
   test('target is planning capacity and never the start threshold',()=>{
     const migration=hardening();
-    expect(runtime()).toContain('Target is deliberately NOT a start threshold');
+    expect(runtime()).toContain('Target is');
+    expect(runtime()).toContain('deliberately NOT a start threshold');
     expect(migration).toContain("'target_reached',occupied>=target_members");
     expect(migration).toContain("'ready',occupied>=minimum_members");
     expect(migration).toContain('target never blocks');

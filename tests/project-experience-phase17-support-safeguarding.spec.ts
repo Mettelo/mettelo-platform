@@ -33,9 +33,14 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
   expect(capabilities).toContain("'projects.support.manage'");expect(capabilities).toContain("'projects.safeguarding.manage'");
   const email=route.slice(route.indexOf('await notifyUser'),route.indexOf('}catch(notificationError)'));expect(email).toContain('A secure update is available on your private project support case in Mettelo.');for(const privateField of ['note,','current.description','internal_notes','current.resolution','current.recovery_plan'])expect(email).not.toContain(privateField);
  });
+ test('governed handler reassignment requires elevated authority and an already-authorized support target',()=>{
+  const route=read('app/api/admin/project-support-cases/route.ts'),admin=read('app/admin/project-support/page.tsx');
+  for(const text of ["'assign_admin'","hasAdminCapability(user,'admin.access.manage')","hasAdminCapability(candidate,'projects.support.manage')","hasAdminCapability(target.data.user,'projects.support.manage')","hasAdminCapability(target.data.user,'projects.safeguarding.manage')",'The selected account is not an authorized private-support Admin.'])expect(route).toContain(text);
+  for(const text of ['Reassign support handler','Authorized support handler','Only Admins already granted private-support capability are listed.','assigned_admin_user_id:action===\'assign_admin\'?assignedAdminUserId:undefined'])expect(admin).toContain(text);
+ });
  test('Admin state transitions keep safeguarding detail restricted, reject stale concurrent writes and closing requires resolution',()=>{
   const route=read('app/api/admin/project-support-cases/route.ts');const privacy=read('supabase/migrations/20260908011000_project_experience_phase_17_support_privacy_hardening.sql');
-  for(const action of ['review','assign_self','request_information','record_recovery_plan','escalate_safeguarding','resolve','close','reopen'])expect(route).toContain(`'${action}'`);
+  for(const action of ['review','assign_self','assign_admin','request_information','record_recovery_plan','escalate_safeguarding','resolve','close','reopen'])expect(route).toContain(`'${action}'`);
   expect(route).toContain("if(current.status!=='resolved')return NextResponse.json({error:'Resolve the case before closing it.'}");expect(route).toContain("patch.internal_notes=[current.internal_notes,note]");expect(route).toContain(".eq('updated_at',current.updated_at)");expect(route).toContain('This support case changed before your action was saved.');expect(privacy).toContain('safeguarding_escalated_at timestamptz');expect(privacy).toContain('Permanent sensitivity marker');
  });
  test('consequential recovery reuses Phase 10 and 16 authorities and keeps private text out of handover',()=>{
@@ -45,6 +50,13 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
   for(const text of ["hasAdminCapability(user,'projects.support.manage')","hasAdminCapability(user,'projects.manage')",'body.confirmed!==true','p_expected_updated_at:expectedUpdatedAt','pause_supported:false'])expect(route).toContain(text);
   for(const text of ['Consequential project recovery','I confirm this consequential action','Participation pause is not offered'])expect(admin).toContain(text);
   expect(recovery).not.toContain("membership_status='paused'");
+ });
+ test('real recovery and responsive evidence are release-blocking rather than imported between Playwright files',()=>{
+  const pkg=read('package.json'),e2e=read('tests/project-experience-phase17-support-e2e.spec.ts'),responsive=read('tests/project-experience-phase17-responsive-e2e.spec.ts'),phase15=read('tests/project-experience-phase15-solo-conversion-e2e.spec.ts');
+  expect(pkg.match(/tests\/project-experience-phase17-support-e2e\.spec\.ts/g)||[]).toHaveLength(2);expect(pkg.match(/tests\/project-experience-phase17-responsive-e2e\.spec\.ts/g)||[]).toHaveLength(2);
+  for(const text of ['responsibility_reassigned','lead_changed','member_removed','replacement_requested','staleLead.response.status()).toBe(409)'])expect(e2e).toContain(text);
+  for(const text of ['width:320','fontSize=\'200%\'','noHorizontalOverflow(page)','Consequential project recovery'])expect(responsive).toContain(text);
+  expect(phase15).not.toContain("import './project-experience-phase16-member-exit-e2e.spec'");
  });
  test('member Lab surface provides private entry, safe reference, tracker and secure information response',()=>{
   const member=read('components/project-experience/ProjectSupportCaseSection.tsx');for(const text of ['PRIVATE SUPPORT','Your Project Lead and teammates do not automatically receive access','Support case created. Reference','Mettelo project support is not an emergency service.',"item.status==='awaiting_member'",'Respond securely','Send secure response',"item.status==='closed'"])expect(member).toContain(text);

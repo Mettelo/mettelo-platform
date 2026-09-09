@@ -5,6 +5,8 @@ import {createServerSupabaseClient} from '@/lib/supabase/server';
 import ProjectLabCanonicalBrief from '@/components/project-experience/ProjectLabCanonicalBrief';
 import ProjectWeeklyPulse from '@/components/project-experience/ProjectWeeklyPulse';
 import ProjectSoloDeliverySection from '@/components/project-experience/ProjectSoloDeliverySection';
+import ProjectMemberDepartureSection from '@/components/project-experience/ProjectMemberDepartureSection';
+import ProjectTeamRecoverySection from '@/components/project-experience/ProjectTeamRecoverySection';
 import styles from './MetteloLabPanel.module.css';
 
 type TeamMember={id:string;name:string;headline:string|null;role:string};
@@ -86,7 +88,9 @@ export default async function MetteloLabPanel(props:Props){
     <div className={styles.teamGrid}>{visibleMembers.length?visibleMembers.map(member=><RosterMember key={member.id} member={member} currentUserId={props.currentUserId} canManageSubmissionPermissions={props.canManageSubmissionPermissions} completionHref={viewHref('proof')}/>):<div className={styles.labEmpty}><strong>No active team members are available.</strong><p>Only active participants in this run appear in the delivery roster.</p></div>}</div>
    </>:<div className={styles.labEmpty}><strong>Your team is still being formed.</strong><p>Your working team will appear here once placement is complete.</p></div>}
   </section>
+  {props.projectRunId?<ProjectTeamRecoverySection projectId={props.projectId} projectRunId={props.projectRunId} currentUserId={props.currentUserId} runStatus={props.runStatus}/>:null}
   {props.projectRunId?<ProjectSoloDeliverySection projectId={props.projectId} projectRunId={props.projectRunId} runStatus={props.runStatus} activeMemberCount={visibleMembers.length}/>:null}
+  {props.projectRunId?<ProjectMemberDepartureSection projectId={props.projectId} projectRunId={props.projectRunId} currentUserId={props.currentUserId} runStatus={props.runStatus}/>:null}
   {props.projectRunId?<ProjectWeeklyPulse projectId={props.projectId} projectRunId={props.projectRunId}/>:null}
   <section className={styles.activity} data-lab-home-section aria-labelledby="lab-activity-title"><div className={styles.sectionTitle}><span className={styles.labLabel}>PROJECT PULSE</span><h3 id="lab-activity-title">Latest from Chat</h3><p>See recent project discussions, decisions and blockers from your team.</p></div>{props.recentDiscussions.length?<div className={styles.activityList}>{props.recentDiscussions.slice(0,3).map(item=><article key={item.id}><div className={styles.activityMeta}><strong>{names.get(item.author_user_id)||'Mettelo member'}</strong><small>{formatDate(item.created_at)}</small></div><p>{item.body}</p></article>)}</div>:<div className={styles.labEmpty}><strong>Start your team’s project discussion.</strong><p>Messages, decisions and blockers will appear here once your team starts collaborating.</p></div>}<a className={styles.labLink} href={viewHref('chat')}>Go to Chat →</a></section>
   {props.reviewSlot?<div data-lab-home-section>{props.reviewSlot}</div>:null}

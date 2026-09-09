@@ -35,7 +35,14 @@ begin
     raise exception using errcode='23514',message='INVALID_SUPPORT_RECOVERY_ACTION';
   end if;
 
-  select * into case_row from public.project_support_cases where id=p_case_id for update;
+  -- Optimistic recovery actions must fail fast when another transaction already
+  -- owns the same case version. Waiting for that transaction can exceed the API
+  -- timeout and hides the intended stale-version conflict from the caller.
+  begin
+    select * into case_row from public.project_support_cases where id=p_case_id for update nowait;
+  exception when lock_not_available then
+    raise exception using errcode='40001',message='SUPPORT_CASE_STALE';
+  end;
   if case_row.id is null then raise exception using errcode='P0002',message='SUPPORT_CASE_NOT_FOUND'; end if;
   if case_row.updated_at is distinct from p_expected_updated_at then raise exception using errcode='40001',message='SUPPORT_CASE_STALE'; end if;
   if case_row.status in ('resolved','closed') then raise exception using errcode='23514',message='SUPPORT_CASE_NOT_ACTIONABLE'; end if;

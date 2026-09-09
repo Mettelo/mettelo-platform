@@ -35,7 +35,9 @@ test.describe('Project Experience Phase 14 weekly pulse',()=>{
    originalMemberStatus=membership.membership_status;originalRunStatus=run.status;
    const memberActive=await db.from('project_members').update({membership_status:'active',activated_at:new Date().toISOString()}).eq('id',membership.id);if(memberActive.error)throw memberActive.error;
    const runActive=await db.from('project_runs').update({status:'active'}).eq('id',runId);if(runActive.error)throw runActive.error;
-   const leadMembership=await db.from('project_members').insert({project_id:projectId,project_run_id:runId,user_id:leadId,team_role:'project_lead',membership_status:'active',activated_at:new Date().toISOString()});if(leadMembership.error)throw leadMembership.error;
+   const leadMembership=await db.from('project_members').insert({project_id:projectId,project_run_id:runId,user_id:leadId,team_role:'project_lead',membership_status:'active',activated_at:new Date().toISOString()}).select('id').single();if(leadMembership.error)throw leadMembership.error;
+
+   const privilegedSpoof=await db.from('project_weekly_pulses').insert({project_member_id:leadMembership.data.id,project_id:projectId,project_run_id:runId,user_id:outsiderId,period_start:periodStart,progress:'on_track',workload:'manageable',team_state:'working_well',support_need:'no'});expect(privilegedSpoof.error).toBeTruthy();expect(privilegedSpoof.error?.message).toContain('Project pulse member, project, run and user do not match');
 
    await signInPage(page,memberEmail,required('E2E_MEMBER_PASSWORD'),`/member/projects/${projectId}?run=${runId}`);
    await expect(page.getByRole('heading',{name:'How is the project going this week?'})).toBeVisible();
@@ -67,11 +69,11 @@ test.describe('Project Experience Phase 14 weekly pulse',()=>{
     const adminPage=await adminBrowserContext.newPage();
     await signInPage(adminPage,adminEmail,required('E2E_ADMIN_PASSWORD'),'/admin/project-governance',origin);
     await expect(adminPage).toHaveURL(/\/admin\/project-governance/);
-    const healthSection=adminPage.locator('section').filter({has:adminPage.getByRole('heading',{name:'Team health signals'})});
+    const healthSection=adminPage.getByRole('region',{name:'Project health triage'});
     await expect(healthSection).toBeVisible();
-    await expect(healthSection.getByText('Individual responses, member identities and private notes are not shown here.')).toBeVisible();
-    await expect(healthSection.getByText('Submitted')).toBeVisible();
-    await expect(healthSection.getByText('Blocked')).toBeVisible();
+    await expect(healthSection.getByText('Individual responses, identities, private notes and productivity scores are not shown.')).toBeVisible();
+    await expect(healthSection.getByText('Submitted',{exact:true})).toBeVisible();
+    await expect(healthSection.getByText('Blocked',{exact:true})).toBeVisible();
    }finally{await adminBrowserContext.close()}
   }finally{
    await db.from('project_weekly_pulses').delete().eq('project_run_id',runId).in('user_id',[memberId,leadId,outsiderId]);

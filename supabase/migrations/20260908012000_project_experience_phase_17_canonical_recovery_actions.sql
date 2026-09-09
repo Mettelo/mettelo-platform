@@ -94,12 +94,12 @@ begin
     insert into public.project_support_case_updates(case_id,actor_user_id,action,body,member_visible,metadata)
     values(case_row.id,p_actor_user_id,'member_removed',null,false,jsonb_build_object('target_membership_id',target_member.id,'departure_source','support_resolution','canonical_departure',removal_result,'canonical_replacement',replacement_result));
     insert into public.project_activity_log(project_id,project_run_id,event_type,actor_type,actor_user_id,from_status,to_status,metadata)
-    values(case_row.project_id,case_row.project_run_id,'support_case_member_removed','admin',p_actor_user_id,case_row.status,'recovery_in_progress',jsonb_build_object('support_case_id',case_row.id,'target_membership_id',target_member.id,'departure_source','support_resolution'));
+    values(case_row.project_id,case_row.project_run_id,'support_case_member_removed','user',p_actor_user_id,case_row.status,'recovery_in_progress',jsonb_build_object('support_case_id',case_row.id,'target_membership_id',target_member.id,'departure_source','support_resolution'));
   end if;
 
   update public.project_support_cases set status='recovery_in_progress' where id=case_row.id;
   insert into public.project_activity_log(project_id,project_run_id,event_type,actor_type,actor_user_id,from_status,to_status,metadata)
-  values(case_row.project_id,case_row.project_run_id,'support_case_recovery_action','admin',p_actor_user_id,case_row.status,'recovery_in_progress',jsonb_build_object('support_case_id',case_row.id,'action',p_action));
+  values(case_row.project_id,case_row.project_run_id,'support_case_recovery_action','user',p_actor_user_id,case_row.status,'recovery_in_progress',jsonb_build_object('support_case_id',case_row.id,'action',p_action));
   return jsonb_build_object('action',p_action,'result',action_result,'status','recovery_in_progress');
 end;
 $$;

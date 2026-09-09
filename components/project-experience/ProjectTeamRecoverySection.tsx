@@ -1,5 +1,6 @@
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
+import {hasAdminCapability} from '@/lib/admin-capabilities';
 import ProjectTeamRecoveryControls from './ProjectTeamRecoveryControls';
 import styles from './ProjectTeamRecoverySection.module.css';
 
@@ -15,8 +16,9 @@ export default async function ProjectTeamRecoverySection({projectId,projectRunId
   db.from('project_members').select('team_role,membership_status').eq('project_id',projectId).eq('project_run_id',projectRunId).eq('user_id',currentUserId).maybeSingle()
  ]);
  if(!run)return null;
- const isAdmin=user?.id===currentUserId&&user.app_metadata?.role==='admin';
- const isActive=membership?.membership_status==='active';
+ const isSelf=user?.id===currentUserId;
+ const isAdmin=isSelf&&hasAdminCapability(user,'projects.manage');
+ const isActive=isSelf&&membership?.membership_status==='active';
  if(!isAdmin&&!isActive)return null;
  const {data:handovers}=await db.from('project_member_handovers').select('id,reason_category,completed_work,open_work,file_references,decisions,risks,recommendations,open_responsibilities,handover_availability,created_at,departing_user_id').eq('project_id',projectId).eq('project_run_id',projectRunId).order('created_at',{ascending:false}).limit(5);
  const canRecover=isAdmin||(isActive&&membership?.team_role==='project_lead');

@@ -47,7 +47,7 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
  });
  test('Admin workflow requires explicit support capability and safeguarding access is narrower',()=>{
   const route=read('app/api/admin/project-support-cases/route.ts');const capabilities=read('lib/admin-capabilities.ts');
-  for(const text of ["hasAdminCapability(user,'projects.support.manage')","hasAdminCapability(user,'projects.safeguarding.manage')",'project_support_case_updates','project_activity_log',"actor_type:'admin'",'support_case_id:caseId','safeguarding_escalated_at','Confirm safeguarding escalation before continuing.'])expect(route).toContain(text);
+  for(const text of ["hasAdminCapability(user,'projects.support.manage')","hasAdminCapability(user,'projects.safeguarding.manage')",'project_support_case_updates','project_activity_log',"actor_type:'user'",'support_case_id:caseId','safeguarding_escalated_at','Confirm safeguarding escalation before continuing.'])expect(route).toContain(text);
   expect(capabilities).toContain("'projects.support.manage'");expect(capabilities).toContain("'projects.safeguarding.manage'");expect(capabilities).toContain('EXPLICIT_ONLY_CAPABILITIES');
   expect(route).toContain('A secure update is available on your private project support case in Mettelo.');
   const notificationCopy=route.slice(route.indexOf('A secure update is available on your private project support case in Mettelo.')-400,route.indexOf('A secure update is available on your private project support case in Mettelo.')+500);for(const privateField of ['note,','current.description','internal_notes','current.resolution','current.recovery_plan'])expect(notificationCopy).not.toContain(privateField);

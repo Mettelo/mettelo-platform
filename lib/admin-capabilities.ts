@@ -67,6 +67,7 @@ export function hasAdminCapability(user:AdminIdentity|null|undefined,capability:
   // Backward compatibility remains for established Admin capabilities only.
   // Phase 17 private support and safeguarding are sensitive new surfaces and must
   // be granted explicitly; a legacy role=admin account must not inherit them.
+  // Any malformed or unknown entry fails the entire configuration closed instead of being silently ignored.
   if(configured===undefined||configured===null)return !EXPLICIT_ONLY_CAPABILITIES.has(capability);
   if(!Array.isArray(configured)||!configured.every(isValidConfiguredCapability))return false;
   if(configured.includes('*'))return true;

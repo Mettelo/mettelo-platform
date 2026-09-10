@@ -12,7 +12,7 @@ export default async function MemberAccountPage(){
 
   const [profileResult,privacyResult,catalogueResult,notificationResult]=await Promise.all([
     supabase.from('profiles').select('full_name,username,member_id,is_public').eq('id',user.id).maybeSingle(),
-    supabase.from('member_privacy_preferences').select('allow_project_invitations,allow_member_messages').eq('user_id',user.id).maybeSingle(),
+    supabase.from('member_privacy_preferences').select('allow_project_invitations,allow_member_messages,allow_collaboration_recommendations').eq('user_id',user.id).maybeSingle(),
     supabase.from('notification_event_catalogue').select('event_key,product_area,description,default_channel,urgency,action_required').eq('active',true).order('product_area').order('event_key'),
     supabase.from('notification_preferences').select('event_key,in_app_enabled,email_enabled').eq('user_id',user.id)
   ]);
@@ -27,7 +27,7 @@ export default async function MemberAccountPage(){
 
   return <MemberAccountSettings
     account={{email:user.email||'',full_name:profileResult.data?.full_name||'',username:profileResult.data?.username||null,member_id:profileResult.data?.member_id||null}}
-    privacy={{profile_discoverable:Boolean(profileResult.data?.is_public),allow_project_invitations:privacyResult.data?.allow_project_invitations??true,allow_member_messages:privacyResult.data?.allow_member_messages??true}}
+    privacy={{profile_discoverable:Boolean(profileResult.data?.is_public),allow_project_invitations:privacyResult.data?.allow_project_invitations??true,allow_member_messages:privacyResult.data?.allow_member_messages??true,allow_collaboration_recommendations:privacyResult.data?.allow_collaboration_recommendations??true}}
     notifications={notifications}
   />;
 }

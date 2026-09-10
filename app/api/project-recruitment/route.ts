@@ -7,7 +7,7 @@ async function context(projectId:string){
  const db=serviceDb();if(!db)return{error:NextResponse.json({error:'Project service is not configured.'},{status:503})};
  const [{data:project,error:projectError},{data:membership}]=await Promise.all([
   db.from('projects').select('id,title,visibility,status,applications_open,project_sharing_enabled,member_invites_enabled,late_joining_enabled,late_joining_cutoff_at,max_team_size,target_team_size,team_size_threshold').eq('id',projectId).maybeSingle(),
-  db.from('project_members').select('id,project_run_id,membership_status').eq('project_id',projectId).eq('user_id',user.id).in('membership_status',['waiting','active']).order('joined_at',{ascending:false}).limit(1).maybeSingle()
+  db.from('project_members').select('id,project_run_id,membership_status,team_role').eq('project_id',projectId).eq('user_id',user.id).in('membership_status',['waiting','active']).order('joined_at',{ascending:false}).limit(1).maybeSingle()
  ]);
  if(projectError||!project)return{error:NextResponse.json({error:'Project not found.'},{status:404})};
  if(!membership&&user.app_metadata?.role!=='admin')return{error:NextResponse.json({error:'Active project membership is required.'},{status:403})};
@@ -15,7 +15,7 @@ async function context(projectId:string){
  if(membership?.project_run_id){const {data:runRow}=await db.from('project_runs').select('id,status,recruitment_open').eq('id',membership.project_run_id).maybeSingle();if(runRow){const {count}=await db.from('project_members').select('id',{count:'exact',head:true}).eq('project_run_id',runRow.id).in('membership_status',['waiting','active']);const maximum=Math.max(1,Number(project.max_team_size||project.target_team_size||project.team_size_threshold||1));run={id:runRow.id,status:runRow.status,recruitment_open:runRow.recruitment_open!==false,filled:count||0,maximum}}}
  const cutoffOpen=!project.late_joining_cutoff_at||new Date(project.late_joining_cutoff_at).getTime()>Date.now();const capacityOpen=!run||run.filled<run.maximum;const lateJoiningOpen=project.late_joining_enabled!==false&&cutoffOpen&&capacityOpen&&(!run||run.recruitment_open);
  const canShare=project.project_sharing_enabled!==false&&project.visibility==='public'&&project.applications_open!==false&&lateJoiningOpen;
- const inviteReady=project.member_invites_enabled===true&&lateJoiningOpen;
+ const canInviteMembers=membership?.membership_status==='active'&&membership.team_role==='project_lead';const inviteReady=project.member_invites_enabled===true&&lateJoiningOpen&&canInviteMembers;
  return{db,user,project,membership,run,canShare,inviteReady,lateJoiningOpen};
 }
 
@@ -31,8 +31,8 @@ export async function POST(request:Request){
    await ctx.db.from('project_activity_log').insert({project_id:projectId,project_run_id:ctx.membership?.project_run_id||null,event_type:'project_shared',actor_type:'user',actor_user_id:ctx.user.id,from_status:ctx.run?.status||ctx.project.status,to_status:ctx.run?.status||ctx.project.status,metadata:{channel:String(body.channel||'copy').slice(0,40),public_path:`/projects/${projectId}`}});
    return NextResponse.json({ok:true,public_path:`/projects/${projectId}`});
   }
-  if(!ctx.inviteReady)return NextResponse.json({error:'Member invitations are not currently available for this project.'},{status:409});
-  await ctx.db.from('project_activity_log').insert({project_id:projectId,project_run_id:ctx.membership?.project_run_id||null,event_type:'collaborator_invite_intent',actor_type:'user',actor_user_id:ctx.user.id,from_status:ctx.run?.status||ctx.project.status,to_status:ctx.run?.status||ctx.project.status,metadata:{phase:'phase6_hook',membership_created:false}});
-  return NextResponse.json({ok:true,invite_ready:true,message:'Invitation policy is ready. The canonical member invitation workflow will collect and validate the invitee before any membership is created.'});
+  if(!ctx.inviteReady)return NextResponse.json({error:'Only the active Project Lead can open member discovery while invitations and late joining are available.'},{status:403});
+  await ctx.db.from('project_activity_log').insert({project_id:projectId,project_run_id:ctx.membership?.project_run_id||null,event_type:'collaborator_invite_intent',actor_type:'user',actor_user_id:ctx.user.id,from_status:ctx.run?.status||ctx.project.status,to_status:ctx.run?.status||ctx.project.status,metadata:{phase:'phase18a_member_discovery',membership_created:false}});
+  return NextResponse.json({ok:true,invite_ready:true,message:'Member discovery is ready. Search remains privacy-preserving, and any invitation still requires recipient acceptance plus canonical same-run admission.'});
  }catch(error){console.error('project recruitment action failed',error);return NextResponse.json({error:'Unable to complete this recruitment action.'},{status:500})}
 }

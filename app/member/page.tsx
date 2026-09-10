@@ -4,6 +4,7 @@ import {redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {mobileMoreNav} from '@/lib/member-navigation';
 import {calculateMemberReadiness} from '@/lib/member-readiness';
+import MemberHomeCollaborationOpportunities from '@/components/MemberHomeCollaborationOpportunities';
 import styles from './member-home-v3.module.css';
 import exploreStyles from './member-home-explore.module.css';
 
@@ -143,6 +144,8 @@ export default async function MemberHome(){
 
         {pendingSpotlight&&upNext.href!=='/member/spotlight'&&<section className={`${styles.valueCard} ${styles.spotlight}`} aria-labelledby="spotlight-heading"><div className={styles.eyebrow}>SPOTLIGHT · REPUTATION</div><span className={styles.consent}>CONSENT REQUIRED</span><h2 id="spotlight-heading">Recognition waiting for your review</h2><p>Mettelo never publishes your Spotlight recognition without your explicit permission. Declining does not affect your account.</p><Link className={styles.button} href="/member/spotlight">Review Spotlight →</Link></section>}
       </aside>
+
+      <MemberHomeCollaborationOpportunities/>
 
       <section className={styles.mobileJourney} aria-labelledby="mobile-more-heading"><div className={styles.eyebrow}>MORE OF MY METTELO</div><h2 id="mobile-more-heading">Everything remains reachable</h2><div>{mobileMoreNav.map(item=><Link href={item.href} key={item.href}><strong>{item.label}</strong><small>{item.description}</small></Link>)}</div></section>
 

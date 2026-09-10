@@ -9,12 +9,16 @@ const accountPolicy=read('lib/account-preferences.ts');
 const nav=read('lib/member-navigation.ts');
 const privacyMigration=read('supabase/migrations/20260905103000_project_experience_phase_2_member_preferences.sql');
 const atomicMigration=read('supabase/migrations/20260905110000_project_experience_phase_2_atomic_profile_save.sql');
+const phase18PrivacyMigration=read('supabase/migrations/20260908106500_project_experience_phase_18c_preference_hardening.sql');
 const people=read('app/people/page.tsx');
 const person=read('app/people/[id]/page.tsx');
 const readiness=read('lib/member-readiness.ts');
 const completion=read('app/onboarding/complete/page.tsx');
 const continuation=read('app/auth/continue-after-onboarding/route.ts');
 const roleCatalogue=read('app/api/project-role-catalogue/route.ts');
+const canonicalPrivacySave=privacyMigration.includes('save_member_privacy_preferences')&&privacyMigration.includes('security invoker')&&privacyMigration.includes('update public.profiles');
+const phase18AtomicPrivacyExtension=phase18PrivacyMigration.includes('phase18_save_member_privacy_preferences')&&phase18PrivacyMigration.includes('perform public.save_member_privacy_preferences(')&&phase18PrivacyMigration.includes('update public.member_privacy_preferences')&&accountApi.includes("rpc('phase18_save_member_privacy_preferences'");
+const privacyApiStillSingleTransaction=(accountApi.includes("rpc('save_member_privacy_preferences'")||phase18AtomicPrivacyExtension)&&!accountApi.includes("Promise.all([\n        supabase.from('profiles').update");
 const checks=[
  ['onboarding remains authenticated and profile-based',read('app/onboarding/page.tsx').includes("from('profiles').select('*')")],
  ['onboarding resume persists server step',onboarding.includes('onboarding_step:persistedStep')&&onboarding.includes('initialStep')],
@@ -36,7 +40,8 @@ const checks=[
  ['email change uses Supabase Auth server path',accountApi.includes('supabase.auth.updateUser({email})')],
  ['password recovery reuses Supabase Auth',account.includes('resetPasswordForEmail')&&account.includes('/auth/update-password')],
  ['privacy preference table is additive owner-scoped RLS',privacyMigration.includes('member_privacy_preferences')&&privacyMigration.includes('enable row level security')&&privacyMigration.includes('auth.uid())=user_id')],
- ['privacy and discoverability save in one member RLS transaction',privacyMigration.includes('save_member_privacy_preferences')&&privacyMigration.includes('security invoker')&&privacyMigration.includes('update public.profiles')&&accountApi.includes("rpc('save_member_privacy_preferences'")&&!accountApi.includes("Promise.all([\n        supabase.from('profiles').update")],
+ ['privacy and discoverability save in one member RLS transaction',canonicalPrivacySave&&privacyApiStillSingleTransaction],
+ ['Phase 18 privacy extension composes the canonical Phase 2 transaction',!phase18PrivacyMigration||phase18AtomicPrivacyExtension],
  ['discoverability keeps profiles.is_public as canonical owner',accountApi.includes('profile_discoverable:Boolean(profileResult.data?.is_public)')&&privacyMigration.includes('set is_public=')],
  ['public People is server filtered by discoverability',people.includes("eq('is_public',true)")&&person.includes("eq('is_public',true)")],
  ['notification preferences reuse canonical tables',accountApi.includes("from('notification_event_catalogue')")&&accountApi.includes("from('notification_preferences')")],

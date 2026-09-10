@@ -35,9 +35,16 @@ begin
     raise exception using errcode='23514',message='INVALID_SUPPORT_RECOVERY_ACTION';
   end if;
 
-  -- The support case row is the canonical concurrency boundary. NOWAIT ensures a
-  -- competing recovery never sits behind a row lock until PostgREST/Kong times out.
-  -- A request that starts after the winner commits is rejected by the version check.
+  -- Acquire one transaction-scoped lock before entering the canonical Phase 10/16
+  -- functions. Those functions intentionally lock project/capacity/member/run rows,
+  -- so two support recoveries for the same case must never race into those deeper
+  -- lock chains. The loser fails immediately instead of waiting for PostgREST/Kong.
+  if not pg_try_advisory_xact_lock(hashtextextended(p_case_id::text,0)) then
+    raise exception using errcode='40001',message='SUPPORT_CASE_STALE';
+  end if;
+
+  -- Keep the row itself as the optimistic-concurrency authority. NOWAIT also
+  -- protects callers that contend with a non-Phase-17 writer of the same case.
   begin
     select * into case_row
     from public.project_support_cases

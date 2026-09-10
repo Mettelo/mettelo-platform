@@ -35,14 +35,15 @@ begin
     raise exception using errcode='23514',message='INVALID_SUPPORT_RECOVERY_ACTION';
   end if;
 
-  -- Optimistic recovery actions must fail fast when another transaction already
-  -- owns the same case version. Waiting for that transaction can exceed the API
-  -- timeout and hides the intended stale-version conflict from the caller.
-  begin
-    select * into case_row from public.project_support_cases where id=p_case_id for update nowait;
-  exception when lock_not_available then
+  -- Claim a transaction-scoped lock before touching any canonical project/run rows.
+  -- This makes two actions against the same support-case version deterministic and
+  -- prevents the losing request from sitting behind a database row lock until the
+  -- local PostgREST/Kong request timeout is reached.
+  if not pg_try_advisory_xact_lock(hashtextextended(p_case_id::text,17)) then
     raise exception using errcode='40001',message='SUPPORT_CASE_STALE';
-  end;
+  end if;
+
+  select * into case_row from public.project_support_cases where id=p_case_id for update;
   if case_row.id is null then raise exception using errcode='P0002',message='SUPPORT_CASE_NOT_FOUND'; end if;
   if case_row.updated_at is distinct from p_expected_updated_at then raise exception using errcode='40001',message='SUPPORT_CASE_STALE'; end if;
   if case_row.status in ('resolved','closed') then raise exception using errcode='23514',message='SUPPORT_CASE_NOT_ACTIONABLE'; end if;
@@ -51,8 +52,6 @@ begin
 
   if p_action='reassign_responsibility' then
     if p_assignment_id is null or p_replacement_membership_id is null then raise exception using errcode='23514',message='RESPONSIBILITY_REASSIGNMENT_CONTEXT_REQUIRED'; end if;
-    -- Read context without taking member/assignment row locks first. The canonical
-    -- Phase 10 RPCs own project -> capacity -> member/assignment lock ordering.
     select * into assignment_row from public.project_member_responsibilities
     where id=p_assignment_id and project_id=case_row.project_id and project_run_id=case_row.project_run_id;
     if assignment_row.id is null or assignment_row.assignment_status<>'active' then raise exception using errcode='23514',message='ACTIVE_RESPONSIBILITY_ASSIGNMENT_REQUIRED'; end if;
@@ -78,7 +77,6 @@ begin
     values(case_row.id,p_actor_user_id,'replacement_approved',null,false,jsonb_build_object('canonical_result',action_result));
   else
     if p_target_membership_id is null then raise exception using errcode='23514',message='REMOVAL_TARGET_REQUIRED'; end if;
-    -- Phase 16 owns project/capacity/member locks for removal.
     select * into target_member from public.project_members
     where id=p_target_membership_id and project_id=case_row.project_id and project_run_id=case_row.project_run_id and membership_status='active';
     if target_member.id is null then raise exception using errcode='23514',message='ACTIVE_REMOVAL_TARGET_REQUIRED'; end if;

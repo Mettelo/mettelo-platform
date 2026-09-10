@@ -14,8 +14,6 @@ set search_path=public
 as $$
 begin
   if auth.uid() is null then raise exception using errcode='42501',message='AUTHENTICATION_REQUIRED'; end if;
-  -- Reuse the existing privacy authority for profile discoverability/invite/message
-  -- state, then extend the same DB transaction with the Phase 18 preference.
   perform public.save_member_privacy_preferences(
     p_profile_discoverable,
     p_allow_project_invitations,
@@ -54,4 +52,11 @@ $$;
 revoke all on function public.phase18_set_collaboration_recommendations(boolean) from public,anon;
 grant execute on function public.phase18_set_collaboration_recommendations(boolean) to authenticated;
 
+-- Server-side recommendation projection, Admin governance, and isolated E2E
+-- verification all use the canonical service role. RLS bypass alone is not a
+-- substitute for table privileges, so keep this existing privacy table readable
+-- and writable by the service role after the Phase 18 column extension.
+grant select,insert,update,delete on table public.member_privacy_preferences to service_role;
+
 comment on function public.phase18_save_member_privacy_preferences(boolean,boolean,boolean,boolean) is 'Phase 18 extension of the existing canonical privacy save. All privacy settings commit or roll back together.';
+comment on function public.phase18_set_collaboration_recommendations(boolean) is 'Phase 18 member-owned recommendation toggle. Changes recommendation visibility only and never admission, eligibility or project access.';

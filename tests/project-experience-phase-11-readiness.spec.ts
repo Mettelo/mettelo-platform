@@ -5,12 +5,14 @@ const read=(path:string)=>fs.readFileSync(path,'utf8');
 
 const foundation=read('supabase/migrations/20260906020000_project_experience_phase_11_start_readiness.sql');
 const hardening=read('supabase/migrations/20260906020100_project_experience_phase_11_readiness_hardening.sql');
+const activationGuard=read('supabase/migrations/20260906020200_project_experience_phase_11_activation_guard.sql');
+const finalAuthority=read('supabase/migrations/20260906020300_project_experience_phase_11_final_authority.sql');
 const startService=read('lib/project-start-service.ts');
 const adminFlow=read('app/api/admin/project-flow/route.ts');
 const adminReadinessApi=read('app/api/admin/project-start-readiness/route.ts');
 const adminReadinessUi=read('components/AdminProjectStartReadiness.tsx');
 
-const migration=`${foundation}\n${hardening}`;
+const migration=`${foundation}\n${hardening}\n${activationGuard}\n${finalAuthority}`;
 
 test.describe('Project Experience Phase 11 start readiness contract',()=>{
   test('composes project team and system readiness without a second lifecycle',()=>{
@@ -24,7 +26,7 @@ test.describe('Project Experience Phase 11 start readiness contract',()=>{
   });
 
   test('returns safe reason codes while retaining compatibility blockers',()=>{
-    for(const code of ['PROJECT_INCOMPLETE','TEAM_BELOW_MINIMUM','MEMBERSHIP_INVALID','LEAD_REQUIRED','RESPONSIBILITY_GAP','LAB_NOT_READY','RESOURCE_NOT_READY','MILESTONE_NOT_READY','PROJECT_PAUSED','PROJECT_BLOCKED','OFFER_NOT_ACCEPTED','RECRUITMENT_STATE_INVALID'])expect(hardening).toContain(code);
+    for(const code of ['PROJECT_INCOMPLETE','TEAM_BELOW_MINIMUM','MEMBERSHIP_INVALID','LEAD_REQUIRED','RESPONSIBILITY_GAP','LAB_NOT_READY','RESOURCE_NOT_READY','MILESTONE_NOT_READY','PROJECT_PAUSED','PROJECT_BLOCKED','OFFER_NOT_ACCEPTED','RECRUITMENT_STATE_INVALID','SCHEDULE_NOT_DUE'])expect(migration).toContain(code);
     expect(hardening).toContain("'reason_codes'");
     expect(hardening).toContain("'blockers'");
   });
@@ -48,6 +50,18 @@ test.describe('Project Experience Phase 11 start readiness contract',()=>{
     expect(hardening).not.toContain("effective_admission='auto' then\n    select count(*)::integer into missing_accepted_offers");
   });
 
+  test('final REVIEW_REQUIRED authority is exact-run accepted Offer consumption',()=>{
+    expect(finalAuthority).toContain('join public.project_offers o on o.application_id=a.id');
+    expect(finalAuthority).toContain('a.project_run_id=p_run_id');
+    expect(finalAuthority).toContain('a.user_id=m.user_id');
+    expect(finalAuthority).toContain("o.status='accepted'");
+    expect(finalAuthority).toContain('o.accepted_at is not null');
+    expect(finalAuthority).toContain('o.capacity_released_at is null');
+    expect(finalAuthority).toContain('o.capacity_consumed_at is not null');
+    expect(finalAuthority).not.toContain('reservation_released_at');
+    expect(finalAuthority).not.toContain('reservation_consumed_at');
+  });
+
   test('preserves Phase 10 lead and normalized responsibility authority',()=>{
     expect(migration).toContain("team_role='project_lead'");
     expect(migration).toContain('public.project_member_responsibilities');
@@ -69,6 +83,23 @@ test.describe('Project Experience Phase 11 start readiness contract',()=>{
     expect(hardening).toContain('if run_row.scheduled_start_at is null');
     expect(hardening).not.toContain("interval '6 hours'");
     expect(hardening).not.toContain('auto_start_delay_minutes=360');
+  });
+
+  test('final readiness includes AUTO schedule eligibility',()=>{
+    expect(finalAuthority).toContain("reasons ? 'SCHEDULE_NOT_DUE'");
+    expect(finalAuthority).toContain("system_blockers ? 'schedule_not_due'");
+    expect(finalAuthority).toContain("run_row.scheduled_start_at is null or run_row.scheduled_start_at>now()");
+    expect(finalAuthority).toContain("'{system,schedule_due}'");
+  });
+
+  test('database ACTIVE transition is guarded by current Phase 11 readiness',()=>{
+    expect(activationGuard).toContain('create or replace function public.phase11_guard_run_activation()');
+    expect(activationGuard).toContain("readiness:=public.phase11_project_start_readiness(old.project_id,old.id)");
+    expect(activationGuard).toContain("message='PHASE11_START_NOT_READY'");
+    expect(activationGuard).toContain("message='SCHEDULE_NOT_DUE'");
+    expect(activationGuard).toContain("message='PROJECT_PAUSED'");
+    expect(activationGuard).toContain("message='PROJECT_BLOCKED'");
+    expect(activationGuard).toContain('before update of status,has_started on public.project_runs');
   });
 
   test('keeps one canonical start entry point and final atomic authority',()=>{
@@ -100,9 +131,12 @@ test.describe('Project Experience Phase 11 start readiness contract',()=>{
     expect(adminReadinessUi).toContain('@media(max-width:480px)');
   });
 
-  test('Phase 11 readiness is service-only',()=>{
+  test('only canonical readiness remains service-callable',()=>{
     expect(migration).toContain('security definer');
-    expect(hardening).toContain('revoke all on function public.phase11_project_start_readiness(uuid,uuid) from public,anon,authenticated');
-    expect(hardening).toContain('grant execute on function public.phase11_project_start_readiness(uuid,uuid) to service_role');
+    expect(finalAuthority).toContain('alter function public.phase11_project_start_readiness(uuid,uuid)\n  rename to phase11_project_start_readiness_v1_base');
+    expect(finalAuthority).toContain('revoke all on function public.phase11_project_start_readiness_v1_base(uuid,uuid)\n  from public,anon,authenticated,service_role');
+    expect(finalAuthority).toContain('revoke all on function public.phase11_project_start_readiness(uuid,uuid)\n  from public,anon,authenticated');
+    expect(finalAuthority).toContain('grant execute on function public.phase11_project_start_readiness(uuid,uuid)\n  to service_role');
+    expect(activationGuard).toContain('revoke all on function public.phase11_guard_run_activation() from public,anon,authenticated');
   });
 });

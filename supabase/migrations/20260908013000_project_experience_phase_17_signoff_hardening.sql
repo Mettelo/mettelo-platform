@@ -15,6 +15,7 @@ alter table public.project_support_case_updates
 create or replace function public.phase17_validate_support_case_context()
 returns trigger
 language plpgsql
+security definer
 set search_path=public
 as $$
 begin
@@ -42,6 +43,8 @@ begin
 end;
 $$;
 
+revoke all on function public.phase17_validate_support_case_context() from public,anon,authenticated;
+
 drop trigger if exists project_support_cases_validate_context on public.project_support_cases;
 create trigger project_support_cases_validate_context
 before insert or update of project_id,project_run_id,reporter_user_id
@@ -49,4 +52,4 @@ on public.project_support_cases
 for each row execute function public.phase17_validate_support_case_context();
 
 comment on function public.phase17_validate_support_case_context() is
-  'Phase 17 database invariant: support case project/run must match and reporter must hold active membership when case context is created or changed, including service-role writes.';
+  'Phase 17 database invariant: support case project/run must match and reporter must hold active membership when case context is created or changed, including service-role writes. SECURITY DEFINER prevents caller RLS visibility from weakening this invariant.';

@@ -31,9 +31,9 @@ $$;
 revoke all on function public.phase12_can_mutate_lab(uuid,uuid) from public,anon;
 grant execute on function public.phase12_can_mutate_lab(uuid,uuid) to authenticated,service_role;
 
--- Private execution tables keep their existing permissive ownership/leadership
--- policies. These restrictive write policies add the canonical live-run requirement.
-
+-- Private execution tables always require a concrete canonical run. They keep their
+-- existing permissive ownership/leadership policies, while these restrictive write
+-- policies add the live-run requirement.
 do $$
 declare
   table_name text;
@@ -61,5 +61,91 @@ begin
 end;
 $$;
 
+-- Milestones, data sources and deliverables are mixed-authority tables: NULL run rows
+-- are canonical project-definition data and must continue to use their established
+-- governance, while run-scoped rows are live delivery records. Only the latter gain
+-- the Phase 12 live-run mutation restriction.
+do $$
+declare
+  table_name text;
+begin
+  foreach table_name in array array['project_milestones','project_data_sources','project_deliverables']
+  loop
+    execute format('drop policy if exists phase12_run_live_insert on public.%I',table_name);
+    execute format(
+      'create policy phase12_run_live_insert on public.%I as restrictive for insert to authenticated with check (project_run_id is null or public.phase12_can_mutate_lab(project_id,project_run_id))',
+      table_name
+    );
+
+    execute format('drop policy if exists phase12_run_live_update on public.%I',table_name);
+    execute format(
+      'create policy phase12_run_live_update on public.%I as restrictive for update to authenticated using (project_run_id is null or public.phase12_can_mutate_lab(project_id,project_run_id)) with check (project_run_id is null or public.phase12_can_mutate_lab(project_id,project_run_id))',
+      table_name
+    );
+
+    execute format('drop policy if exists phase12_run_live_delete on public.%I',table_name);
+    execute format(
+      'create policy phase12_run_live_delete on public.%I as restrictive for delete to authenticated using (project_run_id is null or public.phase12_can_mutate_lab(project_id,project_run_id))',
+      table_name
+    );
+  end loop;
+end;
+$$;
+
+-- Data-source versions inherit project identity through their canonical source.
+-- Project-level versions retain existing governance; run versions require a live run.
+drop policy if exists phase12_run_live_insert on public.project_data_source_versions;
+create policy phase12_run_live_insert
+on public.project_data_source_versions
+as restrictive
+for insert
+to authenticated
+with check (
+  project_run_id is null
+  or exists (
+    select 1 from public.project_data_sources source
+    where source.id=project_data_source_versions.data_source_id
+      and public.phase12_can_mutate_lab(source.project_id,project_data_source_versions.project_run_id)
+  )
+);
+
+drop policy if exists phase12_run_live_update on public.project_data_source_versions;
+create policy phase12_run_live_update
+on public.project_data_source_versions
+as restrictive
+for update
+to authenticated
+using (
+  project_run_id is null
+  or exists (
+    select 1 from public.project_data_sources source
+    where source.id=project_data_source_versions.data_source_id
+      and public.phase12_can_mutate_lab(source.project_id,project_data_source_versions.project_run_id)
+  )
+)
+with check (
+  project_run_id is null
+  or exists (
+    select 1 from public.project_data_sources source
+    where source.id=project_data_source_versions.data_source_id
+      and public.phase12_can_mutate_lab(source.project_id,project_data_source_versions.project_run_id)
+  )
+);
+
+drop policy if exists phase12_run_live_delete on public.project_data_source_versions;
+create policy phase12_run_live_delete
+on public.project_data_source_versions
+as restrictive
+for delete
+to authenticated
+using (
+  project_run_id is null
+  or exists (
+    select 1 from public.project_data_sources source
+    where source.id=project_data_source_versions.data_source_id
+      and public.phase12_can_mutate_lab(source.project_id,project_data_source_versions.project_run_id)
+  )
+);
+
 comment on function public.phase12_can_mutate_lab(uuid,uuid) is
-  'Phase 12 live-delivery mutation authority. Completed Lab history remains readable through phase12_has_lab_access but is not writable by ordinary completed members.';
+  'Phase 12 live-delivery mutation authority. Completed Lab history remains readable through phase12_has_lab_access but run-scoped delivery records are not writable by ordinary completed members.';

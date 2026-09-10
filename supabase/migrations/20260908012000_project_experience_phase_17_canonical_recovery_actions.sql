@@ -35,7 +35,26 @@ begin
     raise exception using errcode='23514',message='INVALID_SUPPORT_RECOVERY_ACTION';
   end if;
 
-  select * into case_row from public.project_support_cases where id=p_case_id for update;
+  -- Acquire one transaction-scoped lock before entering the canonical Phase 10/16
+  -- functions. Those functions intentionally lock project/capacity/member/run rows,
+  -- so two support recoveries for the same case must never race into those deeper
+  -- lock chains. The loser fails immediately instead of waiting for PostgREST/Kong.
+  if not pg_try_advisory_xact_lock(hashtextextended(p_case_id::text,0)) then
+    raise exception using errcode='40001',message='SUPPORT_CASE_STALE';
+  end if;
+
+  -- Keep the row itself as the optimistic-concurrency authority. NOWAIT also
+  -- protects callers that contend with a non-Phase-17 writer of the same case.
+  begin
+    select * into case_row
+    from public.project_support_cases
+    where id=p_case_id
+    for update nowait;
+  exception
+    when lock_not_available then
+      raise exception using errcode='40001',message='SUPPORT_CASE_STALE';
+  end;
+
   if case_row.id is null then raise exception using errcode='P0002',message='SUPPORT_CASE_NOT_FOUND'; end if;
   if case_row.updated_at is distinct from p_expected_updated_at then raise exception using errcode='40001',message='SUPPORT_CASE_STALE'; end if;
   if case_row.status in ('resolved','closed') then raise exception using errcode='23514',message='SUPPORT_CASE_NOT_ACTIONABLE'; end if;
@@ -44,8 +63,6 @@ begin
 
   if p_action='reassign_responsibility' then
     if p_assignment_id is null or p_replacement_membership_id is null then raise exception using errcode='23514',message='RESPONSIBILITY_REASSIGNMENT_CONTEXT_REQUIRED'; end if;
-    -- Read context without taking member/assignment row locks first. The canonical
-    -- Phase 10 RPCs own project -> capacity -> member/assignment lock ordering.
     select * into assignment_row from public.project_member_responsibilities
     where id=p_assignment_id and project_id=case_row.project_id and project_run_id=case_row.project_run_id;
     if assignment_row.id is null or assignment_row.assignment_status<>'active' then raise exception using errcode='23514',message='ACTIVE_RESPONSIBILITY_ASSIGNMENT_REQUIRED'; end if;
@@ -71,7 +88,6 @@ begin
     values(case_row.id,p_actor_user_id,'replacement_approved',null,false,jsonb_build_object('canonical_result',action_result));
   else
     if p_target_membership_id is null then raise exception using errcode='23514',message='REMOVAL_TARGET_REQUIRED'; end if;
-    -- Phase 16 owns project/capacity/member locks for removal.
     select * into target_member from public.project_members
     where id=p_target_membership_id and project_id=case_row.project_id and project_run_id=case_row.project_run_id and membership_status='active';
     if target_member.id is null then raise exception using errcode='23514',message='ACTIVE_REMOVAL_TARGET_REQUIRED'; end if;
@@ -94,12 +110,16 @@ begin
     insert into public.project_support_case_updates(case_id,actor_user_id,action,body,member_visible,metadata)
     values(case_row.id,p_actor_user_id,'member_removed',null,false,jsonb_build_object('target_membership_id',target_member.id,'departure_source','support_resolution','canonical_departure',removal_result,'canonical_replacement',replacement_result));
     insert into public.project_activity_log(project_id,project_run_id,event_type,actor_type,actor_user_id,from_status,to_status,metadata)
-    values(case_row.project_id,case_row.project_run_id,'support_case_member_removed','admin',p_actor_user_id,case_row.status,'recovery_in_progress',jsonb_build_object('support_case_id',case_row.id,'target_membership_id',target_member.id,'departure_source','support_resolution'));
+    values(case_row.project_id,case_row.project_run_id,'support_case_member_removed','user',p_actor_user_id,case_row.status,'recovery_in_progress',jsonb_build_object('support_case_id',case_row.id,'target_membership_id',target_member.id,'departure_source','support_resolution'));
   end if;
 
-  update public.project_support_cases set status='recovery_in_progress' where id=case_row.id;
+  -- Always advance the optimistic-concurrency token, even on installations where
+  -- no generic updated_at trigger exists for this table.
+  update public.project_support_cases
+  set status='recovery_in_progress', updated_at=clock_timestamp()
+  where id=case_row.id;
   insert into public.project_activity_log(project_id,project_run_id,event_type,actor_type,actor_user_id,from_status,to_status,metadata)
-  values(case_row.project_id,case_row.project_run_id,'support_case_recovery_action','admin',p_actor_user_id,case_row.status,'recovery_in_progress',jsonb_build_object('support_case_id',case_row.id,'action',p_action));
+  values(case_row.project_id,case_row.project_run_id,'support_case_recovery_action','user',p_actor_user_id,case_row.status,'recovery_in_progress',jsonb_build_object('support_case_id',case_row.id,'action',p_action));
   return jsonb_build_object('action',p_action,'result',action_result,'status','recovery_in_progress');
 end;
 $$;

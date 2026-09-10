@@ -66,7 +66,7 @@ test.describe('Project Experience Phase 21 scale contract',()=>{
     const admission=read('lib/project-admission.ts');
     const api=read('app/api/admin/project-admission/route.ts');
     expect(migration).toContain("project_type is distinct from 'partner' or admission_mode='review_required'");
-    expect(admission).toMatch(/DEFAULT_AUTO_START_DELAY_MINUTES\s*=\s*360/);
+    expect(admission).toMatch(/DEFAULT_AUTO_START_DELAY_MINUTES\s*=\s*360\b/);
     expect(api).toContain('safeAutoStartDelayMinutes(project.auto_start_delay_minutes)');
     expect(api).not.toContain('const delay=360');
     expect(api).not.toContain('setDelay(360)');

@@ -7,8 +7,24 @@ const root=process.cwd();
 function read(relative:string){return fs.readFileSync(path.join(root,relative),'utf8')}
 
 async function noOverflow(page:Page,label:string){
-  const size=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth}));
-  expect(size.scrollWidth,label).toBeLessThanOrEqual(size.clientWidth);
+  const size=await page.evaluate(()=>{
+    const clientWidth=document.documentElement.clientWidth;
+    const offenders=Array.from(document.querySelectorAll<HTMLElement>('body *')).map(element=>{
+      const rect=element.getBoundingClientRect();
+      return{
+        tag:element.tagName.toLowerCase(),
+        id:element.id||undefined,
+        className:String(element.className||'').slice(0,160)||undefined,
+        left:Number(rect.left.toFixed(1)),
+        right:Number(rect.right.toFixed(1)),
+        width:Number(rect.width.toFixed(1)),
+        scrollWidth:element.scrollWidth,
+        clientWidth:element.clientWidth
+      };
+    }).filter(item=>item.width>0&&(item.left<-.5||item.right>clientWidth+.5||item.scrollWidth>Math.max(item.clientWidth+1,clientWidth))).sort((a,b)=>Math.max(b.right-clientWidth,-b.left,b.scrollWidth-clientWidth)-Math.max(a.right-clientWidth,-a.left,a.scrollWidth-clientWidth)).slice(0,12);
+    return{scrollWidth:document.documentElement.scrollWidth,clientWidth,offenders};
+  });
+  expect(size.scrollWidth,`${label}; overflow owners: ${JSON.stringify(size.offenders)}`).toBeLessThanOrEqual(size.clientWidth);
 }
 
 test.describe('Project Experience advanced public Project Detail',()=>{

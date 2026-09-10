@@ -93,3 +93,13 @@
   body.publicMobileNavV2 .mobileMenuPanel{width:calc(100vw - 16px)!important;max-width:none!important}
   .mobilePublicExploreInner{grid-template-columns:minmax(0,1fr)!important}
 }
+
+/* Phase 22: harmonise the legacy mobile.css 1280px switch with the canonical
+   managed-navigation / approved drawer boundary. 1081px and above is desktop;
+   1080px and below remains compact. This prevents the legacy rule from hiding
+   the canonical Primary navigation landmark at desktop widths. */
+@media (min-width:1081px) and (max-width:1280px){
+  .siteHeader .managedDesktopNavigation{display:flex!important}
+  .siteHeader .mobileMenu{display:none!important}
+  .siteHeader .navActions{display:flex!important}
+}

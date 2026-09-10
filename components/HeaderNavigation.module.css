@@ -1,5 +1,23 @@
 .headerNavigation{}
 
+/* Canonical responsive contract: the public header is compact through 1080px
+   and switches to desktop navigation at 1081px. Keep one boundary across the
+   managed navigation, direct navigation, actions and mobile-menu owners so a
+   later CSS layer cannot silently turn 1280px desktop back into compact mode. */
+@media(max-width:1080px){
+  :global(.siteHeader):has(.headerNavigation) :global(.managedDesktopNavigation){display:none!important}
+  :global(.siteHeader):has(.headerNavigation) .headerNavigation{display:none!important}
+  :global(.siteHeader):has(.headerNavigation) :global(.navActions){display:none!important}
+  :global(.siteHeader):has(.headerNavigation) :global(.globalSearchPortal),
+  :global(.siteHeader):has(.headerNavigation) :global(.desktopAccountPortal),
+  :global(.siteHeader):has(.headerNavigation) :global(.publicHomeButton){display:none!important}
+  :global(.siteHeader):has(.headerNavigation) :global(.mobileHeaderSearch){display:grid!important;order:5;flex:none}
+  :global(.siteHeader):has(.headerNavigation) :global(.mobileMenu){display:block!important;order:6;margin-left:0!important}
+  :global(.siteHeader):has(.headerNavigation) :global(.mobileMenu)>:global(summary){width:44px!important;height:44px!important;min-width:44px!important;padding:0!important;border-radius:11px!important;box-shadow:none!important}
+  :global(.siteHeader):has(.headerNavigation) :global(.mobileMenu)>:global(summary) :global(.menuLabel){display:none!important}
+  :global(.siteHeader):has(.headerNavigation) :global(.managedMobileNavigation){display:flex!important;flex-direction:column;min-height:0;background:#fff}
+}
+
 /* CSS Modules require every selector to contain a local class. The local headerNavigation
    class anchors the final public responsive layer while :global reaches shared app markup. */
 @media(max-width:1080px){
@@ -38,9 +56,6 @@
   :global(body):has(.headerNavigation) :global(#main-content .formShell),
   :global(body):has(.headerNavigation) :global(#main-content .homeSplit){grid-template-columns:minmax(0,1fr)!important}
 
-  /* Public menu rows use a different layer from the compact Explore/account controls.
-     Keep those resolved controls untouched and bring only the unresolved direct/about
-     rows onto the same accessible 48px rhythm. */
   .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary){padding-block:2px 4px!important}
   .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicSecondary){padding-block:8px 4px!important;margin-top:2px!important;border-top:1px solid rgba(16,19,29,.08)!important}
   .headerNavigation ~ :global(.mobileMenu) :global(.mobilePublicPrimary) :global(.mobileList),

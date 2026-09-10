@@ -28,7 +28,6 @@ import './public-mobile-drawer-v3.css';
 import './public-shell-reflow.css';
 import './admin-mobile-shell.css';
 import './admin-tablet-containment.css';
-import './admin-application-queue-responsive.css';
 import './project-admin-reflow.css';
 import './text-resize-reflow.css';
 

@@ -161,13 +161,14 @@ jobs:
     needs: scope
     if: needs.scope.outputs.requires_staging == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         suite:
           - public-regression
-          - authenticated-qa
+          - authenticated-qa-1
+          - authenticated-qa-2
           - persistence
           - informational-journeys
     env:
@@ -244,14 +245,17 @@ jobs:
       - name: Blocking public browser regression suite
         if: matrix.suite == 'public-regression'
         run: npm run test:regression
-      - name: Blocking authenticated smoke and Mettelo Lab Chromium visual QA
-        if: matrix.suite == 'authenticated-qa'
-        run: npm run test:e2e:smoke -- --workers=1
+      - name: Blocking authenticated QA shard 1 of 2
+        if: matrix.suite == 'authenticated-qa-1'
+        run: npm run test:e2e:smoke -- --workers=1 --shard=1/2
+      - name: Blocking authenticated QA shard 2 of 2
+        if: matrix.suite == 'authenticated-qa-2'
+        run: npm run test:e2e:smoke -- --workers=1 --shard=2/2
       - name: Upload authenticated Chromium visuals
-        if: always() && matrix.suite == 'authenticated-qa'
+        if: always() && (matrix.suite == 'authenticated-qa-1' || matrix.suite == 'authenticated-qa-2')
         uses: actions/upload-artifact@v4
         with:
-          name: mettelo-lab-chromium-visuals-${{ github.run_attempt }}
+          name: mettelo-lab-chromium-visuals-${{ matrix.suite }}-${{ github.run_attempt }}
           path: artifacts/mettelo-lab-visual/
           if-no-files-found: ignore
           retention-days: 7

@@ -35,15 +35,19 @@ begin
     raise exception using errcode='23514',message='INVALID_SUPPORT_RECOVERY_ACTION';
   end if;
 
-  -- Claim a transaction-scoped lock before touching any canonical project/run rows.
-  -- This makes two actions against the same support-case version deterministic and
-  -- prevents the losing request from sitting behind a database row lock until the
-  -- local PostgREST/Kong request timeout is reached.
-  if not pg_try_advisory_xact_lock(hashtextextended(p_case_id::text,17)) then
-    raise exception using errcode='40001',message='SUPPORT_CASE_STALE';
-  end if;
+  -- The support case row is the canonical concurrency boundary. NOWAIT ensures a
+  -- competing recovery never sits behind a row lock until PostgREST/Kong times out.
+  -- A request that starts after the winner commits is rejected by the version check.
+  begin
+    select * into case_row
+    from public.project_support_cases
+    where id=p_case_id
+    for update nowait;
+  exception
+    when lock_not_available then
+      raise exception using errcode='40001',message='SUPPORT_CASE_STALE';
+  end;
 
-  select * into case_row from public.project_support_cases where id=p_case_id for update;
   if case_row.id is null then raise exception using errcode='P0002',message='SUPPORT_CASE_NOT_FOUND'; end if;
   if case_row.updated_at is distinct from p_expected_updated_at then raise exception using errcode='40001',message='SUPPORT_CASE_STALE'; end if;
   if case_row.status in ('resolved','closed') then raise exception using errcode='23514',message='SUPPORT_CASE_NOT_ACTIONABLE'; end if;
@@ -102,7 +106,11 @@ begin
     values(case_row.project_id,case_row.project_run_id,'support_case_member_removed','user',p_actor_user_id,case_row.status,'recovery_in_progress',jsonb_build_object('support_case_id',case_row.id,'target_membership_id',target_member.id,'departure_source','support_resolution'));
   end if;
 
-  update public.project_support_cases set status='recovery_in_progress' where id=case_row.id;
+  -- Always advance the optimistic-concurrency token, even on installations where
+  -- no generic updated_at trigger exists for this table.
+  update public.project_support_cases
+  set status='recovery_in_progress', updated_at=clock_timestamp()
+  where id=case_row.id;
   insert into public.project_activity_log(project_id,project_run_id,event_type,actor_type,actor_user_id,from_status,to_status,metadata)
   values(case_row.project_id,case_row.project_run_id,'support_case_recovery_action','user',p_actor_user_id,case_row.status,'recovery_in_progress',jsonb_build_object('support_case_id',case_row.id,'action',p_action));
   return jsonb_build_object('action',p_action,'result',action_result,'status','recovery_in_progress');

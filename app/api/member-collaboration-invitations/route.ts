@@ -7,23 +7,31 @@ function isAdmin(user:{app_metadata?:Record<string,unknown>}){return user.app_me
 type Capacity={available?:number;capacity_available?:boolean};
 function one<T>(value:T|T[]|null|undefined):T|null{return Array.isArray(value)?value[0]||null:value||null}
 
+type InvitationProject={
+ id:string;title:string;status:string;member_invites_enabled:boolean|null;
+ project_lead_invites_enabled:boolean|null;team_member_invites_enabled:boolean|null;
+ collaboration_marketplace_enabled:boolean|null;late_joining_enabled:boolean|null;late_joining_cutoff_at:string|null;
+};
+
 async function liveNeed(db:NonNullable<ReturnType<typeof serviceDb>>,needId:string){
  const {data:need}=await db.from('project_collaboration_needs').select('id,project_id,project_run_id,status').eq('id',needId).maybeSingle();
  if(!need)return{need:null,project:null,run:null,capacity:null,accepting:false};
  const [{data:project},{data:run},capacityResult]=await Promise.all([
-  db.from('projects').select('id,title,status,member_invites_enabled,late_joining_enabled,late_joining_cutoff_at').eq('id',need.project_id).maybeSingle(),
+  db.from('projects').select('id,title,status,member_invites_enabled,project_lead_invites_enabled,team_member_invites_enabled,collaboration_marketplace_enabled,late_joining_enabled,late_joining_cutoff_at').eq('id',need.project_id).maybeSingle(),
   db.from('project_runs').select('id,status,recruitment_open').eq('id',need.project_run_id).eq('project_id',need.project_id).maybeSingle(),
   db.rpc('phase9_project_run_capacity',{p_project_id:need.project_id,p_run_id:need.project_run_id})
  ]);
  const capacity=one(capacityResult.data as Capacity|Capacity[]|null);const cutoffClosed=Boolean(project?.late_joining_cutoff_at&&Date.now()>=new Date(project.late_joining_cutoff_at).getTime());
- const accepting=Boolean(need.status==='active'&&project&&run&&project.member_invites_enabled===true&&!['completed','cancelled','archived'].includes(project.status)&&['forming','active'].includes(run.status)&&run.recruitment_open!==false&&(run.status!=='active'||(project.late_joining_enabled!==false&&!cutoffClosed))&&capacity?.capacity_available===true&&Number(capacity.available||0)>0);
- return{need,project,run,capacity,accepting};
+ const accepting=Boolean(need.status==='active'&&project&&run&&project.collaboration_marketplace_enabled===true&&project.member_invites_enabled===true&&!['completed','cancelled','archived'].includes(project.status)&&['forming','active'].includes(run.status)&&run.recruitment_open!==false&&(run.status!=='active'||(project.late_joining_enabled!==false&&!cutoffClosed))&&capacity?.capacity_available===true&&Number(capacity.available||0)>0);
+ return{need,project:project as InvitationProject|null,run,capacity,accepting};
 }
 
-async function senderAllowed(db:NonNullable<ReturnType<typeof serviceDb>>,user:{id:string;app_metadata?:Record<string,unknown>},projectId:string,runId:string){
- if(isAdmin(user))return true;
- const {data}=await db.from('project_members').select('id,team_role,membership_status').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).eq('membership_status','active').maybeSingle();
- return data?.team_role==='project_lead';
+async function senderAllowed(db:NonNullable<ReturnType<typeof serviceDb>>,user:{id:string;app_metadata?:Record<string,unknown>},project:InvitationProject,runId:string){
+ if(isAdmin(user))return{allowed:true,actor:'admin' as const};
+ const {data}=await db.from('project_members').select('id,team_role,membership_status').eq('project_id',project.id).eq('project_run_id',runId).eq('user_id',user.id).eq('membership_status','active').maybeSingle();
+ if(!data)return{allowed:false,actor:'none' as const};
+ if(data.team_role==='project_lead')return{allowed:project.project_lead_invites_enabled===true,actor:'project_lead' as const};
+ return{allowed:project.team_member_invites_enabled===true,actor:'team_member' as const};
 }
 
 async function blocked(db:NonNullable<ReturnType<typeof serviceDb>>,left:string,right:string){
@@ -50,7 +58,11 @@ export async function POST(request:Request){
   const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});const db=serviceDb();if(!db)return NextResponse.json({error:'Member invitation service is unavailable.'},{status:503});
   const body=await request.json();const needId=clean(body.collaboration_need_id,80);const username=clean(body.username,80).replace(/^@/,'');if(!needId||!username)return NextResponse.json({error:'A collaboration opportunity and member are required.'},{status:400});
   const live=await liveNeed(db,needId);if(!live.need||!live.project||!live.run||!live.accepting)return NextResponse.json({error:'This collaboration opportunity is no longer accepting member invitations.'},{status:409});
-  if(!await senderAllowed(db,user,live.need.project_id,live.need.project_run_id))return NextResponse.json({error:'Only the active Project Lead can invite an existing member to this project run.'},{status:403});
+  const sender=await senderAllowed(db,user,live.project,live.need.project_run_id);
+  if(!sender.allowed){
+   const error=sender.actor==='project_lead'?'Project Lead invitations are disabled for this project.':sender.actor==='team_member'?'Team-member invitations are disabled for this project.':'Active project membership is required to invite a member.';
+   return NextResponse.json({error},{status:403});
+  }
   const {data:invitee}=await db.from('profiles').select('id,username,is_public').ilike('username',username).maybeSingle();if(!invitee||invitee.is_public!==true)return NextResponse.json({error:'That member is not available for project invitations.'},{status:404});if(invitee.id===user.id)return NextResponse.json({error:'You cannot invite yourself.'},{status:400});
   const [{data:privacy},{data:membership},{data:application},isBlocked]=await Promise.all([
    db.from('member_privacy_preferences').select('allow_project_invitations').eq('user_id',invitee.id).maybeSingle(),
@@ -61,9 +73,9 @@ export async function POST(request:Request){
   if(isBlocked)return NextResponse.json({error:'That member is not available for project invitations.'},{status:404,headers:{'Cache-Control':'private, no-store'}});if(privacy?.allow_project_invitations===false)return NextResponse.json({error:'That member has chosen not to receive project invitations.'},{status:409,headers:{'Cache-Control':'private, no-store'}});if(membership)return NextResponse.json({error:'That member is already part of this project run.'},{status:409});if(application)return NextResponse.json({error:'That member already has active interest in this project.'},{status:409});
   const {error:limitError}=await db.rpc('phase18_consume_member_invite_rate_limit',{p_actor:user.id});if(limitError){if(String(limitError.message||'').includes('MEMBER_INVITE_RATE_LIMITED'))return NextResponse.json({error:'You have reached the hourly member-invitation limit. Try again later.'},{status:429});throw limitError}
   const expiresAt=new Date(Date.now()+7*24*60*60*1000).toISOString();const {data:invite,error}=await db.from('project_member_collaboration_invitations').insert({collaboration_need_id:live.need.id,project_id:live.need.project_id,project_run_id:live.need.project_run_id,invited_by:user.id,invitee_user_id:invitee.id,status:'pending',expires_at:expiresAt}).select('id,status,expires_at').single();
-  if(error){if(error.code==='23505')return NextResponse.json({error:'A pending invitation already exists for this member and opportunity.',code:'INVITE_ALREADY_PENDING'},{status:409});throw error}
-  const {data:authUser}=await db.auth.admin.getUserById(invitee.id);await notifyUser(db,{userId:invitee.id,email:authUser.user?.email||null,projectId:live.need.project_id,type:'project_collaboration_invite',eventKey:'project_collaboration_invite',title:`Invitation to collaborate on ${live.project.title}`,body:'A Project Lead invited you to review an active collaboration need. The invitation does not add you to the project automatically.',actionUrl:'/member/collaboration-invitations',dedupeKey:`phase18-member-invite:${invite.id}`,payload:{project_title:live.project.title}});
-  await db.from('project_activity_log').insert({project_id:live.need.project_id,project_run_id:live.need.project_run_id,event_type:'member_collaboration_invite_sent',actor_type:isAdmin(user)?'admin':'user',actor_user_id:user.id,from_status:live.run.status,to_status:live.run.status,metadata:{collaboration_need_id:live.need.id,member_invite_id:invite.id,invitee_user_id:invitee.id,expires_at:expiresAt}});
+  if(error){const detail=String(error.message||'');if(error.code==='23505')return NextResponse.json({error:'A pending invitation already exists for this member and opportunity.',code:'INVITE_ALREADY_PENDING'},{status:409});if(detail.includes('MEMBER_INVITES_DISABLED')||detail.includes('MARKETPLACE_DISABLED'))return NextResponse.json({error:'Member invitations are disabled for this project.',code:'INVITATIONS_DISABLED'},{status:409});if(detail.includes('JOINING_WINDOW_CLOSED')||detail.includes('RUN_RECRUITMENT_CLOSED')||detail.includes('PROJECT_CLOSED')||detail.includes('LATE_JOINING_DISABLED'))return NextResponse.json({error:'This project is no longer accepting member invitations.',code:'RECRUITMENT_CLOSED'},{status:409});throw error}
+  const {data:authUser}=await db.auth.admin.getUserById(invitee.id);await notifyUser(db,{userId:invitee.id,email:authUser.user?.email||null,projectId:live.need.project_id,type:'project_collaboration_invite',eventKey:'project_collaboration_invite',title:`Invitation to collaborate on ${live.project.title}`,body:'You were invited to review an active collaboration need. The invitation does not add you to the project automatically.',actionUrl:'/member/collaboration-invitations',dedupeKey:`phase18-member-invite:${invite.id}`,payload:{project_title:live.project.title}});
+  await db.from('project_activity_log').insert({project_id:live.need.project_id,project_run_id:live.need.project_run_id,event_type:'member_collaboration_invite_sent',actor_type:isAdmin(user)?'admin':'user',actor_user_id:user.id,from_status:live.run.status,to_status:live.run.status,metadata:{collaboration_need_id:live.need.id,member_invite_id:invite.id,invitee_user_id:invitee.id,expires_at:expiresAt,invitation_actor:sender.actor}});
   return NextResponse.json({ok:true,invite},{status:201,headers:{'Cache-Control':'private, no-store'}});
  }catch(error){console.error('member collaboration invitation create failed',error);return NextResponse.json({error:'Unable to send this member invitation.'},{status:500})}
 }

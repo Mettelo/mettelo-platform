@@ -20,7 +20,11 @@ function cutoff(value:unknown){
   return Number.isNaN(parsed.getTime())?undefined:parsed.toISOString();
 }
 
-const policyFields='id,project_type,partner_name,admission_mode,auto_start_delay_minutes,auto_start_paused_at,late_joining_enabled,late_joining_cutoff_at,project_sharing_enabled,member_invites_enabled';
+function booleanOr(value:unknown,fallback:boolean){
+  return value===undefined?fallback:value===true;
+}
+
+const policyFields='id,project_type,partner_name,admission_mode,auto_start_delay_minutes,auto_start_paused_at,late_joining_enabled,late_joining_cutoff_at,project_sharing_enabled,member_invites_enabled,collaboration_marketplace_enabled,project_lead_invites_enabled,team_member_invites_enabled,external_collaboration_invites_enabled,collaboration_social_sharing_enabled,offer_expiry_hours,offer_reminders_enabled,status';
 const runFields='id,run_number,status,has_started,required_team_size,scheduled_start_at,start_scheduled_at,start_ready_at,auto_start_paused_at,auto_start_pause_reason,auto_start_paused_by_user_id,auto_start_blocked_at,auto_start_block_reason,auto_start_blocked_by_user_id,auto_start_failure,recruitment_open';
 
 function safeReason(value:unknown,max=500){return String(value||'').trim().slice(0,max)}
@@ -44,7 +48,7 @@ export async function GET(request:Request){
     if(error||!data)return NextResponse.json({error:'Project not found.'},{status:404});
     if(runError)throw runError;
     return NextResponse.json({
-      item:{...data,auto_start_delay_minutes:360,effective_admission_mode:effectiveProjectAdmissionMode(data.project_type,data.admission_mode)},
+      item:{...data,auto_start_delay_minutes:safeAutoStartDelayMinutes(data.auto_start_delay_minutes),effective_admission_mode:effectiveProjectAdmissionMode(data.project_type,data.admission_mode)},
       runs:runs||[]
     });
   }catch(error){
@@ -67,6 +71,7 @@ export async function PATCH(request:Request){
     const {data:project,error:projectError}=await db.from('projects').select(policyFields).eq('id',projectId).maybeSingle();
     if(projectError||!project)return NextResponse.json({error:'Project not found.'},{status:404});
     const effectiveMode=effectiveProjectAdmissionMode(project.project_type,project.admission_mode);
+    const canonicalDelay=safeAutoStartDelayMinutes(project.auto_start_delay_minutes);
 
     if(action==='convert_to_review_required'){
       if(project.project_type==='partner')return NextResponse.json({error:'Partner Projects are already permanently REVIEW_REQUIRED.'},{status:409});
@@ -116,8 +121,7 @@ export async function PATCH(request:Request){
         if(!run.auto_start_blocked_at)return NextResponse.json({ok:true,action,status:'scheduled',already_unblocked:true});
         const readiness=await minimumReady(db,runId,run.required_team_size);
         if(!readiness.ready)return NextResponse.json({ok:false,status:'team_forming',blockers:['team_size'],filled:readiness.filled,required_team_size:readiness.required,error:'This team is below its minimum. Keep the run blocked until the start condition is restored.'},{status:409});
-        const delay=safeAutoStartDelayMinutes(360);
-        const due=new Date(Date.now()+delay*60_000).toISOString();
+        const due=new Date(Date.now()+canonicalDelay*60_000).toISOString();
         const {data:updated,error}=await db.from('project_runs').update({
           auto_start_blocked_at:null,
           auto_start_block_reason:null,
@@ -129,15 +133,14 @@ export async function PATCH(request:Request){
           updated_at:now
         }).eq('id',runId).eq('has_started',false).select('id').maybeSingle();
         if(error)throw error;if(!updated)return NextResponse.json({error:'This run changed before it could be unblocked.'},{status:409});
-        await db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'project_auto_start_unblocked',actor_type:'user',actor_user_id:user.id,from_status:'forming',to_status:'forming',metadata:{reason:reason||null,scheduled_start_at:due,delay_minutes:delay,filled:readiness.filled,required_team_size:readiness.required}});
+        await db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'project_auto_start_unblocked',actor_type:'user',actor_user_id:user.id,from_status:'forming',to_status:'forming',metadata:{reason:reason||null,scheduled_start_at:due,delay_minutes:canonicalDelay,filled:readiness.filled,required_team_size:readiness.required}});
         return NextResponse.json({ok:true,action,status:'scheduled',scheduled_start_at:due});
       }
 
       if(action==='resume_run'){
         const readiness=await minimumReady(db,runId,run.required_team_size);
         if(!readiness.ready)return NextResponse.json({ok:false,status:'team_forming',blockers:['team_size'],filled:readiness.filled,required_team_size:readiness.required,error:'This team is below its minimum. Automatic start cannot resume until the start condition is restored.'},{status:409});
-        const delay=safeAutoStartDelayMinutes(360);
-        const due=new Date(Date.now()+delay*60_000).toISOString();
+        const due=new Date(Date.now()+canonicalDelay*60_000).toISOString();
         const {data:updated,error}=await db.from('project_runs').update({
           auto_start_paused_at:null,
           auto_start_pause_reason:null,
@@ -150,7 +153,7 @@ export async function PATCH(request:Request){
         }).eq('id',runId).eq('has_started',false).is('auto_start_blocked_at',null).select('id').maybeSingle();
         if(error)throw error;
         if(!updated)return NextResponse.json({error:'Unblock this run before resuming automatic start.'},{status:409});
-        await db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'project_auto_start_resumed',actor_type:'user',actor_user_id:user.id,from_status:'forming',to_status:'forming',metadata:{reason:reason||null,scheduled_start_at:due,delay_minutes:delay,filled:readiness.filled,required_team_size:readiness.required}});
+        await db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'project_auto_start_resumed',actor_type:'user',actor_user_id:user.id,from_status:'forming',to_status:'forming',metadata:{reason:reason||null,scheduled_start_at:due,delay_minutes:canonicalDelay,filled:readiness.filled,required_team_size:readiness.required}});
         return NextResponse.json({ok:true,action,status:'scheduled',scheduled_start_at:due});
       }
 
@@ -172,22 +175,38 @@ export async function PATCH(request:Request){
       return NextResponse.json({error:'Use the explicit “Convert to review required” action so waiting AUTO memberships and schedules are unwound safely and audited.'},{status:409});
     }
 
-    const delay=360;
     const pause=body.auto_start_paused===true;
-    const lateJoining=body.late_joining_enabled!==false;
-    const sharing=body.project_sharing_enabled!==false;
-    const invites=body.member_invites_enabled===true;
+    const lateJoining=booleanOr(body.late_joining_enabled,project.late_joining_enabled!==false);
+    const sharing=booleanOr(body.project_sharing_enabled,project.project_sharing_enabled!==false);
+    const invites=booleanOr(body.member_invites_enabled,project.member_invites_enabled===true);
+    const marketplace=booleanOr(body.collaboration_marketplace_enabled,project.collaboration_marketplace_enabled!==false);
+    const leadInvites=booleanOr(body.project_lead_invites_enabled,project.project_lead_invites_enabled!==false);
+    const teamInvites=booleanOr(body.team_member_invites_enabled,project.team_member_invites_enabled===true);
+    const externalInvites=booleanOr(body.external_collaboration_invites_enabled,project.external_collaboration_invites_enabled===true);
+    const socialSharing=booleanOr(body.collaboration_social_sharing_enabled,project.collaboration_social_sharing_enabled===true);
+    const offerReminders=booleanOr(body.offer_reminders_enabled,project.offer_reminders_enabled!==false);
+    const offerExpiryHours=Math.max(1,Math.min(720,Number(body.offer_expiry_hours??project.offer_expiry_hours??72)));
     const lateJoiningCutoff=cutoff(body.late_joining_cutoff_at);
     if(lateJoiningCutoff===undefined)return NextResponse.json({error:'Choose a valid late-joining cutoff date and time.'},{status:400});
+    if(!marketplace&&(externalInvites||socialSharing))return NextResponse.json({error:'Enable the collaboration marketplace before enabling external invitations or social sharing.'},{status:400});
+    if(!sharing&&socialSharing)return NextResponse.json({error:'Enable project sharing before enabling collaboration social sharing.'},{status:400});
+    if(!invites&&(leadInvites||teamInvites))return NextResponse.json({error:'Enable member invitations before allowing Project Lead or team-member invitations.'},{status:400});
 
     const patch={
       admission_mode:requestedMode,
-      auto_start_delay_minutes:delay,
+      auto_start_delay_minutes:canonicalDelay,
       auto_start_paused_at:requestedMode==='auto'&&pause?(project.auto_start_paused_at||now):null,
       late_joining_enabled:lateJoining,
       late_joining_cutoff_at:lateJoiningCutoff,
       project_sharing_enabled:sharing,
       member_invites_enabled:invites,
+      collaboration_marketplace_enabled:marketplace,
+      project_lead_invites_enabled:leadInvites,
+      team_member_invites_enabled:teamInvites,
+      external_collaboration_invites_enabled:externalInvites,
+      collaboration_social_sharing_enabled:socialSharing,
+      offer_expiry_hours:offerExpiryHours,
+      offer_reminders_enabled:offerReminders,
       updated_at:now,
       updated_by_user_id:user.id
     };
@@ -196,9 +215,15 @@ export async function PATCH(request:Request){
     await db.from('project_activity_log').insert({
       project_id:projectId,event_type:'project_admission_policy_updated',actor_type:'user',actor_user_id:user.id,
       from_status:effectiveMode,to_status:effectiveProjectAdmissionMode(project.project_type,requestedMode),
-      metadata:{previous_delay_minutes:project.auto_start_delay_minutes,new_delay_minutes:360,auto_start_paused:pause,late_joining_enabled:lateJoining,late_joining_cutoff_at:lateJoiningCutoff,project_sharing_enabled:sharing,member_invites_enabled:invites,project_type:project.project_type,partner_name:project.partner_name||null}
+      metadata:{
+        previous_delay_minutes:project.auto_start_delay_minutes,new_delay_minutes:canonicalDelay,auto_start_paused:pause,
+        late_joining_enabled:lateJoining,late_joining_cutoff_at:lateJoiningCutoff,project_sharing_enabled:sharing,member_invites_enabled:invites,
+        collaboration_marketplace_enabled:marketplace,project_lead_invites_enabled:leadInvites,team_member_invites_enabled:teamInvites,
+        external_collaboration_invites_enabled:externalInvites,collaboration_social_sharing_enabled:socialSharing,
+        offer_expiry_hours:offerExpiryHours,offer_reminders_enabled:offerReminders,project_type:project.project_type,partner_name:project.partner_name||null
+      }
     });
-    return NextResponse.json({ok:true,item:{...data,auto_start_delay_minutes:360,effective_admission_mode:effectiveProjectAdmissionMode(data.project_type,data.admission_mode)}});
+    return NextResponse.json({ok:true,item:{...data,auto_start_delay_minutes:safeAutoStartDelayMinutes(data.auto_start_delay_minutes),effective_admission_mode:effectiveProjectAdmissionMode(data.project_type,data.admission_mode)}});
   }catch(error){
     console.error('project admission configuration error',error);
     return NextResponse.json({error:'Unable to update project admission policy.'},{status:500});

@@ -1,7 +1,6 @@
 import {expect,test} from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-import './project-experience-phase16-member-exit.spec';
 import './project-experience-phase16-review-hardening.spec';
 const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');

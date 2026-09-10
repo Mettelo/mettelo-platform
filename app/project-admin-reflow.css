@@ -1,0 +1,54 @@
+/* Cross-viewport containment for the canonical project-request Admin queue.
+   Keep intrinsic form/table widths inside their owning grid/scroll container so
+   320px, tablet and text-resized layouts reflow without document-level overflow. */
+.adminApplications,
+.adminApplications .applicationToolbar,
+.adminApplications .applicationTableWrap,
+.adminApplications .applicationMobileList,
+.adminApplications .pagination{
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.adminApplications .applicationToolbar>*{
+  min-width:0;
+}
+.adminApplications .applicationToolbar select,
+.adminApplications .applicationToolbar input{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.adminApplications .applicationTableWrap{
+  width:100%;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+}
+.adminApplications .applicationMobileList article,
+.adminApplications .mobileAppTop,
+.adminApplications .mobileAppTop>button,
+.adminApplications .mobileAppTop>button>*,
+.adminApplications .projectCell,
+.adminApplications .detailGrid,
+.adminApplications .detailGrid>section{
+  min-width:0;
+  max-width:100%;
+}
+.adminApplications .mobileAppTop small,
+.adminApplications .mobileAppTop strong,
+.adminApplications .projectCell a,
+.adminApplications .projectCell small,
+.adminApplications .detailGrid p,
+.adminApplications .detailGrid dd{
+  overflow-wrap:anywhere;
+}
+@media (max-width: 900px){
+  .adminApplications .applicationTableWrap{display:none}
+  .adminApplications .applicationMobileList{display:grid;gap:8px}
+  .adminApplications .applicationToolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .adminApplications .detailGrid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width: 480px){
+  .adminApplications .applicationToolbar{grid-template-columns:minmax(0,1fr)}
+}

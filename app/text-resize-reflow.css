@@ -1,0 +1,28 @@
+/* Preserve document-level reflow when users enlarge text without changing the viewport.
+   Desktop chrome may wrap onto additional rows, but it must never force horizontal scrolling. */
+.siteHeader .nav{
+  min-width:0;
+  max-width:100%;
+  height:auto;
+  min-height:80px;
+  flex-wrap:wrap;
+  align-content:center;
+}
+.siteHeader .nav>*{
+  min-width:0;
+  max-width:100%;
+}
+.siteHeader .nav nav,
+.siteHeader .navActions{
+  min-width:0;
+  flex-wrap:wrap;
+}
+.siteHeader .nav nav a,
+.siteHeader .navActions a,
+.siteHeader .brand{
+  overflow-wrap:anywhere;
+}
+.siteHeader .brandLogo{
+  max-width:100%;
+  height:auto;
+}

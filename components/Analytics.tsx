@@ -26,25 +26,30 @@ export default function Analytics(){
     {measurementId&&<>
       <Script src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`} strategy="afterInteractive" />
       <Script id="mettelo-analytics" strategy="afterInteractive">{`
-        window.dataLayer=window.dataLayer||[];
-        function gtag(){dataLayer.push(arguments)}
-        window.gtag=gtag;
-        gtag('js',new Date());
-        gtag('config','${measurementId}',{anonymize_ip:true});
-        document.addEventListener('click',function(e){
-          var el=e.target&&e.target.closest?e.target.closest('a,button'):null;
-          if(!el)return;
-          var href=el.getAttribute('href')||'';
-          var text=(el.textContent||'').trim().slice(0,80);
-          var eventName=el.getAttribute('data-event');
-          if(!eventName){
-            if(href.indexOf('/auth/signup')===0||href.indexOf('/signin')===0||href.indexOf('/membership')===0)eventName='membership_intent';
-            else if(href.indexOf('/projects')===0)eventName='project_intent';
-            else if(href.indexOf('/partnership')===0)eventName='partner_intent';
-            else if(href.indexOf('/events')===0)eventName='event_intent';
-          }
-          if(eventName)gtag('event',eventName,{link_url:href,link_text:text});
-        });
+        (function(){
+          // Phase 17 private support identifiers and case-workspace URLs must never
+          // enter general product analytics. Do not initialize GA on this surface.
+          if(window.location.pathname.indexOf('/admin/project-support')===0)return;
+          window.dataLayer=window.dataLayer||[];
+          function gtag(){dataLayer.push(arguments)}
+          window.gtag=gtag;
+          gtag('js',new Date());
+          gtag('config','${measurementId}',{anonymize_ip:true});
+          document.addEventListener('click',function(e){
+            var el=e.target&&e.target.closest?e.target.closest('a,button'):null;
+            if(!el)return;
+            var href=el.getAttribute('href')||'';
+            var text=(el.textContent||'').trim().slice(0,80);
+            var eventName=el.getAttribute('data-event');
+            if(!eventName){
+              if(href.indexOf('/auth/signup')===0||href.indexOf('/signin')===0||href.indexOf('/membership')===0)eventName='membership_intent';
+              else if(href.indexOf('/projects')===0)eventName='project_intent';
+              else if(href.indexOf('/partnership')===0)eventName='partner_intent';
+              else if(href.indexOf('/events')===0)eventName='event_intent';
+            }
+            if(eventName)gtag('event',eventName,{link_url:href,link_text:text});
+          });
+        })();
       `}</Script>
     </>}
   </>;

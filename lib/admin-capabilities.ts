@@ -9,6 +9,8 @@ export const ADMIN_CAPABILITIES=[
   'members.suspend',
   'projects.manage',
   'projects.review',
+  'projects.support.manage',
+  'projects.safeguarding.manage',
   'proof.verify',
   'spotlight.govern',
   'careers.review',
@@ -29,6 +31,8 @@ export const ADMIN_CAPABILITY_META:Record<AdminCapability,{group:string;label:st
   'members.suspend':{group:'Members',label:'Suspend members',description:'Apply governed member suspension actions.'},
   'projects.manage':{group:'Projects & Proof',label:'Manage projects',description:'Operate project records, teams and delivery controls.'},
   'projects.review':{group:'Projects & Proof',label:'Review project applications',description:'Review governed member-to-project applications and decisions.'},
+  'projects.support.manage':{group:'Projects & Proof',label:'Manage private project support',description:'Review and manage private member support and conflict cases.'},
+  'projects.safeguarding.manage':{group:'Security & audit',label:'Manage safeguarding cases',description:'Access and manage safeguarding-escalated project support cases.'},
   'proof.verify':{group:'Projects & Proof',label:'Verify Proof',description:'Review and verify contribution evidence and Proof records.'},
   'spotlight.govern':{group:'Projects & Proof',label:'Govern Spotlight',description:'Review and govern Spotlight recognition and public visibility.'},
   'careers.review':{group:'Careers & communications',label:'Review Careers',description:'Operate recruitment roles, candidates, interviews and offers.'},
@@ -38,6 +42,10 @@ export const ADMIN_CAPABILITY_META:Record<AdminCapability,{group:string;label:st
 };
 
 type AdminIdentity={app_metadata?:Record<string,unknown>|null};
+const EXPLICIT_ONLY_CAPABILITIES=new Set<AdminCapability>([
+  'projects.support.manage',
+  'projects.safeguarding.manage'
+]);
 
 export function isTrustedAdmin(user:AdminIdentity|null|undefined){
   return user?.app_metadata?.role==='admin';
@@ -56,10 +64,11 @@ export function hasAdminCapability(user:AdminIdentity|null|undefined,capability:
   const metadata=user?.app_metadata||{};
   const configured=metadata.admin_capabilities;
 
-  // Backward compatibility: existing trusted Admins have no capability array yet.
-  // Once an explicit array exists it becomes authoritative. Any malformed or unknown
-  // entry fails the entire configuration closed instead of being silently ignored.
-  if(configured===undefined||configured===null)return true;
+  // Backward compatibility remains for established Admin capabilities only.
+  // Phase 17 private support and safeguarding are sensitive new surfaces and must
+  // be granted explicitly; a legacy role=admin account must not inherit them.
+  // Any malformed or unknown entry fails the entire configuration closed instead of being silently ignored.
+  if(configured===undefined||configured===null)return !EXPLICIT_ONLY_CAPABILITIES.has(capability);
   if(!Array.isArray(configured)||!configured.every(isValidConfiguredCapability))return false;
   if(configured.includes('*'))return true;
   return configured.includes(capability);

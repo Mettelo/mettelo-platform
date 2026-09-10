@@ -5,7 +5,8 @@
 -- recovery race, a losing request must never sit behind those deeper locks long
 -- enough for PostgREST/Kong to time out. This wrapper adds a second, namespaced
 -- transaction lock plus a short transaction-local lock timeout and normalizes
--- lock/deadlock contention to the canonical SUPPORT_CASE_STALE response.
+-- lock/deadlock/serialization contention to the canonical SUPPORT_CASE_STALE
+-- response without surfacing SQLSTATE 40001 to the REST layer.
 
 alter function public.phase17_execute_support_recovery(uuid,text,uuid,timestamptz,uuid,uuid,uuid)
   rename to phase17_execute_support_recovery_impl;
@@ -36,10 +37,14 @@ begin
 
   -- Namespaced outer lock prevents two Phase 17 recovery requests for the same
   -- case from entering the deeper canonical lock chain at the same time.
+  -- Use a non-retryable application exception here: SQLSTATE 40001 is a
+  -- serialization failure and may be retried by infrastructure, which defeats
+  -- the fail-fast contract and can turn an immediate stale result into an
+  -- upstream timeout.
   if not pg_try_advisory_xact_lock(
     hashtextextended('phase17-support-recovery:'||p_case_id::text,0)
   ) then
-    raise exception using errcode='40001',message='SUPPORT_CASE_STALE';
+    raise exception using errcode='P0001',message='SUPPORT_CASE_STALE';
   end if;
 
   -- Defence in depth: if deeper canonical locks are already held by another
@@ -58,8 +63,8 @@ begin
       p_assignment_id
     );
   exception
-    when lock_not_available or deadlock_detected then
-      raise exception using errcode='40001',message='SUPPORT_CASE_STALE';
+    when lock_not_available or deadlock_detected or serialization_failure then
+      raise exception using errcode='P0001',message='SUPPORT_CASE_STALE';
   end;
 end;
 $$;
@@ -70,7 +75,7 @@ grant execute on function public.phase17_execute_support_recovery(uuid,text,uuid
   to service_role;
 
 comment on function public.phase17_execute_support_recovery(uuid,text,uuid,timestamptz,uuid,uuid,uuid) is
-  'Fail-fast Phase 17 recovery boundary. Serializes same-case recovery before Phase 10/16 lock chains and normalizes lock contention to SUPPORT_CASE_STALE.';
+  'Fail-fast Phase 17 recovery boundary. Serializes same-case recovery before Phase 10/16 lock chains and normalizes retryable database contention to non-retryable SUPPORT_CASE_STALE.';
 
 comment on function public.phase17_execute_support_recovery_impl(uuid,text,uuid,timestamptz,uuid,uuid,uuid) is
   'Internal Phase 17 transactional coordinator. Invoke through phase17_execute_support_recovery so same-case contention fails fast.';

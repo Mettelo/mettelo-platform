@@ -3,18 +3,19 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 
 // Phase 2 established the member-project surfaces. Later Project Experience
-// phases intentionally replaced several early literals and headcount-only
-// assumptions. This compatibility audit protects the capabilities that must
-// survive without requiring retired UI copy or retired admission/start logic.
+// phases intentionally replaced early role-neutral and automatic-admission UI
+// assumptions. This compatibility audit protects the surviving capabilities
+// while asserting the current canonical Submit Interest boundary.
 const checks=[
   ['components/MemberAppShell.tsx',["from '@/lib/member-navigation'",'Find a project','/member/discover','My Mettelo mobile navigation','aria-current']],
   ['lib/member-navigation.ts',["label:'Home'","label:'Projects'","label:'Applications'","label:'Proof'","label:'Profile'","label:'Discover'","label:'Recommended'","label:'Opportunities'","label:'Saved'","label:'Events'","label:'Spotlight'",'mobilePersistentNav','mobileMoreNav']],
   ['app/projects/page.tsx',['resolveProjectPublicAvailability','View project →']],
   ['app/projects/[id]/page.tsx',['ProjectPublicDetailV2','buildProjectExperienceModel']],
   ['components/project-experience/ProjectPublicDetailV2.tsx',['Decide whether this is the right project for you.','Interest closes','ProjectPublicDetailBodyV3']],
-  ['components/project-experience/MemberProjectDetailV2.tsx',['YOUR DECISION','Submit Interest','Minimum to start','Target team','Maximum team','Solo participation capacity','Team participation capacity','MemberProjectDetailBodyV3']],
-  ['components/MemberProjectApplicationFlow.tsx',['Availability','How you could contribute','Review','You are not choosing a formal project role at this stage.','Formal project responsibilities are assigned later','leadership_interest:leadershipInterest','participation_preference:participationPreference','PROJECT_PARTICIPATION_TERMS_VERSION','Submit Interest',"fetch('/api/project-applications'"]],
-  ['app/api/project-applications/route.ts',['canonicalAdmissionMode','canonicalParticipationMode','resolveParticipationPreference','phase6_auto_admit_interest',"admission_decision:'review_required'",'leadership_interest:leadershipInterest','participation_preference','ALREADY_PARTICIPATING','CAPACITY_FULL']],
+  ['components/project-experience/MemberProjectDetailV2.tsx',['YOUR DECISION','Submit Interest','Project model','Capacity','Applications','Minimum to start','Target team','Solo place currently allocated','You can still submit interest while applications remain open.','MemberProjectDetailBodyV3']],
+  ['components/MemberProjectApplicationFlow.tsx',['Participation','Role & contribution','Availability','Fit','Review','Primary role','Second-choice role','Relevant contribution areas','Published project commitment','Why do you want to work on this project?','What would you contribute?','leadership_interest:isSolo?false:leadership','participation_preference:participation','PROJECT_PARTICIPATION_TERMS_VERSION','Submit Interest',"fetch('/api/project-applications'"]],
+  ['app/api/project-applications/route.ts',['canonicalParticipationMode','resolveParticipationPreference',"rpc('submit_project_interest'",'p_participation_preference','p_primary_project_role_id','p_secondary_project_role_id','p_leadership_interest:leadershipInterest','participation_preference','ALREADY_PARTICIPATING','PERSISTENCE_NOT_CONFIRMED']],
+  ['supabase/migrations/20260911110000_submit_interest_participation_journey.sql',['create or replace function public.submit_project_interest','pg_advisory_xact_lock','PARTICIPATION_NOT_SUPPORTED','PRIMARY_ROLE_REQUIRED','PRIMARY_ROLE_FULL',"'submitted','interest'","'review_required','review_required'",'security definer']],
   ['lib/project-team-readiness.ts',["from('project_member_responsibilities')",'assignment_status','responsibility_coverage',".select('lab_ready')","if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')",'ready:blockers.length===0']],
   ['lib/project-start-service.ts',["db.rpc('phase9_activate_project_run'",'assessProjectTeamReadiness']],
   ['app/member/applications/page.tsx',['project_application_events','project_run_id','MemberApplicationTracker',"from('project_applications')"]],
@@ -39,18 +40,19 @@ if(publicApplicationForm.includes("fetch('/api/project-applications'")){
 }
 
 const internalApplicationFlow=fs.readFileSync('components/MemberProjectApplicationFlow.tsx','utf8');
-for(const forbidden of ['Role & fit','project_role_ids:','project_role_id:']){
-  if(internalApplicationFlow.includes(forbidden)){
-    console.error(`Submit Interest must remain role-neutral after Phase 6: ${forbidden}`);failed=true;
-  }
+if(!internalApplicationFlow.includes("const isSolo=participation==='solo'")){
+  console.error('Submit Interest must preserve explicit Solo semantics.');failed=true;
 }
-if(!internalApplicationFlow.includes('This is an interest signal, not a guarantee or a formal role assignment.')){
-  console.error('Leadership interest must remain an input rather than automatic Project Lead authority.');failed=true;
+if(!internalApplicationFlow.includes("if(participation==='solo'){setPrimaryRole('');setSecondaryRole('');setRoleFit('');setLeadership(false)}")){
+  console.error('Solo interest must clear team role and leadership fields.');failed=true;
+}
+if(!internalApplicationFlow.includes('I would be willing to lead this project team if selected.')){
+  console.error('Team leadership willingness must remain an input rather than automatic Project Lead authority.');failed=true;
 }
 
 const applicationRoute=fs.readFileSync('app/api/project-applications/route.ts','utf8');
-if(!applicationRoute.includes("if(admissionMode==='auto')")||!applicationRoute.includes("admission={decision:'review_required'")){
-  console.error('Canonical project interest must preserve separate AUTO and REVIEW_REQUIRED admission paths.');failed=true;
+if(!applicationRoute.includes("const isInterest=String(body.application_kind||'application')==='interest'")||!applicationRoute.includes("rpc('submit_project_interest'")){
+  console.error('Canonical project interest must route through the atomic Submit Interest boundary.');failed=true;
 }
 if(applicationRoute.includes("status:'offered'")||applicationRoute.includes("status:'accepted'")){
   console.error('Initial Submit Interest must not fabricate Offer/Acceptance state.');failed=true;
@@ -59,6 +61,9 @@ if(applicationRoute.includes("status:'offered'")||applicationRoute.includes("sta
 const memberDetail=fs.readFileSync('components/project-experience/MemberProjectDetailV2.tsx','utf8');
 if(!memberDetail.includes("project.participationMode==='solo'")){
   console.error('Member Project must preserve explicit Solo independent-work semantics.');failed=true;
+}
+if(!memberDetail.includes("const applicationsOpen=state==='open_eligible'||state==='full'")){
+  console.error('Member Project must keep application availability separate from current placement capacity.');failed=true;
 }
 
 const teamResolver=fs.readFileSync('lib/project-team-overview.ts','utf8');
@@ -78,12 +83,15 @@ for(const forbidden of ["from('career_applications')",'CareerApplicationTracker'
   if(applicationsPage.includes(forbidden)){console.error(`My Mettelo Applications must stay project-only: ${forbidden}`);failed=true;}
 }
 
-// Later phases replaced Phase 2's headcount-only auto-start simulation. The
-// compatibility invariant is now: participation readiness is necessary, but
-// atomic final activation remains delegated to the canonical start service.
+// Participation readiness is necessary, but final project activation remains
+// delegated to the canonical start service; interest submission cannot start a run.
 const startService=fs.readFileSync('lib/project-start-service.ts','utf8');
 if(!startService.includes("db.rpc('phase9_activate_project_run'")){
   console.error('Project activation must remain delegated to the canonical atomic activation boundary.');failed=true;
+}
+const interestMigration=fs.readFileSync('supabase/migrations/20260911110000_submit_interest_participation_journey.sql','utf8');
+for(const forbidden of ['insert into public.project_members','insert into public.project_runs','phase9_activate_project_run']){
+  if(interestMigration.includes(forbidden)){console.error(`Initial Submit Interest must not create participation/run state: ${forbidden}`);failed=true;}
 }
 
 if(failed)process.exit(1);

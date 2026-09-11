@@ -1,6 +1,7 @@
 .reportedRegressions{}
 
-/* The Lab owns its own Back action. Hide only the legacy project-page Back link that can route admins into admin operations. */
+/* The Lab owns its own Back action. Keep the original direct-child guard and cover the current nested project-page action container. */
+.reportedRegressions :global([data-lab-view]>.actions>a:first-child),
 .reportedRegressions :global([data-lab-view] .actions>a[href="/member"]),
 .reportedRegressions :global([data-lab-view] .actions>a[href="/admin/project-operations"]){display:none!important}
 .reportedRegressions :global([data-lab-back]){

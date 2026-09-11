@@ -28,7 +28,7 @@ test.describe('Project Experience Phase 18B collaboration marketplace contract',
   });
 
   test('same-run interest extends canonical Phase 18 targeting without bypassing membership policy',()=>{
-   const migration=read('supabase/migrations/20260908102000_project_experience_phase_18_same_run_interest.sql');const api=read('app/api/project-applications/route.ts');const submit=read('supabase/migrations/20260911112000_submit_interest_participation_journey.sql');
+   const migration=read('supabase/migrations/20260908102000_project_experience_phase_18_same_run_interest.sql');const api=read('app/api/project-applications/route.ts');const submit=read('supabase/migrations/20260911110000_submit_interest_participation_journey.sql');
    for(const text of ['phase6_auto_admit_interest','phase9_lock_project_capacity','project_collaboration_needs','recruitment_open','late_joining_enabled','late_joining_cutoff_at'])expect(migration).toContain(text);
    expect(api).toContain("rpc('submit_project_interest'");
    expect(api).toContain('p_collaboration_need_id:collaborationNeedId');

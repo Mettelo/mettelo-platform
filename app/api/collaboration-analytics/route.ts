@@ -2,7 +2,7 @@ import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
 
-const PUBLIC_EVENTS=new Set(['opportunity_viewed','share_linkedin','share_x','share_whatsapp','share_copy']);
+const PUBLIC_EVENTS=new Set(['opportunity_viewed','share_linkedin','share_x','share_whatsapp','share_copy','share_native']);
 function clean(value:unknown,max=80){return String(value??'').trim().slice(0,max)}
 
 export async function POST(request:Request){

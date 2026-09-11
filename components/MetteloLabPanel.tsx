@@ -8,6 +8,7 @@ import ProjectSoloDeliverySection from '@/components/project-experience/ProjectS
 import ProjectMemberDepartureSection from '@/components/project-experience/ProjectMemberDepartureSection';
 import ProjectTeamRecoverySection from '@/components/project-experience/ProjectTeamRecoverySection';
 import MetteloLabSupportView from '@/components/MetteloLabSupportView';
+import ProjectGrowTeamSection from '@/components/ProjectGrowTeamSection';
 import styles from './MetteloLabPanel.module.css';
 
 type TeamMember={id:string;name:string;headline:string|null;role:string};
@@ -87,6 +88,7 @@ export default async function MetteloLabPanel(props:Props){
    {current?<>
     <div className={styles.teamMeta}><span><strong>Your role</strong><b>{humanise(props.workspaceRole)}</b></span><span><strong>Project Lead</strong><b>{lead?.name||'Not assigned yet'}</b></span><span><strong>Project Architect</strong><b>{architect||'Not assigned yet'}</b></span></div>
     <div className={styles.teamGrid}>{visibleMembers.length?visibleMembers.map(member=><RosterMember key={member.id} member={member} currentUserId={props.currentUserId} canManageSubmissionPermissions={props.canManageSubmissionPermissions} completionHref={viewHref('proof')}/>):<div className={styles.labEmpty}><strong>No active team members are available.</strong><p>Only active participants in this run appear in the delivery roster.</p></div>}</div>
+    {props.projectRunId?<ProjectGrowTeamSection projectId={props.projectId} projectRunId={props.projectRunId} workspaceRole={props.workspaceRole} activeMemberCount={visibleMembers.length} isAdmin={isAdmin}/>:null}
    </>:<div className={styles.labEmpty}><strong>Your team is still being formed.</strong><p>Your working team will appear here once placement is complete.</p></div>}
   </section>
   {props.projectRunId?<ProjectTeamRecoverySection projectId={props.projectId} projectRunId={props.projectRunId} currentUserId={props.currentUserId} runStatus={props.runStatus}/>:null}

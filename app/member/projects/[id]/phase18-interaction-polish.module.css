@@ -179,21 +179,25 @@
     display:grid;
     grid-template-columns:28px minmax(0,1fr) auto;
     align-items:center;
+    justify-items:stretch;
     gap:10px;
     padding:8px 10px;
     border:0;
     border-radius:9px;
     background:transparent;
     color:var(--lab-shell-ink);
+    text-align:left;
     text-decoration:none;
   }
   .interactionPolish :global(.labMoreDropupPanel a:hover),
   .interactionPolish :global(.labMoreDropupPanel a:focus-visible),
   .interactionPolish :global(.labMoreDropupPanel a[data-active="true"]){background:var(--lab-shell-surface-muted)}
   .interactionPolish :global(.labMoreDropupPanel a:focus-visible){outline:3px solid var(--lab-shell-focus);outline-offset:1px}
-  .interactionPolish :global(.labMoreDropupPanel a>span:nth-child(2)){display:grid;gap:2px;min-width:0}
-  .interactionPolish :global(.labMoreDropupPanel a strong){font-size:.78rem;line-height:1.25}
-  .interactionPolish :global(.labMoreDropupPanel a small){font-size:.68rem;line-height:1.35;color:color-mix(in srgb,var(--lab-shell-ink) 58%,var(--lab-shell-surface));white-space:normal;overflow-wrap:break-word}
+  .interactionPolish :global(.labMoreDropupPanel a>span:first-child),
+  .interactionPolish :global(.labMoreDropupPanel a>span:last-child){justify-self:center}
+  .interactionPolish :global(.labMoreDropupPanel a>span:nth-child(2)){display:grid;gap:2px;min-width:0;width:100%;justify-self:stretch;text-align:left}
+  .interactionPolish :global(.labMoreDropupPanel a strong){font-size:.78rem;line-height:1.25;text-align:left}
+  .interactionPolish :global(.labMoreDropupPanel a small){font-size:.68rem;line-height:1.35;color:color-mix(in srgb,var(--lab-shell-ink) 58%,var(--lab-shell-surface));white-space:normal;overflow-wrap:break-word;text-align:left}
 
   .interactionPolish :global([data-lab-view="events"] .journeyCard legend){font-size:.86rem;padding-inline:7px}
 }

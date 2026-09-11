@@ -1,0 +1,113 @@
+name: Phase 22 Collaboration Release Acceptance
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: phase22-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  phase22:
+    name: Phase 22 full collaboration acceptance
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI_LOCAL_SUPABASE: '1'
+      E2E_BASE_URL: http://127.0.0.1:3000
+      E2E_MEMBER_EMAIL: member.e2e@example.test
+      E2E_MEMBER_PASSWORD: Local-E2E-member-2026!
+      E2E_ARCHITECT_EMAIL: architect.e2e@example.test
+      E2E_ARCHITECT_PASSWORD: Local-E2E-architect-2026!
+      E2E_ADMIN_EMAIL: admin.e2e@example.test
+      E2E_ADMIN_PASSWORD: Local-E2E-admin-2026!
+      PRODUCTION_SUPABASE_URL: https://aconptuqupsgznyrxhrh.supabase.co
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.111.0
+      - name: Prepare isolated Supabase migration set
+        run: node scripts/prepare-local-supabase.mjs
+      - name: Start isolated Supabase stack
+        run: supabase start --workdir .supabase-ci -x studio,imgproxy,logflare,vector,supavisor
+      - name: Export isolated Supabase credentials
+        shell: bash
+        run: |
+          supabase status --workdir .supabase-ci -o env > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+      - name: Seed disposable local identities and fixtures
+        run: node scripts/setup-local-e2e.mjs
+      - name: Start Mettelo against isolated Supabase
+        shell: bash
+        run: |
+          npm run dev -- --hostname 127.0.0.1 > /tmp/mettelo-phase22.log 2>&1 &
+          echo $! > /tmp/mettelo-phase22.pid
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/signin > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/mettelo-phase22.log
+          exit 1
+      - name: Verify E2E production guard
+        run: npm run check:e2e-config
+      - name: Phase 18 member invitation route
+        run: npx playwright test tests/project-experience-phase18a-member-invitations.spec.ts tests/project-experience-phase18a-member-invitations-e2e.spec.ts --project=chromium --workers=1
+      - name: Phase 18 collaboration marketplace route
+        run: npx playwright test tests/project-experience-phase18b-marketplace.spec.ts tests/project-experience-phase18b-marketplace-e2e.spec.ts --project=chromium --workers=1
+      - name: Phase 18 public share and governance route
+        run: npx playwright test tests/project-experience-phase18c-governance.spec.ts tests/project-experience-phase18c-governance-e2e.spec.ts --project=chromium --workers=1
+      - name: RLS and run privacy boundary
+        run: npx playwright test tests/project-experience-phase17-rls-e2e.spec.ts tests/project-experience-phase7-run-privacy.spec.ts --project=chromium --workers=1
+      - name: Phase 19 completion and freeze contract
+        run: npx playwright test tests/project-experience-phase19-completion-operational-ux.spec.ts --project=chromium --workers=1
+      - name: Phase 20 Proof operational contract
+        run: npx playwright test tests/project-experience-phase20-proof-operational-verification.spec.ts --project=chromium --workers=1
+      - name: Phase 21 Admin collaboration policy contract
+        run: npx playwright test tests/project-experience-phase21-admin-collaboration-policy.spec.ts --project=chromium --workers=1
+      - name: Phase 22 anonymous opportunity return
+        run: npx playwright test tests/project-experience-phase22-anonymous-return-e2e.spec.ts --project=chromium --workers=1
+      - name: Phase 22 cross-phase release contract
+        run: npx playwright test tests/project-experience-phase22-release-acceptance.spec.ts --project=chromium --workers=1
+      - name: Upload Phase 22 evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase22-collaboration-release-evidence-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+            /tmp/mettelo-phase22.log
+            .supabase-ci/manifest.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: supabase stop --workdir .supabase-ci --no-backup

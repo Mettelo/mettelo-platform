@@ -6,7 +6,7 @@ import {useSearchParams} from 'next/navigation';
 import MetteloLabCapabilityPathContext from '@/components/MetteloLabCapabilityPathContext';
 import type {LabView} from './MetteloLabNavigation';
 
-const valid:LabView[]=['home','plan','tasks','chat','data','proof','resources','events','team','more'];
+const valid:LabView[]=['home','plan','tasks','chat','data','proof','resources','events','team','support','more'];
 const LAB_VIEW_EVENT='mettelo-lab-view-change';
 const legacyChromeSelectors=[':scope > section.softSection > .shell > .sectionHead',':scope > section.softSection > .shell > .workspaceNav',':scope > section.softSection > .shell > .statBand'];
 function resolveView(raw:string|null):LabView{if(raw==='more')return'home';return valid.includes(raw as LabView)?raw as LabView:'home'}

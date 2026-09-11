@@ -35,7 +35,7 @@ const checks=[
  ['profile readiness remains independent of account preferences',!readiness.includes('notification_preferences')&&!readiness.includes('allow_project_invitations')&&!readiness.includes('allow_member_messages')],
  ['profile and taxonomy preferences save atomically',atomicMigration.includes('save_member_profile')&&atomicMigration.includes('profile_domain_preferences')&&atomicMigration.includes('profile_tool_preferences')&&profileApi.includes("rpc('save_member_profile'")],
  ['onboarding completion is monotonic',atomicMigration.includes('coalesce(public.profiles.onboarding_completed_at,excluded.onboarding_completed_at)')],
- ['Account shows username email password and Member ID distinctly',account.includes('Username & Member ID')&&account.includes('Email & password')&&account.includes('Member ID is a read-only')],
+ ['Account shows username email password and permanent Member ID distinctly',account.includes('Username & Member ID')&&account.includes('Email & password')&&account.includes('permanent Member ID')],
  ['username change reuses Phase 1 API',account.includes("fetch('/api/member-identity'")&&account.includes("method:'PATCH'")],
  ['email change uses Supabase Auth server path',accountApi.includes('supabase.auth.updateUser({email})')],
  ['password recovery reuses Supabase Auth',account.includes('resetPasswordForEmail')&&account.includes('/auth/update-password')],
@@ -49,7 +49,7 @@ const checks=[
  ['Account status is announced accessibly',account.includes('aria-live="polite"')&&account.includes('aria-atomic="true"')],
  ['profile status is announced accessibly',profile.includes('aria-live="polite"')&&profile.includes('aria-atomic="true"')],
  ['profile remains distinct from Proof',onboarding.includes('not verified Proof')||onboarding.includes('not verified evidence')],
- ['Account copy explicitly hides internal Auth UUID',account.includes('internal Auth UUID is not shown here')],
+ ['Account keeps internal auth credentials separate from public identity',account.includes('Account credentials stay with Supabase Auth and are kept separate from your public profile.')],
  ['Phase 2 authenticated browser/RLS test exists',fs.existsSync('tests/project-experience-phase2-account.spec.ts')]
 ];
 let passed=0;for(const [label,ok] of checks){console.log(`${ok?'PASS':'FAIL'} ${label}`);if(ok)passed++;}console.log(`\nProject Experience Phase 2 audit: ${passed}/${checks.length} passed.`);if(passed!==checks.length)process.exit(1);

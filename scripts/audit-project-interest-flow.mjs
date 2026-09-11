@@ -5,7 +5,8 @@ const forbid=(path,needles)=>{const source=read(path);const found=needles.filter
 
 // Public catalogue and project detail remain the public discovery entry point.
 expect('app/projects/page.tsx',['PublicProjectFilters','loadPublicProjectCatalogue']);
-expect('app/projects/[id]/page.tsx',["href={`/signin?next=${encodeURIComponent(`/member/discover/${project.id}`)}`}",'Submit interest']);
+expect('app/projects/[id]/page.tsx',["const memberProjectHref=`/member/discover/${project.id}`","const signinHref=`/signin?next=${encodeURIComponent(memberProjectHref)}`",'const ctaHref=user?memberProjectHref:signinHref','ctaHref={ctaHref}']);
+expect('components/project-experience/ProjectPublicDetailV2.tsx',['href={ctaHref}>Submit interest</Link>',"authenticated?'Your eligibility and application state are checked in My Mettelo.':'Sign in or create an account to continue with this project.'"]);
 
 // Member Discover is a first-class member destination and carries one project truth into project detail.
 expect('lib/member-navigation.ts',["{label:'Discover',href:'/member/discover'","{label:'Saved',href:'/member/saved'"]);

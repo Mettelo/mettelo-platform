@@ -1,0 +1,35 @@
+name: Member Account Recovery Contract
+
+on:
+  pull_request:
+    paths:
+      - 'components/MemberAccountSettings.tsx'
+      - 'components/MemberAccountSettings.module.css'
+      - 'app/api/member-identity/route.ts'
+      - 'app/api/profile/route.ts'
+      - 'app/api/account-preferences/route.ts'
+      - 'app/projects/[id]/page.tsx'
+      - 'supabase/migrations/20260911084500_production_schema_account_project_recovery.sql'
+      - 'scripts/audit-member-account-recovery.mjs'
+      - 'tests/member-account-recovery-contract.spec.ts'
+      - '.github/workflows/member-account-recovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Account/profile/project recovery contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify static recovery boundaries
+        run: node scripts/audit-member-account-recovery.mjs
+      - name: Verify Playwright recovery contract
+        run: npx playwright test tests/member-account-recovery-contract.spec.ts --project=chromium

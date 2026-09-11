@@ -15,7 +15,7 @@ async function xssDidNotRun(page:Page){expect(await page.evaluate(()=>Boolean((w
 async function verifyViewport(page:Page,width:number,height:number,visible:ReturnType<Page['locator']>){await page.setViewportSize({width,height});await expect(visible).toBeVisible();await noHorizontalOverflow(page)}
 
 test.describe('Project Experience Phase 17 responsive and keyboard evidence',()=>{
- test('member tracker and Admin workspace remain usable across mobile, tablet, desktop and 200% text with inert case content',async({page})=>{test.slow();const fixture=await seed();const memberUrl=`/member/projects/${PROJECT}?run=${fixture.runId}&view=home`;try{
+ test('member tracker and Admin workspace remain usable across mobile, tablet, desktop and 200% text with inert case content',async({page})=>{test.slow();const fixture=await seed();const memberUrl=`/member/projects/${PROJECT}?run=${fixture.runId}&view=support`;try{
    await page.setViewportSize({width:320,height:900});
    await login(page,'MEMBER',memberUrl);await page.goto(memberUrl,{waitUntil:'networkidle'});
    const section=page.locator('[data-lab-support-section]');await expect(section).toBeVisible();await expect(section.getByRole('heading',{name:'Get help with your project'})).toBeVisible();await expect(section.getByRole('note')).toContainText('Keep sensitive details in Mettelo.');await noHorizontalOverflow(page);

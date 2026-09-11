@@ -4,15 +4,15 @@ import Link from 'next/link';
 import {MouseEvent,useEffect,useMemo,useRef,useState} from 'react';
 import {usePathname,useSearchParams} from 'next/navigation';
 
-export type LabView='home'|'plan'|'tasks'|'chat'|'data'|'proof'|'resources'|'events'|'team'|'more';
+export type LabView='home'|'plan'|'tasks'|'chat'|'data'|'proof'|'resources'|'events'|'team'|'support'|'more';
 type Placement='rail-primary'|'rail-tools'|'mobile'|'more';
 type Item={view:Exclude<LabView,'more'>;label:string;icon:string;description?:string};
 const primary:Item[]=[{view:'home',label:'Home',icon:'⌂'},{view:'plan',label:'Plan',icon:'◇'},{view:'tasks',label:'Tasks',icon:'☑'},{view:'chat',label:'Chat',icon:'◌'},{view:'data',label:'Data',icon:'▦'},{view:'proof',label:'Proof',icon:'✓'}];
-const tools:Item[]=[{view:'resources',label:'Resources',icon:'⌑',description:'Files and project references'},{view:'events',label:'Events',icon:'◷',description:'Sessions and presentation'},{view:'team',label:'Team',icon:'◎',description:'Your team and working state'}];
+const tools:Item[]=[{view:'resources',label:'Resources',icon:'⌑',description:'Files and project references'},{view:'events',label:'Events',icon:'◷',description:'Sessions and presentation'},{view:'team',label:'Team',icon:'◎',description:'Your team and working state'},{view:'support',label:'Support',icon:'?',description:'Private help and safeguarding'}];
 const more:Item[]=[{view:'plan',label:'Plan',icon:'◇',description:'Problem, outcomes and milestones'},{view:'proof',label:'Proof',icon:'✓',description:'Evidence and completion'},...tools];
 const mobile:Item[]=[{view:'home',label:'Home',icon:'⌂'},{view:'tasks',label:'Tasks',icon:'☑'},{view:'chat',label:'Chat',icon:'◌'},{view:'data',label:'Data',icon:'▦'}];
 const moreViews=new Set<LabView>(more.map(item=>item.view));
-const validViews:LabView[]=['home','plan','tasks','chat','data','proof','resources','events','team','more'];
+const validViews:LabView[]=['home','plan','tasks','chat','data','proof','resources','events','team','support','more'];
 const LAB_VIEW_EVENT='mettelo-lab-view-change';
 
 function resolveView(raw:string|null):LabView{if(raw==='more')return'home';return validViews.includes(raw as LabView)?raw as LabView:'home'}

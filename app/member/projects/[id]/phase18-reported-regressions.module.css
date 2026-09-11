@@ -1,7 +1,9 @@
 .reportedRegressions{}
 
 /* The Lab owns its own Back action. Hide the legacy project-page Back link that can route admins into admin operations. */
-.reportedRegressions :global([data-lab-view]>.actions>a:first-child){display:none!important}
+.reportedRegressions :global([data-lab-view]>.actions>a:first-child),
+.reportedRegressions :global([data-lab-view] .actions>a[href="/admin/project-operations"]),
+.reportedRegressions :global([data-lab-view] .actions>a[href="/member"]){display:none!important}
 .reportedRegressions :global([data-lab-back]){
   min-height:44px;
   display:inline-flex;
@@ -17,6 +19,12 @@
   text-decoration:none;
 }
 .reportedRegressions :global([data-lab-back]:focus-visible){outline:3px solid var(--lab-shell-focus);outline-offset:2px}
+
+/* Private Support is a dedicated Lab destination, not another Home section. */
+.reportedRegressions :global([data-lab-view] [data-lab-support-section]){display:none!important}
+.reportedRegressions :global([data-lab-view="support"] #mettelo-lab){display:grid!important}
+.reportedRegressions :global([data-lab-view="support"] #mettelo-lab>*:not([data-lab-support-section])){display:none!important}
+.reportedRegressions :global([data-lab-view="support"] #mettelo-lab>[data-lab-support-section]){display:block!important}
 
 /* Project Chat is one layout shell: header/pins, scrolling messages, then an in-flow composer. */
 .reportedRegressions :global([data-lab-view="chat"] #discussion){
@@ -100,7 +108,45 @@
     padding-bottom:12px!important;
   }
   .reportedRegressions :global([data-lab-view="chat"] #discussion .messageComposer){
-    padding-bottom:max(11px,env(safe-area-inset-bottom))!important;
+    grid-template-columns:minmax(0,1fr) 52px!important;
+    grid-template-rows:auto auto!important;
+    gap:8px!important;
+    padding:10px!important;
+    padding-bottom:max(10px,env(safe-area-inset-bottom))!important;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageTypeControl){
+    grid-column:1/-1!important;
+    grid-row:1!important;
+    width:100%!important;
+    min-width:0!important;
+    display:grid!important;
+    gap:6px!important;
+    text-align:left!important;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageTypeControl select){
+    width:100%!important;
+    min-width:0!important;
+    min-height:44px!important;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageComposerInput){
+    grid-column:1!important;
+    grid-row:2!important;
+    width:100%!important;
+    min-width:0!important;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageComposerTextarea){
+    width:100%!important;
+    min-width:0!important;
+    min-height:56px!important;
+    max-height:120px!important;
+    box-sizing:border-box!important;
+    resize:vertical;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageSend){
+    grid-column:2!important;
+    grid-row:2!important;
+    align-self:end!important;
+    justify-self:end!important;
   }
   .reportedRegressions :global([data-lab-view="proof"] #proof>.sectionHead){
     gap:8px!important;

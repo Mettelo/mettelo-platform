@@ -7,7 +7,7 @@ import ProjectWeeklyPulse from '@/components/project-experience/ProjectWeeklyPul
 import ProjectSoloDeliverySection from '@/components/project-experience/ProjectSoloDeliverySection';
 import ProjectMemberDepartureSection from '@/components/project-experience/ProjectMemberDepartureSection';
 import ProjectTeamRecoverySection from '@/components/project-experience/ProjectTeamRecoverySection';
-import ProjectSupportCaseSection from '@/components/project-experience/ProjectSupportCaseSection';
+import MetteloLabSupportView from '@/components/MetteloLabSupportView';
 import styles from './MetteloLabPanel.module.css';
 
 type TeamMember={id:string;name:string;headline:string|null;role:string};
@@ -24,7 +24,7 @@ function formatDate(value:string){return new Intl.DateTimeFormat('en-GB',{dateSt
 function shortDate(value:string|null){return value?new Intl.DateTimeFormat('en-GB',{dateStyle:'medium'}).format(new Date(value)):null}
 function initials(name:string){return name.split(/\s+/).map(part=>part[0]).join('').slice(0,2).toUpperCase()}
 function roleLabel(role:string){return role==='project_lead'?'Leader':role==='project_architect'?'Architect':role==='reviewer'?'Reviewer':role.replaceAll('_',' ')}
-function progress(completed:number,total:number){if(total<=0)return 0;return Math.max(0,Math.min(100,Math.round((completed/total)*100)))}
+function progress(completed:number,total:number){if(total<=0)return 0;return Math.max(0,Math.min(100,Math.round(completed/total*100)))}
 
 export default async function MetteloLabPanel(props:Props){
  const db=serviceDb();
@@ -92,7 +92,7 @@ export default async function MetteloLabPanel(props:Props){
   {props.projectRunId?<ProjectTeamRecoverySection projectId={props.projectId} projectRunId={props.projectRunId} currentUserId={props.currentUserId} runStatus={props.runStatus}/>:null}
   {props.projectRunId?<ProjectSoloDeliverySection projectId={props.projectId} projectRunId={props.projectRunId} runStatus={props.runStatus} activeMemberCount={visibleMembers.length}/>:null}
   {props.projectRunId?<ProjectMemberDepartureSection projectId={props.projectId} projectRunId={props.projectRunId} currentUserId={props.currentUserId} runStatus={props.runStatus}/>:null}
-  {props.projectRunId?<ProjectSupportCaseSection projectId={props.projectId} projectRunId={props.projectRunId} runStatus={props.runStatus}/>:null}
+  {props.projectRunId?<MetteloLabSupportView projectId={props.projectId} projectRunId={props.projectRunId} runStatus={props.runStatus}/>:null}
   {props.projectRunId?<ProjectWeeklyPulse projectId={props.projectId} projectRunId={props.projectRunId}/>:null}
   <section className={styles.activity} data-lab-home-section aria-labelledby="lab-activity-title"><div className={styles.sectionTitle}><span className={styles.labLabel}>PROJECT PULSE</span><h3 id="lab-activity-title">Latest from Chat</h3><p>See recent project discussions, decisions and blockers from your team.</p></div>{props.recentDiscussions.length?<div className={styles.activityList}>{props.recentDiscussions.slice(0,3).map(item=><article key={item.id}><div className={styles.activityMeta}><strong>{names.get(item.author_user_id)||'Mettelo member'}</strong><small>{formatDate(item.created_at)}</small></div><p>{item.body}</p></article>)}</div>:<div className={styles.labEmpty}><strong>Start your team’s project discussion.</strong><p>Messages, decisions and blockers will appear here once your team starts collaborating.</p></div>}<a className={styles.labLink} href={viewHref('chat')}>Go to Chat →</a></section>
   {props.reviewSlot?<div data-lab-home-section>{props.reviewSlot}</div>:null}

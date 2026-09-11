@@ -18,6 +18,9 @@ test.describe('Project Experience Phase 17 responsive and keyboard evidence',()=
  test('member tracker and Admin workspace remain usable across mobile, tablet, desktop and 200% text with inert case content',async({page})=>{test.slow();const fixture=await seed();const memberUrl=`/member/projects/${PROJECT}?run=${fixture.runId}&view=home`;try{
    await page.setViewportSize({width:320,height:900});
    await login(page,'MEMBER',memberUrl);await page.goto(memberUrl,{waitUntil:'networkidle'});
+   await expect(page.locator('[data-lab-support-section]')).toHaveCount(0);
+   const moreButton=page.getByRole('button',{name:'More',exact:true});await expect(moreButton).toBeVisible();await minimumTarget(moreButton);await moreButton.click();
+   const supportLink=page.getByRole('link',{name:/Support Private help and safeguarding/});await expect(supportLink).toBeVisible();await supportLink.click();await expect.poll(()=>new URL(page.url()).searchParams.get('view')).toBe('support');
    const section=page.locator('[data-lab-support-section]');await expect(section).toBeVisible();await expect(section.getByRole('heading',{name:'Get help with your project'})).toBeVisible();await expect(section.getByRole('note')).toContainText('Keep sensitive details in Mettelo.');await noHorizontalOverflow(page);
    const category=section.getByLabel('What do you need help with?');const description=section.getByLabel('Tell the support team what is happening');const submit=section.getByRole('button',{name:'Submit private support case'});
    await minimumTarget(category);await minimumTarget(description);await minimumTarget(submit);await category.focus();await expect(category).toBeFocused();await page.keyboard.press('Tab');await expect(description).toBeFocused();

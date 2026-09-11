@@ -60,8 +60,11 @@ begin
   perform pg_advisory_xact_lock(hashtextextended(p_project_id::text||':'||v_user_id::text,0));
   select * into v_project from public.projects where id=p_project_id for share;
   if not found then raise exception 'PROJECT_NOT_FOUND' using errcode='P0002'; end if;
-  if coalesce(v_project.applications_open,false) is not true or v_project.status<>'open' then raise exception 'PROJECT_CLOSED' using errcode='P0001'; end if;
-  if v_project.application_deadline is not null and v_project.application_deadline<now() then raise exception 'DEADLINE_PASSED' using errcode='P0001'; end if;
+  if coalesce(v_project.applications_open,false) is not true or v_project.visibility<>'public' then raise exception 'PROJECT_CLOSED' using errcode='P0001'; end if;
+  if v_project.project_type='open' and v_project.status not in ('pilot','recruiting','open','forming','active','review') then raise exception 'PROJECT_CLOSED' using errcode='P0001';
+  elsif v_project.project_type='partner' and v_project.status not in ('pilot','recruiting','open','forming') then raise exception 'PROJECT_CLOSED' using errcode='P0001';
+  elsif v_project.project_type not in ('open','partner') then raise exception 'PROJECT_CLOSED' using errcode='P0001'; end if;
+  if v_project.project_type='partner' and v_project.application_deadline is not null and v_project.application_deadline<now() then raise exception 'DEADLINE_PASSED' using errcode='P0001'; end if;
 
   if p_participation_preference not in ('solo','team','flexible') then raise exception 'INVALID_PARTICIPATION_PREFERENCE' using errcode='22023'; end if;
   if v_project.participation_mode='solo' and p_participation_preference<>'solo' then raise exception 'PARTICIPATION_NOT_SUPPORTED' using errcode='22023';

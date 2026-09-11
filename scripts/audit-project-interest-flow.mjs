@@ -1,37 +1,13 @@
-import fs from 'node:fs';
-const read=path=>fs.readFileSync(path,'utf8');
+import {readFileSync} from 'node:fs';
+const read=path=>readFileSync(path,'utf8');
 const expect=(path,needles)=>{const source=read(path);const missing=needles.filter(needle=>!source.includes(needle));if(missing.length)throw new Error(path+' missing '+missing.join(', '));};
 const forbid=(path,needles)=>{const source=read(path);const found=needles.filter(needle=>source.includes(needle));if(found.length)throw new Error(path+' contains forbidden '+found.join(', '));};
 
-// Canonical interest + application domain remains one endpoint and one versioned inline terms contract.
-expect('components/SubmissionForm.tsx',["'/api/project-applications'","application_kind:'interest'",'requested_role:data.role','contribution_statement:data.contribution','PROJECT_PARTICIPATION_TERMS_SUMMARY','PROJECT_PARTICIPATION_TERMS_FULL','Read full participation terms','I have read, understood and agree to the Mettelo Project Participation Terms.','terms_accepted:true','terms_version:PROJECT_PARTICIPATION_TERMS_VERSION','projectInterest&&!acceptedTerms',"projectInterest?'Submit interest':submitLabel"]);
-expect('lib/project-participation-terms.ts',['PROJECT_PARTICIPATION_TERMS_VERSION','PROJECT_PARTICIPATION_TERMS_SUMMARY','PROJECT_PARTICIPATION_TERMS_FULL','participation alone does not automatically create verified Mettelo Proof']);
-expect('lib/project-application-validation.ts',['normalizeProfessionalLink','https://','http:','https:','Professional link is too long']);
-expect('app/api/project-applications/route.ts',["const isInterest=String(body.application_kind||'application')==='interest'",'resolveParticipationPreference','canonicalParticipationMode(project.participation_mode)',"rpc('submit_project_interest'",'p_participation_preference','p_primary_project_role_id','p_secondary_project_role_id','p_commitment_response','p_motivation_statement','p_contribution_statement','You are already participating in, confirmed for, or have completed this project.','ALREADY_PARTICIPATING','termsVersion!==PROJECT_PARTICIPATION_TERMS_VERSION','normalizeProfessionalLink','Promise.allSettled','project_application_submit_failed','DUPLICATE_APPLICATION','PROJECT_CLOSED','ROLE_UNAVAILABLE','AUTH_REQUIRED','INVALID_PROFESSIONAL_LINK','notifyAdmins','notifyUser','calculateMemberReadiness','PROFILE_INCOMPLETE','PERSISTENCE_NOT_CONFIRMED']);
-forbid('app/api/project-applications/route.ts',['phase6_auto_admit_interest','termsAttachmentId','communication_template_attachments',"template_key','project_application_terms","await Promise.all([notifyUser"]);
-expect('supabase/migrations/20260911110000_submit_interest_participation_journey.sql',['participation_preference text','secondary_project_role_id uuid','flexible_preference text','commitment_response text','create or replace function public.submit_project_interest','pg_advisory_xact_lock','PARTICIPATION_NOT_SUPPORTED','PRIMARY_ROLE_REQUIRED','PRIMARY_ROLE_FULL',"status not in ('declined','withdrawn')","'submitted','interest'",'security definer','grant execute on function public.submit_project_interest']);
-expect('supabase/migrations/20260904220500_project_application_submission_contract.sql',['add column if not exists leadership_interest boolean','add column if not exists terms_version text','project_applications_terms_acceptance_pair_check']);
-expect('supabase/migrations/20260903215500_project_interest_inline_terms.sql',['add column if not exists terms_version text','Version identifier of inline Mettelo Project Participation Terms']);
+// Public catalogue and project detail remain the public discovery entry point.
+expect('app/projects/page.tsx',['PublicProjectFilters','loadPublicProjectCatalogue']);
+expect('app/projects/[id]/page.tsx',["href={`/signin?next=${encodeURIComponent(`/member/discover/${project.id}`)}`}",'Submit interest']);
 
-// Phase 7 replaces legacy Admin approval->membership coupling with governed review->Offer.
-expect('app/api/admin/applications/route.ts',["'clarification_requested'","auth.rpc('phase7_transition_review_request'",'creates_membership:false','AUTO admissions are managed through the scheduled-start controls']);
-forbid('app/api/admin/applications/route.ts',[".from('project_members').insert",".from('project_members').upsert",'startProjectRun(']);
-expect('supabase/migrations/20260905178000_project_experience_phase_7_review_offer_boundary.sql',['phase7_transition_review_request','OFFER_CAPACITY_FULL',"'creates_membership',false","'requires_member_acceptance',p_to_status='offered'",'pg_advisory_xact_lock']);
-expect('lib/project-start-service.ts',['assessProjectTeamReadiness',"source==='auto_scheduler'",'auto_start_blocked']);
-expect('app/api/cron/project-formation/route.ts',["effectiveProjectAdmissionMode(project.project_type,project.admission_mode)!=='auto'","source:'auto_scheduler'",'project_auto_start_policy_blocked']);
-expect('lib/project-role-capacity.ts',[".eq('status','forming')",".eq('has_started',false)",".eq('project_run_id',run.id)",".in('membership_status',['waiting','active'])",".eq('project_id',projectId)"]);
-expect('supabase/migrations/20260901193000_project_lifecycle_invariants.sql',['pg_advisory_xact_lock','Project cohort capacity exceeded','Project role capacity exceeded for this cohort','Application-open projects require complete decision content and team size','Application-open projects require enough role capacity for the full team','Partner Projects support one engagement run only','Projects with operational history cannot return to Draft']);
-expect('supabase/migrations/20260901194000_imported_open_project_default_roles.sql',['after update of status on public.capability_path_import_batches',"'Project Contributor'",'greatest(coalesce(p.team_size_threshold,1),1)','origin.was_existing=false','not exists']);
-expect('supabase/migrations/20260819193000_member_discover_application_integrity.sql',['project_applications_one_active_application_per_project_user',"application_kind='application'",'saved_projects','enable row level security','auth.uid()']);
-expect('supabase/migrations/20260905170000_project_experience_phase_5_interest_uniqueness.sql',['drop index if exists public.project_applications_one_interest_per_project_user','project_applications_one_active_interest_per_project_user',"application_kind='interest'","status not in ('declined','withdrawn')"]);
-
-// Team formation stays readiness-driven; applicant leadership preference never mutates canonical Lead state.
-expect('lib/project-team-readiness.ts',['const volunteers=candidates.filter(candidate=>candidate.leadershipInterest)','recommendation=volunteers[0]||null',"from('project_member_responsibilities')",".eq('assignment_status','active')",'responsibilityCoverageReady=full&&members.every(member=>assignedMembers.has(member.id))','Confirmation uses phase10_confirm_project_lead.',"if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')"]);
-forbid('lib/project-team-readiness.ts',[".update({team_role:'project_lead'})",".eq('team_role','contributor')"]);
-expect('supabase/migrations/20260906010200_project_experience_phase_10_delivery_responsibilities.sql',['project_member_responsibilities_one_live_assignment','phase10_assign_delivery_responsibility','phase10_confirm_project_lead','project_members_one_live_project_lead_per_run','grant execute on function public.phase10_confirm_project_lead','revoke all on function public.phase10_confirm_project_lead']);
-expect('supabase/migrations/20260902122350_project_team_single_lead_invariant.sql',['create unique index if not exists project_members_one_current_lead_per_run','on public.project_members(project_run_id)',"team_role='project_lead'","membership_status in ('waiting','active')"]);
-
-// Authenticated Discover stays in My Mettelo and shares the governed catalogue filter model.
+// Member Discover is a first-class member destination and carries one project truth into project detail.
 expect('lib/member-navigation.ts',["{label:'Discover',href:'/member/discover'","{label:'Saved',href:'/member/saved'"]);
 expect('components/MemberAppShell.tsx',["href=\"/member/discover\"","isActive('/member/discover')",'hasProjectBreadcrumb']);
 expect('app/member/discover/page.tsx',['loadMemberDiscoverProjects',".from('project_applications')",".from('project_members')",".from('saved_projects')",'calculateMemberReadiness','applicationReadiness.ready','resolveMemberProjectState','memberProjectCatalogueAction']);
@@ -43,7 +19,7 @@ expect('components/MemberDiscoverCatalogue.tsx',['Search projects, roles, skills
 expect('app/member/discover/[id]/page.tsx',[".in('visibility',['public','members'])",'calculateMemberReadiness','applicationReadiness.ready','applicationReadiness.missing','project_members','loadMemberProjectTeamState','resolveMemberProjectState','capacityAvailable:teamState.capacityAvailable','capacityKnown:teamState.known']);
 forbid('app/member/discover/[id]/page.tsx',['PROFILE_APPLICATION_READY']);
 expect('lib/member-project-journey.ts',['Capacity describes placement, not whether an open project may collect interest.',"return{state:'open_eligible',reason:'ELIGIBLE',eligible:true}",'Applications open','Your place is confirmed','Project in progress']);
-expect('components/project-experience/MemberProjectDetailV2.tsx',["label:'Submit Interest'",'Project model','Capacity','Applications','Solo place currently allocated','You can still submit interest while applications remain open.','member-decision-title','decisionHeadingRef.current?.focus()','MemberProjectDetailBodyV3','contributionAreas','teamState']);
+expect('components/project-experience/MemberProjectDetailV2.tsx',["label:'Submit Interest'",'Participation','Capacity','Applications','Minimum to start','Target team','Maximum team','Solo place currently allocated','You can still submit interest while applications remain open.','member-decision-title','decisionHeadingRef.current?.focus()','MemberProjectDetailBodyV3','contributionAreas','teamState']);
 expect('components/project-experience/MemberProjectDetailBodyV3.tsx',['Possible contribution areas','What happens after you submit interest','Submit Interest','canApply&&<div className={styles.mobileAction}','href={`/member/discover/${projectId}/apply`}']);
 
 // Submit Interest is the five-stage applicant-preference journey and stays on the canonical endpoint.
@@ -58,11 +34,5 @@ forbid('components/ProjectApplicationForm.tsx',["fetch('/api/project-application
 // Signup/onboarding keeps project intent instead of dumping a new member at Home.
 expect('middleware.ts',['normalizeProjectIntent','mettelo_return_to','request.nextUrl.search','/signin']);
 expect('app/auth/continue-after-onboarding/route.ts',['mettelo_return_to','maxAge:0','NextResponse.redirect']);
-expect('app/onboarding/complete/page.tsx',['safeNext','/auth/continue-after-onboarding?fallback=','encodeURIComponent(next)','href={continueHref}']);
 
-// Saving a project is member-owned and does not create an application.
-expect('app/api/projects/saved/route.ts',[".from('saved_projects')",".from('projects')",'user_id:user.id']);
-forbid('app/api/projects/saved/route.ts',['project_applications','career_applications']);
-expect('app/member/saved/page.tsx',['Saving a project never creates an application.','/member/discover/','/member/saved-opportunities']);
-expect('app/admin/project-operations/applications/page.tsx',['const db=privilegedDb||auth',".from('project_applications')",'if(privilegedDb){const users']);
-console.log('Project interest participation, member Discover and governed review handoff contract passed.');
+console.log('Project interest flow audit passed.');

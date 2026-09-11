@@ -2,7 +2,7 @@
 -- Project participation_mode remains authoritative; these fields describe the applicant.
 alter table public.project_applications
   add column if not exists participation_preference text,
-  add column if not exists secondary_project_role_id uuid references public.project_roles(id) on delete set null,
+  add column if not exists secondary_project_role_id uuid,
   add column if not exists flexible_preference text,
   add column if not exists role_fit_statement text,
   add column if not exists motivation_statement text,
@@ -16,6 +16,9 @@ alter table public.project_applications
   add column if not exists admission_decision text,
   add column if not exists admission_decided_at timestamptz;
 
+-- Do not add a second direct project_roles FK here. project_applications already has
+-- project_role_id -> project_roles and a second relationship makes existing PostgREST
+-- embeds ambiguous. The atomic function below validates and locks the secondary role.
 do $$ begin alter table public.project_applications add constraint project_applications_participation_preference_check check (participation_preference is null or participation_preference in ('solo','team','flexible')); exception when duplicate_object then null; end $$;
 do $$ begin alter table public.project_applications add constraint project_applications_flexible_preference_check check (flexible_preference is null or flexible_preference in ('prefer_team','prefer_solo','no_preference')); exception when duplicate_object then null; end $$;
 do $$ begin alter table public.project_applications add constraint project_applications_commitment_response_check check (commitment_response is null or commitment_response in ('yes','yes_with_limitations','no')); exception when duplicate_object then null; end $$;

@@ -12,6 +12,7 @@ import {normalizeProfessionalLink} from '@/lib/project-application-validation';
 function ids(value:unknown){return Array.isArray(value)?[...new Set(value.map(String).filter(Boolean))].slice(0,8):[]}
 function strings(value:unknown,limit=20){return Array.isArray(value)?[...new Set(value.map(item=>String(item).trim()).filter(Boolean))].slice(0,limit):[]}
 type DbError={code?:string;message?:string;details?:string};
+type LegacyRole={id:string;title:string;openings:number};
 function fail(error:string,status:number,code:string,field?:string){return NextResponse.json({error,code,field},{status})}
 function logFailure(input:{requestId:string;projectId?:string;roleId?:string;userId?:string;category:string;error?:unknown}){const dbError=input.error as DbError|undefined;console.error('project_application_submit_failed',{request_id:input.requestId,project_id:input.projectId||null,project_role_id:input.roleId||null,user_id:input.userId||null,category:input.category,db_code:dbError?.code||null,db_message:dbError?.message||null})}
 const ROLE_FILLED_MESSAGE='That project role has filled or is no longer available. Please choose another role.';
@@ -41,100 +42,21 @@ export async function POST(request:Request){
   const supabase=await createServerSupabaseClient();
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)return fail('Your session has expired. Please sign in again.',401,'AUTH_REQUIRED');
-  userId=user.id;
-  const body=await request.json();
-  projectId=String(body.project_id||'').trim();
-  const isInterest=String(body.application_kind||'application')==='interest';
-  const contributionStatement=String(body.contribution_statement||'').trim().slice(0,2000);
-  const availability=String(body.availability||'').trim().slice(0,160);
-  const acceptedTerms=body.terms_accepted===true;
-  const termsVersion=String(body.terms_version||'').trim().slice(0,80);
-  const link=normalizeProfessionalLink(body.portfolio_url);
-  if(!projectId||contributionStatement.length<40)return fail('Please review the highlighted fields before submitting.',400,'VALIDATION_ERROR','contribution_statement');
-  if(!link.ok)return fail(link.error,400,'INVALID_PROFESSIONAL_LINK','professional_link');
-  if(!acceptedTerms)return fail('Read and agree to the Mettelo Project Participation Terms before submitting.',400,'TERMS_REQUIRED','terms_accepted');
-  if(termsVersion!==PROJECT_PARTICIPATION_TERMS_VERSION)return fail('The Project Participation Terms changed. Review the current terms and submit again.',409,'TERMS_VERSION_CHANGED','terms_version');
-
-  const [{data:project,error:projectError},{data:profile,error:profileError},{data:domainPrefs,error:domainError},{data:toolPrefs,error:toolError}]=await Promise.all([
-   supabase.from('projects').select('id,title,status,visibility,project_type,application_deadline,applications_open,weekly_commitment,participation_mode,min_team_size,target_team_size,max_team_size,team_size_threshold').eq('id',projectId).single(),
-   supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).single(),
-   supabase.from('profile_domain_preferences').select('domain_id').eq('user_id',user.id),
-   supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id)
-  ]);
-  if(projectError||!project)return fail('Project not found.',404,'PROJECT_NOT_FOUND');
-  if(profileError||!profile||domainError||toolError)return fail('We could not confirm your project readiness right now. Please try again.',503,'SERVICE_UNAVAILABLE');
-  if(projectApplicationDeadlinePassed(project))return fail('The interest window for this project has closed.',409,'DEADLINE_PASSED');
-  if(!projectAcceptsApplications(project))return fail('This project is not currently accepting interest.',409,'PROJECT_CLOSED');
-  const readiness=calculateMemberReadiness({profile:profile as Record<string,unknown>,domainCount:domainPrefs?.length||0,toolCount:toolPrefs?.length||0});
-  if(!readiness.applicationReadiness.ready)return fail('Complete the required profile information before submitting interest.',409,'PROFILE_INCOMPLETE');
-
-  const db=serviceDb();
-  if(!db)return fail('We could not confirm project eligibility right now. Please try again.',503,'SERVICE_UNAVAILABLE');
-  const {data:membership,error:membershipError}=await db.from('project_members').select('id').eq('project_id',projectId).eq('user_id',user.id).in('membership_status',['waiting','active','completed']).limit(1).maybeSingle();
-  if(membershipError)return fail('We could not confirm project eligibility right now. Please try again.',503,'SERVICE_UNAVAILABLE');
-  if(membership)return fail('You are already participating in, confirmed for, or have completed this project.',409,'ALREADY_PARTICIPATING');
-
+  userId=user.id;const body=await request.json();projectId=String(body.project_id||'').trim();const isInterest=String(body.application_kind||'application')==='interest';const contributionStatement=String(body.contribution_statement||'').trim().slice(0,2000);const availability=String(body.availability||'').trim().slice(0,160);const acceptedTerms=body.terms_accepted===true;const termsVersion=String(body.terms_version||'').trim().slice(0,80);const link=normalizeProfessionalLink(body.portfolio_url);
+  if(!projectId||contributionStatement.length<40)return fail('Please review the highlighted fields before submitting.',400,'VALIDATION_ERROR','contribution_statement');if(!link.ok)return fail(link.error,400,'INVALID_PROFESSIONAL_LINK','professional_link');if(!acceptedTerms)return fail('Read and agree to the Mettelo Project Participation Terms before submitting.',400,'TERMS_REQUIRED','terms_accepted');if(termsVersion!==PROJECT_PARTICIPATION_TERMS_VERSION)return fail('The Project Participation Terms changed. Review the current terms and submit again.',409,'TERMS_VERSION_CHANGED','terms_version');
+  const [{data:project,error:projectError},{data:profile,error:profileError},{data:domainPrefs,error:domainError},{data:toolPrefs,error:toolError}]=await Promise.all([supabase.from('projects').select('id,title,status,visibility,project_type,application_deadline,applications_open,weekly_commitment,participation_mode,min_team_size,target_team_size,max_team_size,team_size_threshold').eq('id',projectId).single(),supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).single(),supabase.from('profile_domain_preferences').select('domain_id').eq('user_id',user.id),supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id)]);
+  if(projectError||!project)return fail('Project not found.',404,'PROJECT_NOT_FOUND');if(profileError||!profile||domainError||toolError)return fail('We could not confirm your project readiness right now. Please try again.',503,'SERVICE_UNAVAILABLE');if(projectApplicationDeadlinePassed(project))return fail('The interest window for this project has closed.',409,'DEADLINE_PASSED');if(!projectAcceptsApplications(project))return fail('This project is not currently accepting interest.',409,'PROJECT_CLOSED');const readiness=calculateMemberReadiness({profile:profile as Record<string,unknown>,domainCount:domainPrefs?.length||0,toolCount:toolPrefs?.length||0});if(!readiness.applicationReadiness.ready)return fail('Complete the required profile information before submitting interest.',409,'PROFILE_INCOMPLETE');
+  const db=serviceDb();if(!db)return fail('We could not confirm project eligibility right now. Please try again.',503,'SERVICE_UNAVAILABLE');const {data:membership,error:membershipError}=await db.from('project_members').select('id').eq('project_id',projectId).eq('user_id',user.id).in('membership_status',['waiting','active','completed']).limit(1).maybeSingle();if(membershipError)return fail('We could not confirm project eligibility right now. Please try again.',503,'SERVICE_UNAVAILABLE');if(membership)return fail('You are already participating in, confirmed for, or have completed this project.',409,'ALREADY_PARTICIPATING');
   if(isInterest){
-   const participationInput=String(body.participation_preference||'').trim();
-   const participation=resolveParticipationPreference(canonicalParticipationMode(project.participation_mode),participationInput);
-   if(!participation.ok)return fail(participation.error,400,'INVALID_PARTICIPATION_PREFERENCE','participation_preference');
-   const primaryRoleId=String(body.project_role_id||'').trim()||null;
-   const secondaryRoleId=String(body.secondary_project_role_id||'').trim()||null;
-   roleId=primaryRoleId||'';
-   const motivation=String(body.motivation_statement||'').trim().slice(0,2000);
-   const roleFit=String(body.role_fit_statement||'').trim().slice(0,2000);
-   const commitmentResponse=String(body.commitment_response||'').trim();
-   const availabilityNote=String(body.availability_note||'').trim().slice(0,500);
-   const collaborationAvailability=String(body.collaboration_availability||'').trim().slice(0,500);
-   const flexiblePreference=String(body.flexible_preference||'').trim()||null;
-   const collaborationNeedId=String(body.collaboration_need_id||'').trim()||null;
+   const participationInput=String(body.participation_preference||'').trim();const participation=resolveParticipationPreference(canonicalParticipationMode(project.participation_mode),participationInput);if(!participation.ok)return fail(participation.error,400,'INVALID_PARTICIPATION_PREFERENCE','participation_preference');const primaryRoleId=String(body.project_role_id||'').trim()||null;const secondaryRoleId=String(body.secondary_project_role_id||'').trim()||null;roleId=primaryRoleId||'';const motivation=String(body.motivation_statement||'').trim().slice(0,2000);const roleFit=String(body.role_fit_statement||'').trim().slice(0,2000);const commitmentResponse=String(body.commitment_response||'').trim();const availabilityNote=String(body.availability_note||'').trim().slice(0,500);const collaborationAvailability=String(body.collaboration_availability||'').trim().slice(0,500);const flexiblePreference=String(body.flexible_preference||'').trim()||null;const collaborationNeedId=String(body.collaboration_need_id||'').trim()||null;
    if(collaborationNeedId){const {data:need}=await db.from('project_collaboration_needs').select('id,project_id,status').eq('id',collaborationNeedId).maybeSingle();if(!need||need.project_id!==projectId||need.status!=='active')return fail('This collaboration opportunity is no longer available.',409,'COLLABORATION_OPPORTUNITY_CLOSED','collaboration_need_id')}
-   const {data,error}=await supabase.rpc('submit_project_interest',{
-    p_project_id:projectId,
-    p_participation_preference:participation.preference,
-    p_primary_project_role_id:primaryRoleId,
-    p_secondary_project_role_id:secondaryRoleId,
-    p_flexible_preference:flexiblePreference,
-    p_role_fit_statement:roleFit||null,
-    p_motivation_statement:motivation,
-    p_relevant_skills:strings(body.relevant_skills),
-    p_contribution_areas:strings(body.contribution_areas),
-    p_contribution_statement:contributionStatement,
-    p_commitment_response:commitmentResponse,
-    p_availability:availability||null,
-    p_availability_note:availabilityNote||null,
-    p_collaboration_availability:collaborationAvailability||null,
-    p_leadership_interest:participation.preference==='solo'?false:body.leadership_interest===true,
-    p_portfolio_url:link.value,
-    p_terms_version:PROJECT_PARTICIPATION_TERMS_VERSION,
-    p_collaboration_need_id:collaborationNeedId
-   });
-   if(error){logFailure({requestId,projectId,roleId,userId,category:'atomic_interest_submit',error});return rpcError(error)}
-   const application=Array.isArray(data)?data[0]:data;
-   if(!application?.id)return fail('We could not confirm that your interest was saved. Your responses are still available; please try again.',503,'PERSISTENCE_NOT_CONFIRMED');
-   const memberTitle='Project interest received';
-   const memberBody=`We received your interest in ${project.title}. You can track it from My Mettelo.`;
-   const profileName=String(user.user_metadata?.full_name||user.email?.split('@')[0]||'A member');
-   const notifications=await Promise.allSettled([
-    notifyUser(db,{userId:user.id,email:user.email,projectId,applicationId:application.id,type:'project_interest_submitted',title:memberTitle,body:memberBody,actionUrl:'/member/applications',subject:`${memberTitle} — ${project.title}`}),
-    notifyAdmins(db,{projectId,applicationId:application.id,type:'new_project_interest',title:`New project interest — ${project.title}`,body:`${profileName} submitted interest in ${project.title}.`,actionUrl:'/admin',subject:`New project interest — ${project.title}`})
-   ]);
-   notifications.forEach((result,index)=>{if(result.status==='rejected')logFailure({requestId,projectId,roleId,userId,category:index===0?'member_notification':'admin_notification',error:result.reason})});
-   return NextResponse.json({ok:true,application:{id:application.id,status:application.status,application_kind:application.application_kind,project_id:application.project_id,project_role_id:application.project_role_id,participation_preference:application.participation_preference},admission:{decision:'review_required',participation_preference:application.participation_preference},message:'Interest submitted.'});
+   const {data,error}=await supabase.rpc('submit_project_interest',{p_project_id:projectId,p_participation_preference:participation.preference,p_primary_project_role_id:primaryRoleId,p_secondary_project_role_id:secondaryRoleId,p_flexible_preference:flexiblePreference,p_role_fit_statement:roleFit||null,p_motivation_statement:motivation,p_relevant_skills:strings(body.relevant_skills),p_contribution_areas:strings(body.contribution_areas),p_contribution_statement:contributionStatement,p_commitment_response:commitmentResponse,p_availability:availability||null,p_availability_note:availabilityNote||null,p_collaboration_availability:collaborationAvailability||null,p_leadership_interest:participation.preference==='solo'?false:body.leadership_interest===true,p_portfolio_url:link.value,p_terms_version:PROJECT_PARTICIPATION_TERMS_VERSION,p_collaboration_need_id:collaborationNeedId});
+   if(error){logFailure({requestId,projectId,roleId,userId,category:'atomic_interest_submit',error});return rpcError(error)}const application=Array.isArray(data)?data[0]:data;if(!application?.id)return fail('We could not confirm that your interest was saved. Your responses are still available; please try again.',503,'PERSISTENCE_NOT_CONFIRMED');const memberTitle='Project interest received';const memberBody=`We received your interest in ${project.title}. You can track it from My Mettelo.`;const profileName=String(user.user_metadata?.full_name||user.email?.split('@')[0]||'A member');const notifications=await Promise.allSettled([notifyUser(db,{userId:user.id,email:user.email,projectId,applicationId:application.id,type:'project_interest_submitted',title:memberTitle,body:memberBody,actionUrl:'/member/applications',subject:`${memberTitle} — ${project.title}`}),notifyAdmins(db,{projectId,applicationId:application.id,type:'new_project_interest',title:`New project interest — ${project.title}`,body:`${profileName} submitted interest in ${project.title}.`,actionUrl:'/admin',subject:`New project interest — ${project.title}`})]);notifications.forEach((result,index)=>{if(result.status==='rejected')logFailure({requestId,projectId,roleId,userId,category:index===0?'member_notification':'admin_notification',error:result.reason})});return NextResponse.json({ok:true,application:{id:application.id,status:application.status,application_kind:application.application_kind,project_id:application.project_id,project_role_id:application.project_role_id,participation_preference:application.participation_preference},admission:{decision:'review_required',participation_preference:application.participation_preference},message:'Interest submitted.'});
   }
-
-  const roleIds=ids(body.project_role_ids);const legacyRoleId=String(body.project_role_id||'').trim();let role:{id:string;title:string;openings:number}|null=null;let catalogueRoles:{id:string;title:string}[]=[];
-  if(roleIds.length){const {data,error}=await supabase.from('project_role_catalogue').select('id,title').in('id',roleIds).eq('active',true);if(error||!data||data.length!==roleIds.length)return fail('Please choose a valid contribution role.',400,'INVALID_ROLE','project_role_id');catalogueRoles=data;const first=data[0];const {data:legacy}=await supabase.from('project_roles').select('id,title,openings').eq('project_id',projectId).ilike('title',first.title).limit(1).maybeSingle();if(!legacy)return fail(ROLE_FILLED_MESSAGE,409,'ROLE_UNAVAILABLE','project_role_id');role=legacy as typeof role}
-  else if(legacyRoleId){const {data,error}=await supabase.from('project_roles').select('id,title,openings').eq('id',legacyRoleId).eq('project_id',projectId).single();if(error||!data)return fail(ROLE_FILLED_MESSAGE,409,'ROLE_UNAVAILABLE','project_role_id');role=data as typeof role}
-  else return fail('Please choose a role before submitting an application.',400,'INVALID_ROLE','project_role_id');
-  if(!role||!role.openings)return fail(ROLE_FILLED_MESSAGE,409,'ROLE_UNAVAILABLE','project_role_id');
-  roleId=role.id;
-  const usage=await loadProjectRoleUsage(db,projectId,project.project_type);if(!usage.known)return fail('We could not confirm role availability right now. Please try again.',503,'SERVICE_UNAVAILABLE');if((usage.filled.get(role.id)||0)>=role.openings)return fail(ROLE_FILLED_MESSAGE,409,'ROLE_UNAVAILABLE','project_role_id');
-  const teamState=await loadMemberProjectTeamState(db,{projectId,projectType:project.project_type,projectStatus:project.status,minTeamSize:project.min_team_size,targetTeamSize:project.target_team_size,maxTeamSize:project.max_team_size,legacyThreshold:project.team_size_threshold});if(!teamState.known)return fail('We could not confirm current project capacity. Please try again.',503,'CAPACITY_UNKNOWN');if(!teamState.capacityAvailable)return fail('This project is currently full.',409,'CAPACITY_FULL');
-  const now=new Date().toISOString();const {data:application,error:insertError}=await supabase.from('project_applications').insert({project_id:projectId,project_role_id:role.id,user_id:user.id,portfolio_url:link.value,contribution_statement:contributionStatement,availability:availability||null,leadership_interest:body.leadership_interest===true,status:'submitted',application_kind:'application',terms_accepted_at:now,terms_version:PROJECT_PARTICIPATION_TERMS_VERSION,submitted_at:now}).select('id,status,application_kind,project_id,project_role_id').single();
-  if(insertError){if(insertError.code==='23505')return fail('You already have an active application for this role.',409,'DUPLICATE_APPLICATION');logFailure({requestId,projectId,roleId,userId,category:'database_insert',error:insertError});return fail('We could not submit your application right now. Please try again.',500,'SUBMISSION_FAILED')}
-  if(catalogueRoles.length){const {error}=await supabase.from('project_application_roles').insert(catalogueRoles.map(item=>({application_id:application.id,role_catalogue_id:item.id})));if(error){await supabase.from('project_applications').delete().eq('id',application.id);return fail('We could not save the selected role. Please choose the role again.',409,'ROLE_UNAVAILABLE','project_role_id')}}
-  return NextResponse.json({ok:true,application,roles:catalogueRoles,message:'Application submitted.'});
+  const roleIds=ids(body.project_role_ids);const legacyRoleId=String(body.project_role_id||'').trim();let role:LegacyRole|null=null;let catalogueRoles:{id:string;title:string}[]=[];
+  if(roleIds.length){const {data,error}=await supabase.from('project_role_catalogue').select('id,title').in('id',roleIds).eq('active',true);if(error||!data||data.length!==roleIds.length)return fail('Please choose a valid contribution role.',400,'INVALID_ROLE','project_role_id');catalogueRoles=data;const first=data[0];const {data:legacy}=await supabase.from('project_roles').select('id,title,openings').eq('project_id',projectId).ilike('title',first.title).limit(1).maybeSingle();if(!legacy)return fail(ROLE_FILLED_MESSAGE,409,'ROLE_UNAVAILABLE','project_role_id');role={id:String(legacy.id),title:String(legacy.title),openings:Number(legacy.openings||0)}}
+  else if(legacyRoleId){const {data,error}=await supabase.from('project_roles').select('id,title,openings').eq('id',legacyRoleId).eq('project_id',projectId).single();if(error||!data)return fail(ROLE_FILLED_MESSAGE,409,'ROLE_UNAVAILABLE','project_role_id');role={id:String(data.id),title:String(data.title),openings:Number(data.openings||0)}}
+  else return fail('Please choose a role before submitting an application.',400,'INVALID_ROLE','project_role_id');if(!role||!role.openings)return fail(ROLE_FILLED_MESSAGE,409,'ROLE_UNAVAILABLE','project_role_id');roleId=role.id;const usage=await loadProjectRoleUsage(db,projectId,project.project_type);if(!usage.known)return fail('We could not confirm role availability right now. Please try again.',503,'SERVICE_UNAVAILABLE');if((usage.filled.get(role.id)||0)>=role.openings)return fail(ROLE_FILLED_MESSAGE,409,'ROLE_UNAVAILABLE','project_role_id');const teamState=await loadMemberProjectTeamState(db,{projectId,projectType:project.project_type,projectStatus:project.status,minTeamSize:project.min_team_size,targetTeamSize:project.target_team_size,maxTeamSize:project.max_team_size,legacyThreshold:project.team_size_threshold});if(!teamState.known)return fail('We could not confirm current project capacity. Please try again.',503,'CAPACITY_UNKNOWN');if(!teamState.capacityAvailable)return fail('This project is currently full.',409,'CAPACITY_FULL');const now=new Date().toISOString();const {data:application,error:insertError}=await supabase.from('project_applications').insert({project_id:projectId,project_role_id:role.id,user_id:user.id,portfolio_url:link.value,contribution_statement:contributionStatement,availability:availability||null,leadership_interest:body.leadership_interest===true,status:'submitted',application_kind:'application',terms_accepted_at:now,terms_version:PROJECT_PARTICIPATION_TERMS_VERSION,submitted_at:now}).select('id,status,application_kind,project_id,project_role_id').single();if(insertError){if(insertError.code==='23505')return fail('You already have an active application for this role.',409,'DUPLICATE_APPLICATION');logFailure({requestId,projectId,roleId,userId,category:'database_insert',error:insertError});return fail('We could not submit your application right now. Please try again.',500,'SUBMISSION_FAILED')}if(catalogueRoles.length){const {error}=await supabase.from('project_application_roles').insert(catalogueRoles.map(item=>({application_id:application.id,role_catalogue_id:item.id})));if(error){await supabase.from('project_applications').delete().eq('id',application.id);return fail('We could not save the selected role. Please choose the role again.',409,'ROLE_UNAVAILABLE','project_role_id')}}return NextResponse.json({ok:true,application,roles:catalogueRoles,message:'Application submitted.'});
  }catch(error){logFailure({requestId,projectId,roleId,userId,category:'unhandled',error});return fail('We could not submit your interest right now. Please try again.',500,'SUBMISSION_FAILED')}
 }
 

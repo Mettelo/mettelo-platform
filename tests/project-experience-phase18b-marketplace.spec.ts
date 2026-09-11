@@ -21,18 +21,18 @@ test.describe('Project Experience Phase 18B collaboration marketplace contract',
   test('I’m Interested preserves the exact collaboration need through detail, apply, client submit and canonical application API',()=>{
    const detail=read('app/member/discover/[id]/page.tsx');const apply=read('app/member/discover/[id]/apply/page.tsx');const flow=read('components/MemberProjectApplicationFlow.tsx');const api=read('app/api/project-applications/route.ts');const migration=read('supabase/migrations/20260908102000_project_experience_phase_18_same_run_interest.sql');
    for(const text of ['collaboration_need','encodeURIComponent(collaborationNeedId)','/signin?next='])expect(detail).toContain(text);
-   for(const text of ['collaboration_need','collaborationNeedId','MemberProjectApplicationFlow','re-check that exact project run'])expect(apply).toContain(text);
+   for(const text of ['collaboration_need','collaborationNeedId','MemberProjectApplicationFlow','loadMemberProjectTeamState'])expect(apply).toContain(text);
    for(const text of ['collaborationNeedId','collaboration_need_id:collaborationNeedId||null','exact run will be revalidated'])expect(flow).toContain(text);
-   for(const text of ['collaboration_need_id','project_collaboration_needs','project_run_id','phase6_auto_admit_interest'])expect(api).toContain(text);
+   for(const text of ['collaboration_need_id','project_collaboration_needs','collaborationNeedId',"rpc('submit_project_interest'"])expect(api).toContain(text);
    for(const text of ['collaboration_need_id','new.project_run_id:=need.project_run_id','COLLABORATION_NEED_PROJECT_MISMATCH','project_run_id'])expect(migration).toContain(text);
   });
 
-  test('same-run admission extends the canonical Phase 6/9 machinery and does not directly bypass membership policy',()=>{
-   const migration=read('supabase/migrations/20260908102000_project_experience_phase_18_same_run_interest.sql');const api=read('app/api/project-applications/route.ts');
+  test('same-run interest extends canonical Phase 18 targeting without bypassing membership policy',()=>{
+   const migration=read('supabase/migrations/20260908102000_project_experience_phase_18_same_run_interest.sql');const api=read('app/api/project-applications/route.ts');const submit=read('supabase/migrations/20260911112000_submit_interest_participation_journey.sql');
    for(const text of ['phase6_auto_admit_interest','phase9_lock_project_capacity','project_collaboration_needs','recruitment_open','late_joining_enabled','late_joining_cutoff_at'])expect(migration).toContain(text);
-   expect(api).toContain("canonicalAdmissionMode(project.admission_mode)");
-   expect(api).toContain("admissionMode==='auto'");
-   expect(api).toContain("admission_mode_snapshot:'review_required'");
+   expect(api).toContain("rpc('submit_project_interest'");
+   expect(api).toContain('p_collaboration_need_id:collaborationNeedId');
+   expect(submit).toContain("admission_decision='review_required'");
    expect(api).not.toContain("from('project_members').insert");
   });
 

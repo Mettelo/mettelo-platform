@@ -1,7 +1,8 @@
 .reportedRegressions{}
 
-/* The Lab owns its own Back action. Hide the legacy project-page Back link that can route admins into admin operations. */
-.reportedRegressions :global([data-lab-view]>.actions>a:first-child){display:none!important}
+/* The Lab owns its own Back action. Hide only the legacy project-page Back link that can route admins into admin operations. */
+.reportedRegressions :global([data-lab-view] .actions>a[href="/member"]),
+.reportedRegressions :global([data-lab-view] .actions>a[href="/admin/project-operations"]){display:none!important}
 .reportedRegressions :global([data-lab-back]){
   min-height:44px;
   display:inline-flex;
@@ -17,6 +18,13 @@
   text-decoration:none;
 }
 .reportedRegressions :global([data-lab-back]:focus-visible){outline:3px solid var(--lab-shell-focus);outline-offset:2px}
+
+/* Support is a first-class Lab destination, not another long section on Home or Team. */
+.reportedRegressions :global([data-lab-view="home"] [data-lab-support-section]),
+.reportedRegressions :global([data-lab-view="team"] [data-lab-support-section]){display:none!important}
+.reportedRegressions :global([data-lab-view="support"] #mettelo-lab){display:grid!important}
+.reportedRegressions :global([data-lab-view="support"] #mettelo-lab>:not([data-lab-support-section])){display:none!important}
+.reportedRegressions :global([data-lab-view="support"] [data-lab-support-section]){display:grid!important}
 
 /* Project Chat is one layout shell: header/pins, scrolling messages, then an in-flow composer. */
 .reportedRegressions :global([data-lab-view="chat"] #discussion){
@@ -99,8 +107,68 @@
     max-height:none!important;
     padding-bottom:12px!important;
   }
+  /* Three composer children must occupy explicit areas on mobile: type, message, send. */
   .reportedRegressions :global([data-lab-view="chat"] #discussion .messageComposer){
-    padding-bottom:max(11px,env(safe-area-inset-bottom))!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 52px!important;
+    grid-template-areas:"type type" "input send"!important;
+    align-items:end!important;
+    gap:8px!important;
+    padding:10px 10px max(10px,env(safe-area-inset-bottom))!important;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageTypeControl){
+    grid-area:type;
+    min-width:0;
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:5px!important;
+    color:color-mix(in srgb,var(--lab-shell-ink) 68%,var(--lab-shell-surface));
+    font-size:.72rem!important;
+    font-weight:800!important;
+    line-height:1.25!important;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageTypeControl select){
+    width:100%!important;
+    min-width:0!important;
+    min-height:42px!important;
+    padding:7px 10px!important;
+    border:1px solid var(--lab-shell-border)!important;
+    border-radius:10px!important;
+    background:var(--lab-shell-surface-muted)!important;
+    color:var(--lab-shell-ink)!important;
+    font-size:16px!important;
+    line-height:1.25!important;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageComposerInput){
+    grid-area:input;
+    min-width:0!important;
+    width:100%!important;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageComposerInput>small){display:none!important}
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageComposer textarea){
+    width:100%!important;
+    min-width:0!important;
+    min-height:52px!important;
+    max-height:120px!important;
+    margin:0!important;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageSend){
+    grid-area:send;
+    width:52px!important;
+    min-width:52px!important;
+    min-height:52px!important;
+    height:52px!important;
+    padding:0!important;
+    display:grid!important;
+    place-items:center!important;
+    align-self:end!important;
+    border-radius:12px!important;
+    font-size:0!important;
+  }
+  .reportedRegressions :global([data-lab-view="chat"] #discussion .messageSend span){
+    margin:0!important;
+    font-size:1.15rem!important;
+    line-height:1!important;
   }
   .reportedRegressions :global([data-lab-view="proof"] #proof>.sectionHead){
     gap:8px!important;
@@ -117,6 +185,37 @@
   .reportedRegressions :global([data-lab-view="events"] .journeyCard>legend){
     margin-bottom:12px;
     font-size:.86rem;
+  }
+  /* Bottom-nav anchor styles cascade into the drop-up; reset item alignment here. */
+  .reportedRegressions :global(.labMoreDropupPanel a){
+    width:100%!important;
+    min-width:0!important;
+    display:grid!important;
+    grid-template-columns:32px minmax(0,1fr) 24px!important;
+    align-items:center!important;
+    justify-items:stretch!important;
+    gap:10px!important;
+    text-align:left!important;
+  }
+  .reportedRegressions :global(.labMoreDropupPanel a>span:first-child){
+    width:32px!important;
+    min-width:32px!important;
+    display:grid!important;
+    place-items:center!important;
+    justify-self:center!important;
+  }
+  .reportedRegressions :global(.labMoreDropupPanel a>span:nth-child(2)){
+    min-width:0!important;
+    width:100%!important;
+    display:grid!important;
+    justify-self:stretch!important;
+    justify-items:start!important;
+    gap:2px!important;
+    text-align:left!important;
+  }
+  .reportedRegressions :global(.labMoreDropupPanel a>span:last-child){
+    justify-self:end!important;
+    text-align:right!important;
   }
 }
 

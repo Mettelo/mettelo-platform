@@ -25,10 +25,12 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
     expect(participation).toContain("legacy===1?'solo':'team'");
   });
 
-  test('Flexible keeps collaborative minimum while Solo/Either resolve to one at runtime',()=>{
+  test('Flexible keeps collaborative minimum while independent legacy preference resolves to one at runtime',()=>{
     const admission=read('lib/project-admission.ts');
     const participation=read('lib/project-participation.ts');
-    expect(admission).toContain("input.participationMode==='flexible'&&(input.preference==='solo'||input.preference==='either')");
+    expect(admission).toContain("if(input.participationMode==='solo'||input.preference==='solo')return 1");
+    expect(admission).toContain("if(input.participationMode==='flexible'&&input.preference==='either')return 1");
+    expect(admission).toContain("return['solo','team','flexible']");
     expect(participation).not.toContain("value.participation_mode==='flexible'&&value.min_team_size!==1");
     expect(hardening()).toContain('phase9_effective_participation_threshold');
     expect(hardening()).toContain("p_mode='flexible' and p_preference in ('solo','either') then 1");
@@ -167,18 +169,22 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
     expect(start).toContain('participation_mode:participationMode');
   });
 
-  test('public and member project surfaces explain participation and readiness separately and Solo is independent work',()=>{
+  test('public and member project surfaces explain participation, capacity and application state separately',()=>{
     const publicDetail=read('components/project-experience/ProjectPublicDetailV2.tsx');
     const memberDetail=read('components/project-experience/MemberProjectDetailV2.tsx');
     const admin=read('components/ArchitectProjectParticipationPanel.tsx');
     expect(publicDetail).toContain('<dt>Participation</dt>');
     expect(publicDetail).toContain('<dt>Capacity</dt>');
+    expect(memberDetail).toContain('<dt>Participation</dt>');
+    expect(memberDetail).toContain('<dt>Capacity</dt>');
+    expect(memberDetail).toContain('<dt>Applications</dt>');
     expect(memberDetail).toContain('<dt>Minimum to start</dt>');
     expect(memberDetail).toContain('<dt>Target team</dt>');
     expect(memberDetail).toContain('<dt>Maximum team</dt>');
     expect(memberDetail).toContain("const isSolo=project.participationMode==='solo'");
-    expect(memberDetail).toContain("'Working independently'");
-    expect(memberDetail).toContain('aria-label="Solo participation capacity"');
+    expect(memberDetail).toContain("isSolo?'Solo project'");
+    expect(memberDetail).toContain("capacityAllocated?'Solo place currently allocated':'1 solo place'");
+    expect(memberDetail).toContain('You can still submit interest while applications remain open.');
     expect(admin).toContain("value.participation_mode==='flexible'?'Team minimum':'Minimum to start'");
     expect(admin).toContain('Target is desirable planning capacity');
   });

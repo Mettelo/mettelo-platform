@@ -15,7 +15,7 @@ export default async function ProjectGrowTeamSection({projectId,projectRunId,wor
  const db=serviceDb();
  if(!db)return unavailable('Team recruitment controls are temporarily unavailable. Your Team workspace remains available and no recruitment action has been performed.');
  const [projectResult,runResult,needResult,capacityResult,rolesResult,domainsResult,capabilitiesResult,projectRolesResult,assignedResult]=await Promise.all([
-  db.from('projects').select('id,title,status,visibility,project_type,weekly_commitment,member_invites_enabled,project_lead_invites_enabled,team_member_invites_enabled,member_collaboration_posts_enabled,collaboration_marketplace_enabled,project_sharing_enabled,late_joining_enabled,late_joining_cutoff_at').eq('id',projectId).maybeSingle(),
+  db.from('projects').select('id,title,status,visibility,project_type,weekly_commitment,member_invites_enabled,project_lead_invites_enabled,team_member_invites_enabled,collaboration_marketplace_enabled,project_sharing_enabled,collaboration_social_sharing_enabled,late_joining_enabled,late_joining_cutoff_at').eq('id',projectId).maybeSingle(),
   db.from('project_runs').select('id,status,recruitment_open').eq('id',projectRunId).eq('project_id',projectId).maybeSingle(),
   db.from('project_collaboration_needs').select('id,source_project_role_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,project_collaboration_need_capabilities(capability_id)').eq('project_id',projectId).eq('project_run_id',projectRunId).eq('status','active').order('created_at',{ascending:false}).limit(1).maybeSingle(),
   db.rpc('phase9_project_run_capacity',{p_project_id:projectId,p_run_id:projectRunId}),
@@ -38,8 +38,8 @@ export default async function ProjectGrowTeamSection({projectId,projectRunId,wor
  const roleAuthorized=isAdmin||(workspaceRole==='project_lead'?project.project_lead_invites_enabled===true:project.team_member_invites_enabled===true);
  const canManage=baseRecruitable&&roleAuthorized;
  const canFind=canManage&&project.member_invites_enabled===true;
- const canPost=canManage&&project.member_collaboration_posts_enabled!==false&&project.collaboration_marketplace_enabled===true;
- const canShare=canManage&&project.project_sharing_enabled!==false&&project.visibility==='public';
+ const canPost=canManage&&project.collaboration_marketplace_enabled===true;
+ const canShare=canManage&&project.project_sharing_enabled!==false&&project.collaboration_social_sharing_enabled===true&&project.visibility==='public';
  let stateLabel='AVAILABLE';
  let stateMessage=`${openPlaces} open place${openPlaces===1?'':'s'}.`;
  if(project.late_joining_cutoff_at&&!cutoffClosed)stateMessage+=` Joining available until ${dateLabel(project.late_joining_cutoff_at)}.`;

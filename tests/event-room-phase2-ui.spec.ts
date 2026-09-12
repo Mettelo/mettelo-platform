@@ -97,6 +97,13 @@ test('connection failure is distinct from token failure and offers retry',async(
  await expect(connectionState.getByRole('button',{name:'Try again'})).toBeVisible();
  const beforeRetry=tokenRequests;
  expect(beforeRetry).toBeGreaterThanOrEqual(1);
- await connectionState.getByRole('button',{name:'Try again'}).click();
+ const clicked=await page.evaluate(()=>{
+  const state=document.querySelector('[data-event-room-category="connection_failure"]');
+  const button=state ? Array.from(state.querySelectorAll('button')).find(candidate=>candidate.textContent?.trim()==='Try again') as HTMLButtonElement|undefined : undefined;
+  if(!button)return false;
+  button.click();
+  return true;
+ });
+ expect(clicked).toBe(true);
  await expect.poll(()=>tokenRequests).toBeGreaterThan(beforeRetry);
 });

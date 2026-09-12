@@ -9,10 +9,10 @@ create temporary table ws2_members_before as select id,project_id,project_run_id
 create temporary table ws2_contrib_before as select id,project_id,project_run_id,user_id,verification_status from public.contributions;
 create temporary table ws2_briefs_before as select project_id from public.project_problem_briefs;
 create temporary table ws2_roles_before as select id,project_id from public.project_roles;
-create temporary table ws2_deliverables_before as select id,project_id,project_run_id from public.project_deliverables;
+create temporary table ws2_deliverables_before as select id,project_id,project_run_id,canonical_item_key from public.project_deliverables;
 create temporary table ws2_success_before as select id,project_id from public.project_success_criteria;
-create temporary table ws2_acceptance_before as select id,project_id,criterion,is_required,sort_order from public.project_acceptance_criteria;
-create temporary table ws2_dependencies_before as select id,project_id,title,dependency_type,is_required,sort_order from public.project_dependencies;
+create temporary table ws2_acceptance_before as select id,project_id,criterion,is_required,sort_order,visibility from public.project_acceptance_criteria;
+create temporary table ws2_dependencies_before as select id,project_id,title,dependency_type,is_required,sort_order,visibility from public.project_dependencies;
 create temporary table ws2_milestones_before as select id,project_id,project_run_id from public.project_milestones;
 create temporary table ws2_capabilities_before as select project_id,capability_id from public.project_capabilities;
 \i supabase/migrations/20260912170500_workstream2_canonical_project_contract.sql
@@ -22,6 +22,7 @@ create temporary table ws2_capabilities_before as select project_id,capability_i
 \i supabase/migrations/20260912173500_workstream2_unified_publication_blockers.sql
 \i supabase/migrations/20260912174000_workstream2_post_update_publication_guard.sql
 \i supabase/migrations/20260912174500_workstream2_structured_delivery_projection.sql
+\i supabase/migrations/20260912175000_workstream2_live_definition_integrity_guard.sql
 do $$
 begin
  if exists((select * from ws2_profiles_before except select id,username from public.profiles) union all (select id,username from public.profiles except select * from ws2_profiles_before)) then raise exception 'WS2_PROFILE_IDENTITY_CHANGED'; end if;
@@ -33,10 +34,10 @@ begin
  if exists((select * from ws2_contrib_before except select id,project_id,project_run_id,user_id,verification_status from public.contributions) union all (select id,project_id,project_run_id,user_id,verification_status from public.contributions except select * from ws2_contrib_before)) then raise exception 'WS2_PROOF_HISTORY_CHANGED'; end if;
  if exists((select * from ws2_briefs_before except select project_id from public.project_problem_briefs) union all (select project_id from public.project_problem_briefs except select * from ws2_briefs_before)) then raise exception 'WS2_PROJECT_BRIEF_RELATION_CHANGED'; end if;
  if exists((select * from ws2_roles_before except select id,project_id from public.project_roles) union all (select id,project_id from public.project_roles except select * from ws2_roles_before)) then raise exception 'WS2_PROJECT_ROLE_RELATION_CHANGED'; end if;
- if exists((select * from ws2_deliverables_before except select id,project_id,project_run_id from public.project_deliverables) union all (select id,project_id,project_run_id from public.project_deliverables except select * from ws2_deliverables_before)) then raise exception 'WS2_DELIVERABLE_RELATION_CHANGED'; end if;
+ if exists((select * from ws2_deliverables_before except select id,project_id,project_run_id,canonical_item_key from public.project_deliverables) union all (select id,project_id,project_run_id,canonical_item_key from public.project_deliverables except select * from ws2_deliverables_before)) then raise exception 'WS2_DELIVERABLE_RELATION_CHANGED'; end if;
  if exists((select * from ws2_success_before except select id,project_id from public.project_success_criteria) union all (select id,project_id from public.project_success_criteria except select * from ws2_success_before)) then raise exception 'WS2_SUCCESS_CRITERIA_RELATION_CHANGED'; end if;
- if exists((select * from ws2_acceptance_before except select id,project_id,criterion,is_required,sort_order from public.project_acceptance_criteria) union all (select id,project_id,criterion,is_required,sort_order from public.project_acceptance_criteria except select * from ws2_acceptance_before)) then raise exception 'WS2_ACCEPTANCE_CRITERIA_CHANGED'; end if;
- if exists((select * from ws2_dependencies_before except select id,project_id,title,dependency_type,is_required,sort_order from public.project_dependencies) union all (select id,project_id,title,dependency_type,is_required,sort_order from public.project_dependencies except select * from ws2_dependencies_before)) then raise exception 'WS2_DEPENDENCIES_CHANGED'; end if;
+ if exists((select * from ws2_acceptance_before except select id,project_id,criterion,is_required,sort_order,visibility from public.project_acceptance_criteria) union all (select id,project_id,criterion,is_required,sort_order,visibility from public.project_acceptance_criteria except select * from ws2_acceptance_before)) then raise exception 'WS2_ACCEPTANCE_CRITERIA_CHANGED'; end if;
+ if exists((select * from ws2_dependencies_before except select id,project_id,title,dependency_type,is_required,sort_order,visibility from public.project_dependencies) union all (select id,project_id,title,dependency_type,is_required,sort_order,visibility from public.project_dependencies except select * from ws2_dependencies_before)) then raise exception 'WS2_DEPENDENCIES_CHANGED'; end if;
  if exists((select * from ws2_milestones_before except select id,project_id,project_run_id from public.project_milestones) union all (select id,project_id,project_run_id from public.project_milestones except select * from ws2_milestones_before)) then raise exception 'WS2_MILESTONE_RELATION_CHANGED'; end if;
  if exists((select * from ws2_capabilities_before except select project_id,capability_id from public.project_capabilities) union all (select project_id,capability_id from public.project_capabilities except select * from ws2_capabilities_before)) then raise exception 'WS2_CAPABILITY_RELATION_CHANGED'; end if;
 end;

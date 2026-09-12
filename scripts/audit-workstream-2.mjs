@@ -3,6 +3,8 @@ import fs from 'node:fs';
 const read=path=>fs.readFileSync(path,'utf8');
 const migration=read('supabase/migrations/20260912170500_workstream2_canonical_project_contract.sql');
 const hardening=read('supabase/migrations/20260912171500_workstream2_interest_eligibility_hardening.sql');
+const postUpdateGuard=read('supabase/migrations/20260912174000_workstream2_post_update_publication_guard.sql');
+const adminProjectsRoute=read('app/api/admin/projects/route.ts');
 const publicLoader=read('lib/public-project-catalogue-loader.ts');
 const memberLoader=read('lib/member-discover-project-loader.ts');
 const interestFlow=read('components/MemberProjectInterestFlow.tsx');
@@ -14,7 +16,9 @@ const readiness=read('lib/member-readiness.ts');
 const checks=[
  [migration,'workstream2_project_reconciliation','historical reconciliation report exists'],
  [migration,'workstream2_publication_blockers','publication blockers are database-authoritative'],
- [migration,'workstream2_guard_project_publication','direct publication bypass is guarded'],
+ [postUpdateGuard,'after update on public.projects','publication guard evaluates the post-update canonical row transactionally'],
+ [postUpdateGuard,'workstream2_publication_blockers(new.id)','direct publication and live-edit bypasses reuse the canonical database blocker authority'],
+ [adminProjectsRoute,"db.rpc('workstream2_publication_blockers'",'Admin lifecycle uses the canonical database publication blocker authority'],
  [migration,"participation_mode='team' and coalesce(p.min_team_size,0)<2",'Team minimum is validated'],
  [migration,'TARGET_BELOW_MINIMUM','target/minimum invariant is guarded'],
  [migration,'MAXIMUM_BELOW_TARGET','maximum/target invariant is guarded'],
@@ -46,5 +50,7 @@ for(const [source,needle,reason] of checks)if(!source.includes(needle))failures.
 for(const [path,source] of [['public catalogue loader',publicLoader],['member discover loader',memberLoader]])if(source.includes('LEGACY_')||source.includes('retrying legacy')||source.includes('CORE_FACET_SELECT')||source.includes('MINIMAL_SELECT'))failures.push(`${path} still contains a stale/legacy projection fallback`);
 if(interestFlow.includes('PRIMARY_ROLE_REQUIRED')||interestFlow.includes('Choose a primary role'))failures.push('role-neutral interest UI still requires a formal role');
 if(hardening.includes('p_project_id,p_primary_project_role_id'))failures.push('initial interest still binds canonical request identity to a formal role');
+if(adminProjectsRoute.includes('publicationReadiness('))failures.push('Admin lifecycle still has a competing TypeScript publication authority');
+if(postUpdateGuard.includes('before update'))failures.push('publication guard still evaluates the pre-update project row');
 if(failures.length){for(const failure of failures)console.error(`FAIL: ${failure}`);process.exit(1)}
 console.log(`Workstream 2 canonical project static contract verified (${checks.length} assertions).`);

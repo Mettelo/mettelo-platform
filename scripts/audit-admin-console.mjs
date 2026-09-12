@@ -35,7 +35,7 @@ const checks=[
   ['app/admin/opportunity-sources/page.tsx',['AdminOpportunitySources']],
   ['components/AdminOpportunitySources.tsx',['AUTOMATION HEALTH','sourceAlert','Sync all official sources','Search by company name','Auto-publish','Never synced','Advanced: add a specific official employer source','sourceTable','sourceMobileList']],
   ['app/api/admin/opportunity-sources/route.ts',['export async function DELETE','organisation_name','source_key','employer_domain']],
-  ['app/api/admin/projects/route.ts',['updated_by_user_id:user.id','applications, team activity or evidence','lifecycle-controlled','publicationReadiness']],
+  ['app/api/admin/projects/route.ts',['updated_by_user_id:user.id','applications, team activity or evidence','lifecycle-controlled','workstream2_publication_blockers']],
   ['app/admin/team-formation/page.tsx',["redirect('/admin/project-operations/team-formation')"]],
   ['app/admin/applications/page.tsx',["redirect('/admin/project-operations/applications')"]],
   ['supabase/migrations/20260816021000_admin_project_updated_by.sql',['updated_by_user_id']],

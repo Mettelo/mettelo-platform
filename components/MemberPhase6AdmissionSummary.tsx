@@ -8,11 +8,11 @@ function status(item:Item){
  if(formation?.auto_start_paused_at||formation?.auto_start_blocked_at)return{label:'PROJECT START PAUSED',body:'Mettelo has temporarily paused the project start while setup is reviewed. You do not need to take action right now. We’ll notify you when the project is ready.',tone:'paused'};
  if(formation?.auto_start_failure)return{label:'PROJECT SETUP IN PROGRESS',body:'We’re completing your project setup. We’ll notify you when it is ready.',tone:'paused'};
  if(formation?.scheduled_start_at){
-  const scheduled=new Date(formation.scheduled_start_at);
-  if(scheduled.getTime()<=Date.now())return{label:'PROJECT SETUP IN PROGRESS',body:'The scheduled start time has passed and final setup is still being completed. We’ll notify you when the workspace is ready.',tone:'paused'};
-  return{label:'YOUR TEAM IS READY',body:`Your project is scheduled to start at ${scheduled.toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})}. We’ll notify you when your workspace is ready.`,tone:'ready'};
+  const eligibleFrom=new Date(formation.scheduled_start_at);
+  if(eligibleFrom.getTime()<=Date.now())return{label:'READY FOR DAILY START',body:'Your project has reached its earliest start eligibility. It is waiting for the next daily formation check, which will revalidate team minimum and project readiness before activation. We’ll notify you when your workspace is ready.',tone:'ready'};
+  return{label:'ELIGIBILITY WINDOW',body:`Your team has reached the required minimum. The earliest start eligibility is ${eligibleFrom.toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})}. This is not a guaranteed start time; activation happens on a later daily formation check after readiness is revalidated.`,tone:'ready'};
  }
- if(formation)return{label:'TEAM FORMING',body:`${formation.filled} of ${formation.threshold} members needed to start.`,tone:'forming'};
+ if(formation)return{label:'TEAM FORMING',body:`${formation.filled} of ${formation.threshold} members needed to reach the project minimum.`,tone:'forming'};
  return{label:'YOU’RE IN',body:'Your place is confirmed. Mettelo is preparing the next project state.',tone:'ready'};
 }
 

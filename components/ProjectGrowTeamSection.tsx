@@ -16,7 +16,7 @@ export default async function ProjectGrowTeamSection({projectId,projectRunId,wor
  if(!db)return unavailable('Team recruitment controls are temporarily unavailable. Your Team workspace remains available and no recruitment action has been performed.');
  const [projectResult,runResult,needResult,capacityResult,rolesResult,domainsResult,capabilitiesResult,projectRolesResult,assignedResult]=await Promise.all([
   db.from('projects').select('id,title,status,visibility,project_type,weekly_commitment,min_team_size,target_team_size,max_team_size,member_invites_enabled,project_lead_invites_enabled,team_member_invites_enabled,collaboration_marketplace_enabled,project_sharing_enabled,collaboration_social_sharing_enabled,late_joining_enabled,late_joining_cutoff_at').eq('id',projectId).maybeSingle(),
-  db.from('project_runs').select('id,status,recruitment_open').eq('id',projectRunId).eq('project_id',projectId).maybeSingle(),
+  db.from('project_runs').select('id,status,recruitment_open,completion_requested_at').eq('id',projectRunId).eq('project_id',projectId).maybeSingle(),
   db.from('project_collaboration_needs').select('id,source,source_project_role_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,project_collaboration_need_capabilities(capability_id)').eq('project_id',projectId).eq('project_run_id',projectRunId).eq('status','active').neq('source','direct_invite').order('created_at',{ascending:false}).limit(1).maybeSingle(),
   db.rpc('phase9_project_run_capacity',{p_project_id:projectId,p_run_id:projectRunId}),
   db.from('project_role_catalogue').select('id,title').eq('active',true).order('title').limit(80),
@@ -30,11 +30,12 @@ export default async function ProjectGrowTeamSection({projectId,projectRunId,wor
  if(capacityResult.error||!capacity)return unavailable('Current team capacity could not be confirmed. Recruitment is disabled rather than risking an over-capacity admission.');
  const terminal=['completed','cancelled','archived'].includes(project.status)||run.status==='completed';
  const finalReview=run.status==='review';
+ const completionFreeze=!terminal&&(finalReview||Boolean(run.completion_requested_at));
  const cutoffClosed=Boolean(project.late_joining_cutoff_at&&Date.now()>=new Date(project.late_joining_cutoff_at).getTime());
  const joiningClosed=run.status==='active'&&(project.late_joining_enabled===false||cutoffClosed);
  const openPlaces=Math.max(0,Number(capacity.available??0));const maximum=Number(capacity.maximum??project.max_team_size??openPlaces+activeMemberCount);const occupied=Number(capacity.occupied??activeMemberCount);
  const full=capacity.capacity_available===false||openPlaces<1;
- const baseRecruitable=!terminal&&!finalReview&&!joiningClosed&&!full&&['forming','active'].includes(run.status)&&run.recruitment_open!==false;
+ const baseRecruitable=!terminal&&!completionFreeze&&!joiningClosed&&!full&&['forming','active'].includes(run.status)&&run.recruitment_open!==false;
  const roleAuthorized=isAdmin||(workspaceRole==='project_lead'?project.project_lead_invites_enabled===true:project.team_member_invites_enabled===true);
  const canManage=baseRecruitable&&roleAuthorized;
  const canFind=canManage&&project.member_invites_enabled===true;
@@ -43,7 +44,7 @@ export default async function ProjectGrowTeamSection({projectId,projectRunId,wor
  let stateLabel='AVAILABLE';
  let stateMessage=`${openPlaces} open place${openPlaces===1?'':'s'}.`;
  if(project.late_joining_cutoff_at&&!cutoffClosed)stateMessage+=` Joining available until ${dateLabel(project.late_joining_cutoff_at)}.`;
- if(finalReview){stateLabel='COMPLETION FREEZE';stateMessage='FINAL REVIEW. Recruitment is closed while this exact run is in final review.'}
+ if(completionFreeze){stateLabel='COMPLETION FREEZE';stateMessage=finalReview?'FINAL REVIEW. Recruitment is closed while this exact run is in final review.':'FINAL REVIEW CYCLE. Recruitment remains closed after completion was requested, including while requested changes are being addressed.'}
  else if(terminal){stateLabel='RECRUITMENT CLOSED';stateMessage='This project run is completed or otherwise closed and cannot recruit.'}
  else if(full){stateLabel='FULL';stateMessage=`TEAM FULL. ${occupied} / ${maximum}. There are no open places in this project run.`}
  else if(joiningClosed){stateLabel='JOINING CLOSED';stateMessage=project.late_joining_enabled===false?'Late joining is disabled for this active project run.':'The configured joining cutoff has passed.'}

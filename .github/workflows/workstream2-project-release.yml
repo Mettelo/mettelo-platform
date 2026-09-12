@@ -43,7 +43,13 @@ jobs:
       - run: npm run typecheck
       - run: npm run audit:project-library
       - run: npm run test:project-interest-flow
-      - run: npm run build
+      - name: Build with non-production contract values
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci.invalid.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+        run: npm run build
 
   local-project-contract:
     name: Workstream 2 migration, security, browser and accessibility

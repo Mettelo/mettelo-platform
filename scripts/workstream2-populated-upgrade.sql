@@ -23,6 +23,7 @@ create temporary table ws2_capabilities_before as select project_id,capability_i
 \i supabase/migrations/20260912174000_workstream2_post_update_publication_guard.sql
 \i supabase/migrations/20260912174500_workstream2_structured_delivery_projection.sql
 \i supabase/migrations/20260912175000_workstream2_live_definition_integrity_guard.sql
+\i supabase/migrations/20260912175500_workstream2_architect_structured_definition_edit.sql
 do $$
 begin
  if exists((select * from ws2_profiles_before except select id,username from public.profiles) union all (select id,username from public.profiles except select * from ws2_profiles_before)) then raise exception 'WS2_PROFILE_IDENTITY_CHANGED'; end if;

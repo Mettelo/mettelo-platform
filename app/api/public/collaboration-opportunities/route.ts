@@ -2,7 +2,7 @@ import {NextResponse} from 'next/server';
 import {serviceDb} from '@/lib/project-flow';
 
 type NeedRow={
-  id:string;project_id:string;project_run_id:string;responsibility:string|null;target_role_catalogue_id:string|null;target_domain_id:string|null;experience_level:string|null;weekly_commitment:string|null;member_message:string|null;status:string;created_at:string;
+  id:string;project_id:string;project_run_id:string;responsibility:string|null;target_role_catalogue_id:string|null;target_domain_id:string|null;experience_level:string|null;weekly_commitment:string|null;member_message:string|null;status:string;source:string;created_at:string;
 };
 type ProjectRow={id:string;slug:string|null;title:string;summary:string|null;status:string;visibility:string;project_type:string|null;weekly_commitment:string|null;late_joining_enabled:boolean|null;late_joining_cutoff_at:string|null};
 type RunRow={id:string;project_id:string;status:string;has_started:boolean|null;recruitment_open:boolean|null};
@@ -12,6 +12,7 @@ function clean(value:string|null,max=80){return String(value||'').trim().slice(0
 function one<T>(value:T|T[]|null|undefined):T|null{return Array.isArray(value)?value[0]||null:value||null}
 
 async function projectOpportunity(db:NonNullable<ReturnType<typeof serviceDb>>,need:NeedRow){
+  if(need.source==='direct_invite')return null;
   const [{data:project},{data:run},{data:links},capacityResult]=await Promise.all([
     db.from('projects').select('id,slug,title,summary,status,visibility,project_type,weekly_commitment,late_joining_enabled,late_joining_cutoff_at').eq('id',need.project_id).maybeSingle(),
     db.from('project_runs').select('id,project_id,status,has_started,recruitment_open').eq('id',need.project_run_id).eq('project_id',need.project_id).maybeSingle(),
@@ -53,7 +54,7 @@ export async function GET(request:Request){
     if(!db)return NextResponse.json({error:'Collaboration opportunity service is unavailable.'},{status:503,headers:{'Cache-Control':'public, max-age=0, s-maxage=30'}});
     const url=new URL(request.url),id=clean(url.searchParams.get('id'));
     if(id){
-      const {data,error}=await db.from('project_collaboration_needs').select('id,project_id,project_run_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,created_at').eq('id',id).maybeSingle();
+      const {data,error}=await db.from('project_collaboration_needs').select('id,project_id,project_run_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,source,created_at').eq('id',id).neq('source','direct_invite').maybeSingle();
       if(error){console.error('public collaboration opportunity lookup failed',error.message);return NextResponse.json({error:'Unable to load this collaboration opportunity.'},{status:503})}
       if(!data)return NextResponse.json({error:'Collaboration opportunity not found.'},{status:404});
       const item=await projectOpportunity(db,data as NeedRow);
@@ -61,7 +62,7 @@ export async function GET(request:Request){
       return NextResponse.json({item},{headers:{'Cache-Control':'public, max-age=0, s-maxage=30, stale-while-revalidate=30'}});
     }
     const requestedLimit=Number(url.searchParams.get('limit')||24);const limit=Number.isFinite(requestedLimit)?Math.min(Math.max(Math.trunc(requestedLimit),1),40):24;
-    const {data,error}=await db.from('project_collaboration_needs').select('id,project_id,project_run_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,created_at').eq('status','active').order('created_at',{ascending:false}).limit(limit);
+    const {data,error}=await db.from('project_collaboration_needs').select('id,project_id,project_run_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,source,created_at').eq('status','active').neq('source','direct_invite').order('created_at',{ascending:false}).limit(limit);
     if(error){console.error('public collaboration opportunities failed',error.message);return NextResponse.json({error:'Unable to load collaboration opportunities.'},{status:503})}
     const projected=await Promise.all((data||[]).map(row=>projectOpportunity(db,row as NeedRow)));
     return NextResponse.json({items:projected.filter((item):item is NonNullable<typeof item>=>Boolean(item)).filter(item=>item.availability.accepting)},{headers:{'Cache-Control':'public, max-age=0, s-maxage=30, stale-while-revalidate=30'}});

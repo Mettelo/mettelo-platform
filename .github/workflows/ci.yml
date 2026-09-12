@@ -32,12 +32,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           if [ "${{ github.event_name }}" = "push" ]; then
             before="${{ github.event.before }}"
             after="${{ github.sha }}"
             target_branch="${GITHUB_REF_NAME}"
-
             if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
               if [[ "$target_branch" == release/* ]]; then
                 echo "requires_staging=false" >> "$GITHUB_OUTPUT"
@@ -45,24 +43,18 @@ jobs:
                 echo "classification=release-train-integration-fast" >> "$GITHUB_OUTPUT"
                 exit 0
               fi
-
               echo "requires_staging=true" >> "$GITHUB_OUTPUT"
               echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
               echo "classification=unscoped-main-push-full-release" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-
             git diff --name-only "$before" "$after" > /tmp/changed-files.txt
           else
             target_branch="${{ github.event.pull_request.base.ref }}"
-            git diff --name-only \
-              "${{ github.event.pull_request.base.sha }}" \
-              "${{ github.event.pull_request.head.sha }}" > /tmp/changed-files.txt
+            git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" > /tmp/changed-files.txt
           fi
-
           echo "Changed files:"
           cat /tmp/changed-files.txt
-
           if [[ "$target_branch" == release/* ]]; then
             echo "requires_staging=false" >> "$GITHUB_OUTPUT"
             echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
@@ -73,20 +65,14 @@ jobs:
             fi
             exit 0
           fi
-
           requires_staging=false
           while IFS= read -r file; do
             [ -n "$file" ] || continue
             case "$file" in
-              docs/*.md|docs/**/*.md|*.md|.github/workflows/*.yml|.github/workflows/*.yaml)
-                ;;
-              *)
-                requires_staging=true
-                break
-                ;;
+              docs/*.md|docs/**/*.md|*.md|.github/workflows/*.yml|.github/workflows/*.yaml) ;;
+              *) requires_staging=true; break ;;
             esac
           done < /tmp/changed-files.txt
-
           if [ "$requires_staging" = "true" ]; then
             echo "requires_staging=true" >> "$GITHUB_OUTPUT"
             echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
@@ -167,7 +153,8 @@ jobs:
       matrix:
         suite:
           - public-regression
-          - authenticated-qa-1
+          - authenticated-qa-1a
+          - authenticated-qa-1b
           - authenticated-qa-2
           - persistence
           - informational-journeys
@@ -175,11 +162,11 @@ jobs:
       CI_LOCAL_SUPABASE: '1'
       E2E_BASE_URL: http://127.0.0.1:3000
       E2E_MEMBER_EMAIL: member.e2e@example.test
-      E2E_MEMBER_PASSWORD: Local-E2E-member-2026!
+      E2E_MEMBER_PASSWORD: local-e2e-member-password
       E2E_ARCHITECT_EMAIL: architect.e2e@example.test
-      E2E_ARCHITECT_PASSWORD: Local-E2E-architect-2026!
+      E2E_ARCHITECT_PASSWORD: local-e2e-architect-password
       E2E_ADMIN_EMAIL: admin.e2e@example.test
-      E2E_ADMIN_PASSWORD: Local-E2E-admin-2026!
+      E2E_ADMIN_PASSWORD: local-e2e-admin-password
       PRODUCTION_SUPABASE_URL: https://aconptuqupsgznyrxhrh.supabase.co
       NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
     steps:
@@ -205,7 +192,16 @@ jobs:
       - name: Prepare isolated Supabase migration set
         run: node scripts/prepare-local-supabase.mjs
       - name: Start isolated Supabase stack
-        run: supabase start --workdir .supabase-ci -x studio,imgproxy,logflare,vector,supavisor
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase stop --workdir .supabase-ci --no-backup >/dev/null 2>&1 || true
+          if ! supabase start --workdir .supabase-ci -x studio,imgproxy,logflare,vector,supavisor; then
+            echo "Supabase startup failed once; resetting the local stack and retrying exactly once."
+            supabase stop --workdir .supabase-ci --no-backup >/dev/null 2>&1 || true
+            sleep 2
+            supabase start --workdir .supabase-ci -x studio,imgproxy,logflare,vector,supavisor
+          fi
       - name: Export isolated Supabase credentials
         shell: bash
         run: |
@@ -230,9 +226,7 @@ jobs:
           npm run dev -- --hostname 127.0.0.1 > /tmp/mettelo-e2e.log 2>&1 &
           echo $! > /tmp/mettelo-e2e.pid
           for attempt in {1..60}; do
-            if curl --fail --silent http://127.0.0.1:3000/signin > /dev/null; then
-              exit 0
-            fi
+            if curl --fail --silent http://127.0.0.1:3000/signin > /dev/null; then exit 0; fi
             sleep 1
           done
           cat /tmp/mettelo-e2e.log
@@ -245,14 +239,17 @@ jobs:
       - name: Blocking public browser regression suite
         if: matrix.suite == 'public-regression'
         run: npm run test:regression
-      - name: Blocking authenticated QA shard 1 of 2
-        if: matrix.suite == 'authenticated-qa-1'
-        run: npm run test:e2e:smoke -- --workers=1 --shard=1/2
-      - name: Blocking authenticated QA shard 2 of 2
+      - name: Blocking authenticated QA shard 1A of 3
+        if: matrix.suite == 'authenticated-qa-1a'
+        run: npm run test:e2e:smoke -- --workers=1 --shard=1/3
+      - name: Blocking authenticated QA shard 1B of 3
+        if: matrix.suite == 'authenticated-qa-1b'
+        run: npm run test:e2e:smoke -- --workers=1 --shard=2/3
+      - name: Blocking authenticated QA shard 2 of 3
         if: matrix.suite == 'authenticated-qa-2'
-        run: npm run test:e2e:smoke -- --workers=1 --shard=2/2
+        run: npm run test:e2e:smoke -- --workers=1 --shard=3/3
       - name: Upload authenticated Chromium visuals
-        if: always() && (matrix.suite == 'authenticated-qa-1' || matrix.suite == 'authenticated-qa-2')
+        if: always() && startsWith(matrix.suite, 'authenticated-qa-')
         uses: actions/upload-artifact@v4
         with:
           name: mettelo-lab-chromium-visuals-${{ matrix.suite }}-${{ github.run_attempt }}
@@ -298,28 +295,13 @@ jobs:
           CLASSIFICATION: ${{ needs.scope.outputs.classification }}
         run: |
           set -euo pipefail
-
-          if [ "$SCOPE_RESULT" != "success" ]; then
-            echo "Release blocked: change-scope classification failed ($SCOPE_RESULT)."
-            exit 1
-          fi
-
-          if [ "$VERIFY_RESULT" != "success" ]; then
-            echo "Release blocked: fast regression gate=$VERIFY_RESULT."
-            exit 1
-          fi
-
+          if [ "$SCOPE_RESULT" != "success" ]; then echo "Release blocked: change-scope classification failed ($SCOPE_RESULT)."; exit 1; fi
+          if [ "$VERIFY_RESULT" != "success" ]; then echo "Release blocked: fast regression gate=$VERIFY_RESULT."; exit 1; fi
           if [ "$REQUIRES_STAGING" = "true" ]; then
-            if [ "$STAGING_RESULT" != "success" ]; then
-              echo "Release blocked: classification=$CLASSIFICATION requires all staging matrix shards; staging=$STAGING_RESULT."
-              exit 1
-            fi
+            if [ "$STAGING_RESULT" != "success" ]; then echo "Release blocked: classification=$CLASSIFICATION requires all staging matrix shards; staging=$STAGING_RESULT."; exit 1; fi
             echo "Release gate passed: deterministic audits/build plus parallel public, authenticated and persistence staging gates are green."
           else
-            if [ "$STAGING_RESULT" != "skipped" ] && [ "$STAGING_RESULT" != "success" ]; then
-              echo "Release blocked: optional staging matrix ended unexpectedly ($STAGING_RESULT)."
-              exit 1
-            fi
+            if [ "$STAGING_RESULT" != "skipped" ] && [ "$STAGING_RESULT" != "success" ]; then echo "Release blocked: optional staging matrix ended unexpectedly ($STAGING_RESULT)."; exit 1; fi
             if [[ "$CLASSIFICATION" == release-train-* ]]; then
               echo "Release-train integration gate passed. Full browser/authenticated/persistence validation remains mandatory on the final PR into main."
             else

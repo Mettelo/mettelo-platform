@@ -53,6 +53,16 @@ begin
     target_admin_review_required
   );
 
+  -- Remove omitted pre-existing rows before processing inserts. New incoming rows use
+  -- id=null and receive database UUIDs, so deleting after insertion would incorrectly
+  -- classify those freshly-created rows as omitted from the incoming ID set.
+  delete from public.project_acceptance_criteria a
+  where a.project_id=target_project_id
+    and not exists(
+      select 1 from jsonb_to_recordset(coalesce(payload->'acceptance_criteria','[]'::jsonb)) as incoming(id uuid)
+      where incoming.id=a.id
+    );
+
   for acceptance_record in
     select * from jsonb_to_recordset(coalesce(payload->'acceptance_criteria','[]'::jsonb))
       as a(id uuid,criterion text,is_required boolean,visibility text,sort_order integer)
@@ -77,11 +87,12 @@ begin
       if not found then raise exception 'ACCEPTANCE_CRITERION_NOT_IN_PROJECT'; end if;
     end if;
   end loop;
-  delete from public.project_acceptance_criteria a
-  where a.project_id=target_project_id
+
+  delete from public.project_dependencies d
+  where d.project_id=target_project_id
     and not exists(
-      select 1 from jsonb_to_recordset(coalesce(payload->'acceptance_criteria','[]'::jsonb)) as incoming(id uuid)
-      where incoming.id=a.id
+      select 1 from jsonb_to_recordset(coalesce(payload->'dependencies','[]'::jsonb)) as incoming(id uuid)
+      where incoming.id=d.id
     );
 
   for dependency_record in
@@ -112,12 +123,6 @@ begin
       if not found then raise exception 'DEPENDENCY_NOT_IN_PROJECT'; end if;
     end if;
   end loop;
-  delete from public.project_dependencies d
-  where d.project_id=target_project_id
-    and not exists(
-      select 1 from jsonb_to_recordset(coalesce(payload->'dependencies','[]'::jsonb)) as incoming(id uuid)
-      where incoming.id=d.id
-    );
 
   insert into public.project_governance_events(
     project_id,actor_user_id,actor_scope,event_type,from_status,to_status,reason,metadata

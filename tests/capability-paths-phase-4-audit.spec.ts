@@ -58,7 +58,8 @@ test.describe('Capability Paths Phase 4 member contract',()=>{
  test('member recommendations use the same canonical capacity truth and paused Paths stop guiding actions',()=>{
   hasAll(availability,['capacity_available','capacity_known','recruitment_state','canonical aggregate RPCs','max_team_size','canonical maximum capacity']);
   expect(availability).not.toContain('occupied_role_count');expect(availability).not.toContain('available_role_count');expect(availability).not.toContain('roles_filled');
-  hasAll(helper,['serviceDb',"rpc('get_member_project_capacities'",'capacity_available','recruitment_state',"follow.status==='following'?incomplete.find"]);
+  hasAll(helper,["rpc('get_member_project_capacities'",'capacity_available','recruitment_state',"follow.status==='following'?incomplete.find"]);
+  expect(helper).not.toContain('serviceDb');expect(helper).not.toContain('filledByRole');expect(helper).not.toContain('occupiedRoleCount');
   hasAll(recommended,['RECOMMENDED FOR YOUR DIRECTION','NEXT IN PRIMARY PATH','nearest currently available project',"followStatus==='paused'",'Manage Paths']);
   expect(panel).toContain('actionable&&!archived&&!paused');
  });

@@ -17,7 +17,8 @@ export async function POST(request:Request){
     if(!title||!slug) return NextResponse.json({error:'Title is required.'},{status:400});
 
     if(resource==='project'){
-      const status=text(body.status,30)||'draft';if(!['draft','pilot','recruiting','open','forming','active','review','completed','cancelled','archived'].includes(status)) return NextResponse.json({error:'Invalid project status.'},{status:400});
+      const requestedStatus=text(body.status,30)||'draft';
+      if(requestedStatus!=='draft')return NextResponse.json({error:'Projects are authored here as drafts only. Use the canonical Project Governance review to publish, resume or change a live project.'},{status:409});
       const summary=text(body.summary,700);if(!summary) return NextResponse.json({error:'Project summary is required.'},{status:400});
       const difficulty=text(body.difficulty_level,30);if(difficulty&&!['entry','intermediate','advanced'].includes(difficulty))return NextResponse.json({error:'Invalid project level.'},{status:400});
       const locationType=text(body.location_type,30);if(locationType&&!['remote','hybrid','onsite'].includes(locationType))return NextResponse.json({error:'Invalid working model.'},{status:400});
@@ -25,7 +26,8 @@ export async function POST(request:Request){
       const problemBrief={context:text(body.problem_context,4000),stakeholder:text(body.problem_stakeholder,2400),primary_question:text(body.problem_primary_question,2400),expected_outcome:text(body.problem_expected_outcome,2400),success_metrics:text(body.problem_success_metrics,2400),constraints:text(body.problem_constraints,3000),ethics_considerations:text(body.problem_ethics,3000)};
       if(!problemBrief.context||!problemBrief.stakeholder||!problemBrief.primary_question||!problemBrief.expected_outcome||!problemBrief.success_metrics)return NextResponse.json({error:'Complete the problem context, stakeholder, primary question, expected outcome and success metrics.'},{status:400});
       const teamSize=Math.max(1,Math.min(50,Number(body.team_size_threshold)||5));
-      if(status==='completed'){const {data:existing}=await db.from('projects').select('id,status').eq('slug',slug).maybeSingle();if(!existing)return NextResponse.json({error:'A project cannot be created directly as Completed. Create and deliver it through the project workflow first.'},{status:409});}
+      const {data:existing,error:existingError}=await db.from('projects').select('id,status,visibility').eq('slug',slug).maybeSingle();if(existingError)throw existingError;
+      if(existing&&(existing.status!=='draft'||existing.visibility==='public'))return NextResponse.json({error:'This project has entered the governed lifecycle. Edit and publish it through the canonical Project Governance experience.'},{status:409});
 
       const primaryDomain=text(body.primary_domain,120);const requestedDomains=[...new Set([primaryDomain,...slugs(body.domains)].filter(Boolean))];const requestedTools=slugs(body.tools);const requestedMethods=slugs(body.methods);
       const [domainRows,toolRows,methodRows]=await Promise.all([
@@ -36,21 +38,13 @@ export async function POST(request:Request){
       if(domainRows.error||toolRows.error||methodRows.error)throw domainRows.error||toolRows.error||methodRows.error;
       if((domainRows.data||[]).length!==requestedDomains.length||(toolRows.data||[]).length!==requestedTools.length||(methodRows.data||[]).length!==requestedMethods.length)return NextResponse.json({error:'One or more project taxonomy selections are invalid. Refresh Admin and try again.'},{status:400});
 
-      const {data,error}=await db.from('projects').upsert({slug,title,summary,problem_statement:problemBrief.primary_question,project_archetype:archetype,status,visibility:'public',location:text(body.location,160)||null,location_type:locationType||null,difficulty_level:difficulty||null,duration_weeks:body.duration_weeks?Number(body.duration_weeks):null,weekly_commitment:text(body.weekly_commitment,120)||null,application_deadline:body.application_deadline||null,forming_deadline:body.forming_deadline||null,team_size_threshold:teamSize,starts_at:body.starts_at||null,github_url:text(body.github_url,400)||null,presentation_required:body.presentation_required===true||body.presentation_required==='on'||body.presentation_required==='true',updated_at:new Date().toISOString()},{onConflict:'slug'}).select('*').single();
-      if(error){if(error.message?.includes('Project is not ready for completion'))return NextResponse.json({error:'Project cannot be marked Completed until required milestones/tasks and any required presentation are complete.'},{status:409});throw error;}
-
+      const {data,error}=await db.from('projects').upsert({slug,title,summary,problem_statement:problemBrief.primary_question,project_archetype:archetype,status:'draft',visibility:'private',applications_open:false,location:text(body.location,160)||null,location_type:locationType||null,difficulty_level:difficulty||null,duration_weeks:body.duration_weeks?Number(body.duration_weeks):null,weekly_commitment:text(body.weekly_commitment,120)||null,application_deadline:body.application_deadline||null,forming_deadline:body.forming_deadline||null,team_size_threshold:teamSize,starts_at:body.starts_at||null,github_url:text(body.github_url,400)||null,presentation_required:body.presentation_required===true||body.presentation_required==='on'||body.presentation_required==='true',updated_at:new Date().toISOString()},{onConflict:'slug'}).select('*').single();
+      if(error)throw error;
       const {error:briefError}=await db.from('project_problem_briefs').upsert({project_id:data.id,...problemBrief,updated_by:user.id,updated_at:new Date().toISOString()},{onConflict:'project_id'});if(briefError)throw briefError;
-
-      const [clearDomains,clearTools,clearMethods]=await Promise.all([
-        db.from('project_domains').delete().eq('project_id',data.id),db.from('project_tools').delete().eq('project_id',data.id),db.from('project_methods').delete().eq('project_id',data.id)
-      ]);
-      if(clearDomains.error||clearTools.error||clearMethods.error)throw clearDomains.error||clearTools.error||clearMethods.error;
+      const [clearDomains,clearTools,clearMethods]=await Promise.all([db.from('project_domains').delete().eq('project_id',data.id),db.from('project_tools').delete().eq('project_id',data.id),db.from('project_methods').delete().eq('project_id',data.id)]);if(clearDomains.error||clearTools.error||clearMethods.error)throw clearDomains.error||clearTools.error||clearMethods.error;
       const domainLinks=(domainRows.data||[]).map(row=>({project_id:data.id,domain_id:row.id,is_primary:row.slug===primaryDomain}));const toolLinks=(toolRows.data||[]).map(row=>({project_id:data.id,tool_id:row.id}));const methodLinks=(methodRows.data||[]).map(row=>({project_id:data.id,method_id:row.id}));
-      const [saveDomains,saveTools,saveMethods]=await Promise.all([
-        domainLinks.length?db.from('project_domains').insert(domainLinks):Promise.resolve({error:null}),toolLinks.length?db.from('project_tools').insert(toolLinks):Promise.resolve({error:null}),methodLinks.length?db.from('project_methods').insert(methodLinks):Promise.resolve({error:null})
-      ]);
-      if(saveDomains.error||saveTools.error||saveMethods.error)throw saveDomains.error||saveTools.error||saveMethods.error;
-      return NextResponse.json({ok:true,item:data});
+      const [saveDomains,saveTools,saveMethods]=await Promise.all([domainLinks.length?db.from('project_domains').insert(domainLinks):Promise.resolve({error:null}),toolLinks.length?db.from('project_tools').insert(toolLinks):Promise.resolve({error:null}),methodLinks.length?db.from('project_methods').insert(methodLinks):Promise.resolve({error:null})]);if(saveDomains.error||saveTools.error||saveMethods.error)throw saveDomains.error||saveTools.error||saveMethods.error;
+      return NextResponse.json({ok:true,item:data,publication:'draft_only'});
     }
 
     if(resource==='opportunity'){
@@ -59,31 +53,9 @@ export async function POST(request:Request){
     }
 
     if(resource==='event'){
-      const status=text(body.status,30)||'draft';
-      const eventType=text(body.event_type,40)||'community_session';
-      const deliveryMode=text(body.delivery_mode,30)||'online';
-      const allowedTypes=['ama','workshop','office_hours','community_session','showcase','webinar','networking','summit','build_sprint','other'];
-      const allowedStatuses=['draft','published','registration_closed','completed','cancelled','archived'];
-      if(!allowedTypes.includes(eventType))return NextResponse.json({error:'Choose a valid event type.'},{status:400});
-      if(!allowedStatuses.includes(status))return NextResponse.json({error:'Invalid event status.'},{status:400});
-      if(!['online','in_person','hybrid'].includes(deliveryMode))return NextResponse.json({error:'Choose a valid event format.'},{status:400});
-      if(!body.starts_at)return NextResponse.json({error:'Event start date and time are required.'},{status:400});
-      const registrationRequired=body.registration_required===true||body.registration_required==='true'||body.registration_required==='on';
-      const registrationUrl=text(body.registration_url,500);
-      if(status==='published'&&registrationRequired&&!registrationUrl)return NextResponse.json({error:'Published events that require registration need a real registration URL.'},{status:400});
-      const speakerNames=Array.isArray(body.speaker_names)?body.speaker_names.map((value:unknown)=>text(value,120)).filter(Boolean).slice(0,20):text(body.speaker_names,1000).split(',').map(v=>v.trim()).filter(Boolean).slice(0,20);
-      const now=new Date().toISOString();
-      const {data,error}=await db.from('events').upsert({
-        slug,title,event_type:eventType,summary:text(body.summary,900)||null,description:text(body.description,12000)||null,
-        starts_at:body.starts_at,ends_at:body.ends_at||null,timezone:text(body.timezone,80)||'Europe/London',delivery_mode:deliveryMode,
-        location_label:text(body.location_label,180)||null,host_name:text(body.host_name,180)||null,speaker_names:speakerNames,
-        capacity:body.capacity?Math.max(1,Number(body.capacity)):null,registration_required:registrationRequired,
-        registration_platform:text(body.registration_platform,100)||null,registration_label:text(body.registration_label,80)||null,
-        registration_url:registrationUrl||null,replay_url:text(body.replay_url,500)||null,featured_image:text(body.featured_image,500)||null,
-        featured_image_alt:text(body.featured_image_alt,240)||null,seo_title:text(body.seo_title,180)||null,seo_description:text(body.seo_description,320)||null,
-        status,published_at:status==='published'?now:null,archived_at:status==='archived'?now:null,updated_at:now
-      },{onConflict:'slug'}).select('*').single();
-      if(error)throw error;return NextResponse.json({ok:true,item:data});
+      const status=text(body.status,30)||'draft';const eventType=text(body.event_type,40)||'community_session';const deliveryMode=text(body.delivery_mode,30)||'online';const allowedTypes=['ama','workshop','office_hours','community_session','showcase','webinar','networking','summit','build_sprint','other'];const allowedStatuses=['draft','published','registration_closed','completed','cancelled','archived'];
+      if(!allowedTypes.includes(eventType))return NextResponse.json({error:'Choose a valid event type.'},{status:400});if(!allowedStatuses.includes(status))return NextResponse.json({error:'Invalid event status.'},{status:400});if(!['online','in_person','hybrid'].includes(deliveryMode))return NextResponse.json({error:'Choose a valid event format.'},{status:400});if(!body.starts_at)return NextResponse.json({error:'Event start date and time are required.'},{status:400});const registrationRequired=body.registration_required===true||body.registration_required==='true'||body.registration_required==='on';const registrationUrl=text(body.registration_url,500);if(status==='published'&&registrationRequired&&!registrationUrl)return NextResponse.json({error:'Published events that require registration need a real registration URL.'},{status:400});const speakerNames=Array.isArray(body.speaker_names)?body.speaker_names.map((value:unknown)=>text(value,120)).filter(Boolean).slice(0,20):text(body.speaker_names,1000).split(',').map(v=>v.trim()).filter(Boolean).slice(0,20);const now=new Date().toISOString();
+      const {data,error}=await db.from('events').upsert({slug,title,event_type:eventType,summary:text(body.summary,900)||null,description:text(body.description,12000)||null,starts_at:body.starts_at,ends_at:body.ends_at||null,timezone:text(body.timezone,80)||'Europe/London',delivery_mode:deliveryMode,location_label:text(body.location_label,180)||null,host_name:text(body.host_name,180)||null,speaker_names:speakerNames,capacity:body.capacity?Math.max(1,Number(body.capacity)):null,registration_required:registrationRequired,registration_platform:text(body.registration_platform,100)||null,registration_label:text(body.registration_label,80)||null,registration_url:registrationUrl||null,replay_url:text(body.replay_url,500)||null,featured_image:text(body.featured_image,500)||null,featured_image_alt:text(body.featured_image_alt,240)||null,seo_title:text(body.seo_title,180)||null,seo_description:text(body.seo_description,320)||null,status,published_at:status==='published'?now:null,archived_at:status==='archived'?now:null,updated_at:now},{onConflict:'slug'}).select('*').single();if(error)throw error;return NextResponse.json({ok:true,item:data});
     }
     return NextResponse.json({error:'Unknown content type.'},{status:400});
   }catch(error){console.error('admin content error',error);return NextResponse.json({error:'Unable to save this content. Check the fields and try again.'},{status:500});}

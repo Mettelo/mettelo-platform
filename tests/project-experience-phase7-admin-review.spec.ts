@@ -107,8 +107,10 @@ test.describe('Project Experience Phase 7 source contract',()=>{
   expect(queue).toContain("function openPlaces(item:Item){return Math.max(0,item.capacity.maximum-item.capacity.confirmed-(item.capacity.reservedOffers||0))}");
   expect(queue).toContain('{openPlaces(detail)} open');
   expect(page).toContain('Partner / review required');
-  expect(page).toContain('AUTO start scheduled');
+  expect(page).toContain('AUTO eligibility window');
+  expect(page).toContain('AUTO ready for daily start');
   expect(page).toContain('AUTO needs attention');
+  expect(page).not.toContain('AUTO start scheduled');
  });
 
  test('canonical audit records actors, states and reviewer notes',()=>{

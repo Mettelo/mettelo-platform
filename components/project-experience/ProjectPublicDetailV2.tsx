@@ -5,64 +5,24 @@ import styles from './ProjectPublicDetailV2.module.css';
 
 type PublicCapacity={participation_mode:'solo'|'team'|'flexible'|null;confirmed_members:number;reserved_members:number;occupied_places:number;min_team_size:number|null;target_team_size:number|null;max_team_size:number|null;capacity_available:boolean;recruitment_state:string};
 type Props={model:ProjectExperienceModel;capacity:PublicCapacity;canApply:boolean;ctaHref:string;authenticated:boolean;detailLoadError?:boolean};
-
 function titleCase(value:string|null|undefined){return value?value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase()):'Not published'}
 function date(value:string|null|undefined){if(!value)return'Not published';const parsed=new Date(value);if(Number.isNaN(parsed.getTime()))return'Not published';return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric'}).format(parsed)}
 function weeks(value:number|null){return value?`${value} ${value===1?'week':'weeks'}`:'Not published'}
 function short(value:string|null|undefined,max=260){if(!value)return'';const clean=value.replace(/\s+/g,' ').trim();return clean.length<=max?clean:`${clean.slice(0,max).replace(/\s+\S*$/,'')}…`}
-function participation(project:ProjectExperienceModel['project']){
-  const mode=project.participationMode||((project.minTeamSize||project.teamSizeThreshold)===1?'solo':(project.minTeamSize||project.teamSizeThreshold)?'team':null);
-  const min=project.minTeamSize||project.teamSizeThreshold||null;
-  const target=project.targetTeamSize||min;
-  const max=project.maxTeamSize||target;
-  if(mode==='solo')return{label:'Solo',detail:'1 participant'};
-  if(mode==='flexible')return{label:'Flexible',detail:min&&max?(min===max?`${min} participant${min===1?'':'s'}`:`${min}–${max} participants · target ${target||min}`):'Solo or team'};
-  if(mode==='team')return{label:'Team',detail:min&&max?(min===max?`${min} participants`:`${min}–${max} participants · target ${target||min}`):'Team project'};
-  return{label:'Not published',detail:min?`${min} participant${min===1?'':'s'}`:'Not published'};
-}
+function participation(project:ProjectExperienceModel['project']){const mode=project.participationMode||((project.minTeamSize||project.teamSizeThreshold)===1?'solo':(project.minTeamSize||project.teamSizeThreshold)?'team':null);const min=project.minTeamSize||project.teamSizeThreshold||null;const target=project.targetTeamSize||min;const max=project.maxTeamSize||target;if(mode==='solo')return{label:'Solo',detail:'1 participant'};if(mode==='flexible')return{label:'Flexible',detail:min&&max?(min===max?`${min} participant${min===1?'':'s'}`:`${min}–${max} participants · target ${target||min}`):'Solo or team'};if(mode==='team')return{label:'Team',detail:min&&max?(min===max?`${min} participants`:`${min}–${max} participants · target ${target||min}`):'Team project'};return{label:'Not published',detail:min?`${min} participant${min===1?'':'s'}`:'Not published'}}
 function recruitmentLabel(state:string){return state==='full'?'Full':state==='closed'?'Closed':state==='joining_closed'?'Joining closed':state==='completed'?'Completed':state==='active'?'Active':state==='ready_for_eligibility'?'Ready for eligibility':state==='team_forming'?'Team forming':'Open'}
 function capacityLabel(capacity:PublicCapacity){if(capacity.participation_mode==='solo')return'1 participant';const bits=[`${capacity.confirmed_members} confirmed`];if(capacity.min_team_size!=null)bits.push(`minimum ${capacity.min_team_size}`);if(capacity.target_team_size!=null)bits.push(`target ${capacity.target_team_size}`);if(capacity.max_team_size!=null)bits.push(`maximum ${capacity.max_team_size}`);return bits.join(' · ')}
 
 export default function ProjectPublicDetailV2({model,capacity,canApply,ctaHref,authenticated,detailLoadError=false}:Props){
-  const {project,resources,proofSignals,taxonomy}=model;
-  const workingModel=project.locationType?titleCase(project.locationType):project.location||'Project-specific';
-  const statusLabel=recruitmentLabel(capacity.recruitment_state);
-  const primarySource=resources[0]||null;
-  const proofConfigured=proofSignals.length>0;
-  const participationInfo=participation(project);
-  const heroTags=[project.difficultyLevel&&titleCase(project.difficultyLevel),project.durationWeeks&&weeks(project.durationWeeks),project.weeklyCommitment,participationInfo.label,workingModel,taxonomy.domains[0]?.name].filter((item):item is string=>Boolean(item));
-
-  return <div className={styles.page}>
-    <a className={styles.skip} href="#project-content">Skip to project details</a>
-    <nav className={styles.breadcrumb} aria-label="Breadcrumb"><Link href="/projects">Projects</Link><span aria-hidden="true">›</span><strong>{project.title}</strong></nav>
-
-    <header className={styles.hero} aria-labelledby="project-title">
-      <div className={styles.heroMain}>
-        <div className={styles.status}><i aria-hidden="true"/><span>{statusLabel}{taxonomy.domains[0]?.name?` · ${taxonomy.domains[0].name}`:''}</span></div>
-        <h1 id="project-title">{project.title}</h1>
-        <p className={styles.heroSummary}>{short(project.summary,360)}</p>
-        <div className={styles.heroTags} aria-label="Project characteristics">{heroTags.slice(0,6).map(item=><span key={item}>{item}</span>)}</div>
-        <div className={styles.heroFoot}><div className={styles.proofBadge}><span aria-hidden="true">{proofConfigured?'✓':'◌'}</span>{proofConfigured?'Evidence opportunity · verification required':'Evidence mapping pending'}</div><div className={styles.projectId}>PROJECT · {project.id.slice(0,8).toUpperCase()}</div></div>
-      </div>
-
-      <aside className={styles.decision} aria-labelledby="project-decision-title">
-        <div className={styles.decisionTop}><span className={styles.label}>Project opportunity</span><span className={canApply?styles.openPill:styles.neutralPill}>{statusLabel}</span></div>
-        <h2 id="project-decision-title">Decide whether this is the right project for you.</h2>
-        <p>Understand the problem, contribution areas, commitment and quality bar before you submit interest.</p>
-        <dl className={styles.metaGrid}>
-          <div><dt>Duration</dt><dd>{weeks(project.durationWeeks)}</dd></div><div><dt>Commitment</dt><dd>{project.weeklyCommitment||'Not published'}</dd></div>
-          <div><dt>Participation</dt><dd>{participationInfo.label}</dd></div><div><dt>Capacity</dt><dd>{capacityLabel(capacity)}</dd></div>
-          {capacity.participation_mode!=='solo'&&<><div><dt>Current members</dt><dd>{capacity.confirmed_members}</dd></div><div><dt>Recruitment</dt><dd>{statusLabel}</dd></div></>}
-          <div><dt>Working model</dt><dd>{workingModel}</dd></div><div><dt>Level</dt><dd>{project.difficultyLevel?titleCase(project.difficultyLevel):'Not published'}</dd></div>
-          <div><dt>Interest closes</dt><dd>{date(project.applicationDeadline)}</dd></div>
-        </dl>
-        {canApply?<Link className={styles.primaryButton} href={ctaHref}>Submit interest</Link>:<span className={styles.primaryButton} aria-disabled="true">{capacity.recruitment_state==='full'?'Project full':capacity.recruitment_state==='joining_closed'?'Joining closed':'Interest closed'}</span>}
-        <small>{canApply?(authenticated?'Your eligibility and application state are checked in My Mettelo.':'Sign in or create an account to continue with this project.'):`Recruitment status: ${statusLabel}. This project is not currently accepting interest.`}</small>
-        {primarySource&&<article className={styles.sourceCard}><div className={styles.sourceHead}><span>Data source</span><b className={styles.verified}>● Governed</b></div><h3>{primarySource.name}</h3><p>{primarySource.providerName||titleCase(primarySource.sourceType)}</p>{primarySource.licenceName&&<span className={styles.sourceMeta}>Licence · {primarySource.licenceName}</span>}<p className={styles.disclaimer}>Public project pages show approved source metadata only. Direct resource and stored-copy links remain protected.</p></article>}
-      </aside>
-    </header>
-
-    {detailLoadError&&<div className={styles.empty} role="alert"><strong>Some project details could not be loaded.</strong><span>Core project information is still available. Refresh this page to retry the detailed project brief.</span></div>}
-    <ProjectPublicDetailBodyV3 model={model} canApply={canApply} ctaHref={ctaHref} authenticated={authenticated}/>
-  </div>;
+ const {project,resources,proofSignals,taxonomy,dependencies}=model;const workingModel=project.locationType?titleCase(project.locationType):project.location||'Project-specific';const statusLabel=recruitmentLabel(capacity.recruitment_state);const primarySource=resources[0]||null;const proofConfigured=proofSignals.length>0;const participationInfo=participation(project);const heroTags=[project.difficultyLevel&&titleCase(project.difficultyLevel),project.durationWeeks&&weeks(project.durationWeeks),project.weeklyCommitment,participationInfo.label,workingModel,taxonomy.domains[0]?.name].filter((item):item is string=>Boolean(item));
+ return <div className={styles.page}>
+  <a className={styles.skip} href="#project-content">Skip to project details</a><nav className={styles.breadcrumb} aria-label="Breadcrumb"><Link href="/projects">Projects</Link><span aria-hidden="true">›</span><strong>{project.title}</strong></nav>
+  <header className={styles.hero} aria-labelledby="project-title"><div className={styles.heroMain}><div className={styles.status}><i aria-hidden="true"/><span>{statusLabel}{taxonomy.domains[0]?.name?` · ${taxonomy.domains[0].name}`:''}</span></div><h1 id="project-title">{project.title}</h1><p className={styles.heroSummary}>{short(project.summary,360)}</p><div className={styles.heroTags} aria-label="Project characteristics">{heroTags.slice(0,6).map(item=><span key={item}>{item}</span>)}</div><div className={styles.heroFoot}><div className={styles.proofBadge}><span aria-hidden="true">{proofConfigured?'✓':'◌'}</span>{proofConfigured?'Evidence opportunity · verification required':'Evidence mapping pending'}</div><div className={styles.projectId}>PROJECT · {project.id.slice(0,8).toUpperCase()}</div></div></div>
+  <aside className={styles.decision} aria-labelledby="project-decision-title"><div className={styles.decisionTop}><span className={styles.label}>Project opportunity</span><span className={canApply?styles.openPill:styles.neutralPill}>{statusLabel}</span></div><h2 id="project-decision-title">Decide whether this is the right project for you.</h2><p>Understand the problem, contribution areas, commitment and quality bar before you submit interest.</p><dl className={styles.metaGrid}><div><dt>Duration</dt><dd>{weeks(project.durationWeeks)}</dd></div><div><dt>Commitment</dt><dd>{project.weeklyCommitment||'Not published'}</dd></div><div><dt>Participation</dt><dd>{participationInfo.label}</dd></div><div><dt>Capacity</dt><dd>{capacityLabel(capacity)}</dd></div>{capacity.participation_mode!=='solo'&&<><div><dt>Current members</dt><dd>{capacity.confirmed_members}</dd></div><div><dt>Recruitment</dt><dd>{statusLabel}</dd></div></>}<div><dt>Working model</dt><dd>{workingModel}</dd></div><div><dt>Level</dt><dd>{project.difficultyLevel?titleCase(project.difficultyLevel):'Not published'}</dd></div><div><dt>Interest closes</dt><dd>{date(project.applicationDeadline)}</dd></div></dl>{canApply?<Link className={styles.primaryButton} href={ctaHref}>Submit interest</Link>:<span className={styles.primaryButton} aria-disabled="true">{capacity.recruitment_state==='full'?'Project full':capacity.recruitment_state==='joining_closed'?'Joining closed':'Interest closed'}</span>}<small>{canApply?(authenticated?'Your eligibility and application state are checked in My Mettelo.':'Sign in or create an account to continue with this project.'):`Recruitment status: ${statusLabel}. This project is not currently accepting interest.`}</small>
+   {dependencies.length>0&&<article className={styles.sourceCard}><div className={styles.sourceHead}><span>Project dependencies</span><b>{dependencies.filter(item=>item.isRequired).length} required</b></div><ul>{dependencies.slice(0,4).map(item=><li key={item.id}><strong>{item.title}</strong>{item.description?` — ${short(item.description,120)}`:''}</li>)}</ul></article>}
+   {primarySource&&<article className={styles.sourceCard}><div className={styles.sourceHead}><span>Data source</span><b className={styles.verified}>● Governed</b></div><h3>{primarySource.name}</h3><p>{primarySource.providerName||titleCase(primarySource.sourceType)}</p>{primarySource.licenceName&&<span className={styles.sourceMeta}>Licence · {primarySource.licenceName}</span>}<p className={styles.disclaimer}>Public project pages show approved source metadata only. Direct resource and stored-copy links remain protected.</p></article>}
+  </aside></header>
+  {detailLoadError&&<div className={styles.empty} role="alert"><strong>Some project details could not be loaded.</strong><span>Core project information is still available. Refresh this page to retry the detailed project brief.</span></div>}
+  <ProjectPublicDetailBodyV3 model={model} canApply={canApply} ctaHref={ctaHref} authenticated={authenticated}/>
+ </div>;
 }

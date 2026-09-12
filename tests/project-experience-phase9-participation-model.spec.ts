@@ -161,10 +161,11 @@ test.describe('Project Experience Phase 9 participation-model contract',()=>{
     expect(migration).toContain("'late_join_allowed',late_join_allowed");
   });
 
-  test('start readiness is driven by participation/run threshold, not AUTO admission history',()=>{
+  test('start readiness is driven by the persisted run threshold, with a compatibility fallback only for legacy runs',()=>{
     const start=read('lib/project-start-service.ts');
     expect(start).toContain("canonicalParticipationMode(project.participation_mode)");
-    expect(start).toContain('Number(run.required_team_size||canonicalMinimum)');
+    expect(start).toContain("const fallbackMinimum=participationMode==='solo'||participationMode==='flexible'");
+    expect(start).toContain('Number(run.required_team_size??fallbackMinimum)');
     expect(start).not.toContain("filter(row=>row.admission_decision==='auto_qualified')");
     expect(start).toContain('participation_mode:participationMode');
   });

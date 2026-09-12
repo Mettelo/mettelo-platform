@@ -3,7 +3,8 @@ import type {ProjectExperienceModel} from '@/lib/project-experience-model';
 import ProjectPublicDetailBodyV3 from './ProjectPublicDetailBodyV3';
 import styles from './ProjectPublicDetailV2.module.css';
 
-type Props={model:ProjectExperienceModel;canApply:boolean;ctaHref:string;authenticated:boolean;detailLoadError?:boolean};
+type PublicCapacity={participation_mode:'solo'|'team'|'flexible'|null;confirmed_members:number;reserved_members:number;occupied_places:number;min_team_size:number|null;target_team_size:number|null;max_team_size:number|null;capacity_available:boolean;recruitment_state:string};
+type Props={model:ProjectExperienceModel;capacity:PublicCapacity;canApply:boolean;ctaHref:string;authenticated:boolean;detailLoadError?:boolean};
 
 function titleCase(value:string|null|undefined){return value?value.replaceAll('_',' ').replace(/\b\w/g,char=>char.toUpperCase()):'Not published'}
 function date(value:string|null|undefined){if(!value)return'Not published';const parsed=new Date(value);if(Number.isNaN(parsed.getTime()))return'Not published';return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric'}).format(parsed)}
@@ -19,16 +20,16 @@ function participation(project:ProjectExperienceModel['project']){
   if(mode==='team')return{label:'Team',detail:min&&max?(min===max?`${min} participants`:`${min}–${max} participants · target ${target||min}`):'Team project'};
   return{label:'Not published',detail:min?`${min} participant${min===1?'':'s'}`:'Not published'};
 }
+function recruitmentLabel(state:string){return state==='full'?'Full':state==='closed'?'Closed':state==='joining_closed'?'Joining closed':state==='completed'?'Completed':state==='active'?'Active':state==='ready_for_eligibility'?'Ready for eligibility':state==='team_forming'?'Team forming':'Open'}
+function capacityLabel(capacity:PublicCapacity){if(capacity.participation_mode==='solo')return'1 participant';const bits=[`${capacity.confirmed_members} confirmed`];if(capacity.min_team_size!=null)bits.push(`minimum ${capacity.min_team_size}`);if(capacity.target_team_size!=null)bits.push(`target ${capacity.target_team_size}`);if(capacity.max_team_size!=null)bits.push(`maximum ${capacity.max_team_size}`);return bits.join(' · ')}
 
-export default function ProjectPublicDetailV2({model,canApply,ctaHref,authenticated,detailLoadError=false}:Props){
-  const {project,resources,proofSignals,roles,taxonomy}=model;
+export default function ProjectPublicDetailV2({model,capacity,canApply,ctaHref,authenticated,detailLoadError=false}:Props){
+  const {project,resources,proofSignals,taxonomy}=model;
   const workingModel=project.locationType?titleCase(project.locationType):project.location||'Project-specific';
-  const statusLabel=canApply?'Open for interest':project.status==='pilot'?'Pilot project':'Interest closed';
+  const statusLabel=recruitmentLabel(capacity.recruitment_state);
   const primarySource=resources[0]||null;
-  const rolePlaces=roles.reduce((sum,role)=>sum+Math.max(0,role.openings),0);
   const proofConfigured=proofSignals.length>0;
   const participationInfo=participation(project);
-  const capacityLabel=participationInfo.detail||(rolePlaces?`${rolePlaces} places`:'Not published');
   const heroTags=[project.difficultyLevel&&titleCase(project.difficultyLevel),project.durationWeeks&&weeks(project.durationWeeks),project.weeklyCommitment,participationInfo.label,workingModel,taxonomy.domains[0]?.name].filter((item):item is string=>Boolean(item));
 
   return <div className={styles.page}>
@@ -45,17 +46,18 @@ export default function ProjectPublicDetailV2({model,canApply,ctaHref,authentica
       </div>
 
       <aside className={styles.decision} aria-labelledby="project-decision-title">
-        <div className={styles.decisionTop}><span className={styles.label}>Project opportunity</span><span className={canApply?styles.openPill:styles.neutralPill}>{canApply?'Open':'Closed'}</span></div>
+        <div className={styles.decisionTop}><span className={styles.label}>Project opportunity</span><span className={canApply?styles.openPill:styles.neutralPill}>{statusLabel}</span></div>
         <h2 id="project-decision-title">Decide whether this is the right project for you.</h2>
         <p>Understand the problem, contribution areas, commitment and quality bar before you submit interest.</p>
         <dl className={styles.metaGrid}>
           <div><dt>Duration</dt><dd>{weeks(project.durationWeeks)}</dd></div><div><dt>Commitment</dt><dd>{project.weeklyCommitment||'Not published'}</dd></div>
-          <div><dt>Participation</dt><dd>{participationInfo.label}</dd></div><div><dt>Capacity</dt><dd>{capacityLabel}</dd></div>
+          <div><dt>Participation</dt><dd>{participationInfo.label}</dd></div><div><dt>Capacity</dt><dd>{capacityLabel(capacity)}</dd></div>
+          {capacity.participation_mode!=='solo'&&<><div><dt>Current members</dt><dd>{capacity.confirmed_members}</dd></div><div><dt>Recruitment</dt><dd>{statusLabel}</dd></div></>}
           <div><dt>Working model</dt><dd>{workingModel}</dd></div><div><dt>Level</dt><dd>{project.difficultyLevel?titleCase(project.difficultyLevel):'Not published'}</dd></div>
           <div><dt>Interest closes</dt><dd>{date(project.applicationDeadline)}</dd></div>
         </dl>
-        {canApply?<Link className={styles.primaryButton} href={ctaHref}>Submit interest</Link>:<span className={styles.primaryButton} aria-disabled="true">Interest closed</span>}
-        <small>{canApply?(authenticated?'Your eligibility and application state are checked in My Mettelo.':'Sign in or create an account to continue with this project.'):'This project is not currently accepting interest.'}</small>
+        {canApply?<Link className={styles.primaryButton} href={ctaHref}>Submit interest</Link>:<span className={styles.primaryButton} aria-disabled="true">{capacity.recruitment_state==='full'?'Project full':capacity.recruitment_state==='joining_closed'?'Joining closed':'Interest closed'}</span>}
+        <small>{canApply?(authenticated?'Your eligibility and application state are checked in My Mettelo.':'Sign in or create an account to continue with this project.'):`Recruitment status: ${statusLabel}. This project is not currently accepting interest.`}</small>
         {primarySource&&<article className={styles.sourceCard}><div className={styles.sourceHead}><span>Data source</span><b className={styles.verified}>● Governed</b></div><h3>{primarySource.name}</h3><p>{primarySource.providerName||titleCase(primarySource.sourceType)}</p>{primarySource.licenceName&&<span className={styles.sourceMeta}>Licence · {primarySource.licenceName}</span>}<p className={styles.disclaimer}>Public project pages show approved source metadata only. Direct resource and stored-copy links remain protected.</p></article>}
       </aside>
     </header>

@@ -19,17 +19,19 @@ async function readableDraft(id:string){
 export async function GET(_:Request,{params}:RouteContext){
   try{
     const {id}=await params;const projectId=clean(id,80);const access=await readableDraft(projectId);if('error'in access)return access.error;const {db,project}=access;
-    const [brief,resources,deliverables,criteria,milestones,capabilities,roles]=await Promise.all([
+    const [brief,resources,deliverables,criteria,acceptanceCriteria,dependencies,milestones,capabilities,roles]=await Promise.all([
       db.from('project_problem_briefs').select('context,stakeholder,primary_question,expected_outcome,success_metrics,constraints,ethics_considerations,primary_use_case,primary_objective,supporting_objectives,key_questions,in_scope,out_of_scope').eq('project_id',project.id).maybeSingle(),
       db.from('project_data_sources').select('id,name,description,source_type,external_url,provider_id,provider_name,provider_url,licence_name,licence_url,required_subset,approximate_size,data_period,data_format,unit_of_observation,known_limitations,provenance,sensitivity,governance_status,retention_policy,internal_storage_policy').eq('project_id',project.id).is('project_run_id',null).order('created_at'),
       db.from('project_deliverables').select('id,title,deliverable_type,acceptance_criteria,public_summary,expected_format,is_required,sort_order').eq('project_id',project.id).is('project_run_id',null).order('sort_order').order('created_at'),
       db.from('project_success_criteria').select('id,title,description,measurement,is_required,visibility,sort_order').eq('project_id',project.id).order('sort_order').order('created_at'),
+      db.from('project_acceptance_criteria').select('id,criterion,is_required,visibility,sort_order').eq('project_id',project.id).order('sort_order').order('created_at'),
+      db.from('project_dependencies').select('id,title,description,dependency_type,is_required,visibility,sort_order').eq('project_id',project.id).order('sort_order').order('created_at'),
       db.from('project_milestones').select('id,title,description,week_start,week_end,expected_output,sort_order').eq('project_id',project.id).is('project_run_id',null).order('sort_order').order('created_at'),
       db.from('project_capabilities').select('capability_id,importance,evidence_expected').eq('project_id',project.id),
       db.from('project_roles').select('id,title,discipline,description,openings,skills,responsibilities,recommended_skills,experience_expectation,weekly_commitment,application_requirements,role_status').eq('project_id',project.id).order('created_at')
     ]);
-    for(const result of [brief,resources,deliverables,criteria,milestones,capabilities,roles])if(result.error)throw result.error;
-    return NextResponse.json({project,brief:brief.data,resources:resources.data||[],deliverables:deliverables.data||[],success_criteria:criteria.data||[],milestones:milestones.data||[],capabilities:capabilities.data||[],roles:roles.data||[]});
+    for(const result of [brief,resources,deliverables,criteria,acceptanceCriteria,dependencies,milestones,capabilities,roles])if(result.error)throw result.error;
+    return NextResponse.json({project,brief:brief.data,resources:resources.data||[],deliverables:deliverables.data||[],success_criteria:criteria.data||[],acceptance_criteria:acceptanceCriteria.data||[],dependencies:dependencies.data||[],milestones:milestones.data||[],capabilities:capabilities.data||[],roles:roles.data||[]});
   }catch(error){console.error('architect project draft load error',error);return NextResponse.json({error:'Unable to load this canonical project draft.'},{status:500})}
 }
 

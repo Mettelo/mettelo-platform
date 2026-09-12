@@ -3,15 +3,16 @@ import {resolveProjectPublicAvailability} from '@/lib/project-public-availabilit
 
 export type PublicCapabilityPath={id:string;slug:string;name:string;target_role:string;short_description:string|null;description:string|null;progression_summary:string|null;target_outcome:string;sort_order:number;published_at:string|null;stage_count:number;project_count:number;public_project_count:number};
 export type PublicCapabilityPathStage={id:string;slug:string;name:string;description:string|null;position:number};
-export type PublicCapabilityPathProject={path_id:string;project_id:string;stage_id:string;position:number;competency_focus:string;capability_built:string;prerequisite_project_id:string|null;prerequisite_mode:'recommended'|'required';path_outcome:string|null;placement_type:'recommended'|'required'|'optional';project:{id:string;slug:string;title:string;summary:string;status:string;project_type:string;location:string|null;location_type:string|null;difficulty_level:string|null;application_deadline:string|null;project_roles?:{id:string;openings:number}[]}|null};
+export type PublicCapabilityPathProject={path_id:string;project_id:string;stage_id:string;position:number;competency_focus:string;capability_built:string;prerequisite_project_id:string|null;prerequisite_mode:'recommended'|'required';path_outcome:string|null;placement_type:'recommended'|'required'|'optional';project:{id:string;slug:string;title:string;summary:string;status:string;project_type:string;location:string|null;location_type:string|null;difficulty_level:string|null;application_deadline:string|null;applications_open:boolean|null;capacity_available:boolean|null;capacity_known:boolean;recruitment_state:string|null}|null};
 export type PublicCapabilityPathDetail=PublicCapabilityPath & {stages:PublicCapabilityPathStage[];placements:PublicCapabilityPathProject[]};
 type PublicPathStat={path_id:string;stage_count:number;total_project_count:number;public_project_count:number};
+type PublicCapacity={project_id:string;capacity_available:boolean;recruitment_state:string};
 type PublishedPathPositionIndex=Map<string,Map<string,number>>;
 
 function publicClient(){return createPublicSupabaseClient()}
 
 export function projectAvailability(project:NonNullable<PublicCapabilityPathProject['project']>){
- return resolveProjectPublicAvailability({status:project.status,project_type:project.project_type,application_deadline:project.application_deadline,role_count:(project.project_roles||[]).length});
+ return resolveProjectPublicAvailability({status:project.status,project_type:project.project_type,application_deadline:project.application_deadline,applications_open:project.applications_open,capacity_available:project.capacity_available,capacity_known:project.capacity_known,recruitment_state:project.recruitment_state});
 }
 
 async function publicStats(db:NonNullable<ReturnType<typeof createPublicSupabaseClient>>):Promise<Map<string,PublicPathStat>>{
@@ -36,8 +37,13 @@ export async function getPublishedCapabilityPath(slug:string):Promise<PublicCapa
  ]);
  if(stageError||placementError)return null;
  const projectIds=[...new Set((placements||[]).map(item=>item.project_id))];
- const {data:projects}=projectIds.length?await db.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,difficulty_level,application_deadline,project_roles(id,openings)').in('id',projectIds).eq('visibility','public'):{data:[]};
- const enriched=(placements||[]).map(item=>({...item,project:(projects||[]).find(project=>project.id===item.project_id)||null})) as PublicCapabilityPathProject[];const stat=stats.get(path.id);
+ const [{data:projects},capacityResult]=projectIds.length?await Promise.all([
+  db.from('projects').select('id,slug,title,summary,status,project_type,location,location_type,difficulty_level,application_deadline,applications_open').in('id',projectIds).eq('visibility','public'),
+  db.rpc('get_public_project_capacities')
+ ]):[{data:[]},{data:[],error:null}];
+ if(capacityResult.error)console.error('public Capability Path canonical capacity projection failed',capacityResult.error);
+ const capacityByProject=new Map(((capacityResult.data||[]) as PublicCapacity[]).map(item=>[item.project_id,item]));
+ const enriched=(placements||[]).map(item=>{const raw=(projects||[]).find(project=>project.id===item.project_id)||null;const capacity=raw?capacityByProject.get(raw.id):null;return{...item,project:raw?{...raw,capacity_available:capacity?.capacity_available??null,capacity_known:Boolean(capacity),recruitment_state:capacity?.recruitment_state||null}:null}}) as PublicCapabilityPathProject[];const stat=stats.get(path.id);
  return {...path,stage_count:Number(stat?.stage_count||(stages||[]).length),project_count:Number(stat?.total_project_count||enriched.length),public_project_count:Number(stat?.public_project_count||enriched.length),stages:(stages||[]) as PublicCapabilityPathStage[],placements:enriched} as PublicCapabilityPathDetail;
 }
 
@@ -60,11 +66,6 @@ async function loadPublishedPathPositionIndex():Promise<PublishedPathPositionInd
 }
 
 export async function getPublishedPathProjectPositions(slug:string):Promise<Map<string,number>>{
- // Resolve the catalogue burst through one batched anonymous query first. In the
- // uncommon case where that batch yields no rows for a published Path, recover
- // from the same authoritative public Path detail resolver used by /projects/paths/[slug].
- // This preserves pool efficiency while preventing a transient/partial batch result
- // from hiding a canonical project that the Path detail page can already prove public.
  if(!publishedPathPositionsInFlight){
   const request=loadPublishedPathPositionIndex();
   publishedPathPositionsInFlight=request;

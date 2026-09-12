@@ -16,7 +16,7 @@ async function actorContext(projectId:string,runId:string){
  const db=serviceDb();
  if(!db)return{error:NextResponse.json({error:'Project service is not configured.'},{status:503})};
  const [{data:project},{data:run},{data:membership},{count:activeCount}]=await Promise.all([
-  db.from('projects').select('id,status,visibility,project_type,weekly_commitment,late_joining_enabled,late_joining_cutoff_at,member_invites_enabled,collaboration_marketplace_enabled').eq('id',projectId).maybeSingle(),
+  db.from('projects').select('id,status,visibility,project_type,weekly_commitment,late_joining_enabled,late_joining_cutoff_at,member_invites_enabled,project_lead_invites_enabled,team_member_invites_enabled,collaboration_marketplace_enabled').eq('id',projectId).maybeSingle(),
   db.from('project_runs').select('id,project_id,status,has_started,recruitment_open').eq('id',runId).eq('project_id',projectId).maybeSingle(),
   db.from('project_members').select('id,team_role,membership_status').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).limit(1).maybeSingle(),
   db.from('project_members').select('id',{count:'exact',head:true}).eq('project_id',projectId).eq('project_run_id',runId).eq('membership_status','active')
@@ -25,8 +25,7 @@ async function actorContext(projectId:string,runId:string){
  if(project.status==='completed'||project.status==='cancelled'||project.status==='archived')return{error:NextResponse.json({error:'This project can no longer recruit collaborators.'},{status:409})};
  const admin=isAdmin(user);
  if(!admin&&(!membership||membership.membership_status!=='active'))return{error:NextResponse.json({error:'Active project membership is required.'},{status:403})};
- const independent=(activeCount||0)===1;
- const canManage=admin||Boolean(membership&&membership.membership_status==='active'&&(membership.team_role==='project_lead'||independent));
+ const canManage=admin||Boolean(membership&&membership.membership_status==='active'&&(membership.team_role==='project_lead'?project.project_lead_invites_enabled===true:project.team_member_invites_enabled===true));
  return{auth,db,user,project,run,membership,activeCount:activeCount||0,canManage};
 }
 
@@ -52,7 +51,7 @@ export async function POST(request:Request){
   const body=await request.json();const projectId=clean(body.project_id,80),runId=clean(body.project_run_id,80);
   if(!projectId||!runId)return NextResponse.json({error:'Project and run are required.'},{status:400});
   const ctx=await actorContext(projectId,runId);if('error'in ctx)return ctx.error;
-  if(!ctx.canManage)return NextResponse.json({error:'Only the Project Lead, Admin, or the sole active member of an independent run can open a collaboration need.'},{status:403});
+  if(!ctx.canManage)return NextResponse.json({error:'Your current project role is not authorized by this project’s recruitment policy.'},{status:403});
   if(ctx.project.collaboration_marketplace_enabled!==true)return NextResponse.json({error:'Collaboration marketplace recruitment is disabled for this project.'},{status:409});
   if(!['forming','active'].includes(ctx.run.status))return NextResponse.json({error:'Collaboration recruitment is only available for forming or active runs.'},{status:409});
   if(ctx.run.recruitment_open===false)return NextResponse.json({error:'Recruitment is closed for this project run.'},{status:409});
@@ -92,7 +91,7 @@ export async function POST(request:Request){
 export async function PATCH(request:Request){
  try{
   const body=await request.json();const needId=clean(body.id,80),projectId=clean(body.project_id,80),runId=clean(body.project_run_id,80);if(!needId||!projectId||!runId)return NextResponse.json({error:'Collaboration need, project and run are required.'},{status:400});
-  const ctx=await actorContext(projectId,runId);if('error'in ctx)return ctx.error;if(!ctx.canManage)return NextResponse.json({error:'You do not have permission to close this collaboration need.'},{status:403});
+  const ctx=await actorContext(projectId,runId);if('error'in ctx)return ctx.error;if(!ctx.canManage)return NextResponse.json({error:'Your current project role is not authorized by this project’s recruitment policy.'},{status:403});
   const {data:current}=await ctx.db.from('project_collaboration_needs').select('id,status,project_id,project_run_id').eq('id',needId).eq('project_id',projectId).eq('project_run_id',runId).maybeSingle();if(!current)return NextResponse.json({error:'Collaboration need not found.'},{status:404});if(current.status!=='active')return NextResponse.json({ok:true,already_closed:true,item:current});
   const reason=clean(body.reason,240)||'closed_by_authorized_actor';const now=new Date().toISOString();const {data,error}=await ctx.db.from('project_collaboration_needs').update({status:'closed',closed_reason:reason,closed_at:now,updated_at:now}).eq('id',needId).eq('status','active').select('id,status,closed_at').maybeSingle();if(error)throw error;if(!data)return NextResponse.json({error:'The collaboration need changed before it could be closed.'},{status:409});
   await ctx.db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'collaboration_need_closed',actor_type:isAdmin(ctx.user)?'admin':'user',actor_user_id:ctx.user.id,from_status:ctx.run.status,to_status:ctx.run.status,metadata:{collaboration_need_id:needId,reason}});

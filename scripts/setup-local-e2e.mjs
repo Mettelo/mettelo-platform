@@ -1,153 +1,23 @@
 import {createClient} from '@supabase/supabase-js';
-
-function required(name){const value=process.env[name]?.trim();if(!value)throw new Error(`${name} is required.`);return value;}
-
-const url=required('E2E_SUPABASE_URL');
-if(!['127.0.0.1','localhost'].includes(new URL(url).hostname))throw new Error('Local E2E fixture setup refuses non-local Supabase hosts.');
-const db=createClient(url,required('E2E_SUPABASE_SERVICE_ROLE_KEY'),{auth:{persistSession:false,autoRefreshToken:false}});
-
-const accounts=[
-  {kind:'member',email:required('E2E_MEMBER_EMAIL'),password:required('E2E_MEMBER_PASSWORD'),app_metadata:{}},
-  {kind:'architect',email:required('E2E_ARCHITECT_EMAIL'),password:required('E2E_ARCHITECT_PASSWORD'),app_metadata:{}},
-  {kind:'admin',email:required('E2E_ADMIN_EMAIL'),password:required('E2E_ADMIN_PASSWORD'),app_metadata:{role:'admin'}}
-];
-
-async function ensureUser(account){
-  const {data:list,error:listError}=await db.auth.admin.listUsers({page:1,perPage:1000});
-  if(listError)throw listError;
-  let user=list.users.find(item=>item.email?.toLowerCase()===account.email.toLowerCase());
-  if(!user){
-    const {data,error}=await db.auth.admin.createUser({email:account.email,password:account.password,email_confirm:true,app_metadata:account.app_metadata,user_metadata:{full_name:`E2E ${account.kind}`}});
-    if(error)throw error;
-    user=data.user;
-  }else{
-    const {data,error}=await db.auth.admin.updateUserById(user.id,{password:account.password,email_confirm:true,app_metadata:account.app_metadata});
-    if(error)throw error;
-    user=data.user;
-  }
-  return user;
-}
-
-const users={};
-for(const account of accounts)users[account.kind]=await ensureUser(account);
-
-const {error:architectIdentityError}=await db.from('account_identities').upsert({user_id:users.architect.id,account_type:'project_architect',show_project_architect_designation:true},{onConflict:'user_id'});
-if(architectIdentityError)throw architectIdentityError;
-const {error:memberIdentityError}=await db.from('account_identities').upsert({user_id:users.member.id,account_type:'member',show_project_architect_designation:false},{onConflict:'user_id'});
-if(memberIdentityError)throw memberIdentityError;
-
-const projectId='00000000-0000-4000-8000-00000000e2e1';
-const team1RunId='00000000-0000-4000-8000-00000000e211';
-const team2RunId='00000000-0000-4000-8000-00000000e212';
-const projectRoleId='00000000-0000-4000-8000-00000000e2a1';
-const deliverableId='00000000-0000-4000-8000-00000000e2d2';
-const successCriterionId='00000000-0000-4000-8000-00000000e2d3';
-const milestoneId='00000000-0000-4000-8000-00000000e2d4';
-
-// Seed through the production-safe lifecycle: canonical draft first, definition
-// children next, then publication. The publication guard must be allowed to reject
-// this fixture if any canonical requirement drifts without the fixture being updated.
-const {error:projectDraftError}=await db.from('projects').upsert({
-  id:projectId,slug:'e2e-local-release-project',title:'E2E Local Release Project',
-  summary:'Disposable local project used only by the GitHub Actions release gate.',
-  problem_statement:'Verify browser to API to database submission behavior without hosted staging infrastructure.',
-  status:'draft',visibility:'private',project_type:'open',applications_open:false,
-  participation_mode:'team',min_team_size:5,target_team_size:5,max_team_size:5,team_size_threshold:5,
-  project_type_review_required:false,location:'CI',location_type:'remote',catalogue_working_model_source:'explicit',difficulty_level:'intermediate',
-  duration_weeks:6,weekly_commitment:'5 hours/week'
-},{onConflict:'id'});
-if(projectDraftError)throw projectDraftError;
-
-const {error:roleError}=await db.from('project_roles').upsert({id:projectRoleId,project_id:projectId,title:'Data Analyst',discipline:'Data & AI',description:'Deterministic E2E project role.',skills:['analysis','testing'],openings:5,role_status:'open',responsibilities:['Own deterministic analysis and validation work.'],recommended_skills:['Data analysis']},{onConflict:'id'});
-if(roleError)throw roleError;
-
-const {error:briefError}=await db.from('project_problem_briefs').upsert({
-  project_id:projectId,
-  context:'The release gate needs a realistic canonical project whose public, member, run and Proof projections can be tested without using production data.',
-  stakeholder:'Mettelo engineering and release governance',
-  primary_question:'Can the complete project journey preserve one canonical project definition while enforcing privacy, eligibility and lifecycle invariants?',
-  expected_outcome:'A deterministic project fixture that exercises publication, discovery, membership, run history and Proof preservation.',
-  success_metrics:'All blocking Workstream 2 and repository release contracts pass against isolated Supabase.',
-  constraints:'Local CI only; no production credentials or private resource exposure.',
-  ethics_considerations:'Use synthetic identities and synthetic evidence only.',
-  primary_use_case:'Release-gate validation of the canonical Mettelo project experience.',
-  primary_objective:'Prove one project definition safely powers discovery, participation and downstream run history.',
-  supporting_objectives:['Exercise populated migration preservation','Exercise public/member projection consistency'],
-  key_questions:['Does publication fail when canonical data is incomplete?','Do current-run capacity and role-neutral interest remain consistent?'],
-  in_scope:['Canonical project definition','Public/member discovery','Runs, memberships and Proof preservation'],
-  out_of_scope:['Production user data','External partner data'],
-  updated_by:users.admin.id,
-  updated_at:new Date().toISOString()
-},{onConflict:'project_id'});
-if(briefError)throw briefError;
-
-const [{data:roleFamily,error:roleFamilyLookupError},{data:domain,error:domainLookupError},{data:capabilities,error:capabilityLookupError}]=await Promise.all([
-  db.from('project_role_catalogue').select('id,slug').eq('slug','data-analyst').eq('active',true).maybeSingle(),
-  db.from('domains').select('id,slug').eq('slug','cross-industry-open-data').eq('is_active',true).maybeSingle(),
-  db.from('capabilities').select('id,slug').in('slug',['data-analysis','testing-qa','collaboration']).eq('is_active',true)
-]);
-if(roleFamilyLookupError)throw roleFamilyLookupError;if(domainLookupError)throw domainLookupError;if(capabilityLookupError)throw capabilityLookupError;
-if(!roleFamily)throw new Error('Canonical Data Analyst role family is required for the Workstream 2 release fixture.');
-if(!domain)throw new Error('Canonical cross-industry-open-data domain is required for the Workstream 2 release fixture.');
-if((capabilities??[]).length!==3)throw new Error('Three canonical capabilities are required for the Workstream 2 release fixture.');
-
-const {error:projectRoleFamilyError}=await db.from('project_role_families').upsert({project_id:projectId,role_catalogue_id:roleFamily.id,source:'workstream2_release_fixture'},{onConflict:'project_id,role_catalogue_id'});
-if(projectRoleFamilyError)throw projectRoleFamilyError;
-const {error:projectDomainError}=await db.from('project_domains').upsert({project_id:projectId,domain_id:domain.id,is_primary:true},{onConflict:'project_id,domain_id'});
-if(projectDomainError)throw projectDomainError;
-const {error:projectCapabilityError}=await db.from('project_capabilities').upsert(capabilities.map(capability=>({project_id:projectId,capability_id:capability.id,importance:'core',evidence_expected:true})),{onConflict:'project_id,capability_id'});
-if(projectCapabilityError)throw projectCapabilityError;
-
-const {error:deliverableError}=await db.from('project_deliverables').upsert({
-  id:deliverableId,project_id:projectId,project_run_id:null,title:'Validated canonical project journey',
-  deliverable_type:'release_evidence',
-  acceptance_criteria:'Document the deterministic result of the isolated end-to-end release journey and retain exact-head release evidence.',
-  public_summary:'Validated end-to-end canonical project journey.',expected_format:'Release evidence',is_required:true,sort_order:1,created_by:users.admin.id
-},{onConflict:'id'});
-if(deliverableError)throw deliverableError;
-const {error:successError}=await db.from('project_success_criteria').upsert({id:successCriterionId,project_id:projectId,title:'Canonical journey remains coherent',description:'Public, member and run projections retain the same project identity and governed definition.',measurement:'All blocking release checks pass.',is_required:true,visibility:'public',sort_order:1,created_by_user_id:users.admin.id},{onConflict:'id'});
-if(successError)throw successError;
-const {error:milestoneError}=await db.from('project_milestones').upsert({id:milestoneId,project_id:projectId,project_run_id:null,title:'Release validation milestone',description:'Complete the isolated canonical project validation.',status:'planned',sort_order:1,week_start:1,week_end:6,expected_output:'Exact-head release evidence'},{onConflict:'id'});
-if(milestoneError)throw milestoneError;
-
-const {error:projectOpenError}=await db.from('projects').update({status:'active',visibility:'public',applications_open:true}).eq('id',projectId);
-if(projectOpenError)throw projectOpenError;
-
-const {error:runError}=await db.from('project_runs').upsert([
-  {id:team1RunId,project_id:projectId,run_number:1,status:'active',team_size_threshold:5,required_team_size:5,has_started:true,started_at:new Date().toISOString()},
-  {id:team2RunId,project_id:projectId,run_number:2,status:'forming',team_size_threshold:5,required_team_size:5,has_started:false}
-],{onConflict:'id'});
-if(runError)throw runError;
-
-await db.from('project_members').delete().eq('project_id',projectId).eq('user_id',users.member.id);
-const {error:membershipError}=await db.from('project_members').insert({project_id:projectId,project_run_id:team1RunId,project_role_id:projectRoleId,user_id:users.member.id,team_role:'contributor',membership_status:'active'});
-if(membershipError)throw membershipError;
-
-const [{data:verifiedProject,error:verifiedProjectError},{data:verifiedMembership,error:verifiedMembershipError},{data:verifiedRun,error:verifiedRunError}]=await Promise.all([
-  db.from('projects').select('id,title,summary,status,project_type,github_url,weekly_commitment,presentation_required').eq('id',projectId).maybeSingle(),
-  db.from('project_members').select('id,team_role,joined_at,project_run_id').eq('project_id',projectId).eq('user_id',users.member.id).eq('project_run_id',team1RunId).in('membership_status',['waiting','active','completed']).maybeSingle(),
-  db.from('project_runs').select('id,run_number,status').eq('id',team1RunId).eq('project_id',projectId).maybeSingle()
-]);
-if(verifiedProjectError)throw verifiedProjectError;if(verifiedMembershipError)throw verifiedMembershipError;if(verifiedRunError)throw verifiedRunError;
-if(!verifiedProject||!verifiedMembership||!verifiedRun)throw new Error('Scoped E2E project fixture failed exact workspace-gate verification.');
-
-const proofNow=new Date();
-const proofFixtures=[
-  {id:'00000000-0000-4000-8000-00000000e2b1',user_id:users.member.id,project_id:projectId,project_run_id:team1RunId,contribution_type:'analysis',title:'E2E verified forecasting analysis',description:'Built and documented the comparison analysis used by the E2E project team to evaluate the agreed project scenario.',evidence_url:'https://example.com/e2e-proof',verification_status:'verified',verified_by:users.admin.id,verified_at:new Date(proofNow.getTime()-86400000).toISOString(),visibility:'private',is_public:false,review_notes:'Internal text must never appear in verified member Proof.'},
-  {id:'00000000-0000-4000-8000-00000000e2b2',user_id:users.member.id,project_id:projectId,project_run_id:team1RunId,contribution_type:'research',title:'E2E pending evidence review',description:'Prepared a source-backed research summary for the E2E project and submitted it for verification by the project reviewer.',evidence_url:null,verification_status:'pending',verified_by:null,verified_at:null,visibility:'private',is_public:false,review_notes:null},
-  {id:'00000000-0000-4000-8000-00000000e2b3',user_id:users.member.id,project_id:projectId,project_run_id:team1RunId,contribution_type:'documentation',title:'E2E evidence needing changes',description:'Documented the E2E delivery approach and linked the contribution to the project record for reviewer verification.',evidence_url:'https://example.com/e2e-update',verification_status:'needs_changes',verified_by:null,verified_at:null,visibility:'private',is_public:false,review_notes:'Clarify which part of the delivery document you owned before resubmitting.'},
-  {id:'00000000-0000-4000-8000-00000000e2b4',user_id:users.member.id,project_id:projectId,project_run_id:team1RunId,contribution_type:'other',title:'E2E evidence not verified',description:'Submitted an E2E contribution that remains available only as review history because verification was not approved.',evidence_url:null,verification_status:'rejected',verified_by:users.admin.id,verified_at:null,visibility:'private',is_public:false,review_notes:'Internal rejection rationale for deterministic privacy coverage.'}
-];
-const {error:proofError}=await db.from('contributions').upsert(proofFixtures,{onConflict:'id'});if(proofError)throw proofError;
-
-const {error:careerError}=await db.from('career_roles').upsert({slug:'e2e-local-quality-role',title:'E2E Quality Role',team:'Engineering',employment_type:'contract',location:'CI',work_arrangement:'remote',summary:'Disposable published career role for the isolated release gate.',responsibilities:'Exercise the end-to-end candidate application journey.',requirements:'CI-only deterministic browser testing.',application_questions:[],status:'published',published_at:new Date().toISOString(),expected_response_days:14,application_process:'Automated local release-gate fixture.'},{onConflict:'slug'});
-if(careerError)throw careerError;
-
-const {data:termsTemplate,error:termsTemplateError}=await db.from('communication_templates').select('id,version').eq('template_key','project_application_terms').eq('active',true).maybeSingle();
-if(termsTemplateError)throw termsTemplateError;if(!termsTemplate)throw new Error('Active project application terms template is required for isolated E2E.');
-const termsAttachmentId='00000000-0000-4000-8000-00000000e2c1';const termsPath='e2e/project-participation-terms.pdf';
-const termsDocument=Buffer.from('%PDF-1.4\n% Deterministic local E2E Project Participation Terms\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n','utf8');
-const {error:termsUploadError}=await db.storage.from('communication-template-documents').upload(termsPath,termsDocument,{contentType:'application/pdf',upsert:true});if(termsUploadError)throw termsUploadError;
-const {error:termsAttachmentError}=await db.from('communication_template_attachments').upsert({id:termsAttachmentId,template_id:termsTemplate.id,file_name:'E2E Project Participation Terms.pdf',storage_path:termsPath,content_type:'application/pdf',size_bytes:termsDocument.length,sort_order:0,active:true,created_by:users.admin.id},{onConflict:'id'});if(termsAttachmentError)throw termsAttachmentError;
-
-console.log('Created and verified isolated local E2E identities, canonical project definition, historical runs/membership, Proof lifecycle records, governed project terms and deterministic fixture records.');
+const req=n=>{const v=process.env[n]?.trim();if(!v)throw new Error(`${n} is required.`);return v};
+const url=req('E2E_SUPABASE_URL');if(!['127.0.0.1','localhost'].includes(new URL(url).hostname))throw new Error('Local E2E fixture setup refuses non-local Supabase hosts.');
+const db=createClient(url,req('E2E_SUPABASE_SERVICE_ROLE_KEY'),{auth:{persistSession:false,autoRefreshToken:false}});
+const accounts=[['member',req('E2E_MEMBER_EMAIL'),req('E2E_MEMBER_PASSWORD'),{}],['architect',req('E2E_ARCHITECT_EMAIL'),req('E2E_ARCHITECT_PASSWORD'),{}],['admin',req('E2E_ADMIN_EMAIL'),req('E2E_ADMIN_PASSWORD'),{role:'admin'}]];
+async function ensure([kind,email,password,app_metadata]){const {data:l,error:e}=await db.auth.admin.listUsers({page:1,perPage:1000});if(e)throw e;const current=l.users.find(x=>x.email?.toLowerCase()===email.toLowerCase());const r=current?await db.auth.admin.updateUserById(current.id,{password,email_confirm:true,app_metadata}):await db.auth.admin.createUser({email,password,email_confirm:true,app_metadata,user_metadata:{full_name:`E2E ${kind}`}});if(r.error)throw r.error;return r.data.user}
+const [member,architect,admin]=await Promise.all(accounts.map(ensure));
+for(const row of [{user_id:architect.id,account_type:'project_architect',show_project_architect_designation:true},{user_id:member.id,account_type:'member',show_project_architect_designation:false}]){const {error}=await db.from('account_identities').upsert(row,{onConflict:'user_id'});if(error)throw error}
+const projectId='00000000-0000-4000-8000-00000000e2e1',run1='00000000-0000-4000-8000-00000000e211',run2='00000000-0000-4000-8000-00000000e212',roleId='00000000-0000-4000-8000-00000000e2a1';
+const {error:pe}=await db.from('projects').upsert({id:projectId,slug:'e2e-local-release-project',title:'E2E Local Release Project',summary:'Disposable local project used only by the GitHub Actions release gate.',problem_statement:'Verify browser to API to database submission behavior without hosted staging infrastructure.',status:'draft',visibility:'private',project_type:'open',applications_open:false,participation_mode:'team',min_team_size:5,target_team_size:5,max_team_size:5,team_size_threshold:5,project_type_review_required:false,location:'CI',location_type:'remote',catalogue_working_model_source:'explicit',difficulty_level:'intermediate',duration_weeks:6,weekly_commitment:'5 hours/week'},{onConflict:'id'});if(pe)throw pe;
+const {error:re}=await db.from('project_roles').upsert({id:roleId,project_id:projectId,title:'Data Analyst',discipline:'Data & AI',description:'Deterministic E2E project role.',skills:['analysis','testing'],openings:5,role_status:'open',responsibilities:['Own deterministic analysis and validation work.'],recommended_skills:['Data analysis']},{onConflict:'id'});if(re)throw re;
+const {error:be}=await db.from('project_problem_briefs').upsert({project_id:projectId,context:'A realistic canonical project is required for isolated release validation.',stakeholder:'Mettelo engineering and release governance',primary_question:'Can one canonical project definition safely power the complete journey?',expected_outcome:'Deterministic publication, discovery, participation and history validation.',success_metrics:'All blocking Workstream 2 release contracts pass.',constraints:'Local CI only; synthetic data only.',ethics_considerations:'No production identities or private data.',primary_use_case:'Release-gate validation of the canonical project experience.',primary_objective:'Prove one definition safely powers public, member and runtime projections.',supporting_objectives:['Preserve populated history','Prove projection consistency'],key_questions:['Does incomplete publication fail?','Does capacity remain canonical?'],in_scope:['Canonical definition','Discovery','Participation','History preservation'],out_of_scope:['Production data'],updated_by:admin.id,updated_at:new Date().toISOString()},{onConflict:'project_id'});if(be)throw be;
+const [{data:rf,error:rfe},{data:domain,error:de},{data:caps,error:ce}]=await Promise.all([db.from('project_role_catalogue').select('id').eq('slug','data-analyst').eq('active',true).maybeSingle(),db.from('domains').select('id').eq('slug','cross-industry-open-data').eq('is_active',true).maybeSingle(),db.from('capabilities').select('id,slug').in('slug',['data-analysis','testing-qa','collaboration']).eq('is_active',true)]);if(rfe)throw rfe;if(de)throw de;if(ce)throw ce;if(!rf||!domain||(caps??[]).length!==3)throw new Error('Canonical taxonomy fixture requirements are missing.');
+for(const [table,rows,opts] of [['project_role_families',[{project_id:projectId,role_catalogue_id:rf.id,source:'workstream2_release_fixture'}],{onConflict:'project_id,role_catalogue_id'}],['project_domains',[{project_id:projectId,domain_id:domain.id,is_primary:true}],{onConflict:'project_id,domain_id'}],['project_capabilities',caps.map(c=>({project_id:projectId,capability_id:c.id,importance:'core',evidence_expected:true})),{onConflict:'project_id,capability_id'}]]){const {error}=await db.from(table).upsert(rows,opts);if(error)throw error}
+for(const op of [db.from('project_deliverables').upsert({id:'00000000-0000-4000-8000-00000000e2d2',project_id:projectId,project_run_id:null,title:'Validated canonical project journey',deliverable_type:'canonical',acceptance_criteria:'Document the deterministic end-to-end release result.',public_summary:'Validated end-to-end canonical project journey.',expected_format:'Release evidence',is_required:true,sort_order:1,created_by:admin.id},{onConflict:'id'}),db.from('project_success_criteria').upsert({id:'00000000-0000-4000-8000-00000000e2d3',project_id:projectId,title:'Canonical journey remains coherent',description:'Public, member and run projections retain the same governed project identity.',measurement:'All blocking release checks pass.',is_required:true,visibility:'public',sort_order:1,created_by_user_id:admin.id},{onConflict:'id'}),db.from('project_milestones').upsert({id:'00000000-0000-4000-8000-00000000e2d4',project_id:projectId,project_run_id:null,title:'Release validation milestone',description:'Complete isolated canonical project validation.',status:'planned',sort_order:1,week_start:1,week_end:6,expected_output:'Exact-head release evidence'},{onConflict:'id'})]){const {error}=await op;if(error)throw error}
+const {error:openError}=await db.from('projects').update({status:'active',visibility:'public',applications_open:true}).eq('id',projectId);if(openError)throw openError;
+const {error:runsError}=await db.from('project_runs').upsert([{id:run1,project_id:projectId,run_number:1,status:'active',team_size_threshold:5,required_team_size:5,has_started:true,started_at:new Date().toISOString()},{id:run2,project_id:projectId,run_number:2,status:'forming',team_size_threshold:5,required_team_size:5,has_started:false}],{onConflict:'id'});if(runsError)throw runsError;
+await db.from('project_members').delete().eq('project_id',projectId).eq('user_id',member.id);const {error:me}=await db.from('project_members').insert({project_id:projectId,project_run_id:run1,project_role_id:roleId,user_id:member.id,team_role:'contributor',membership_status:'active'});if(me)throw me;
+const proof=[['e2b1','analysis','E2E verified forecasting analysis','verified','https://example.com/e2e-proof',admin.id],['e2b2','research','E2E pending evidence review','pending',null,null],['e2b3','documentation','E2E evidence needing changes','needs_changes','https://example.com/e2e-update',null],['e2b4','other','E2E evidence not verified','rejected',null,admin.id]].map(([suffix,contribution_type,title,verification_status,evidence_url,verified_by])=>({id:`00000000-0000-4000-8000-00000000${suffix}`,user_id:member.id,project_id:projectId,project_run_id:run1,contribution_type,title,description:`Synthetic ${title} contribution for isolated release validation.`,evidence_url,verification_status,verified_by,verified_at:verification_status==='verified'?new Date(Date.now()-86400000).toISOString():null,visibility:'private',is_public:false,review_notes:verification_status==='needs_changes'?'Clarify contribution ownership.':null}));const {error:pfe}=await db.from('contributions').upsert(proof,{onConflict:'id'});if(pfe)throw pfe;
+const {error:careerError}=await db.from('career_roles').upsert({slug:'e2e-local-quality-role',title:'E2E Quality Role',team:'Engineering',employment_type:'contract',location:'CI',work_arrangement:'remote',summary:'Disposable published career role for the isolated release gate.',responsibilities:'Exercise the end-to-end candidate application journey.',requirements:'CI-only deterministic browser testing.',application_questions:[],status:'published',published_at:new Date().toISOString(),expected_response_days:14,application_process:'Automated local release-gate fixture.'},{onConflict:'slug'});if(careerError)throw careerError;
+const {data:terms,error:te}=await db.from('communication_templates').select('id').eq('template_key','project_application_terms').eq('active',true).maybeSingle();if(te)throw te;if(!terms)throw new Error('Active project application terms template is required.');const termsPath='e2e/project-participation-terms.pdf',doc=Buffer.from('local e2e terms');const {error:ue}=await db.storage.from('communication-template-documents').upload(termsPath,doc,{contentType:'application/pdf',upsert:true});if(ue)throw ue;const {error:ae}=await db.from('communication_template_attachments').upsert({id:'00000000-0000-4000-8000-00000000e2c1',template_id:terms.id,file_name:'E2E Project Participation Terms.pdf',storage_path:termsPath,content_type:'application/pdf',size_bytes:doc.length,sort_order:0,active:true,created_by:admin.id},{onConflict:'id'});if(ae)throw ae;
+const [{data:p},{data:m},{data:r}]=await Promise.all([db.from('projects').select('id').eq('id',projectId).maybeSingle(),db.from('project_members').select('id').eq('project_id',projectId).eq('user_id',member.id).eq('project_run_id',run1).maybeSingle(),db.from('project_runs').select('id').eq('id',run1).maybeSingle()]);if(!p||!m||!r)throw new Error('Scoped E2E project fixture failed exact verification.');
+console.log('Created and verified isolated local E2E canonical project, history, Proof and terms fixtures.');

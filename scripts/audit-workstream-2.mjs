@@ -35,7 +35,7 @@ const checks=[
  [applyPage,'MemberProjectInterestFlow','member apply surface uses recovered role-neutral flow'],
  [publicDetail,'generateMetadata','public project metadata is canonical'],
  [publicDetail,"robots:{index:false,follow:false}",'non-public/missing project metadata is non-indexable'],
- [phase9,'Target team size never controls readiness','target remains preferred rather than activation minimum'],
+ [phase9,'Preferred planning size only. It must never be used as the minimum start threshold.','target remains preferred rather than activation minimum'],
  [phase9,'max_team_size','Phase 9 remains bound to canonical maximum'],
  [readiness,"requirement('weekly_capacity'",'database readiness must stay aligned with Workstream 1 application readiness']
 ];

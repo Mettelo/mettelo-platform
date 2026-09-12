@@ -40,7 +40,6 @@ const projectId='00000000-0000-4000-8000-00000000e2e1';
 const team1RunId='00000000-0000-4000-8000-00000000e211';
 const team2RunId='00000000-0000-4000-8000-00000000e212';
 const projectRoleId='00000000-0000-4000-8000-00000000e2a1';
-const capabilityId='00000000-0000-4000-8000-00000000e2d1';
 const deliverableId='00000000-0000-4000-8000-00000000e2d2';
 const successCriterionId='00000000-0000-4000-8000-00000000e2d3';
 const milestoneId='00000000-0000-4000-8000-00000000e2d4';
@@ -54,7 +53,7 @@ const {error:projectDraftError}=await db.from('projects').upsert({
   problem_statement:'Verify browser to API to database submission behavior without hosted staging infrastructure.',
   status:'draft',visibility:'private',project_type:'open',applications_open:false,
   participation_mode:'team',min_team_size:5,target_team_size:5,max_team_size:5,team_size_threshold:5,
-  project_type_review_required:false,location:'CI',location_type:'remote',difficulty_level:'intermediate',
+  project_type_review_required:false,location:'CI',location_type:'remote',catalogue_working_model_source:'explicit',difficulty_level:'intermediate',
   duration_weeks:6,weekly_commitment:'5 hours/week'
 },{onConflict:'id'});
 if(projectDraftError)throw projectDraftError;
@@ -82,16 +81,33 @@ const {error:briefError}=await db.from('project_problem_briefs').upsert({
 },{onConflict:'project_id'});
 if(briefError)throw briefError;
 
-const {error:capabilityError}=await db.from('capabilities').upsert({id:capabilityId,slug:'e2e-release-validation',name:'E2E Release Validation',capability_type:'technical',description:'Synthetic capability used by isolated release validation.',sort_order:999,is_active:true},{onConflict:'id'});
-if(capabilityError)throw capabilityError;
-const {error:projectCapabilityError}=await db.from('project_capabilities').upsert({project_id:projectId,capability_id:capabilityId,importance:'core',evidence_expected:true},{onConflict:'project_id,capability_id'});
+const [{data:roleFamily,error:roleFamilyLookupError},{data:domain,error:domainLookupError},{data:capabilities,error:capabilityLookupError}]=await Promise.all([
+  db.from('project_role_catalogue').select('id,slug').eq('slug','data-analyst').eq('active',true).maybeSingle(),
+  db.from('domains').select('id,slug').eq('slug','cross-industry-open-data').eq('is_active',true).maybeSingle(),
+  db.from('capabilities').select('id,slug').in('slug',['data-analysis','testing-qa','collaboration']).eq('is_active',true)
+]);
+if(roleFamilyLookupError)throw roleFamilyLookupError;if(domainLookupError)throw domainLookupError;if(capabilityLookupError)throw capabilityLookupError;
+if(!roleFamily)throw new Error('Canonical Data Analyst role family is required for the Workstream 2 release fixture.');
+if(!domain)throw new Error('Canonical cross-industry-open-data domain is required for the Workstream 2 release fixture.');
+if((capabilities??[]).length!==3)throw new Error('Three canonical capabilities are required for the Workstream 2 release fixture.');
+
+const {error:projectRoleFamilyError}=await db.from('project_role_families').upsert({project_id:projectId,role_catalogue_id:roleFamily.id,source:'workstream2_release_fixture'},{onConflict:'project_id,role_catalogue_id'});
+if(projectRoleFamilyError)throw projectRoleFamilyError;
+const {error:projectDomainError}=await db.from('project_domains').upsert({project_id:projectId,domain_id:domain.id,is_primary:true},{onConflict:'project_id,domain_id'});
+if(projectDomainError)throw projectDomainError;
+const {error:projectCapabilityError}=await db.from('project_capabilities').upsert(capabilities.map(capability=>({project_id:projectId,capability_id:capability.id,importance:'core',evidence_expected:true})),{onConflict:'project_id,capability_id'});
 if(projectCapabilityError)throw projectCapabilityError;
 
-const {error:deliverableError}=await db.from('project_deliverables').upsert({id:deliverableId,project_id:projectId,project_run_id:null,title:'Validated canonical project journey',description:'Document the deterministic result of the isolated end-to-end release journey.',public_summary:'Validated end-to-end canonical project journey.',expected_format:'Release evidence',is_required:true,sort_order:1},{onConflict:'id'});
+const {error:deliverableError}=await db.from('project_deliverables').upsert({
+  id:deliverableId,project_id:projectId,project_run_id:null,title:'Validated canonical project journey',
+  deliverable_type:'release_evidence',
+  acceptance_criteria:'Document the deterministic result of the isolated end-to-end release journey and retain exact-head release evidence.',
+  public_summary:'Validated end-to-end canonical project journey.',expected_format:'Release evidence',is_required:true,sort_order:1,created_by:users.admin.id
+},{onConflict:'id'});
 if(deliverableError)throw deliverableError;
 const {error:successError}=await db.from('project_success_criteria').upsert({id:successCriterionId,project_id:projectId,title:'Canonical journey remains coherent',description:'Public, member and run projections retain the same project identity and governed definition.',measurement:'All blocking release checks pass.',is_required:true,visibility:'public',sort_order:1,created_by_user_id:users.admin.id},{onConflict:'id'});
 if(successError)throw successError;
-const {error:milestoneError}=await db.from('project_milestones').upsert({id:milestoneId,project_id:projectId,project_run_id:null,title:'Release validation milestone',description:'Complete the isolated canonical project validation.',status:'planned',sort_order:1,is_required:true,week_start:1,week_end:6,expected_output:'Exact-head release evidence'},{onConflict:'id'});
+const {error:milestoneError}=await db.from('project_milestones').upsert({id:milestoneId,project_id:projectId,project_run_id:null,title:'Release validation milestone',description:'Complete the isolated canonical project validation.',status:'planned',sort_order:1,week_start:1,week_end:6,expected_output:'Exact-head release evidence'},{onConflict:'id'});
 if(milestoneError)throw milestoneError;
 
 const {error:projectOpenError}=await db.from('projects').update({status:'active',visibility:'public',applications_open:true}).eq('id',projectId);

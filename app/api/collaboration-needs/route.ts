@@ -35,11 +35,21 @@ async function capacity(db:NonNullable<ReturnType<typeof serviceDb>>,projectId:s
  return{snapshot:one(data as CapacitySnapshot|CapacitySnapshot[]|null)};
 }
 
+async function reusableNeed(db:NonNullable<ReturnType<typeof serviceDb>>,projectId:string,runId:string,sourceRoleId:string|null,responsibility:string|null,targetRoleId:string|null,targetDomainId:string|null){
+ let query=db.from('project_collaboration_needs').select('id,project_id,project_run_id,status,created_at').eq('project_id',projectId).eq('project_run_id',runId).eq('status','active').neq('source','direct_invite');
+ query=sourceRoleId?query.eq('source_project_role_id',sourceRoleId):query.is('source_project_role_id',null);
+ query=responsibility?query.eq('responsibility',responsibility):query.is('responsibility',null);
+ query=targetRoleId?query.eq('target_role_catalogue_id',targetRoleId):query.is('target_role_catalogue_id',null);
+ query=targetDomainId?query.eq('target_domain_id',targetDomainId):query.is('target_domain_id',null);
+ const {data}=await query.order('created_at',{ascending:false}).limit(1).maybeSingle();
+ return data||null;
+}
+
 export async function GET(request:Request){
  try{
   const url=new URL(request.url);const projectId=clean(url.searchParams.get('project_id'),80);const runId=clean(url.searchParams.get('project_run_id'),80);
   const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});
-  let query=auth.from('project_collaboration_needs').select('id,project_id,project_run_id,source_project_role_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,source,created_at,updated_at,project_collaboration_need_capabilities(capability_id)').eq('status','active').order('created_at',{ascending:false}).limit(60);
+  let query=auth.from('project_collaboration_needs').select('id,project_id,project_run_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,source,created_at,updated_at,project_collaboration_need_capabilities(capability_id)').eq('status','active').neq('source','direct_invite').order('created_at',{ascending:false}).limit(60);
   if(projectId)query=query.eq('project_id',projectId);if(runId)query=query.eq('project_run_id',runId);
   const {data,error}=await query;if(error){console.error('collaboration need list failed',error.message);return NextResponse.json({error:'Unable to load collaboration opportunities.'},{status:500})}
   return NextResponse.json({items:data||[]},{headers:{'Cache-Control':'private, no-store'}});
@@ -73,10 +83,17 @@ export async function POST(request:Request){
   if(targetDomainId&&!validations[1].data)return NextResponse.json({error:'Choose a valid canonical domain.'},{status:400});
   if(capabilityIds.length&&((validations[2].data||[]).length!==capabilityIds.length))return NextResponse.json({error:'Choose valid canonical capabilities.'},{status:400});
 
+  const existing=await reusableNeed(ctx.db,projectId,runId,sourceRoleId,responsibility,targetRoleId,targetDomainId);
+  if(existing)return NextResponse.json({ok:true,reused:true,item:existing},{status:200,headers:{'Cache-Control':'private, no-store'}});
+
   const {data:need,error}=await ctx.db.from('project_collaboration_needs').insert({project_id:projectId,project_run_id:runId,created_by:ctx.user.id,source_project_role_id:sourceRoleId,responsibility,target_role_catalogue_id:targetRoleId,target_domain_id:targetDomainId,experience_level:experience,weekly_commitment:requestedCommitment||ctx.project.weekly_commitment||null,member_message:message,status:'active',source}).select('id,project_id,project_run_id,status,created_at').single();
   if(error){
    const detail=String(error.message||'');
-   if(error.code==='23505')return NextResponse.json({error:'An active collaboration opportunity already exists for this need.',code:'DUPLICATE_ACTIVE_NEED'},{status:409});
+   if(error.code==='23505'){
+    const raced=await reusableNeed(ctx.db,projectId,runId,sourceRoleId,responsibility,targetRoleId,targetDomainId);
+    if(raced)return NextResponse.json({ok:true,reused:true,item:raced},{status:200,headers:{'Cache-Control':'private, no-store'}});
+    return NextResponse.json({error:'A matching active collaboration opportunity already exists for this need.',code:'DUPLICATE_ACTIVE_NEED'},{status:409});
+   }
    if(detail.includes('COLLABORATION_MARKETPLACE_DISABLED'))return NextResponse.json({error:'Collaboration marketplace recruitment is disabled for this project.',code:'MARKETPLACE_DISABLED'},{status:409});
    if(detail.includes('JOINING_WINDOW_CLOSED')||detail.includes('RUN_RECRUITMENT_CLOSED')||detail.includes('PROJECT_CLOSED')||detail.includes('LATE_JOINING_DISABLED'))return NextResponse.json({error:'This project is no longer eligible to recruit collaborators.',code:'RECRUITMENT_CLOSED'},{status:409});
    if(error.code==='23514')return NextResponse.json({error:'The collaboration need no longer matches this project/run.',code:'INVALID_NEED_CONTEXT'},{status:409});
@@ -84,7 +101,7 @@ export async function POST(request:Request){
   }
   if(capabilityIds.length){const {error:capabilityError}=await ctx.db.from('project_collaboration_need_capabilities').insert(capabilityIds.map(capabilityId=>({collaboration_need_id:need.id,capability_id:capabilityId})));if(capabilityError){await ctx.db.from('project_collaboration_needs').delete().eq('id',need.id);throw capabilityError}}
   await ctx.db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'collaboration_need_opened',actor_type:isAdmin(ctx.user)?'admin':'user',actor_user_id:ctx.user.id,from_status:ctx.run.status,to_status:ctx.run.status,metadata:{collaboration_need_id:need.id,source,responsibility:responsibility||null,target_role_catalogue_id:targetRoleId,capability_count:capabilityIds.length,capacity_available:Number(cap.snapshot.available||0)}});
-  return NextResponse.json({ok:true,item:need},{status:201,headers:{'Cache-Control':'private, no-store'}});
+  return NextResponse.json({ok:true,reused:false,item:need},{status:201,headers:{'Cache-Control':'private, no-store'}});
  }catch(error){console.error('collaboration need create failed',error);return NextResponse.json({error:'Unable to open this collaboration need.'},{status:500})}
 }
 

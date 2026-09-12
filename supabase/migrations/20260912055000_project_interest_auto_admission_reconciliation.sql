@@ -69,6 +69,15 @@ begin
     return new;
   end if;
 
+  -- Older internal callers created a review-state interest first and invoked the
+  -- Phase 6 admission service explicitly afterwards. Preserve that compatibility
+  -- only for rows with no participation choice. The redesigned Submit Interest RPC
+  -- validates and always persists a canonical preference, so real member submits
+  -- continue through the atomic admission path below.
+  if new.participation_preference is null then
+    return new;
+  end if;
+
   legacy_preference:=case
     when project_row.participation_mode='solo' then 'solo'
     when project_row.participation_mode='team' then 'team'

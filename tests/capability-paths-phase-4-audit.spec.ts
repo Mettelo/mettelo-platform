@@ -49,13 +49,16 @@ test.describe('Capability Paths Phase 4 member contract',()=>{
  });
  test('Discover stays broad while Path and stage filters are additive structured context',()=>{
   expect(discover).not.toContain('MemberCapabilityPathsPanel');
-  hasAll(discover,['MemberCapabilityPathFilters','selectedPath','selectedStage','MemberDiscoverCatalogue','resolveProjectPublicAvailability','occupied_role_count:occupiedRoleCount','capacity_known:availabilityKnown','summary:project.summary','pathContext:primaryContext']);
+  hasAll(discover,['MemberCapabilityPathFilters','selectedPath','selectedStage','MemberDiscoverCatalogue',"rpc('get_member_project_capacities'",'resolveMemberProjectState','capacityAvailable:capacity.capacity_available','capacityKnown:true','capacity.recruitment_state','summary:project.summary','pathContext:primaryContext']);
+  expect(discover).not.toContain('resolveProjectPublicAvailability');
+  expect(discover).not.toContain('occupied_role_count');
   hasAll(filters,['All followed Paths','All stages','Clear Path filters']);hasAll(catalogue,['mdPathContext','Capability Path context','Discover is broad. Recommended is personalised.']);
   expect(discover).toContain('if(selectedPath&&!contexts.some');expect(discover).not.toContain('pathSummary?');
  });
- test('member recommendations use the same capacity-aware availability truth and paused Paths stop guiding actions',()=>{
-  hasAll(availability,['occupied_role_count','capacity_known','roles_filled','The current cohort roles are filled','Open projects become available again for the next cohort']);
-  hasAll(helper,['serviceDb','filledByRole','occupiedRoleCount','capacity_known:capacityKnown',"follow.status==='following'?incomplete.find"]);
+ test('member recommendations use the same canonical capacity truth and paused Paths stop guiding actions',()=>{
+  hasAll(availability,['capacity_available','capacity_known','recruitment_state','canonical aggregate RPCs','max_team_size','canonical maximum capacity']);
+  expect(availability).not.toContain('occupied_role_count');expect(availability).not.toContain('available_role_count');expect(availability).not.toContain('roles_filled');
+  hasAll(helper,['serviceDb',"rpc('get_member_project_capacities'",'capacity_available','recruitment_state',"follow.status==='following'?incomplete.find"]);
   hasAll(recommended,['RECOMMENDED FOR YOUR DIRECTION','NEXT IN PRIMARY PATH','nearest currently available project',"followStatus==='paused'",'Manage Paths']);
   expect(panel).toContain('actionable&&!archived&&!paused');
  });

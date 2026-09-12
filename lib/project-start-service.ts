@@ -17,10 +17,14 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
  ]);
  if(projectError||!project||runError||!run)throw new Error('PROJECT_RUN_NOT_FOUND');
  const participationMode=canonicalParticipationMode(project.participation_mode);
- const canonicalMinimum=participationMode==='solo'||participationMode==='flexible'
+ // The forming run is the authority for the chosen participation geometry.
+ // Flexible projects can legitimately form either a one-person Solo run or a
+ // Team run at the configured minimum. Never collapse a persisted Team run to
+ // one member merely because the project itself supports Flexible formation.
+ const fallbackMinimum=participationMode==='solo'
   ?1
   :Math.max(1,Number(project.min_team_size||project.team_size_threshold||1));
- const required=Math.max(canonicalMinimum,Number(run.required_team_size||canonicalMinimum));
+ const required=Math.max(1,Number(run.required_team_size??fallbackMinimum));
  if(run.has_started||run.status==='active'){
   const {count}=await db.from('project_members').select('id',{count:'exact',head:true}).eq('project_run_id',runId).in('membership_status',['waiting','active']);
   return{started:false,alreadyStarted:true,projectId,runId,runNumber:run.run_number,filled:count||0,requiredTeamSize:required};

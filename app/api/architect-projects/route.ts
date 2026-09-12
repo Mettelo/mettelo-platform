@@ -31,6 +31,12 @@ async function experienceReadiness(db:SupabaseClient,projectId:string){
   return{ready:Boolean(readiness?.experience_ready)&&missing.length===0,missing,resourceBlockers};
 }
 
+async function publicationBlockers(db:SupabaseClient,projectId:string){
+  const {data,error}=await db.rpc('workstream2_publication_blockers',{p_project_id:projectId});
+  if(error)throw error;
+  return [...new Set((data||[]).map(item=>String(item)).filter(Boolean))];
+}
+
 export async function GET(){
   try{
     const ctx=await architectContext();if('error'in ctx)return ctx.error;const {db,user,isAdmin}=ctx;
@@ -151,15 +157,12 @@ export async function PATCH(request:Request){
     }
     if(reviewActions.has(action)){
       if(!isReviewer||project.created_by_user_id===user.id)return NextResponse.json({error:'Independent reviewing Architect access is required.'},{status:403});if(!reason)return NextResponse.json({error:'Add a reason for this governance decision.'},{status:400});
-      let approvalExperience:Awaited<ReturnType<typeof experienceReadiness>>|null=null;
       if(['approve','recommend_admin'].includes(action)){
-        const [experience,catalogue]=await Promise.all([experienceReadiness(db,projectId),requireProjectCatalogueReady(db,projectId)]);approvalExperience=experience;
-        if(!experience.ready)return NextResponse.json({error:'This project is not complete enough to progress through governance.',missing_requirements:experience.missing},{status:409});
-        if(!catalogue.ok)return NextResponse.json({error:`This project cannot be published yet. Missing catalogue metadata: ${catalogue.missing.join(', ')}.`,missing_requirements:catalogue.missing,catalogue_readiness:catalogue.readiness},{status:409});
+        const blockers=await publicationBlockers(db,projectId);
+        if(blockers.length)return NextResponse.json({error:'This project cannot progress to publication until canonical blockers are resolved.',missing_requirements:blockers,publication_blockers:blockers},{status:409});
       }
       if(action==='recommend_admin'){if(project.risk_level!=='controlled'&&!project.admin_review_required)return NextResponse.json({error:'Standard projects can be approved directly by the independent reviewer.'},{status:409});await recordGovernance(db,{projectId,actorId:user.id,actorScope:'project_architect',eventType:'review_recommend_admin',from:project.governance_status,to:'submitted',reason});return NextResponse.json({ok:true,status:'submitted'});}
       const target=action==='request_changes'?'changes_requested':action==='deny'?'denied':'approved';if(action==='approve'&&(project.risk_level!=='standard'||project.admin_review_required))return NextResponse.json({error:'Controlled projects require an independent recommendation followed by Admin approval.'},{status:409});
-      if(action==='approve'&&approvalExperience?.resourceBlockers.length)return NextResponse.json({error:'Resolve project resource governance before publication.',resource_blockers:approvalExperience.resourceBlockers},{status:409});
       await db.from('projects').update({governance_status:target,governance_decided_at:new Date().toISOString(),status:target==='approved'?'recruiting':'draft',visibility:target==='approved'?'public':'private',updated_at:new Date().toISOString()}).eq('id',projectId);await recordGovernance(db,{projectId,actorId:user.id,actorScope:'project_architect',eventType:`review_${action}`,from:project.governance_status,to:target,reason});return NextResponse.json({ok:true,status:target});
     }
     if(action==='assign_manager'){

@@ -92,8 +92,7 @@ begin
 
   if new.project_role_id is not null then
     update public.project_members
-    set project_role_id=new.project_role_id,
-        updated_at=now()
+    set project_role_id=new.project_role_id
     where project_id=new.project_id
       and user_id=new.user_id
       and project_run_id=(admission_result->>'run_id')::uuid

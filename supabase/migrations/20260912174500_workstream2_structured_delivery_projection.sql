@@ -2,6 +2,35 @@
 -- public/member-safe project projection. This does not expose internal links,
 -- governance evidence, run data or member identity.
 
+alter table public.project_acceptance_criteria
+  add column if not exists visibility text not null default 'public'
+  check (visibility in ('public','members','internal'));
+alter table public.project_dependencies
+  add column if not exists visibility text not null default 'public'
+  check (visibility in ('public','members','internal'));
+
+-- Tighten direct table reads to public rows only. Authenticated member-only rows are
+-- intentionally consumed through server-authorised member detail, never anon RLS.
+drop policy if exists "public read published project acceptance criteria" on public.project_acceptance_criteria;
+create policy "public read published project acceptance criteria"
+on public.project_acceptance_criteria for select
+to anon, authenticated
+using (visibility='public' and exists (
+  select 1 from public.projects p
+  where p.id=project_id and p.visibility='public'
+    and p.status in ('pilot','recruiting','open','forming','active','review','completed')
+));
+
+drop policy if exists "public read published project dependencies" on public.project_dependencies;
+create policy "public read published project dependencies"
+on public.project_dependencies for select
+to anon, authenticated
+using (visibility='public' and exists (
+  select 1 from public.projects p
+  where p.id=project_id and p.visibility='public'
+    and p.status in ('pilot','recruiting','open','forming','active','review','completed')
+));
+
 create or replace function public.get_public_project_experience_detail(p_project_id uuid)
 returns jsonb
 language sql
@@ -11,15 +40,16 @@ set search_path = public, pg_temp
 as $$
   select case
     when not exists (
-      select 1 from public.projects p
+      select 1
+      from public.projects p
       where p.id = p_project_id
         and p.visibility = 'public'
         and p.status in ('pilot','recruiting','open','forming','active','review','completed')
     ) then null
     else jsonb_build_object(
       'deliverables', coalesce((select jsonb_agg(jsonb_build_object('id',d.id,'title',d.title,'deliverable_type',d.deliverable_type,'acceptance_criteria',d.acceptance_criteria,'public_summary',d.public_summary,'expected_format',d.expected_format,'is_required',d.is_required) order by d.sort_order,d.created_at) from public.project_deliverables d where d.project_id=p_project_id and d.project_run_id is null and d.status<>'cancelled'),'[]'::jsonb),
-      'acceptance_criteria', coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'criterion',a.criterion,'is_required',a.is_required) order by a.sort_order,a.created_at) from public.project_acceptance_criteria a where a.project_id=p_project_id),'[]'::jsonb),
-      'dependencies', coalesce((select jsonb_agg(jsonb_build_object('id',dep.id,'title',dep.title,'description',dep.description,'dependency_type',dep.dependency_type,'is_required',dep.is_required) order by dep.sort_order,dep.created_at) from public.project_dependencies dep where dep.project_id=p_project_id),'[]'::jsonb),
+      'acceptance_criteria', coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'criterion',a.criterion,'is_required',a.is_required) order by a.sort_order,a.created_at) from public.project_acceptance_criteria a where a.project_id=p_project_id and a.visibility='public'),'[]'::jsonb),
+      'dependencies', coalesce((select jsonb_agg(jsonb_build_object('id',dep.id,'title',dep.title,'description',dep.description,'dependency_type',dep.dependency_type,'is_required',dep.is_required) order by dep.sort_order,dep.created_at) from public.project_dependencies dep where dep.project_id=p_project_id and dep.visibility='public'),'[]'::jsonb),
       'data_sources', coalesce((select jsonb_agg(jsonb_build_object('id',s.id,'name',s.name,'description',s.description,'source_type',s.source_type,'provider_name',s.provider_name,'licence_name',s.licence_name,'required_subset',s.required_subset,'approximate_size',s.approximate_size,'data_period',s.data_period,'data_format',s.data_format,'known_limitations',s.known_limitations,'provenance',s.provenance) order by s.created_at) from public.project_data_sources s where s.project_id=p_project_id and s.project_run_id is null and s.sensitivity='public' and s.publish_policy='permitted' and s.governance_status='green'),'[]'::jsonb),
       'success_criteria', coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'title',c.title,'description',c.description,'measurement',c.measurement,'is_required',c.is_required) order by c.sort_order,c.created_at) from public.project_success_criteria c where c.project_id=p_project_id and c.visibility='public'),'[]'::jsonb),
       'capabilities', coalesce((select jsonb_agg(jsonb_build_object('name',capability.name,'type',capability.capability_type,'importance',pc.importance,'evidence_expected',pc.evidence_expected) order by capability.name) from public.project_capabilities pc join public.capabilities capability on capability.id=pc.capability_id where pc.project_id=p_project_id),'[]'::jsonb),
@@ -34,4 +64,4 @@ $$;
 
 revoke all on function public.get_public_project_experience_detail(uuid) from public;
 grant execute on function public.get_public_project_experience_detail(uuid) to anon, authenticated;
-comment on function public.get_public_project_experience_detail(uuid) is 'Workstream 2 public-safe canonical Project Experience projection, including structured acceptance criteria and dependencies while excluding protected resource links, governance evidence, runtime and member data.';
+comment on function public.get_public_project_experience_detail(uuid) is 'Workstream 2 public-safe canonical Project Experience projection, including public structured acceptance criteria and dependencies while excluding protected resource links, governance evidence, runtime and member data.';

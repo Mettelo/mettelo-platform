@@ -5,6 +5,7 @@ const migration=read('supabase/migrations/20260912170500_workstream2_canonical_p
 const hardening=read('supabase/migrations/20260912171500_workstream2_interest_eligibility_hardening.sql');
 const postUpdateGuard=read('supabase/migrations/20260912174000_workstream2_post_update_publication_guard.sql');
 const adminProjectsRoute=read('app/api/admin/projects/route.ts');
+const architectProjectsRoute=read('app/api/architect-projects/route.ts');
 const publicLoader=read('lib/public-project-catalogue-loader.ts');
 const memberLoader=read('lib/member-discover-project-loader.ts');
 const interestFlow=read('components/MemberProjectInterestFlow.tsx');
@@ -19,6 +20,9 @@ const checks=[
  [postUpdateGuard,'after update on public.projects','publication guard evaluates the post-update canonical row transactionally'],
  [postUpdateGuard,'workstream2_publication_blockers(new.id)','direct publication and live-edit bypasses reuse the canonical database blocker authority'],
  [adminProjectsRoute,"db.rpc('workstream2_publication_blockers'",'Admin lifecycle uses the canonical database publication blocker authority'],
+ [architectProjectsRoute,"db.rpc('workstream2_publication_blockers'",'Project Architect lifecycle uses the canonical database publication blocker authority'],
+ [architectProjectsRoute,"const blockers=await publicationBlockers(db,projectId)",'Project Architect approval and Admin recommendation resolve the unified blocker list before progression'],
+ [architectProjectsRoute,'publication_blockers:blockers','Project Architect surfaces the canonical blocker list to the caller'],
  [migration,"participation_mode='team' and coalesce(p.min_team_size,0)<2",'Team minimum is validated'],
  [migration,'TARGET_BELOW_MINIMUM','target/minimum invariant is guarded'],
  [migration,'MAXIMUM_BELOW_TARGET','maximum/target invariant is guarded'],
@@ -51,6 +55,8 @@ for(const [path,source] of [['public catalogue loader',publicLoader],['member di
 if(interestFlow.includes('PRIMARY_ROLE_REQUIRED')||interestFlow.includes('Choose a primary role'))failures.push('role-neutral interest UI still requires a formal role');
 if(hardening.includes('p_project_id,p_primary_project_role_id'))failures.push('initial interest still binds canonical request identity to a formal role');
 if(adminProjectsRoute.includes('publicationReadiness('))failures.push('Admin lifecycle still has a competing TypeScript publication authority');
+const architectReviewBlock=architectProjectsRoute.slice(architectProjectsRoute.indexOf("if(reviewActions.has(action))"),architectProjectsRoute.indexOf("if(action==='assign_manager')"));
+if(architectReviewBlock.includes('requireProjectCatalogueReady(')||architectReviewBlock.includes('experienceReadiness('))failures.push('Project Architect approve/recommend path still has a competing publication-readiness authority');
 if(postUpdateGuard.includes('before update'))failures.push('publication guard still evaluates the pre-update project row');
 if(failures.length){for(const failure of failures)console.error(`FAIL: ${failure}`);process.exit(1)}
 console.log(`Workstream 2 canonical project static contract verified (${checks.length} assertions).`);

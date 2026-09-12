@@ -49,7 +49,7 @@ export async function GET(request:Request){
  try{
   const url=new URL(request.url);const projectId=clean(url.searchParams.get('project_id'),80);const runId=clean(url.searchParams.get('project_run_id'),80);
   const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});
-  let query=auth.from('project_collaboration_needs').select('id,project_id,project_run_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,source,created_at,updated_at,project_collaboration_need_capabilities(capability_id)').eq('status','active').neq('source','direct_invite').order('created_at',{ascending:false}).limit(60);
+  let query=auth.from('project_collaboration_needs').select('id,project_id,project_run_id,source_project_role_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,source,created_at,updated_at,project_collaboration_need_capabilities(capability_id)').eq('status','active').neq('source','direct_invite').order('created_at',{ascending:false}).limit(60);
   if(projectId)query=query.eq('project_id',projectId);if(runId)query=query.eq('project_run_id',runId);
   const {data,error}=await query;if(error){console.error('collaboration need list failed',error.message);return NextResponse.json({error:'Unable to load collaboration opportunities.'},{status:500})}
   return NextResponse.json({items:data||[]},{headers:{'Cache-Control':'private, no-store'}});

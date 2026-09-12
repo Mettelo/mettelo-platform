@@ -13,11 +13,15 @@ declare
   v_live boolean;
   v_blockers text[];
 begin
-  v_project_id:=coalesce(
-    nullif(to_jsonb(new)->>'project_id','')::uuid,
-    nullif(to_jsonb(old)->>'project_id','')::uuid
-  );
-  if v_project_id is null then return coalesce(new,old); end if;
+  if tg_op='DELETE' then
+    v_project_id:=nullif(to_jsonb(old)->>'project_id','')::uuid;
+  else
+    v_project_id:=nullif(to_jsonb(new)->>'project_id','')::uuid;
+  end if;
+
+  if v_project_id is null then
+    if tg_op='DELETE' then return old; else return new; end if;
+  end if;
 
   select (p.visibility='public' and p.status in ('pilot','recruiting','open','forming','active','review'))
     into v_live
@@ -30,7 +34,8 @@ begin
         using errcode='23514';
     end if;
   end if;
-  return coalesce(new,old);
+
+  if tg_op='DELETE' then return old; else return new; end if;
 end;
 $$;
 

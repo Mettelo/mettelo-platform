@@ -15,17 +15,17 @@ test('member project resolver keeps application openness separate from place cap
  expect(resolveMemberProjectState({...base,membership:{membership_status:'completed'},run:{status:'completed'}})).toBe('completed');
  expect(resolveMemberProjectState({...base,project:{...open,applications_open:false}})).toBe('closed');
  expect(resolveMemberProjectState({...base,applicationReady:false})).toBe('ineligible');
- expect(resolveMemberProjectState({...base,capacityAvailable:false})).toBe('open_eligible');
+ expect(resolveMemberProjectState({...base,capacityAvailable:false})).toBe('full');
  expect(resolveMemberProjectState({...base,project:{...open,status:'cancelled'}})).toBe('cancelled');
 });
 
 test('resolver hands lifecycle ownership to the correct destination',()=>{
  expect(memberProjectPrimaryAction('open_eligible','p1')).toEqual({label:'Submit Interest',href:'/member/discover/p1/apply'});
- expect(memberProjectPrimaryAction('full','p1')).toEqual({label:'Submit Interest',href:'/member/discover/p1/apply'});
+ expect(memberProjectPrimaryAction('full','p1')).toBeNull();
  for(const state of ['application_submitted','application_action_required','application_in_review','team_forming'] as const)expect(memberProjectPrimaryAction(state,'p1')).toEqual({label:'View interest',href:'/member/applications'});
  for(const state of ['confirmed','active'] as const)expect(memberProjectPrimaryAction(state,'p1')).toEqual({label:'Open in Projects',href:'/member/projects'});
  expect(memberProjectPrimaryAction('completed','p1')).toEqual({label:'View in Projects',href:'/member/projects?state=completed'});
- for(const state of ['closed','ineligible','cancelled'] as const)expect(memberProjectPrimaryAction(state,'p1')).toBeNull();
+ for(const state of ['closed','full','ineligible','cancelled'] as const)expect(memberProjectPrimaryAction(state,'p1')).toBeNull();
  expect(memberProjectCatalogueAction('open_eligible','p1')).toEqual({label:'View project',href:'/member/discover/p1'});
  expect(memberProjectCatalogueAction('application_in_review','p1')).toEqual({label:'View interest',href:'/member/applications'});
  expect(memberProjectCatalogueAction('active','p1')).toEqual({label:'Open in Projects',href:'/member/projects'});

@@ -31,8 +31,9 @@ if(!failures.length){
   const polish=fs.readFileSync(files.brandPolish,'utf8');
   const migration=fs.readFileSync(files.parityMigration,'utf8');
 
-  if(!discoverPage.includes('loadMemberDiscoverProjects'))failures.push('Member Discover does not use the resilient project loader');
-  for(const marker of ['PRIMARY_SELECT','CORE_FACET_SELECT','MINIMAL_SELECT','retrying without optional role-family catalogue relation','retrying canonical project and role fields only'])if(!loader.includes(marker))failures.push(`Member Discover resilient loader lost ${marker}`);
+  if(!discoverPage.includes('loadMemberDiscoverProjects'))failures.push('Member Discover does not use the canonical project loader');
+  for(const marker of ['PRIMARY_SELECT','project_capabilities','project_role_families','refusing stale fallback projection'])if(!loader.includes(marker))failures.push(`Member Discover canonical fail-closed loader lost ${marker}`);
+  for(const retired of ['CORE_FACET_SELECT','MINIMAL_SELECT','retrying without optional role-family catalogue relation','retrying canonical project and role fields only','retrying legacy'])if(loader.includes(retired))failures.push(`Member Discover reintroduced stale fallback marker ${retired}`);
   for(const marker of ['width:100%;max-width:none','var(--bronze-deep)','@media(min-width:1500px)','grid-template-columns:repeat(3,minmax(0,1fr))'])if(!discoverPage.includes(marker))failures.push(`Member Discover workspace/brand polish lost ${marker}`);
 
   if(!migration.includes('create table if not exists public.saved_projects'))failures.push('runtime parity migration does not restore saved_projects');
@@ -47,15 +48,13 @@ if(!failures.length){
   if(!memberPage.includes('ProjectExperiencePolish.module.css')||!memberPage.includes('polish.memberHost'))failures.push('member Project Detail is not left-aligned in the shared brand polish');
   if(!memberPage.includes("from('project_role_families')")||!memberPage.includes('contributionAreas={contributionAreas}'))failures.push('member Project Detail does not load governed project-specific contribution areas separately from the canonical project query');
 
-  // Phase 5 keeps the accepted hero/decision wrapper, but contribution areas are
-  // informational and the conversion path is a role-neutral Submit Interest handoff.
   for(const marker of ["label:'Submit Interest'",'contributionAreas','MemberProjectDetailBodyV3','primaryAction'])if(!memberComponent.includes(marker))failures.push(`member Project Detail Phase 5 wrapper contract lost ${marker}`);
   for(const marker of ['Possible contribution areas','You are not choosing or applying for a formal role at this stage.','What happens after you submit interest','Submit Interest'])if(!memberBody.includes(marker))failures.push(`member Project Detail Phase 5 decision contract lost ${marker}`);
   for(const retired of ['Choose your contribution area','aria-pressed={selected}','Choose this role','selectedRoleId','Apply as {selectedRole.title}',"?role=${encodeURIComponent(selectedRole.id)}",'/apply?role='])if(memberBody.includes(retired))failures.push(`member Project Detail reintroduced retired role-first marker ${retired}`);
   if(memberBody.includes("useState(roles[0]")||memberBody.includes('availableRoles[0]')||memberBody.includes('selectableRoles[0]'))failures.push('member Project Detail reintroduced first-role auto-selection');
   if(!memberBody.includes('canApply&&<div className={styles.mobileAction}'))failures.push('member mobile project CTA is not gated on Phase 5 eligibility');
   if(!memberBody.includes('href={`/member/discover/${projectId}/apply`}'))failures.push('member mobile project CTA does not preserve the role-neutral Phase 6 handoff');
-  if(!memberApplyPage.includes('MemberProjectApplicationFlow'))failures.push('application page no longer renders the canonical Phase 6 interest form');
+  if(!memberApplyPage.includes('MemberProjectInterestFlow'))failures.push('application page no longer renders the canonical role-neutral Phase 6 interest form');
   for(const marker of ['calculateMemberReadiness','loadMemberProjectTeamState','resolveMemberProjectState',"state!=='open_eligible'"]){if(!memberApplyPage.includes(marker))failures.push(`application page lost current qualification revalidation marker ${marker}`)}
   if(memberApplyPage.includes('requestedRole')||memberApplyPage.includes('initialRoleId')||memberApplyPage.includes('availableRoles[0]?.id'))failures.push('application page reintroduced a required pre-interest role selection contract');
 
@@ -63,4 +62,4 @@ if(!failures.length){
 }
 
 if(failures.length){console.error('Project post-merge regression audit failed:');failures.forEach(item=>console.error(`- ${item}`));process.exit(1)}
-console.log('Project post-merge regression audit passed: Discover resilience, Save parity, pagination, brand hierarchy, Phase 5 role-neutral qualification and Submit Interest routing are protected.');
+console.log('Project post-merge regression audit passed: Discover fail-closed canonical loading, Save parity, pagination, brand hierarchy, Phase 5 role-neutral qualification and Submit Interest routing are protected.');

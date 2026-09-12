@@ -15,6 +15,7 @@ const draftRoute=read('app/api/architect-projects/[id]/route.ts');
 const revisionRoute=read('app/api/architect-projects/[id]/revision/route.ts');
 const participationRoute=read('app/api/architect-projects/[id]/participation/route.ts');
 const adminRoute=read('app/api/admin/project-governance/route.ts');
+const adminProjectRoute=read('app/api/admin/projects/route.ts');
 const creator=read('components/ArchitectProjectForm.tsx');
 const editorPanel=read('components/ArchitectProjectParticipationPanel.tsx');
 const editorPage=read('app/member/architect-projects/[id]/edit/page.tsx');
@@ -76,7 +77,7 @@ expect('edit page shows canonical participation panel',editorPage.includes('Arch
 expect('edit panel is state and accessibility aware',editorPanel.includes('aria-labelledby="project-participation-heading"')&&editorPanel.includes('aria-live="polite"')&&editorPanel.includes("['draft','changes_requested']" )===false);
 
 expect('Admin queue API exposes participation',adminRoute.includes('participation_mode,min_team_size,target_team_size,max_team_size'));
-expect('Admin approval still gates on publication readiness',adminRoute.includes("select('publication_ready,missing_requirements,publication_blockers,resource_governance_ready')"));
+expect('Admin publication uses Workstream 2 database blocker authority',adminProjectRoute.includes("rpc('workstream2_publication_blockers'")&&!adminProjectRoute.includes("select('publication_ready,missing_requirements,publication_blockers,resource_governance_ready')"));
 expect('Admin governance page shows participation summary',adminPage.includes('AdminProjectParticipationSummary')&&adminSummary.includes('CANONICAL PARTICIPATION'));
 expect('Admin summary detects threshold divergence',adminSummary.includes('team_size_threshold!==item.min_team_size'));
 

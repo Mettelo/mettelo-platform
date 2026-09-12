@@ -1,7 +1,5 @@
 import {redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
-import {serviceDb} from '@/lib/project-flow';
-import {loadProjectRoleUsageBulk,type RoleUsage} from '@/lib/project-role-capacity';
 import {calculateMemberReadiness} from '@/lib/member-readiness';
 import {loadMemberDiscoverProjects} from '@/lib/member-discover-project-loader';
 import MemberDiscoverCatalogue from '@/components/MemberDiscoverCatalogue';
@@ -9,10 +7,9 @@ import MemberDiscoverPagination from '@/components/MemberDiscoverPagination';
 import MemberCapabilityPathFilters from '@/components/MemberCapabilityPathFilters';
 import MemberPageHeader from '@/components/MemberPageHeader';
 import DiscoverFilterEscapeBridge from '@/components/DiscoverFilterEscapeBridge';
-import {memberProjectCatalogueAction,memberProjectStateLabel,projectAcceptsApplications,resolveMemberProjectState} from '@/lib/member-project-journey';
-import {resolveProjectPublicAvailability} from '@/lib/project-public-availability';
+import {memberProjectCatalogueAction,memberProjectStateLabel,resolveMemberProjectState} from '@/lib/member-project-journey';
 import {getMemberCapabilityPathProgress,getMemberProjectPathContexts} from '@/lib/member-capability-paths';
-import {normalizeCommitment,normalizeExperienceLevel,projectAvailabilityFacet,projectFormatFacet,projectStageFacet,projectTypeFacet,workingModelFacet,type CatalogueFacet} from '@/lib/project-catalogue-filtering';
+import {normalizeCommitment,normalizeExperienceLevel,projectAvailabilityFacet,projectParticipationFacet,projectStageFacet,projectTypeFacet,workingModelFacet,type CatalogueFacet} from '@/lib/project-catalogue-filtering';
 import {normalizeCareerRole} from '@/lib/project-catalogue-taxonomy';
 
 export const dynamic='force-dynamic';
@@ -23,9 +20,10 @@ type CapabilityRelation={capabilities:{id:string;slug:string;name:string}|{id:st
 type DomainRelation={domains:{slug:string;name:string}|{slug:string;name:string}[]|null};
 type ToolRelation={tools:{slug:string;name:string}|{slug:string;name:string}[]|null};
 type MethodRelation={methods:{slug:string;name:string}|{slug:string;name:string}[]|null};
-type Project={id:string;slug:string;title:string;summary:string;status:string;project_type:string|null;location:string|null;location_type:string|null;difficulty_level:string|null;team_size_threshold:number|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;applications_open:boolean|null;created_at:string;project_roles:Role[]|null;project_role_families?:RoleFamilyRelation[]|null;project_capabilities?:CapabilityRelation[]|null;project_domains?:DomainRelation[]|null;project_tools?:ToolRelation[]|null;project_methods?:MethodRelation[]|null};
-type Application={id:string;project_id:string;status:string;project_run_id:string|null};
+type Project={id:string;slug:string;title:string;summary:string;status:string;project_type:string|null;location:string|null;location_type:string|null;difficulty_level:string|null;participation_mode:'solo'|'team'|'flexible'|null;min_team_size:number|null;target_team_size:number|null;max_team_size:number|null;team_size_threshold:number|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;applications_open:boolean|null;created_at:string;project_roles:Role[]|null;project_role_families?:RoleFamilyRelation[]|null;project_capabilities?:CapabilityRelation[]|null;project_domains?:DomainRelation[]|null;project_tools?:ToolRelation[]|null;project_methods?:MethodRelation[]|null};
+type Application={id:string;project_id:string;status:string;project_run_id:string|null;application_kind:string};
 type Membership={project_id:string;project_run_id:string|null;membership_status:string;project_runs:{status:string}|null};
+type Capacity={project_id:string;participation_mode:'solo'|'team'|'flexible'|null;confirmed_members:number;reserved_members:number;occupied_places:number;min_team_size:number|null;target_team_size:number|null;max_team_size:number|null;capacity_available:boolean;recruitment_state:string};
 type Saved={project_id:string};
 type Alias={alias:string;capability_id:string};
 type Search={path?:string|string[];stage?:string|string[]};
@@ -46,14 +44,14 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     supabase.from('profile_domain_preferences').select('domain_id').eq('user_id',user.id),
     supabase.from('profile_tool_preferences').select('tool_id').eq('user_id',user.id),
     loadMemberDiscoverProjects(supabase),
-    supabase.from('project_applications').select('id,project_id,status,project_run_id').eq('user_id',user.id).eq('application_kind','application').order('submitted_at',{ascending:false}),
+    supabase.from('project_applications').select('id,project_id,status,project_run_id,application_kind').eq('user_id',user.id).in('application_kind',['application','interest']).order('submitted_at',{ascending:false}),
     supabase.from('project_members').select('project_id,project_run_id,membership_status,project_runs(status)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']),
     supabase.from('saved_projects').select('project_id').eq('user_id',user.id),
     getMemberCapabilityPathProgress(supabase,user.id),
     supabase.from('capability_aliases').select('alias,capability_id')
   ]);
 
-  if(projectsResult.error)console.error('member Discover project query failed after all fallbacks',projectsResult.error);
+  if(projectsResult.error)console.error('member Discover canonical project query failed',projectsResult.error);
   if(capabilityAliasesResult.error)console.warn('member Discover capability aliases unavailable; continuing without aliases',capabilityAliasesResult.error.message);
   const profile=profileResult.data as Record<string,unknown>|null;
   const memberReadiness=calculateMemberReadiness({profile:profile||{},domainCount:domainPrefs.data?.length||0,toolCount:toolPrefs.data?.length||0});
@@ -64,29 +62,25 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
   const saved=new Set(((savedResult.data||[]) as Saved[]).map(row=>row.project_id));
   const aliasesByCapability=new Map<string,string[]>();
   for(const row of (capabilityAliasesResult.data||[]) as Alias[]){const current=aliasesByCapability.get(row.capability_id)||[];current.push(row.alias);aliasesByCapability.set(row.capability_id,current)}
-  const latestApplication=new Map<string,Application>();
-  for(const item of applications){if(!latestApplication.has(item.project_id))latestApplication.set(item.project_id,item)}
+  const latestActiveApplication=new Map<string,Application>();
+  for(const item of applications){if(['declined','withdrawn'].includes(item.status))continue;if(!latestActiveApplication.has(item.project_id))latestActiveApplication.set(item.project_id,item)}
   const membershipByProject=new Map(memberships.map(item=>[item.project_id,item]));
-  const db=serviceDb();
-  let usageByProject=new Map<string,RoleUsage>();
-  if(db&&projects.length)usageByProject=await loadProjectRoleUsageBulk(db,projects.map(project=>({id:project.id,project_type:project.project_type})));
+  const capacityResult=projects.length?await supabase.rpc('get_member_project_capacities',{p_project_ids:projects.map(project=>project.id)}):{data:[],error:null};
+  const capacityByProject=new Map(((capacityResult.data||[]) as Capacity[]).map(item=>[item.project_id,item]));
+  const capacityLoadError=Boolean(capacityResult.error)||projects.some(project=>!capacityByProject.has(project.id));
+  if(capacityResult.error)console.error('member Discover canonical capacity query failed',capacityResult.error);
   const pathContexts=await getMemberProjectPathContexts(supabase,user.id,projects.map(item=>item.id));
   const items=projects.flatMap(project=>{
     const contexts=pathContexts.get(project.id)||[];
     if(selectedPath&&!contexts.some(context=>context.pathSlug===selectedPath&&(!selectedStage||context.stageName===selectedStage)))return [];
-    const usage=usageByProject.get(project.id)||{known:false,filled:new Map<string,number>()};
-    const availabilityKnown=usage.known;
+    const capacity=capacityByProject.get(project.id);
+    if(!capacity)return[];
     const roles=project.project_roles||[];
-    const availableRoles=roles.filter(role=>availabilityKnown?((usage.filled.get(role.id)||0)<role.openings):true);
-    const roleCount=roles.reduce((sum,role)=>sum+Math.max(0,Number(role.openings)||0),0);
-    const occupiedRoleCount=roles.reduce((sum,role)=>sum+Math.min(Math.max(0,Number(role.openings)||0),usage.filled.get(role.id)||0),0);
-    const sharedAvailability=resolveProjectPublicAvailability({status:project.status,project_type:project.project_type||'open',application_deadline:project.application_deadline,applications_open:project.applications_open,role_count:roleCount,occupied_role_count:occupiedRoleCount,capacity_known:availabilityKnown});
-    const application=latestApplication.get(project.id)||null;
+    const application=latestActiveApplication.get(project.id)||null;
     const membership=membershipByProject.get(project.id)||null;
     const run=membership?.project_runs||null;
-    const state=resolveMemberProjectState({project,application,membership,run,applicationReady,hasAvailableRole:sharedAvailability.available&&availableRoles.length>0,roleAvailabilityKnown:availabilityKnown});
-    const displayRoles=projectAcceptsApplications(project)&&availabilityKnown?availableRoles:roles;
-    const displayRoleTitles=displayRoles.map(role=>role.title);
+    const state=resolveMemberProjectState({project,application,membership,run,applicationReady,capacityAvailable:capacity.capacity_available,capacityKnown:true});
+    const displayRoleTitles=roles.map(role=>role.title);
     const relationRoles=(project.project_role_families||[]).flatMap(row=>{const value=relationOne(row.project_role_catalogue);const canonical=value?(normalizeCareerRole(value.slug)||normalizeCareerRole(value.title)):null;return canonical?[canonical]:[]});
     const roleFamilies=uniqueFacets([...relationRoles,...roles.flatMap(role=>{const canonical=normalizeCareerRole(role.canonical_role_key);return canonical?[canonical]:[]})]);
     const capabilities=uniqueFacets((project.project_capabilities||[]).flatMap(row=>{const value=relationOne(row.capabilities);return value?[{slug:value.slug,label:value.name,aliases:aliasesByCapability.get(value.id)||[]}]:[]}));
@@ -99,8 +93,8 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
       id:project.id,title:project.title,summary:project.summary,state,stateLabel:memberProjectStateLabel(state),action:memberProjectCatalogueAction(state,project.id),saved:saved.has(project.id),
       workingModel:workFacet?.label||project.location||null,durationWeeks:project.duration_weeks,commitment:project.weekly_commitment,deadline:project.application_deadline,createdAt:project.created_at,
       roles:displayRoleTitles,roleFamilies,capabilities,domains,tools,methods,
-      experienceFacet:normalizeExperienceLevel(project.difficulty_level),formatFacet:projectFormatFacet(project.team_size_threshold),commitmentFacet:normalizeCommitment(project.weekly_commitment),workingModelFacet:workFacet,projectTypeFacet:projectTypeFacet(project.project_type),availabilityFacet:projectAvailabilityFacet({status:project.status,applicationsOpen:project.applications_open,deadline:project.application_deadline,hasCapacity:availabilityKnown?availableRoles.length>0:true}),stageFacet:projectStageFacet(project.status),
-      searchExtra:[...displayRoleTitles,primaryContext?.pathName||'',primaryContext?.stageName||''],
+      experienceFacet:normalizeExperienceLevel(project.difficulty_level),formatFacet:projectParticipationFacet(project.participation_mode,project.team_size_threshold),commitmentFacet:normalizeCommitment(project.weekly_commitment),workingModelFacet:workFacet,projectTypeFacet:projectTypeFacet(project.project_type),availabilityFacet:projectAvailabilityFacet({status:project.status,applicationsOpen:capacity.capacity_available,deadline:project.application_deadline,hasCapacity:capacity.capacity_available}),stageFacet:projectStageFacet(project.status),
+      searchExtra:[...displayRoleTitles,primaryContext?.pathName||'',primaryContext?.stageName||'',capacity.recruitment_state],
       pathContext:primaryContext?{name:primaryContext.pathName,position:primaryContext.position,stage:primaryContext.stageName,isPrimary:primaryContext.isPrimary}:null
     }];
   });
@@ -111,7 +105,7 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     <MemberPageHeader eyebrow="DIRECTION & DISCOVERY · PROJECTS" title="Discover projects" description="Scan projects quickly, then open the brief when one is worth deeper review. Capability Paths can add direction without restricting discovery." actions={<>{pathAction}<a className="mdButton mdDiscoverTopAction" href="/member/recommended">Recommended for you</a></>}/>
     <div className="mdDiscoverControlStack">
       {pathProgress.length?<MemberCapabilityPathFilters paths={pathProgress} selectedPath={selectedPath} selectedStage={selectedStage}/>:<aside className="mdPathPrompt"><div><strong>Want a clearer route through the catalogue?</strong><span>Follow a Capability Path to add sequence and stage context while keeping Discover broad.</span></div><a href="/member/paths">Explore Paths →</a></aside>}
-      {projectsResult.error?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Nothing has been changed. Refresh this page to try the member catalogue again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<><MemberDiscoverCatalogue projects={items}/><MemberDiscoverPagination/></>}
+      {projectsResult.error||capacityLoadError?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Canonical project or capacity state could not be resolved safely. Nothing has been changed. Refresh to try again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<><MemberDiscoverCatalogue projects={items}/><MemberDiscoverPagination/></>}
     </div>
     <style>{`
       .mdDiscoverPage{width:100%;max-width:none;margin:0;min-width:0;color:var(--ink)}

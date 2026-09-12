@@ -2,7 +2,6 @@ import type {Metadata} from 'next';
 import {notFound} from 'next/navigation';
 import ProjectPublicDetailV2 from '@/components/project-experience/ProjectPublicDetailV2';
 import polish from '@/components/project-experience/ProjectExperiencePolish.module.css';
-import {resolveProjectPublicAvailability} from '@/lib/project-public-availability';
 import {buildProjectExperienceModel} from '@/lib/project-experience-model';
 import {getPublicProjectExperienceData} from '@/lib/public-project-experience-data';
 import {createPublicSupabaseClient} from '@/lib/supabase/public';
@@ -12,6 +11,7 @@ export const dynamic='force-dynamic';
 
 type Role={id:string;title:string;description:string|null;skills:string[]|null;openings:number;discipline:string|null;canonical_role_key:string|null};
 type TaxonomyRef={slug:string;name:string};
+type Capacity={project_id:string;participation_mode:'solo'|'team'|'flexible'|null;confirmed_members:number;reserved_members:number;occupied_places:number;min_team_size:number|null;target_team_size:number|null;max_team_size:number|null;capacity_available:boolean;recruitment_state:string};
 type Project={id:string;canonical_project_key:string|null;title:string;summary:string;problem_statement:string|null;status:string;project_type:string|null;applications_open:boolean|null;partner_name:string|null;location:string|null;location_type:string|null;difficulty_level:string|null;duration_weeks:number|null;weekly_commitment:string|null;application_deadline:string|null;participation_mode:'solo'|'team'|'flexible'|null;min_team_size:number|null;target_team_size:number|null;max_team_size:number|null;team_size_threshold:number|null;project_roles:Role[]|null;project_domains:{domains:TaxonomyRef|null}[]|null;project_tools:{tools:TaxonomyRef|null}[]|null;project_methods:{methods:TaxonomyRef|null}[]|null};
 
 function relationValues(rows:{domains?:TaxonomyRef|null;tools?:TaxonomyRef|null;methods?:TaxonomyRef|null}[]|null|undefined,key:'domains'|'tools'|'methods'){
@@ -38,46 +38,36 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}):P
   const title=`${project.title} | Mettelo Projects`;
   const description=project.summary?.trim()||'Explore this public Mettelo project opportunity.';
   const canonical=`/projects/${project.id}`;
-  return{
-    title,
-    description,
-    alternates:{canonical},
-    openGraph:{title,description,url:canonical,type:'website'},
-    twitter:{card:'summary',title,description},
-    robots:{index:true,follow:true}
-  };
+  return{title,description,alternates:{canonical},openGraph:{title,description,url:canonical,type:'website'},twitter:{card:'summary',title,description},robots:{index:true,follow:true}};
 }
 
 export default async function ProjectDetailPage({params}:{params:Promise<{id:string}>}){
   const {id}=await params;
   const project=await getPublicProject(id);
   if(!project)notFound();
+  const publicDb=createPublicSupabaseClient();
+  if(!publicDb)notFound();
 
-  const [publicExperience,auth]=await Promise.all([
+  const [publicExperience,auth,capacityResult]=await Promise.all([
     getPublicProjectExperienceData(project.id),
-    createServerSupabaseClient()
+    createServerSupabaseClient(),
+    publicDb.rpc('get_public_project_capacity',{p_project_id:project.id})
   ]);
   const {detail,brief,milestones,roleDetails,loadError}=publicExperience;
   const {data:{user}}=await auth.auth.getUser();
+  if(capacityResult.error||!capacityResult.data||capacityResult.data.length!==1){
+    console.error('public project capacity projection unavailable; refusing stale availability',capacityResult.error);
+    notFound();
+  }
+  const capacity=capacityResult.data[0] as Capacity;
 
-  // Imported canonical projects intentionally keep legacy role rows so historic
-  // applications/memberships retain their foreign-key identity. Discovery must
-  // render only the canonical role definition for those projects, while legacy
-  // non-canonical projects retain their existing role behaviour.
+  // Legacy role rows remain only to preserve historical foreign-key identity and
+  // describe possible contribution areas. They are never a capacity authority.
   const rolePool=project.canonical_project_key
     ?(project.project_roles||[]).filter(role=>Boolean(role.canonical_role_key))
     :(project.project_roles||[]);
   const roles=rolePool;
-  const roleCapacity=roles.reduce((sum,role)=>sum+Math.max(0,Number(role.openings)||0),0);
-  const availability=resolveProjectPublicAvailability({
-    status:project.status,
-    project_type:project.project_type||'open',
-    application_deadline:project.application_deadline,
-    applications_open:project.applications_open,
-    visibility:'public',
-    role_count:roleCapacity
-  });
-  const canApply=availability.acceptingInterest;
+  const canApply=capacity.capacity_available&&!['closed','joining_closed','completed','full'].includes(capacity.recruitment_state);
   const domains=relationValues(project.project_domains,'domains');
   const tools=relationValues(project.project_tools,'tools');
   const methods=relationValues(project.project_methods,'methods');
@@ -97,5 +87,5 @@ export default async function ProjectDetailPage({params}:{params:Promise<{id:str
   const signinHref=`/signin?next=${encodeURIComponent(memberProjectHref)}`;
   const ctaHref=user?memberProjectHref:signinHref;
 
-  return <div className={`${polish.host} ${polish.publicHost}`}><ProjectPublicDetailV2 model={model} canApply={canApply} ctaHref={ctaHref} authenticated={Boolean(user)} detailLoadError={loadError}/></div>;
+  return <div className={`${polish.host} ${polish.publicHost}`}><ProjectPublicDetailV2 model={model} capacity={capacity} canApply={canApply} ctaHref={ctaHref} authenticated={Boolean(user)} detailLoadError={loadError}/></div>;
 }

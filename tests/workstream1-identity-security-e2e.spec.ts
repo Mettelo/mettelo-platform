@@ -36,7 +36,8 @@ test.describe('Workstream 1 canonical identity security',()=>{
     const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
     const first=await createDisposableUser(admin,url,anon,'identity-a');
     const second=await createDisposableUser(admin,url,anon,'identity-b');
-    const third=await createDisposableUser(admin,url,anon,'identity-c');
+    const raceFirst=await createDisposableUser(admin,url,anon,'race-a');
+    const raceSecond=await createDisposableUser(admin,url,anon,'race-b');
     const shared=token('w1shared');
     try{
       const before=await first.client.from('profiles').select('member_id,username').eq('id',first.user.id).single();
@@ -56,15 +57,19 @@ test.describe('Workstream 1 canonical identity security',()=>{
       expect(changedRow).toMatchObject({success:true,code:'CHANGED',changed_username:'w1_testuser2'});
       expect(changedRow?.stable_member_id).toBe(before.data?.member_id);
 
-      const history=await admin.from('member_username_history').select('user_id,username').eq('user_id',first.user.id).eq('username','w1_testuser').single();
-      expect(history.error).toBeNull();
-      expect(history.data).toMatchObject({user_id:first.user.id,username:'w1_testuser'});
+      // Username history is intentionally a locked internal table. Even the
+      // service-role REST client does not receive a direct table grant; the
+      // SECURITY DEFINER identity functions are the controlled boundary.
+      const serviceHistoryRead=await admin.from('member_username_history').select('user_id,username').eq('user_id',first.user.id);
+      expect(serviceHistoryRead.error).not.toBeNull();
 
       const immediateSecondChange=await first.client.rpc('change_member_username',{p_username:'w1_testuser3'});
       expect(immediateSecondChange.error).toBeNull();
       const limited=Array.isArray(immediateSecondChange.data)?immediateSecondChange.data[0]:immediateSecondChange.data;
       expect(limited).toMatchObject({success:false,code:'RATE_LIMITED'});
 
+      // This is the behavioral proof that the successful change wrote the old
+      // handle into protected history: another account cannot reclaim it.
       const historicalReuse=await second.client.rpc('claim_member_username',{p_username:'w1_testuser'});
       expect(historicalReuse.error).toBeNull();
       const unavailable=Array.isArray(historicalReuse.data)?historicalReuse.data[0]:historicalReuse.data;
@@ -77,8 +82,8 @@ test.describe('Workstream 1 canonical identity security',()=>{
       expect(historyRead.error).not.toBeNull();
 
       const [raceA,raceB]=await Promise.all([
-        second.client.rpc('claim_member_username',{p_username:shared}),
-        third.client.rpc('claim_member_username',{p_username:shared})
+        raceFirst.client.rpc('claim_member_username',{p_username:shared}),
+        raceSecond.client.rpc('claim_member_username',{p_username:shared})
       ]);
       expect(raceA.error).toBeNull();
       expect(raceB.error).toBeNull();
@@ -86,7 +91,12 @@ test.describe('Workstream 1 canonical identity security',()=>{
       expect(rows.filter(row=>row?.success===true)).toHaveLength(1);
       expect(rows.filter(row=>row?.code==='UNAVAILABLE')).toHaveLength(1);
     }finally{
-      await Promise.all([removeUser(admin,first.user.id),removeUser(admin,second.user.id),removeUser(admin,third.user.id)]);
+      await Promise.all([
+        removeUser(admin,first.user.id),
+        removeUser(admin,second.user.id),
+        removeUser(admin,raceFirst.user.id),
+        removeUser(admin,raceSecond.user.id)
+      ]);
     }
   });
 

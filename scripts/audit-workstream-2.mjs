@@ -4,8 +4,13 @@ const read=path=>fs.readFileSync(path,'utf8');
 const migration=read('supabase/migrations/20260912170500_workstream2_canonical_project_contract.sql');
 const hardening=read('supabase/migrations/20260912171500_workstream2_interest_eligibility_hardening.sql');
 const postUpdateGuard=read('supabase/migrations/20260912174000_workstream2_post_update_publication_guard.sql');
+const structuredArchitectEdit=read('supabase/migrations/20260912175500_workstream2_architect_structured_definition_edit.sql');
 const adminProjectsRoute=read('app/api/admin/projects/route.ts');
 const architectProjectsRoute=read('app/api/architect-projects/route.ts');
+const architectDraftRoute=read('app/api/architect-projects/[id]/route.ts');
+const architectRevisionRoute=read('app/api/architect-projects/[id]/revision/route.ts');
+const architectEditForm=read('components/ArchitectProjectEditForm.tsx');
+const populatedReplay=read('scripts/workstream2-populated-upgrade.sql');
 const publicLoader=read('lib/public-project-catalogue-loader.ts');
 const memberLoader=read('lib/member-discover-project-loader.ts');
 const interestFlow=read('components/MemberProjectInterestFlow.tsx');
@@ -29,6 +34,18 @@ const checks=[
  [migration,'get_public_project_capacity','public capacity is an aggregate safe projection'],
  [migration,'project_acceptance_criteria','acceptance criteria are canonical structured data'],
  [migration,'project_dependencies','dependencies are canonical structured data'],
+ [structuredArchitectEdit,"payload->'acceptance_criteria'",'Architect atomic revision owns structured acceptance criteria'],
+ [structuredArchitectEdit,"payload->'dependencies'",'Architect atomic revision owns structured dependencies'],
+ [structuredArchitectEdit,'ACCEPTANCE_CRITERION_NOT_IN_PROJECT','Architect edit preserves acceptance criterion identity'],
+ [structuredArchitectEdit,'DEPENDENCY_NOT_IN_PROJECT','Architect edit preserves dependency identity'],
+ [architectDraftRoute,"db.from('project_acceptance_criteria')",'Architect draft loader returns structured acceptance criteria'],
+ [architectDraftRoute,"db.from('project_dependencies')",'Architect draft loader returns structured dependencies'],
+ [architectRevisionRoute,'acceptance_criteria:acceptanceCriteria','Architect revision validates and submits structured acceptance criteria'],
+ [architectRevisionRoute,'dependencies,milestones','Architect revision validates and submits structured dependencies'],
+ [architectEditForm,"'acceptance_criteria'|'dependencies'",'Architect editor treats structured delivery collections as editable canonical state'],
+ [architectEditForm,'Structured acceptance criteria','Architect editor renders structured acceptance controls'],
+ [architectEditForm,'title="Dependencies"','Architect editor renders dependency controls'],
+ [populatedReplay,'20260912175500_workstream2_architect_structured_definition_edit.sql','populated replay includes the structured Architect edit migration'],
  [hardening,'workstream2_member_application_readiness','profile readiness is enforced at the database interest boundary'],
  [hardening,"raise exception 'PROFILE_INCOMPLETE:%'",'direct RPC cannot bypass profile readiness'],
  [hardening,'project_run_id=v_run_id','open project capacity is current-run scoped'],

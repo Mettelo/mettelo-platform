@@ -34,7 +34,7 @@ async function experienceReadiness(db:SupabaseClient,projectId:string){
 async function publicationBlockers(db:SupabaseClient,projectId:string){
   const {data,error}=await db.rpc('workstream2_publication_blockers',{p_project_id:projectId});
   if(error)throw error;
-  return [...new Set((data||[]).map(item=>String(item)).filter(Boolean))];
+  return [...new Set((data||[]).map((item:unknown)=>String(item)).filter(Boolean))];
 }
 
 export async function GET(){

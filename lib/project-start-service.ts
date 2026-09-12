@@ -21,7 +21,9 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
  // Flexible projects can legitimately form either a one-person Solo run or a
  // Team run at the configured minimum. Never collapse a persisted Team run to
  // one member merely because the project itself supports Flexible formation.
- const fallbackMinimum=participationMode==='solo'
+ // If a legacy Flexible run has no persisted requirement, preserve the
+ // historical one-member fallback rather than changing an existing run shape.
+ const fallbackMinimum=participationMode==='solo'||participationMode==='flexible'
   ?1
   :Math.max(1,Number(project.min_team_size||project.team_size_threshold||1));
  const required=Math.max(1,Number(run.required_team_size??fallbackMinimum));

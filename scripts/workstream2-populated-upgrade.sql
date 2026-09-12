@@ -20,9 +20,13 @@ create temporary table ws2_success_before as select id,project_id from public.pr
 create temporary table ws2_milestones_before as select id,project_id,project_run_id from public.project_milestones;
 create temporary table ws2_capabilities_before as select project_id,capability_id from public.project_capabilities;
 
+-- Replay the complete Workstream 2 migration sequence against already-populated state.
 \i supabase/migrations/20260912170500_workstream2_canonical_project_contract.sql
 \i supabase/migrations/20260912171500_workstream2_interest_eligibility_hardening.sql
 \i supabase/migrations/20260912172500_workstream2_public_capacity_publication_hardening.sql
+\i supabase/migrations/20260912173000_workstream2_member_capacity_projection.sql
+\i supabase/migrations/20260912173500_workstream2_unified_publication_blockers.sql
+\i supabase/migrations/20260912174000_workstream2_post_update_publication_guard.sql
 
 do $$
 begin

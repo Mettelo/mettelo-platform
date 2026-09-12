@@ -44,7 +44,10 @@ test.describe('Project Experience Phase 5 member-fit RLS',()=>{
  test('source contract keeps Phase 5 member reads authenticated and applicant access separate from membership',async()=>{
   const page=fs.readFileSync('app/member/discover/[id]/page.tsx','utf8');const api=fs.readFileSync('app/api/project-applications/route.ts','utf8');const detail=fs.readFileSync('lib/project-detail-content.ts','utf8');const migration=fs.readFileSync('supabase/migrations/20260905170000_project_experience_phase_5_interest_uniqueness.sql','utf8');
   expect(page).toContain('createServerSupabaseClient');expect(page).toContain("supabase.from('profiles')");expect(page).toContain(".eq('id',user.id)");expect(page).toContain("profile_domain_preferences').select('domains(slug,name)').eq('user_id',user.id)");expect(page).toContain("profile_tool_preferences').select('tools(slug,name)').eq('user_id',user.id)");expect(page).not.toContain("serviceDb().from('profiles')");
-  expect(api).not.toContain("from('project_members').insert");expect(api).toContain("from('project_applications').insert");expect(detail).toContain("row.sensitivity==='public'&&row.publish_policy==='permitted'&&row.governance_status==='green'");expect(detail).toContain('Approved project members receive authorised resource links');
+  expect(api).not.toContain("from('project_members').insert");expect(api).toContain("from('project_applications').insert");
+  expect(detail).toContain("row.sensitivity==='public'&&row.publish_policy==='permitted'&&row.governance_status==='green'");
+  expect(detail).toContain('externalUrl:null');expect(detail).toContain('providerUrl:null');expect(detail).toContain('licenceUrl:null');
+  expect(detail).toContain(".in('visibility',['public','members'])");
   expect(migration).toContain('drop index if exists public.project_applications_one_interest_per_project_user');expect(migration).toContain('project_applications_one_active_interest_per_project_user');expect(migration).toContain("where application_kind='interest'");expect(migration).toContain("status not in ('declined','withdrawn')");
  });
 });

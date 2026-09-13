@@ -78,6 +78,10 @@ begin
     raise exception 'WORKSTREAM2_RECONCILIATION_MISSING:get_public_project_capacities';
   end if;
 
+  if to_regprocedure('public.get_member_project_capacities(uuid[])') is null then
+    raise exception 'WORKSTREAM2_RECONCILIATION_MISSING:get_member_project_capacities';
+  end if;
+
   if to_regprocedure('public.workstream2_publication_blockers(uuid)') is null then
     raise exception 'WORKSTREAM2_RECONCILIATION_MISSING:workstream2_publication_blockers';
   end if;

@@ -12,6 +12,7 @@ on:
       - 'components/MemberProjectInterestFlowV3.tsx'
       - 'lib/project-**'
       - 'lib/member-project-**'
+      - 'scripts/workstream3-**'
       - 'supabase/migrations/**'
       - 'tests/workstream3-**'
       - 'tests/project-experience-phase6-**'
@@ -105,6 +106,8 @@ jobs:
           } >> "$GITHUB_ENV"
       - name: Seed identities and project fixtures
         run: node scripts/setup-local-e2e.mjs
+      - name: Populated Workstream 3 migration replay
+        run: bash scripts/workstream3-populated-migration-replay.sh
       - name: Start Mettelo
         shell: bash
         run: |
@@ -123,6 +126,8 @@ jobs:
         run: npx playwright test tests/project-experience-phase8-project-offers-e2e.spec.ts tests/project-experience-phase8-offer-boundaries-e2e.spec.ts tests/project-experience-phase8-reservation-handoff-e2e.spec.ts tests/project-experience-phase9-lock-order-e2e.spec.ts --project=chromium --workers=1
       - name: Participation six-hour eligibility below-minimum reset formation and tracker dependencies
         run: npx playwright test tests/project-experience-phase9-participation-e2e.spec.ts tests/project-experience-phase10-team-formation-e2e.spec.ts tests/project-experience-phase-11-readiness.spec.ts --project=chromium --workers=1
+      - name: V3 mobile keyboard screen-reader semantics and 200 percent reflow
+        run: npx playwright test tests/workstream3-submit-interest-accessibility-e2e.spec.ts --project=chromium --workers=1
       - name: Responsive keyboard and reflow regressions
         run: npx playwright test tests/project-experience-phase3-governance.spec.ts tests/mobile-stability.spec.ts tests/public-recursive-responsive.spec.ts --project=chromium --workers=1
       - name: Workstream 1 and 2 preserved boundaries
@@ -136,6 +141,7 @@ jobs:
             playwright-report/
             test-results/
             /tmp/mettelo-ws3.log
+            /tmp/workstream3-replay-*.log
             .supabase-ci/manifest.json
           if-no-files-found: ignore
           retention-days: 7

@@ -42,10 +42,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Workstream 3 authority assertions
-        run: npx playwright test tests/workstream3-submit-interest-operations.spec.ts --project=chromium --workers=1
       - run: npm run lint
       - run: npm run typecheck
+      - name: Workstream 3 authority assertions
+        run: npx playwright test tests/workstream3-submit-interest-operations.spec.ts --project=chromium --workers=1
       - run: npm run test:project-interest-flow
       - name: Downstream static regressions
         run: npx playwright test tests/project-experience-phase6-interest-submission.spec.ts tests/project-experience-phase7-admin-review.spec.ts tests/project-experience-phase8-project-offers.spec.ts tests/project-experience-phase9-participation-model.spec.ts tests/project-experience-phase10-team-formation.spec.ts tests/project-experience-phase-11-readiness.spec.ts --project=chromium --workers=1

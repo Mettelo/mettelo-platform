@@ -28,6 +28,8 @@ type Saved={project_id:string};
 type Alias={alias:string;capability_id:string};
 type Search={path?:string|string[];stage?:string|string[]};
 
+const MEMBER_CAPACITY_BATCH_SIZE=200;
+
 function one(value:string|string[]|undefined){return Array.isArray(value)?value[0]||'':value||''}
 function relationOne<T>(value:T|T[]|null|undefined):T|null{return Array.isArray(value)?value[0]||null:value||null}
 function uniqueFacets(values:CatalogueFacet[]){const map=new Map<string,CatalogueFacet>();for(const item of values)if(!map.has(item.slug))map.set(item.slug,item);return[...map.values()].sort((a,b)=>a.label.localeCompare(b.label))}
@@ -65,10 +67,16 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
   const latestActiveApplication=new Map<string,Application>();
   for(const item of applications){if(['declined','withdrawn'].includes(item.status))continue;if(!latestActiveApplication.has(item.project_id))latestActiveApplication.set(item.project_id,item)}
   const membershipByProject=new Map(memberships.map(item=>[item.project_id,item]));
-  const capacityResult=projects.length?await supabase.rpc('get_member_project_capacities',{p_project_ids:projects.map(project=>project.id)}):{data:[],error:null};
-  const capacityByProject=new Map(((capacityResult.data||[]) as Capacity[]).map(item=>[item.project_id,item]));
-  const capacityLoadError=Boolean(capacityResult.error)||projects.some(project=>!capacityByProject.has(project.id));
-  if(capacityResult.error)console.error('member Discover canonical capacity query failed',capacityResult.error);
+  const capacityRows:Capacity[]=[];
+  let capacityLoadError=false;
+  for(let index=0;index<projects.length;index+=MEMBER_CAPACITY_BATCH_SIZE){
+    const batchIds=projects.slice(index,index+MEMBER_CAPACITY_BATCH_SIZE).map(project=>project.id);
+    const capacityResult=await supabase.rpc('get_member_project_capacities',{p_project_ids:batchIds});
+    if(capacityResult.error){capacityLoadError=true;console.error('member Discover canonical capacity query failed',capacityResult.error);break}
+    capacityRows.push(...((capacityResult.data||[]) as Capacity[]));
+  }
+  const capacityByProject=new Map(capacityRows.map(item=>[item.project_id,item]));
+  capacityLoadError=capacityLoadError||projects.some(project=>!capacityByProject.has(project.id));
   const pathContexts=await getMemberProjectPathContexts(supabase,user.id,projects.map(item=>item.id));
   const items=projects.flatMap(project=>{
     const contexts=pathContexts.get(project.id)||[];

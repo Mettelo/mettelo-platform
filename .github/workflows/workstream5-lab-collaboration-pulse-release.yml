@@ -1,0 +1,146 @@
+name: Workstream 5 Lab Collaboration Pulse Release Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/project-pulse/**'
+      - 'app/api/project-support-cases/**'
+      - 'app/member/projects/**'
+      - 'components/MetteloLabPanel.tsx'
+      - 'components/MetteloLabSupportView.tsx'
+      - 'components/project-experience/**'
+      - 'lib/project-**'
+      - 'supabase/migrations/**'
+      - 'tests/workstream5-**'
+      - 'tests/project-experience-phase12-**'
+      - 'tests/project-experience-phase13-**'
+      - 'tests/project-experience-phase14-**'
+      - 'tests/project-experience-phase15-**'
+      - 'tests/project-experience-phase16-**'
+      - 'tests/project-experience-phase17-**'
+      - 'tests/project-experience-phase18**'
+      - '.github/workflows/workstream5-lab-collaboration-pulse-release.yml'
+  push:
+    branches:
+      - 'workstream5-lab-collaboration-weekly-pulse'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-release-contract:
+    name: Workstream 5 canonical ownership privacy compatibility and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Canonical Lab collaboration and Pulse contract
+        run: npx playwright test tests/workstream5-lab-collaboration-pulse-release.spec.ts tests/project-experience-phase12-canonical-lab.spec.ts tests/project-experience-phase13-collaboration.spec.ts tests/project-experience-phase14-weekly-pulse.spec.ts --project=chromium --workers=1
+      - name: Downstream Phase 15 through 18 compatibility
+        run: npx playwright test tests/project-experience-phase15-solo-conversion.spec.ts tests/project-experience-phase16-member-exit.spec.ts tests/project-experience-phase17-support-safeguarding.spec.ts tests/project-experience-phase18a-member-invitations.spec.ts tests/project-experience-phase18b-marketplace.spec.ts tests/project-experience-phase18c-governance.spec.ts --project=chromium --workers=1
+      - name: Lab accessibility responsive and device audits
+        run: npm run audit:mettelo-lab
+      - name: Production build contract
+        env:
+          SKIP_DEPLOYMENT_CONFIG_CHECK: '1'
+        run: npm run build
+
+  database-release-contract:
+    name: Workstream 5 RLS concurrency collaboration Pulse support and member exit
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CI_LOCAL_SUPABASE: '1'
+      E2E_BASE_URL: http://127.0.0.1:3000
+      E2E_MEMBER_EMAIL: member.e2e@example.test
+      E2E_MEMBER_PASSWORD: local-e2e-member-password
+      E2E_ARCHITECT_EMAIL: architect.e2e@example.test
+      E2E_ARCHITECT_PASSWORD: local-e2e-architect-password
+      E2E_ADMIN_EMAIL: admin.e2e@example.test
+      E2E_ADMIN_PASSWORD: local-e2e-admin-password
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.111.0
+      - name: Prepare isolated migration set
+        run: node scripts/prepare-local-supabase.mjs
+      - name: Start isolated Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase stop --workdir .supabase-ci --no-backup >/dev/null 2>&1 || true
+          supabase start --workdir .supabase-ci -x studio,imgproxy,logflare,vector,supavisor
+      - name: Export isolated Supabase credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status --workdir .supabase-ci -o env > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "::add-mask::$DB_URL"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_SUPABASE_DB_URL=$DB_URL"
+          } >> "$GITHUB_ENV"
+      - name: Seed disposable identities and fixtures
+        run: node scripts/setup-local-e2e.mjs
+      - name: Start Mettelo
+        shell: bash
+        run: |
+          npm run dev -- --hostname 127.0.0.1 > /tmp/mettelo-ws5.log 2>&1 &
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/projects > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/mettelo-ws5.log
+          exit 1
+      - name: Canonical Lab access resources RLS and member exit
+        run: npx playwright test tests/project-experience-phase12-lab-access-e2e.spec.ts tests/project-experience-phase16-member-exit-e2e.spec.ts tests/workstream5-pulse-member-exit-e2e.spec.ts --project=chromium --workers=1
+      - name: Collaboration tasks chat mentions meetings decisions and concurrency
+        run: npx playwright test tests/project-experience-phase13-collaboration-e2e.spec.ts --project=chromium --workers=1
+      - name: Weekly Pulse privacy aggregate reminders duplicate protection and support
+        run: npx playwright test tests/project-experience-phase14-weekly-pulse-e2e.spec.ts tests/project-experience-phase17-support-e2e.spec.ts tests/project-experience-phase17-rls-e2e.spec.ts tests/project-experience-phase17-recovery-concurrency-e2e.spec.ts --project=chromium --workers=1
+      - name: Mobile keyboard screen-reader semantics and 200 percent reflow
+        run: npx playwright test tests/project-experience-phase17-responsive-e2e.spec.ts tests/mettelo-lab-device-qa.spec.ts tests/mobile-stability.spec.ts --project=chromium --workers=1
+      - name: Downstream conversion replacement and recruitment compatibility
+        run: npx playwright test tests/project-experience-phase15-solo-conversion-e2e.spec.ts tests/project-experience-phase18a-member-invitations-e2e.spec.ts tests/project-experience-phase18b-marketplace-e2e.spec.ts tests/project-experience-phase18c-governance-e2e.spec.ts --project=chromium --workers=1
+      - name: Upload Workstream 5 failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workstream5-release-evidence-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+            /tmp/mettelo-ws5.log
+            .supabase-ci/manifest.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop isolated Supabase
+        if: always()
+        run: supabase stop --workdir .supabase-ci --no-backup

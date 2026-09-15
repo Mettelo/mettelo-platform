@@ -1,57 +1,19 @@
--- Workstream 4: Project Lead assignment is a formation decision.
--- Responsibilities can continue to evolve on an active run, but leadership
--- cannot be replaced through the normal Phase 10 formation control once the
--- canonical run has started. Recovery/replacement must use its governed path.
-
-create or replace function public.phase10_guard_project_lead_formation_lock()
-returns trigger
-language plpgsql
-security definer
-set search_path=public
-as $$
-declare
-  run_status text;
-  run_started boolean;
-begin
-  if new.team_role is not distinct from old.team_role then
-    return new;
-  end if;
-
-  if new.project_run_id is null then
-    return new;
-  end if;
-
-  -- Only transitions involving Project Lead are governed here. Normal member
-  -- status and non-lead compatibility fields retain their existing guards.
-  if old.team_role<>'project_lead' and new.team_role<>'project_lead' then
-    return new;
-  end if;
-
-  select status,coalesce(has_started,false)
-  into run_status,run_started
-  from public.project_runs
-  where id=new.project_run_id
-  for update;
-
-  if run_status is null then
-    raise exception using errcode='23514',message='MEMBERSHIP_RUN_NOT_FOUND';
-  end if;
-
-  if run_status<>'forming' or run_started then
-    raise exception using errcode='23514',message='PROJECT_LEAD_CHANGE_REQUIRES_FORMING_RUN';
-  end if;
-
-  return new;
-end;
-$$;
-
-revoke all on function public.phase10_guard_project_lead_formation_lock() from public,anon,authenticated;
+-- Workstream 4: normal Project Lead assignment remains a formation decision.
+--
+-- The Admin Team Formation surface/API blocks ordinary Lead changes once the
+-- canonical run has started. The database authority must NOT install a generic
+-- team_role trigger that also blocks the existing Phase 17 governed recovery
+-- coordinator, because Phase 17 intentionally reuses phase10_confirm_project_lead
+-- to replace a Lead on an active run after a support/recovery decision.
+--
+-- Phase 10 already provides the canonical Lead mutation authority, one-active-Lead
+-- serialization and service-role execution boundary. Phase 17 adds its own case
+-- lock, optimistic version token and authorized recovery path. Workstream 4 keeps
+-- those authorities intact and removes the over-broad formation trigger from any
+-- database where an earlier branch revision installed it.
 
 drop trigger if exists project_member_phase10_lead_formation_lock on public.project_members;
-create trigger project_member_phase10_lead_formation_lock
-before update of team_role
-on public.project_members
-for each row execute function public.phase10_guard_project_lead_formation_lock();
+drop function if exists public.phase10_guard_project_lead_formation_lock();
 
-comment on function public.phase10_guard_project_lead_formation_lock() is
-  'Workstream 4 defence-in-depth: normal Project Lead changes are formation-only; active-run leadership recovery must use a dedicated governed recovery path.';
+comment on function public.phase10_confirm_project_lead(uuid,uuid,text) is
+  'Canonical service-only Project Lead mutation authority. Normal Team Formation changes are restricted to forming runs by the Workstream 4 Admin boundary; governed active-run replacement remains available through the Phase 17 recovery coordinator.';

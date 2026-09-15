@@ -1,0 +1,144 @@
+name: Workstream 4 Participation Formation Start Release Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/admin/project-flow/**'
+      - 'app/api/admin/project-start-readiness/**'
+      - 'app/api/project-team-lifecycle/**'
+      - 'app/api/cron/project-formation/**'
+      - 'app/member/projects/**'
+      - 'components/AdminTeamFormation.tsx'
+      - 'lib/project-start-service.ts'
+      - 'lib/project-team-readiness.ts'
+      - 'lib/project-**'
+      - 'scripts/audit-admin-console.mjs'
+      - 'supabase/migrations/**'
+      - 'tests/workstream4-**'
+      - 'tests/project-experience-phase6-**'
+      - 'tests/project-experience-phase8-**'
+      - 'tests/project-experience-phase9-**'
+      - 'tests/project-experience-phase10-**'
+      - 'tests/project-experience-phase-11-**'
+      - 'tests/project-experience-phase12-**'
+      - 'tests/project-experience-phase16-**'
+      - 'tests/project-experience-phase17-**'
+      - '.github/workflows/workstream4-participation-team-formation-release.yml'
+  push:
+    branches:
+      - 'release/workstream4-**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-contract:
+    name: Workstream 4 static authority and preservation contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Canonical Phase 9 10 11 ownership
+        run: npx playwright test tests/project-experience-phase9-participation-model.spec.ts tests/project-experience-phase10-team-formation.spec.ts tests/project-experience-phase-11-readiness.spec.ts --project=chromium --workers=1
+      - name: Admin Team Formation deterministic contract
+        run: npm run audit:admin
+      - name: Upstream admission preservation
+        run: npx playwright test tests/project-experience-phase6-interest-submission.spec.ts tests/project-experience-phase7-admin-review.spec.ts tests/project-experience-phase8-project-offers.spec.ts --project=chromium --workers=1
+
+  database-release-contract:
+    name: Workstream 4 races security formation readiness Lab and accessibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    env:
+      CI_LOCAL_SUPABASE: '1'
+      E2E_BASE_URL: http://127.0.0.1:3000
+      E2E_MEMBER_EMAIL: member.e2e@example.test
+      E2E_MEMBER_PASSWORD: local-e2e-member-password
+      E2E_ARCHITECT_EMAIL: architect.e2e@example.test
+      E2E_ARCHITECT_PASSWORD: local-e2e-architect-password
+      E2E_ADMIN_EMAIL: admin.e2e@example.test
+      E2E_ADMIN_PASSWORD: local-e2e-admin-password
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.111.0
+      - name: Prepare isolated migration set
+        run: node scripts/prepare-local-supabase.mjs
+      - name: Start isolated Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase stop --workdir .supabase-ci --no-backup >/dev/null 2>&1 || true
+          supabase start --workdir .supabase-ci -x studio,imgproxy,logflare,vector,supavisor
+      - name: Export isolated Supabase credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status --workdir .supabase-ci -o env > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "::add-mask::$DB_URL"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_SUPABASE_DB_URL=$DB_URL"
+          } >> "$GITHUB_ENV"
+      - name: Seed disposable identities and fixtures
+        run: node scripts/setup-local-e2e.mjs
+      - name: Start Mettelo
+        shell: bash
+        run: |
+          npm run dev -- --hostname 127.0.0.1 > /tmp/mettelo-ws4.log 2>&1 &
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/projects > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/mettelo-ws4.log
+          exit 1
+      - name: Mandatory minimum capacity activation Lead responsibility and leave-start races
+        run: npx playwright test tests/workstream4-race-acceptance-e2e.spec.ts tests/project-experience-phase6-auto-concurrency.spec.ts tests/project-experience-phase8-project-offers-e2e.spec.ts tests/project-experience-phase9-lock-order-e2e.spec.ts --project=chromium --workers=1
+      - name: Team Solo Flexible formation six-hour readiness and atomic activation
+        run: npx playwright test tests/project-experience-phase9-participation-e2e.spec.ts tests/project-experience-phase10-team-formation-e2e.spec.ts tests/project-experience-phase-11-readiness.spec.ts --project=chromium --workers=1
+      - name: RLS IDOR private Lab late join departure and recovery boundaries
+        run: npx playwright test tests/project-experience-phase12-lab-access-e2e.spec.ts tests/project-experience-phase16-member-exit-e2e.spec.ts tests/project-experience-phase17-rls-e2e.spec.ts tests/project-experience-phase17-recovery-concurrency-e2e.spec.ts --project=chromium --workers=1
+      - name: Mobile keyboard screen-reader semantics and 200 percent reflow
+        run: npx playwright test tests/project-experience-phase17-responsive-e2e.spec.ts tests/mobile-stability.spec.ts --project=chromium --workers=1
+      - name: Upload Workstream 4 failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workstream4-release-evidence-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+            /tmp/mettelo-ws4.log
+            .supabase-ci/manifest.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop isolated Supabase
+        if: always()
+        run: supabase stop --workdir .supabase-ci --no-backup

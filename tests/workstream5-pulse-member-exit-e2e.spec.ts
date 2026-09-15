@@ -19,7 +19,7 @@ test.describe('Workstream 5 Pulse member-exit privacy',()=>{
   const db=service();
   const email=required('E2E_MEMBER_EMAIL'),password=required('E2E_MEMBER_PASSWORD');
   const userId=await userIdByEmail(db,email),periodStart=mondayUtc();
-  const membershipResult=await db.from('project_members').select('id,membership_status,left_at').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',userId).maybeSingle();
+  const membershipResult=await db.from('project_members').select('id,membership_status,left_at,activated_at').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',userId).maybeSingle();
   if(membershipResult.error)throw membershipResult.error;
   if(!membershipResult.data)throw new Error('Workstream 5 requires the seeded member to belong to the Phase 14 Lab run.');
   const membership=membershipResult.data;
@@ -46,7 +46,7 @@ test.describe('Workstream 5 Pulse member-exit privacy',()=>{
   }finally{
    await db.from('project_weekly_pulses').delete().eq('project_run_id',runId).eq('user_id',userId).eq('period_start',periodStart);
    if(originalPulse.data){const restore={...originalPulse.data};delete (restore as{blocked?:unknown}).blocked;delete (restore as{support_requested?:unknown}).support_requested;await db.from('project_weekly_pulses').insert(restore)}
-   await db.from('project_members').update({membership_status:membership.membership_status,left_at:membership.left_at}).eq('id',membership.id);
+   await db.from('project_members').update({membership_status:membership.membership_status,left_at:membership.left_at,activated_at:membership.activated_at}).eq('id',membership.id);
    await db.from('project_runs').update({status:runResult.data.status}).eq('id',runId);
   }
  });

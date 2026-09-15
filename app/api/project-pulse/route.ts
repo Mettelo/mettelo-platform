@@ -44,7 +44,7 @@ export async function GET(request:Request){
   if(!ctx.user)return NextResponse.json({error:'Authentication required.'},{status:401});
   const isAdmin=ctx.user.app_metadata?.role==='admin';
   if(!ctx.run)return NextResponse.json({error:'Project run not found.'},{status:404});
-  if(!ctx.membership&&!isAdmin)return NextResponse.json({error:'Project membership is required.'},{status:403});
+  if(!isAdmin&&ctx.membership?.membership_status!=='active')return NextResponse.json({error:'Active project membership is required.'},{status:403,headers:{'Cache-Control':'private, no-store'}});
   const periodStart=mondayUtc();
   const applies=await teamApplicable(ctx.supabase,projectId,runId,periodStart);
   const {data:item,error}=await ctx.supabase.from('project_weekly_pulses').select('id,period_start,progress,workload,team_state,support_need,note,submitted_at,updated_at').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',ctx.user.id).eq('period_start',periodStart).maybeSingle();

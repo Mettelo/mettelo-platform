@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   static-release-contract:
-    name: Workstream 5 canonical ownership privacy compatibility and build
+    name: Workstream 5 canonical ownership privacy compatibility
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -48,13 +48,9 @@ jobs:
         run: npx playwright test tests/project-experience-phase15-solo-conversion.spec.ts tests/project-experience-phase16-member-exit.spec.ts tests/project-experience-phase17-support-safeguarding.spec.ts tests/project-experience-phase18a-member-invitations.spec.ts tests/project-experience-phase18b-marketplace.spec.ts tests/project-experience-phase18c-governance.spec.ts --project=chromium --workers=1
       - name: Lab accessibility responsive and device audits
         run: npm run audit:mettelo-lab
-      - name: Production build contract
-        env:
-          SKIP_DEPLOYMENT_CONFIG_CHECK: '1'
-        run: npm run build
 
   database-release-contract:
-    name: Workstream 5 RLS concurrency collaboration Pulse support and member exit
+    name: Workstream 5 build RLS concurrency collaboration Pulse support and member exit
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -107,6 +103,8 @@ jobs:
             echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
             echo "E2E_SUPABASE_DB_URL=$DB_URL"
           } >> "$GITHUB_ENV"
+      - name: Production build against isolated release environment
+        run: npm run build
       - name: Seed disposable identities and fixtures
         run: node scripts/setup-local-e2e.mjs
       - name: Start Mettelo

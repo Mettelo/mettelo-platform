@@ -33,11 +33,12 @@ export async function GET(){
 
     const runIds=(runs||[]).map(run=>run.id);
     const projectIds=[...new Set((runs||[]).map(run=>run.project_id))];
-    const [{data:members},{data:roles},{data:applications},{data:responsibilities}]=await Promise.all([
-      runIds.length?db.from('project_members').select('id,project_run_id,user_id,project_role_id,team_role,membership_status').in('project_run_id',runIds).in('membership_status',['waiting','active']):Promise.resolve({data:[]}),
+    const [{data:members},{data:roles},{data:applications},{data:responsibilities},{data:offers}]=await Promise.all([
+      runIds.length?db.from('project_members').select('id,project_id,project_run_id,user_id,project_role_id,team_role,membership_status').in('project_run_id',runIds).in('membership_status',['waiting','active']):Promise.resolve({data:[]}),
       projectIds.length?db.from('project_roles').select('id,project_id,title,responsibilities').in('project_id',projectIds).order('title'):Promise.resolve({data:[]}),
       runIds.length?db.from('project_applications').select('project_run_id,user_id,leadership_interest').in('project_run_id',runIds).in('status',['approved','accepted','waiting_for_team','team_complete']):Promise.resolve({data:[]}),
-      runIds.length?db.from('project_member_responsibilities').select('id,project_run_id,project_member_id,source_project_role_id,responsibility,assignment_status,assigned_at').in('project_run_id',runIds).eq('assignment_status','active').order('assigned_at',{ascending:true}):Promise.resolve({data:[]})
+      runIds.length?db.from('project_member_responsibilities').select('id,project_run_id,project_member_id,source_project_role_id,responsibility,assignment_status,assigned_at').in('project_run_id',runIds).eq('assignment_status','active').order('assigned_at',{ascending:true}):Promise.resolve({data:[]}),
+      projectIds.length?db.from('project_offers').select('project_id,project_run_id,status,capacity_released_at,capacity_consumed_at').in('project_id',projectIds).in('status',['pending','accepted']).is('capacity_released_at',null).is('capacity_consumed_at',null):Promise.resolve({data:[]})
     ]);
 
     const userIds=[...new Set((members||[]).map(member=>member.user_id))];
@@ -69,6 +70,8 @@ export async function GET(){
         leadership_interest:leadInterest.get(`${run.id}:${member.user_id}`)===true,
         responsibilities:(responsibilitiesByMember.get(member.id)||[]).map(item=>({id:item.id,responsibility:item.responsibility,source_project_role_id:item.source_project_role_id}))
       }));
+      const occupiedPlaces=(members||[]).filter(member=>member.project_id===run.project_id).length;
+      const reservedPlaces=(offers||[]).filter(offer=>offer.project_id===run.project_id).length;
       return{
         id:run.project_id,
         run_id:run.id,
@@ -83,7 +86,8 @@ export async function GET(){
         min_team_size:minimum,
         target_team_size:target,
         max_team_size:maximum,
-        open_places:Math.max(0,maximum-team.length),
+        open_places:Math.max(0,maximum-occupiedPlaces-reservedPlaces),
+        reserved_places:reservedPlaces,
         forming_deadline:project?.forming_deadline||null,
         kickoff_at:run.kickoff_at,
         scheduled_start_at:run.scheduled_start_at||null,

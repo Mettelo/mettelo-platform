@@ -118,7 +118,7 @@ export async function POST(request:Request){
     if(!project||!run)return NextResponse.json({error:'Project team not found.'},{status:404});
 
     if(action==='assign_lead'){
-      if(!['forming','active'].includes(run.status))return NextResponse.json({error:'Project Lead can only be changed on a forming or active team.'},{status:409});
+      if(run.status!=='forming'||run.has_started)return NextResponse.json({error:'Project Lead can only be changed while the team is still forming.'},{status:409});
       const userId=String(body.user_id||'');
       if(!userId)return NextResponse.json({error:'Choose a team member.'},{status:400});
       const {data:member}=await db.from('project_members').select('id,membership_status').eq('project_run_id',runId).eq('user_id',userId).in('membership_status',['waiting','active']).maybeSingle();

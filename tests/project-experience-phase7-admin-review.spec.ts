@@ -55,8 +55,10 @@ test.describe('Project Experience Phase 7 source contract',()=>{
   expect(start).toContain("blockers:['admission_mode']");
   expect(start).toContain("blockers:['project_lifecycle']");
   expect(start).toContain("blockers:['auto_start_blocked']");
-  expect(start).toContain("blockers:['capacity']");
   expect(start).toContain('assessProjectTeamReadiness');
+  expect(start).toContain("db.rpc('phase11_project_start_readiness'");
+  expect(start).toContain("const blockers=Array.isArray(phase11.blockers)&&phase11.blockers.length?phase11.blockers:['project_readiness']");
+  expect(start).toContain("db.rpc('phase9_activate_project_run'");
  });
 
  test('REVIEW_REQUIRED uses governed clarification, shortlist, offer and decline without membership',()=>{

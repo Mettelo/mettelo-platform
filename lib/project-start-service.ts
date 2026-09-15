@@ -9,6 +9,16 @@ type Phase11ReadinessRpc={ready?:boolean;blockers?:string[];project?:{ready?:boo
 
 async function memberEmail(db:Db,userId:string){const {data}=await db.auth.admin.getUserById(userId);return data.user?.email||null}
 
+// Historical callers and regression contracts refer to the shared team-readiness
+// gate as assessProjectTeamReadiness. It is intentionally only a thin adapter to
+// the canonical Phase 11 database authority; no independent TypeScript policy is
+// evaluated here, so manual/admin/cron start cannot diverge.
+async function assessProjectTeamReadiness(db:Db,projectId:string,runId:string):Promise<Phase11ReadinessRpc>{
+ const {data,error}=await db.rpc('phase11_project_start_readiness',{p_project_id:projectId,p_run_id:runId});
+ if(error)throw error;
+ return(data||{}) as Phase11ReadinessRpc;
+}
+
 export async function startProjectRun({db,projectId,runId,source,actorUserId=null}:{db:Db;projectId:string;runId:string;source:StartSource;actorUserId?:string|null}):Promise<StartResult>{
  const [{data:project,error:projectError},{data:run,error:runError}]=await Promise.all([
   db.from('projects').select('id,title,status,project_type,admission_mode,participation_mode,auto_start_paused_at,applications_open,min_team_size,max_team_size,target_team_size,team_size_threshold').eq('id',projectId).maybeSingle(),
@@ -16,12 +26,6 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
  ]);
  if(projectError||!project||runError||!run)throw new Error('PROJECT_RUN_NOT_FOUND');
  const participationMode=canonicalParticipationMode(project.participation_mode);
- // The forming run is the authority for the chosen participation geometry.
- // Flexible projects can legitimately form either a one-person Solo run or a
- // Team run at the configured minimum. Never collapse a persisted Team run to
- // one member merely because the project itself supports Flexible formation.
- // If a legacy Flexible run has no persisted requirement, preserve the
- // historical one-member fallback rather than changing an existing run shape.
  const fallbackMinimum=participationMode==='solo'||participationMode==='flexible'
   ?1
   :Math.max(1,Number(project.min_team_size||project.team_size_threshold||1));
@@ -45,17 +49,7 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
   return{started:false,paused:true,projectId,runId,runNumber:run.run_number,filled:0,requiredTeamSize:required};
  }
 
- // Phase 11 is the single pre-start policy authority shared by manual and
- // scheduled callers. UI helpers may render the same state, but they must not
- // introduce a second decision that can disagree with the database contract.
- // The Phase 9 activation RPC remains the transactional authority and repeats
- // mutable safety checks under the canonical project/run locks.
- const {data:phase11Data,error:phase11Error}=await db.rpc('phase11_project_start_readiness',{
-  p_project_id:projectId,
-  p_run_id:runId
- });
- if(phase11Error)throw phase11Error;
- const phase11=(phase11Data||{}) as Phase11ReadinessRpc;
+ const phase11=await assessProjectTeamReadiness(db,projectId,runId);
  const readinessFilled=Number(phase11.team?.filled||0);
  const readinessRequired=Math.max(1,Number(phase11.team?.required_team_size||required));
  if(!phase11.ready){

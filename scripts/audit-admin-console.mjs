@@ -31,7 +31,7 @@ const checks=[
   ['app/admin/project-operations/applications/page.tsx',['Admin / Projects / Requests','focusProjectId','query.eq(\'project_id\',focusProjectId)','AdminApplicationQueue',"decision!=='auto_qualified'",'Human review and AUTO oversight are intentionally separate.','AUTO start oversight','autoByRun']],
   ['components/AdminApplicationQueue.tsx',['Current review work','All statuses','Filter project requests by status','Rows per page','Previous','Next','No project requests match these filters','applicationTable','applicationMobileList','Project interest','Project application']],
   ['app/admin/project-operations/team-formation/page.tsx',['Admin / Projects / Team Formation','AdminTeamFormation']],
-  ['components/AdminTeamFormation.tsx',['Search project or team member','Current teams','All statuses','Filter teams by status','Not yet full','Projects per page','Previous','Next','Start this team','Pause reason','Make lead','Save role','teamTable']],
+  ['components/AdminTeamFormation.tsx',['Search project or member','Current teams','All statuses','Projects per page','Previous','Next','Start this team','Pause reason','Delivery responsibilities','Add responsibility','Assign','Make Project Lead','Minimum','Target','Maximum','Open places','runCard','memberCard']],
   ['app/admin/opportunity-sources/page.tsx',['AdminOpportunitySources']],
   ['components/AdminOpportunitySources.tsx',['AUTOMATION HEALTH','sourceAlert','Sync all official sources','Search by company name','Auto-publish','Never synced','Advanced: add a specific official employer source','sourceTable','sourceMobileList']],
   ['app/api/admin/opportunity-sources/route.ts',['export async function DELETE','organisation_name','source_key','employer_domain']],
@@ -49,6 +49,7 @@ for(const [file,needles] of checks){
   if(file==='components/AdminApplicationQueue.tsx'||file==='components/AdminTeamFormation.tsx'){
     if(text.includes('select multiple')){console.error(`FAIL ${file}: status filters must not use native multi-select controls`);failed=true;ok=false;}
   }
+  if(file==='components/AdminTeamFormation.tsx'&&(text.includes('Save role')||text.includes("act(item,'role'"))){console.error('FAIL components/AdminTeamFormation.tsx: legacy compatibility role writer must not be restored');failed=true;ok=false;}
   if(file==='components/AdminProjectManager.tsx'&&(text.includes('Make public')||text.includes('Make private')||text.includes('bulkVisibility('))){console.error('FAIL components/AdminProjectManager.tsx: bulk visibility must not bypass governed lifecycle actions');failed=true;ok=false;}
   if(file==='components/AdminProjectVisibilityControl.tsx'&&text.includes("fetch('/api/admin/projects'")){console.error('FAIL components/AdminProjectVisibilityControl.tsx: visibility display must not write lifecycle state directly');failed=true;ok=false;}
   if(ok){console.log(`PASS ${file}`);passed++;}

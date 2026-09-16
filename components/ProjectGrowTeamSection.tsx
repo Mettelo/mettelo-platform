@@ -1,5 +1,6 @@
 import {serviceDb} from '@/lib/project-flow';
 import ProjectGrowTeamActions from '@/components/ProjectGrowTeamActions';
+import styles from './MetteloLabPanel.module.css';
 
 type Props={projectId:string;projectRunId:string;workspaceRole:string;activeMemberCount:number;isAdmin:boolean};
 type Capacity={available?:number;maximum?:number;occupied?:number;reserved?:number;capacity_available?:boolean};
@@ -9,7 +10,7 @@ type AssignedResponsibility={responsibility:string;source_project_role_id:string
 function one<T>(value:T|T[]|null|undefined):T|null{return Array.isArray(value)?value[0]||null:value||null}
 function dateLabel(value:string){return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric'}).format(new Date(value))}
 function key(value:string){return value.trim().toLocaleLowerCase('en-GB')}
-function unavailable(message:string){return <section className="teamOperatingState" aria-labelledby="grow-team-title"><div className="teamOperatingHead"><div><span className="cardNumber">TEAM EXPERIENCE</span><h4 id="grow-team-title">Team operating state</h4><p>Capacity, recruitment and team growth are governed from this exact project run.</p></div><span className="teamStateBadge">CONFIGURATION ERROR</span></div><div role="status" className="teamConfigurationError"><strong>Grow the Team is unavailable</strong><p>{message}</p></div><style jsx>{styles}</style></section>}
+function unavailable(message:string){return <section className={styles.teamOperatingState} aria-labelledby="grow-team-title"><div className={styles.teamOperatingHead}><div><span className={styles.cardNumber}>TEAM EXPERIENCE</span><h4 id="grow-team-title">Team operating state</h4><p>Capacity, recruitment and team growth are governed from this exact project run.</p></div><span className={styles.teamStateBadge}>CONFIGURATION ERROR</span></div><div role="status" className={styles.teamConfigurationError}><strong>Grow the Team is unavailable</strong><p>{message}</p></div></section>}
 
 export default async function ProjectGrowTeamSection({projectId,projectRunId,workspaceRole,activeMemberCount,isAdmin}:Props){
  const db=serviceDb();
@@ -66,36 +67,16 @@ export default async function ProjectGrowTeamSection({projectId,projectRunId,wor
  for(const role of (projectRolesResult.data||[]) as ProjectRole[]){for(const responsibility of role.responsibilities||[]){if(responsibility.trim()&&!assigned.has(key(responsibility))){suggestedResponsibility=responsibility.trim();suggestedSourceProjectRoleId=String(role.id);break}}if(suggestedResponsibility)break}
  const responsibilityValue=totalResponsibilities?`${assignedResponsibilityCount} / ${totalResponsibilities} assigned`:`${assignedResponsibilityCount} assigned`;
  const growValue=stateLabel==='AVAILABLE'?'Ready to recruit':'Controls visible';
- return <section className="teamOperatingState" aria-labelledby="grow-team-title">
-  <div className="teamOperatingHead"><div><span className="cardNumber">TEAM EXPERIENCE</span><h4 id="grow-team-title">Team operating state</h4><p>See who is active, what is covered, remaining capacity and whether this exact run can grow.</p></div><span className="teamStateBadge">{stateLabel}</span></div>
-  <div className="teamExperienceGrid" aria-label="Team experience summary">
+ return <section className={styles.teamOperatingState} aria-labelledby="grow-team-title">
+  <div className={styles.teamOperatingHead}><div><span className={styles.cardNumber}>TEAM EXPERIENCE</span><h4 id="grow-team-title">Team operating state</h4><p>See who is active, what is covered, remaining capacity and whether this exact run can grow.</p></div><span className={styles.teamStateBadge}>{stateLabel}</span></div>
+  <div className={styles.teamExperienceGrid} aria-label="Team experience summary">
    <article><span>CURRENT TEAM</span><strong>{occupied} / {maximum}</strong><small>active places occupied</small></article>
    <article><span>RESPONSIBILITIES</span><strong>{responsibilityValue}</strong><small>canonical run assignments</small></article>
    <article><span>CAPACITY</span><strong>{openPlaces} open</strong><small>{maximum} maximum members</small></article>
    <article><span>RECRUITMENT STATE</span><strong>{stateLabel}</strong><small>{baseRecruitable?'recruitment can continue':'actions follow project policy'}</small></article>
    <article><span>GROW THE TEAM</span><strong>{growValue}</strong><small>{canManage?'you can manage recruitment':'state remains visible'}</small></article>
   </div>
-  <div className="growTeamIntro"><div><span className="cardNumber">GROW THE TEAM</span><h5>Find the right collaborator</h5><p>Find people on Mettelo, publish a structured collaborator need, or share the same governed opportunity externally. Every route stays tied to this exact project run.</p></div></div>
+  <div className={styles.growTeamIntro}><div><span className={styles.cardNumber}>GROW THE TEAM</span><h5>Find the right collaborator</h5><p>Find people on Mettelo, publish a structured collaborator need, or share the same governed opportunity externally. Every route stays tied to this exact project run.</p></div></div>
   <ProjectGrowTeamActions projectId={projectId} projectRunId={projectRunId} projectTitle={project.title} projectType={project.project_type||null} activeNeedId={need?.id||null} activeNeedLabel={need?.responsibility||need?.member_message||null} activeRoleId={need?.target_role_catalogue_id||null} activeDomainId={need?.target_domain_id||null} activeCapabilityIds={activeCapabilityIds} weeklyCommitment={project.weekly_commitment||null} joiningCutoff={project.late_joining_cutoff_at||null} teamOccupied={occupied} teamMinimum={Number(project.min_team_size||1)} teamTarget={Number(project.target_team_size||maximum)} teamMaximum={maximum} openPlaces={openPlaces} runStatus={run.status} canRecruit={baseRecruitable} canManage={canManage} canFind={canFind} canPost={canPost} canShare={canShare} stateLabel={stateLabel} stateMessage={stateMessage} roleOptions={roleOptions} domainOptions={domainOptions} capabilityOptions={capabilityOptions} suggestedResponsibility={suggestedResponsibility} suggestedSourceProjectRoleId={suggestedSourceProjectRoleId}/>
-  <style jsx>{styles}</style>
  </section>;
 }
-
-const styles=`
-.teamOperatingState{display:grid;gap:16px;padding:20px;border:1px solid #d9dde2;border-radius:14px;background:#fafbfc}
-.teamOperatingHead{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
-.teamOperatingHead h4{margin:6px 0 5px;font-size:1.2rem;letter-spacing:-.02em;color:#10131d}
-.teamOperatingHead p,.growTeamIntro p,.teamConfigurationError p{margin:0;max-width:720px;color:#596472;line-height:1.5;font-size:.82rem}
-.teamStateBadge{flex:none;display:inline-flex;min-height:30px;align-items:center;padding:5px 10px;border:1px solid #8b5a17;border-radius:999px;background:#fff8e8;color:#6f4b16;font-size:.68rem;font-weight:900;letter-spacing:.045em}
-.teamExperienceGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-.teamExperienceGrid article{min-width:0;display:grid;align-content:start;gap:5px;padding:13px;border:1px solid #d9dde2;border-radius:11px;background:#fff}
-.teamExperienceGrid span{color:#8b5a17;font:800 .62rem/1.25 var(--font-mono,monospace);letter-spacing:.055em}
-.teamExperienceGrid strong{font-size:.9rem;line-height:1.3;color:#10131d;overflow-wrap:anywhere}
-.teamExperienceGrid small{color:#68727e;font-size:.68rem;line-height:1.35}
-.growTeamIntro{padding-top:4px;border-top:1px solid #e3e6e9}
-.growTeamIntro h5{margin:7px 0 5px;font-size:1.02rem;color:#10131d}
-.teamConfigurationError{display:grid;gap:5px;padding:14px;border:1px solid #d9dde2;border-radius:12px;background:#fff}
-@media(max-width:1080px){.teamExperienceGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:700px){.teamOperatingState{padding:15px}.teamOperatingHead{display:grid}.teamStateBadge{width:max-content}.teamExperienceGrid{grid-template-columns:1fr 1fr}}
-@media(max-width:480px){.teamExperienceGrid{grid-template-columns:1fr}.teamExperienceGrid article{padding:12px}}
-`;

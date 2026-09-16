@@ -1,5 +1,6 @@
 import {serviceDb} from '@/lib/project-flow';
 import ProjectGrowTeamActions from '@/components/ProjectGrowTeamActions';
+import styles from './MetteloLabPanel.module.css';
 
 type Props={projectId:string;projectRunId:string;workspaceRole:string;activeMemberCount:number;isAdmin:boolean};
 type Capacity={available?:number;maximum?:number;occupied?:number;reserved?:number;capacity_available?:boolean};
@@ -9,7 +10,7 @@ type AssignedResponsibility={responsibility:string;source_project_role_id:string
 function one<T>(value:T|T[]|null|undefined):T|null{return Array.isArray(value)?value[0]||null:value||null}
 function dateLabel(value:string){return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric'}).format(new Date(value))}
 function key(value:string){return value.trim().toLocaleLowerCase('en-GB')}
-function unavailable(message:string){return <section style={{marginTop:24,paddingTop:20,borderTop:'1px solid var(--line)'}} aria-labelledby="grow-team-title"><span className="cardNumber">GROW THE TEAM</span><h4 id="grow-team-title" style={{margin:'8px 0'}}>Find the right collaborator</h4><div role="status" style={{padding:14,border:'1px solid var(--line)',borderRadius:12}}><strong>CONFIGURATION ERROR</strong><p style={{margin:'6px 0 0'}}>{message}</p></div></section>}
+function unavailable(message:string){return <section className={styles.teamOperatingState} aria-labelledby="grow-team-title"><div className={styles.teamOperatingHead}><div><span className={styles.cardNumber}>TEAM EXPERIENCE</span><h4 id="grow-team-title">Team operating state</h4><p>Capacity, recruitment and team growth are governed from this exact project run.</p></div><span className={styles.teamStateBadge}>CONFIGURATION ERROR</span></div><div role="status" className={styles.teamConfigurationError}><strong>Grow the Team is unavailable</strong><p>{message}</p></div></section>}
 
 export default async function ProjectGrowTeamSection({projectId,projectRunId,workspaceRole,activeMemberCount,isAdmin}:Props){
  const db=serviceDb();
@@ -33,7 +34,9 @@ export default async function ProjectGrowTeamSection({projectId,projectRunId,wor
  const completionFreeze=!terminal&&(finalReview||Boolean(run.completion_requested_at));
  const cutoffClosed=Boolean(project.late_joining_cutoff_at&&Date.now()>=new Date(project.late_joining_cutoff_at).getTime());
  const joiningClosed=run.status==='active'&&(project.late_joining_enabled===false||cutoffClosed);
- const openPlaces=Math.max(0,Number(capacity.available??0));const maximum=Number(capacity.maximum??project.max_team_size??openPlaces+activeMemberCount);const occupied=Number(capacity.occupied??activeMemberCount);
+ const openPlaces=Math.max(0,Number(capacity.available??0));
+ const maximum=Number(capacity.maximum??project.max_team_size??openPlaces+activeMemberCount);
+ const occupied=Number(capacity.occupied??activeMemberCount);
  const full=capacity.capacity_available===false||openPlaces<1;
  const baseRecruitable=!terminal&&!completionFreeze&&!joiningClosed&&!full&&['forming','active'].includes(run.status)&&run.recruitment_open!==false;
  const roleAuthorized=isAdmin||(workspaceRole==='project_lead'?project.project_lead_invites_enabled===true:project.team_member_invites_enabled===true);
@@ -55,12 +58,25 @@ export default async function ProjectGrowTeamSection({projectId,projectRunId,wor
  const domainOptions:Option[]=(domainsResult.data||[]).map(item=>({id:String(item.id),label:String(item.name)}));
  const capabilityOptions:Option[]=(capabilitiesResult.data||[]).map(item=>({id:String(item.id),label:String(item.name)}));
  const activeCapabilityIds=((need?.project_collaboration_need_capabilities||[]) as {capability_id:string}[]).map(item=>String(item.capability_id));
- const assigned=new Set(((assignedResult.data||[]) as AssignedResponsibility[]).map(item=>key(item.responsibility)));
+ const assignedRows=(assignedResult.data||[]) as AssignedResponsibility[];
+ const assigned=new Set(assignedRows.map(item=>key(item.responsibility)));
+ const roleResponsibilities=((projectRolesResult.data||[]) as ProjectRole[]).flatMap(role=>(role.responsibilities||[]).map(responsibility=>responsibility.trim()).filter(Boolean));
+ const totalResponsibilities=new Set(roleResponsibilities.map(key)).size;
+ const assignedResponsibilityCount=new Set(assignedRows.map(item=>key(item.responsibility))).size;
  let suggestedResponsibility:string|null=null,suggestedSourceProjectRoleId:string|null=null;
  for(const role of (projectRolesResult.data||[]) as ProjectRole[]){for(const responsibility of role.responsibilities||[]){if(responsibility.trim()&&!assigned.has(key(responsibility))){suggestedResponsibility=responsibility.trim();suggestedSourceProjectRoleId=String(role.id);break}}if(suggestedResponsibility)break}
- return <section style={{marginTop:24,paddingTop:20,borderTop:'1px solid var(--line)'}} aria-labelledby="grow-team-title">
-  <nav aria-label="Team experience" style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14,fontSize:11,fontWeight:800,letterSpacing:'.04em'}}><span>CURRENT TEAM</span><span>RESPONSIBILITIES</span><span>CAPACITY</span><span>RECRUITMENT STATE</span><span>GROW THE TEAM</span></nav>
-  <div style={{marginBottom:14}}><span className="cardNumber">GROW THE TEAM</span><h4 id="grow-team-title" style={{margin:'8px 0 5px',fontSize:'1.15rem'}}>Find the right collaborator</h4><p style={{margin:0,color:'var(--slate)',lineHeight:1.5}}>Recruit from Mettelo, publish a structured collaborator need, or share the same governed opportunity externally. Every route stays tied to this exact project run.</p></div>
+ const responsibilityValue=totalResponsibilities?`${assignedResponsibilityCount} / ${totalResponsibilities} assigned`:`${assignedResponsibilityCount} assigned`;
+ const growValue=stateLabel==='AVAILABLE'?'Ready to recruit':'Controls visible';
+ return <section className={styles.teamOperatingState} aria-labelledby="grow-team-title">
+  <div className={styles.teamOperatingHead}><div><span className={styles.cardNumber}>TEAM EXPERIENCE</span><h4 id="grow-team-title">Team operating state</h4><p>See who is active, what is covered, remaining capacity and whether this exact run can grow.</p></div><span className={styles.teamStateBadge}>{stateLabel}</span></div>
+  <div className={styles.teamExperienceGrid} aria-label="Team experience summary">
+   <article><span>CURRENT TEAM</span><strong>{occupied} / {maximum}</strong><small>active places occupied</small></article>
+   <article><span>RESPONSIBILITIES</span><strong>{responsibilityValue}</strong><small>canonical run assignments</small></article>
+   <article><span>CAPACITY</span><strong>{openPlaces} open</strong><small>{maximum} maximum members</small></article>
+   <article><span>RECRUITMENT STATE</span><strong>{stateLabel}</strong><small>{baseRecruitable?'recruitment can continue':'actions follow project policy'}</small></article>
+   <article><span>GROW THE TEAM</span><strong>{growValue}</strong><small>{canManage?'you can manage recruitment':'state remains visible'}</small></article>
+  </div>
+  <div className={styles.growTeamIntro}><div><span className={styles.cardNumber}>GROW THE TEAM</span><h5>Find the right collaborator</h5><p>Find people on Mettelo, publish a structured collaborator need, or share the same governed opportunity externally. Every route stays tied to this exact project run.</p></div></div>
   <ProjectGrowTeamActions projectId={projectId} projectRunId={projectRunId} projectTitle={project.title} projectType={project.project_type||null} activeNeedId={need?.id||null} activeNeedLabel={need?.responsibility||need?.member_message||null} activeRoleId={need?.target_role_catalogue_id||null} activeDomainId={need?.target_domain_id||null} activeCapabilityIds={activeCapabilityIds} weeklyCommitment={project.weekly_commitment||null} joiningCutoff={project.late_joining_cutoff_at||null} teamOccupied={occupied} teamMinimum={Number(project.min_team_size||1)} teamTarget={Number(project.target_team_size||maximum)} teamMaximum={maximum} openPlaces={openPlaces} runStatus={run.status} canRecruit={baseRecruitable} canManage={canManage} canFind={canFind} canPost={canPost} canShare={canShare} stateLabel={stateLabel} stateMessage={stateMessage} roleOptions={roleOptions} domainOptions={domainOptions} capabilityOptions={capabilityOptions} suggestedResponsibility={suggestedResponsibility} suggestedSourceProjectRoleId={suggestedSourceProjectRoleId}/>
  </section>;
 }

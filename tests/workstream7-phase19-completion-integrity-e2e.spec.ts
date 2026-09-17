@@ -1,0 +1,53 @@
+import {createClient} from '@supabase/supabase-js';
+import {expect,test} from '@playwright/test';
+
+const PROJECT='00000000-0000-4000-8000-00000000d197';
+const env=(name:string)=>{const value=process.env[name]?.trim();if(!value)throw new Error(`${name} is required`);return value};
+function localUrl(){const url=env('E2E_SUPABASE_URL');if(!['127.0.0.1','localhost'].includes(new URL(url).hostname))throw new Error('WS7 completion integrity refuses non-local Supabase hosts.');return url}
+const service=()=>createClient(localUrl(),env('E2E_SUPABASE_SERVICE_ROLE_KEY'),{auth:{persistSession:false,autoRefreshToken:false}});
+const userClient=()=>createClient(localUrl(),env('E2E_SUPABASE_ANON_KEY'),{auth:{persistSession:false,autoRefreshToken:false}});
+async function identities(){const db=service();const {data,error}=await db.auth.admin.listUsers({page:1,perPage:1000});if(error)throw error;const lead=data.users.find(u=>u.email===env('E2E_ARCHITECT_EMAIL'));const admin=data.users.find(u=>u.email===env('E2E_ADMIN_EMAIL'));const member=data.users.find(u=>u.email===env('E2E_MEMBER_EMAIL'));if(!lead||!admin||!member)throw new Error('WS7 disposable identities missing.');return{lead,admin,member}}
+async function login(email:string,password:string){const client=userClient();const {error}=await client.auth.signInWithPassword({email,password});if(error)throw error;return client}
+
+async function seed(){
+ const db=service(),ids=await identities();
+ const project=await db.from('projects').insert({id:PROJECT,slug:'ws7-phase19-completion-integrity',title:'WS7 Phase 19 Completion Integrity',summary:'Disposable Partner project proving exact-run completion readiness and terminal historical state.',problem_statement:'Prove completion is evidence based, atomic, Proof independent, and immutable after approval.',status:'draft',visibility:'private',project_type:'partner',applications_open:false,participation_mode:'team',team_size_threshold:2,min_team_size:2,target_team_size:2,max_team_size:3,admission_mode:'review',presentation_required:false,github_repo_required:false,final_proof_required:false,duration_weeks:2,weekly_commitment:'3 hours/week',location:'Remote',location_type:'remote',catalogue_working_model_source:'explicit'});if(project.error)throw project.error;
+ const run=await db.from('project_runs').insert({project_id:PROJECT,run_number:1,status:'active',team_size_threshold:2,required_team_size:2,has_started:true,recruitment_open:true,started_at:new Date().toISOString()}).select('id').single();if(run.error||!run.data)throw run.error||new Error('WS7 run missing.');const runId=run.data.id;
+ const membership=await db.from('project_members').insert({project_id:PROJECT,project_run_id:runId,user_id:ids.lead.id,team_role:'project_lead',membership_status:'active',activated_at:new Date().toISOString()});if(membership.error)throw membership.error;
+ const milestone=await db.from('project_milestones').insert({project_id:PROJECT,project_run_id:runId,title:'Final delivery complete',description:'All final delivery work is complete.',status:'completed',sort_order:1,is_required:true}).select('id').single();if(milestone.error)throw milestone.error;
+ const task=await db.from('project_tasks').insert({project_id:PROJECT,project_run_id:runId,milestone_id:milestone.data?.id,title:'Close final delivery task',description:'Final delivery task for the WS7 integrity fixture.',assignee_user_id:ids.lead.id,status:'done',is_required:true,acceptance_criteria:'Task is complete before final review.'}).select('id').single();if(task.error||!task.data)throw task.error||new Error('WS7 task missing.');
+ const deliverable=await db.from('project_deliverables').insert({project_id:PROJECT,project_run_id:runId,title:'Final governed deliverable',deliverable_type:'canonical',owner_user_id:ids.lead.id,acceptance_criteria:'Deliverable is reviewed and approved before completion.',status:'approved',is_required:true,created_by:ids.lead.id,evidence_url:'https://example.test/ws7-deliverable'}).select('id').single();if(deliverable.error)throw deliverable.error;
+ const criterion=await db.from('project_success_criteria').insert({project_id:PROJECT,title:'Completion evidence is sufficient',description:'The run demonstrates all configured project-level completion conditions.',measurement:'Readiness returns true without Verified Proof.',is_required:true,visibility:'team',sort_order:1,created_by_user_id:ids.lead.id}).select('id').single();if(criterion.error||!criterion.data)throw criterion.error||new Error('WS7 criterion missing.');
+ const contribution=await db.from('contributions').insert({user_id:ids.lead.id,project_id:PROJECT,project_run_id:runId,task_id:task.data.id,contribution_type:'leadership',title:'Final delivery leadership',description:'Led the final delivery, acceptance and handover for the completion integrity fixture.',evidence_url:'https://example.test/ws7-contribution',verification_status:'pending',is_public:false}).select('id,verification_status').single();if(contribution.error||!contribution.data)throw contribution.error||new Error('WS7 contribution missing.');
+ const need=await db.from('project_collaboration_needs').insert({project_id:PROJECT,project_run_id:runId,created_by:ids.lead.id,responsibility:'Final delivery support',status:'active',source:'direct_invite'}).select('id').single();if(need.error||!need.data)throw need.error||new Error('WS7 need missing.');
+ const invite=await db.from('project_member_collaboration_invitations').insert({collaboration_need_id:need.data.id,project_id:PROJECT,project_run_id:runId,invited_by:ids.lead.id,invitee_user_id:ids.member.id,status:'pending',expires_at:new Date(Date.now()+3600000).toISOString()}).select('id').single();if(invite.error||!invite.data)throw invite.error||new Error('WS7 invite missing.');
+ return{db,ids,runId,taskId:task.data.id,criterionId:criterion.data.id,contributionId:contribution.data.id,needId:need.data.id,inviteId:invite.data.id};
+}
+
+test.describe('Workstream 7 Phase 19 completion integrity E2E',()=>{
+ test('evidence readiness, final review, immutable completion and Phase 20 separation hold in the database',async()=>{
+  const f=await seed();
+  const lead=await login(env('E2E_ARCHITECT_EMAIL'),env('E2E_ARCHITECT_PASSWORD'));
+  const admin=await login(env('E2E_ADMIN_EMAIL'),env('E2E_ADMIN_PASSWORD'));
+
+  let readiness=await f.db.rpc('project_run_completion_readiness',{target_run:f.runId});if(readiness.error)throw readiness.error;expect(readiness.data).toMatchObject({ready:false,required_deliverables:1,completed_deliverables:1,success_criteria_required:1,success_criteria_satisfied:0,members_requiring_contribution_submission:1,members_with_contribution_submission:1,members_with_verified_proof:0,pending_contributions:0,proof_verification_required:false});
+
+  const assessed=await lead.rpc('phase19_assess_success_criterion',{p_run_id:f.runId,p_criterion_id:f.criterionId,p_satisfied:true,p_notes:'Approved deliverable and completed task demonstrate this outcome.',p_evidence_url:'https://example.test/ws7-criterion'});if(assessed.error)throw assessed.error;expect(assessed.data).toMatchObject({ok:true,satisfied:true});
+  readiness=await f.db.rpc('project_run_completion_readiness',{target_run:f.runId});if(readiness.error)throw readiness.error;expect(readiness.data).toMatchObject({ready:true,success_criteria_satisfied:1,members_with_verified_proof:0});
+
+  const submitted=await lead.rpc('phase19_submit_final_proof',{p_project_id:PROJECT,p_run_id:f.runId,p_summary:'The team completed every required project-level condition and preserved final delivery evidence.',p_evidence_url:null,p_github_url:null});if(submitted.error)throw submitted.error;expect(submitted.data).toMatchObject({ok:true,completion:'ready_for_review',review_required:true,recruitment_frozen:true});const requestId=String(submitted.data?.request_id||'');expect(requestId).toBeTruthy();
+  let run=await f.db.from('project_runs').select('status,completion_state,recruitment_open').eq('id',f.runId).single();expect(run.data).toMatchObject({status:'review',completion_state:'final_review',recruitment_open:false});
+  const need=await f.db.from('project_collaboration_needs').select('status').eq('id',f.needId).single();expect(need.data?.status).toBe('closed');const invite=await f.db.from('project_member_collaboration_invitations').select('status').eq('id',f.inviteId).single();expect(invite.data?.status).toBe('revoked');
+
+  const reviewed=await admin.rpc('phase19_review_partner_completion',{p_project_id:PROJECT,p_run_id:f.runId,p_request_id:requestId,p_decision:'approved',p_review_notes:'Project-level completion evidence is sufficient.'});if(reviewed.error)throw reviewed.error;expect(reviewed.data).toMatchObject({ok:true,decision:'approved',recruitment_frozen:true});
+  run=await f.db.from('project_runs').select('status,completion_state,recruitment_open').eq('id',f.runId).single();expect(run.data).toMatchObject({status:'completed',completion_state:'completed',recruitment_open:false});
+
+  const taskMutation=await f.db.from('project_tasks').update({title:'Forbidden historical rewrite'}).eq('id',f.taskId);expect(String(taskMutation.error?.message||'')).toContain('PHASE19_COMPLETED_RUN_READ_ONLY');
+  const reopen=await f.db.from('project_runs').update({status:'active',completion_state:'changes_requested'}).eq('id',f.runId);expect(String(reopen.error?.message||'')).toContain('PHASE19_COMPLETED_RUN_IMMUTABLE');
+  const lateNeed=await f.db.from('project_collaboration_needs').insert({project_id:PROJECT,project_run_id:f.runId,created_by:f.ids.lead.id,responsibility:'Forbidden late recruitment',status:'active',source:'direct_invite'});expect(String(lateNeed.error?.message||'')).toContain('PHASE19_COLLABORATION_FROZEN');
+  const acceptFrozenInvite=await f.db.from('project_member_collaboration_invitations').update({status:'accepted',responded_at:new Date().toISOString()}).eq('id',f.inviteId);expect(String(acceptFrozenInvite.error?.message||'')).toContain('PHASE19_MEMBER_INVITE_FROZEN');
+
+  const proofReview=await f.db.from('contributions').update({verification_status:'verified',verified_by:f.ids.admin.id,verified_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',f.contributionId).select('verification_status').single();if(proofReview.error)throw proofReview.error;expect(proofReview.data.verification_status).toBe('verified');
+  const historicalTask=await f.db.from('project_tasks').select('status,title').eq('id',f.taskId).single();expect(historicalTask.data).toMatchObject({status:'done',title:'Close final delivery task'});
+ });
+});

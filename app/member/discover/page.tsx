@@ -68,26 +68,30 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
   for(const item of applications){if(['declined','withdrawn'].includes(item.status))continue;if(!latestActiveApplication.has(item.project_id))latestActiveApplication.set(item.project_id,item)}
   const membershipByProject=new Map(memberships.map(item=>[item.project_id,item]));
   const capacityRows:Capacity[]=[];
-  let capacityLoadError=false;
+  const capacityFailures=new Set<string>();
   for(let index=0;index<projects.length;index+=MEMBER_CAPACITY_BATCH_SIZE){
     const batchIds=projects.slice(index,index+MEMBER_CAPACITY_BATCH_SIZE).map(project=>project.id);
     const capacityResult=await supabase.rpc('get_member_project_capacities',{p_project_ids:batchIds});
-    if(capacityResult.error){capacityLoadError=true;console.error('member Discover canonical capacity query failed',capacityResult.error);break}
-    capacityRows.push(...((capacityResult.data||[]) as Capacity[]));
+    if(!capacityResult.error){capacityRows.push(...((capacityResult.data||[]) as Capacity[]));continue}
+    console.error('member Discover canonical capacity batch failed; isolating projects',capacityResult.error);
+    for(const projectId of batchIds){
+      const isolated=await supabase.rpc('get_member_project_capacities',{p_project_ids:[projectId]});
+      if(isolated.error){capacityFailures.add(projectId);console.error('member Discover canonical capacity project failed',{projectId,error:isolated.error.message});continue}
+      capacityRows.push(...((isolated.data||[]) as Capacity[]));
+    }
   }
   const capacityByProject=new Map(capacityRows.map(item=>[item.project_id,item]));
-  capacityLoadError=capacityLoadError||projects.some(project=>!capacityByProject.has(project.id));
+  const capacitySystemError=projects.length>0&&capacityRows.length===0&&capacityFailures.size===projects.length;
   const pathContexts=await getMemberProjectPathContexts(supabase,user.id,projects.map(item=>item.id));
   const items=projects.flatMap(project=>{
     const contexts=pathContexts.get(project.id)||[];
     if(selectedPath&&!contexts.some(context=>context.pathSlug===selectedPath&&(!selectedStage||context.stageName===selectedStage)))return [];
-    const capacity=capacityByProject.get(project.id);
-    if(!capacity)return[];
+    const capacity=capacityByProject.get(project.id)||null;
     const roles=project.project_roles||[];
     const application=latestActiveApplication.get(project.id)||null;
     const membership=membershipByProject.get(project.id)||null;
     const run=membership?.project_runs||null;
-    const state=resolveMemberProjectState({project,application,membership,run,applicationReady,capacityAvailable:capacity.capacity_available,capacityKnown:true});
+    const state=resolveMemberProjectState({project,application,membership,run,applicationReady,capacityAvailable:capacity?.capacity_available,capacityKnown:Boolean(capacity)});
     const displayRoleTitles=roles.map(role=>role.title);
     const relationRoles=(project.project_role_families||[]).flatMap(row=>{const value=relationOne(row.project_role_catalogue);const canonical=value?(normalizeCareerRole(value.slug)||normalizeCareerRole(value.title)):null;return canonical?[canonical]:[]});
     const roleFamilies=uniqueFacets([...relationRoles,...roles.flatMap(role=>{const canonical=normalizeCareerRole(role.canonical_role_key);return canonical?[canonical]:[]})]);
@@ -101,8 +105,8 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
       id:project.id,title:project.title,summary:project.summary,state,stateLabel:memberProjectStateLabel(state),action:memberProjectCatalogueAction(state,project.id),saved:saved.has(project.id),
       workingModel:workFacet?.label||project.location||null,durationWeeks:project.duration_weeks,commitment:project.weekly_commitment,deadline:project.application_deadline,createdAt:project.created_at,
       roles:displayRoleTitles,roleFamilies,capabilities,domains,tools,methods,
-      experienceFacet:normalizeExperienceLevel(project.difficulty_level),formatFacet:projectParticipationFacet(project.participation_mode,project.team_size_threshold),commitmentFacet:normalizeCommitment(project.weekly_commitment),workingModelFacet:workFacet,projectTypeFacet:projectTypeFacet(project.project_type),availabilityFacet:projectAvailabilityFacet({status:project.status,applicationsOpen:capacity.capacity_available,deadline:project.application_deadline,hasCapacity:capacity.capacity_available}),stageFacet:projectStageFacet(project.status),
-      searchExtra:[...displayRoleTitles,primaryContext?.pathName||'',primaryContext?.stageName||'',capacity.recruitment_state],
+      experienceFacet:normalizeExperienceLevel(project.difficulty_level),formatFacet:projectParticipationFacet(project.participation_mode,project.team_size_threshold),commitmentFacet:normalizeCommitment(project.weekly_commitment),workingModelFacet:workFacet,projectTypeFacet:projectTypeFacet(project.project_type),availabilityFacet:projectAvailabilityFacet({status:project.status,applicationsOpen:capacity?.capacity_available??false,deadline:project.application_deadline,hasCapacity:capacity?.capacity_available??false}),stageFacet:projectStageFacet(project.status),
+      searchExtra:[...displayRoleTitles,primaryContext?.pathName||'',primaryContext?.stageName||'',capacity?.recruitment_state||'capacity unknown'],
       pathContext:primaryContext?{name:primaryContext.pathName,position:primaryContext.position,stage:primaryContext.stageName,isPrimary:primaryContext.isPrimary}:null
     }];
   });
@@ -113,7 +117,7 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     <MemberPageHeader eyebrow="DIRECTION & DISCOVERY · PROJECTS" title="Discover projects" description="Scan projects quickly, then open the brief when one is worth deeper review. Capability Paths can add direction without restricting discovery." actions={<>{pathAction}<a className="mdButton mdDiscoverTopAction" href="/member/recommended">Recommended for you</a></>}/>
     <div className="mdDiscoverControlStack">
       {pathProgress.length?<MemberCapabilityPathFilters paths={pathProgress} selectedPath={selectedPath} selectedStage={selectedStage}/>:<aside className="mdPathPrompt"><div><strong>Want a clearer route through the catalogue?</strong><span>Follow a Capability Path to add sequence and stage context while keeping Discover broad.</span></div><a href="/member/paths">Explore Paths →</a></aside>}
-      {projectsResult.error||capacityLoadError?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Canonical project or capacity state could not be resolved safely. Nothing has been changed. Refresh to try again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<><MemberDiscoverCatalogue projects={items}/><MemberDiscoverPagination/></>}
+      {projectsResult.error||capacitySystemError?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Canonical project state could not be resolved safely. Nothing has been changed. Refresh to try again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:projects.length===0?<section className="mdDiscoverEmpty" role="status"><h2>No currently eligible projects</h2><p>There are no published projects available to browse right now. Check again later or review your Capability Paths.</p></section>:<><MemberDiscoverCatalogue projects={items}/><MemberDiscoverPagination/></>}
     </div>
     <style>{`
       .mdDiscoverPage{width:100%;max-width:none;margin:0;min-width:0;color:var(--ink)}
@@ -143,7 +147,7 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
       .mdDiscoverPage .mdCatalogueHead{padding:0 2px;margin-top:20px}
       .mdDiscoverPage .mdCatalogueHead strong{font-size:14px}
       .mdDiscoverPage .mdRecommended{background:linear-gradient(135deg,var(--sand),var(--sand-2));border-color:#dfd1b5;border-radius:18px;padding:22px}
-      .mdDiscoverError{margin-top:20px;padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--white)}.mdDiscoverError h2{margin:0 0 6px}.mdDiscoverError p{margin:0 0 14px;color:var(--slate)}
+      .mdDiscoverError,.mdDiscoverEmpty{margin-top:20px;padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--white)}.mdDiscoverError h2,.mdDiscoverEmpty h2{margin:0 0 6px}.mdDiscoverError p{margin:0 0 14px;color:var(--slate)}.mdDiscoverEmpty p{margin:0;color:var(--slate)}
       .mdPathPrompt{margin:0 0 14px;padding:15px 17px;border:1px solid #ded6c8;border-radius:14px;background:var(--sand-2);display:flex;justify-content:space-between;gap:18px;align-items:center}.mdPathPrompt>div{display:grid;gap:3px}.mdPathPrompt strong{font-size:12px}.mdPathPrompt span{color:var(--slate);font-size:11px;line-height:1.45}.mdPathPrompt a{min-height:44px;display:inline-flex;align-items:center;color:var(--bronze-deep);font-size:11px;font-weight:800;white-space:nowrap}.mdPathPrompt a:focus-visible{outline:3px solid var(--indigo);outline-offset:3px}
       @media(min-width:1500px){.mdDiscoverPage .mdProjectGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
       @media(max-width:900px){.mdDiscoverPage .mdControlsV2{padding:13px}.mdDiscoverPage .mdProjectCard{padding:17px;min-height:410px;max-height:445px}}

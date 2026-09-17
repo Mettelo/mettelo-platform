@@ -30,7 +30,12 @@ export async function PATCH(request:Request){
     const {error:eventError}=await db.from('contribution_review_events').insert({contribution_id:id,project_run_id:contribution.project_run_id,actor_user_id:user.id,event_type:reviewEvent,comment:notes||null});
     if(eventError)throw eventError;
 
-    if(contribution.task_id){
+    // Phase 20 Proof review remains valid after project completion, but Phase 19 makes
+    // the completed Lab delivery record immutable. Do not rewrite historical task state
+    // when the contribution is reviewed after its run has completed.
+    const {data:run}=await db.from('project_runs').select('status,completion_state').eq('id',contribution.project_run_id).maybeSingle();
+    const completedRun=Boolean(run&&(run.status==='completed'||run.completion_state==='completed'));
+    if(contribution.task_id&&!completedRun){
       const {data:task}=await db.from('project_tasks').select('status').eq('id',contribution.task_id).eq('project_run_id',contribution.project_run_id).maybeSingle();
       const taskStatus=verified?'done':'in_progress';
       const {error:taskError}=await db.from('project_tasks').update({status:taskStatus,last_review_comment:notes||null,blocker_reason:null,blocked_at:null,blocked_by_user_id:null,updated_at:now}).eq('id',contribution.task_id).eq('project_run_id',contribution.project_run_id);if(taskError)throw taskError;
@@ -41,6 +46,6 @@ export async function PATCH(request:Request){
     const [{data:project},{data:recipient}]=await Promise.all([db.from('projects').select('title').eq('id',contribution.project_id).maybeSingle(),db.auth.admin.getUserById(contribution.user_id)]);
     const outcome=status==='verified'?{title:'Contribution verified',body:'has been verified'}:status==='needs_changes'?{title:'Changes requested',body:'needs changes before it can be verified'}:{title:'Contribution not verified',body:'was not verified'};
     await notifyUser(db,{userId:contribution.user_id,email:recipient.user?.email||null,projectId:contribution.project_id,type:'proof_status_changed',eventKey:'proof_status_changed',title:outcome.title,body:`Your contribution “${contribution.title}” on ${project?.title||'a Mettelo project'} ${outcome.body}.${notes?` Reviewer note: ${notes}`:''}`,actionUrl:`/member/projects/${contribution.project_id}?run=${contribution.project_run_id}#phase4-contributions`,subject:`Contribution review — ${project?.title||'Mettelo'}`,dedupeKey:`contribution:${id}:${status}:${now}`});
-    return NextResponse.json({ok:true,contribution:data,task_updated:Boolean(contribution.task_id)});
+    return NextResponse.json({ok:true,contribution:data,task_updated:Boolean(contribution.task_id&&!completedRun),historical_run:completedRun});
   }catch(error){console.error('project contribution review error',error);return NextResponse.json({error:'Unable to review this contribution.'},{status:500});}
 }

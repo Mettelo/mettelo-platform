@@ -3,7 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root=process.cwd();function read(file:string){return fs.readFileSync(path.join(root,file),'utf8')}
-const migration=()=>read('supabase/migrations/20260917160000_workstream7_phase19_atomic_completion.sql')+'\n'+read('supabase/migrations/20260917170000_workstream7_phase19_completion_integrity.sql');
+const migration=()=>[
+ 'supabase/migrations/20260917160000_workstream7_phase19_atomic_completion.sql',
+ 'supabase/migrations/20260917170000_workstream7_phase19_completion_integrity.sql',
+ 'supabase/migrations/20260917171000_workstream7_phase19_completed_readiness_compat.sql',
+ 'supabase/migrations/20260917172000_workstream7_phase19_completed_state_immutable.sql'
+].map(read).join('\n');
 
 test.describe('Phase 19 completion operational UX',()=>{
  test('real Mettelo Lab mounts canonical final Proof and completion UI',()=>{const lab=read('components/MetteloLabPanel.tsx');expect(lab).toContain("import ProjectFinalProofPanel from '@/components/ProjectFinalProofPanel'");expect(lab).toContain('<ProjectFinalProofPanel');expect(lab).toContain('data-lab-review-section');expect(lab).toContain('lab-completion-review');});
@@ -19,7 +24,7 @@ test.describe('Phase 19 completion operational UX',()=>{
  test('changes requested returns work to active without reopening recruitment',()=>{const sql=migration(),panel=read('components/ProjectFinalProofPanel.tsx');expect(sql).toContain("status='active',completion_state='changes_requested',recruitment_open=false");expect(sql).not.toContain('recruitment_open=true');expect(panel).toContain("completion_request?.status==='changes_requested'");expect(panel).toContain('Resubmit final Proof for review');});
  test('review decision and completion serialize on run and request locks and are idempotent',()=>{const sql=migration();expect(sql).toContain("where id=p_run_id and project_id=p_project_id\n  for update;");expect(sql).toContain("where id=p_request_id and project_id=p_project_id and project_run_id=p_run_id\n  for update;");expect(sql).toContain("'idempotent',true");expect(sql).toContain("completed_at=coalesce(completed_at,now_at)");});
  test('review authorization and IDOR binding live inside the database boundary',()=>{const sql=migration();expect(sql).toContain('COMPLETION_REVIEW_NOT_AUTHORIZED');expect(sql).toContain("paa.assignment_status='active'");expect(sql).toContain('id=p_request_id and project_id=p_project_id and project_run_id=p_run_id');expect(sql).toContain('id=p_run_id and project_id=p_project_id');expect(sql).toContain('SUCCESS_CRITERIA_ASSESSMENT_NOT_AUTHORIZED');});
- test('completed delivery workspace is read-only without freezing Phase 20 contribution review',()=>{const sql=migration();expect(sql).toContain('PHASE19_COMPLETED_RUN_READ_ONLY');expect(sql).toContain("'project_workstreams','project_data_sources','project_deliverables'");expect(sql).not.toContain("'contributions','project_workstreams'");expect(sql).toContain('Phase 20 contributions are excluded');});
+ test('completed delivery workspace is read-only without freezing Phase 20 contribution review',()=>{const sql=migration(),review=read('app/api/project-contributions/route.ts'),submission=read('app/api/contributions/route.ts');expect(sql).toContain('PHASE19_COMPLETED_RUN_READ_ONLY');expect(sql).toContain('PHASE19_COMPLETED_RUN_IMMUTABLE');expect(sql).toContain("'project_workstreams','project_data_sources','project_deliverables'");expect(sql).toContain('Phase 20 contributions are excluded');expect(review).toContain('!completedRun');expect(submission).toContain('!historicalRun');});
  test('approval revalidates project readiness without leaking review reason through email',()=>{const completion=read('app/api/project-completion/route.ts'),sql=migration();expect(sql).toContain('readiness:=public.project_run_completion_readiness(p_run_id)');expect(sql).toContain('RUN_NO_LONGER_READY');expect(completion).toContain('A secure completion-review update is available in Mettelo');expect(completion).not.toContain('needs changes: ${notes}');});
  test('completion controls retain accessible touch and status feedback',()=>{const panel=read('components/ProjectFinalProofPanel.tsx');expect(panel).toContain('min-height:44px');expect(panel).toContain(':focus-visible');expect(panel).toContain('@media(max-width:520px)');expect(panel).toContain('aria-live="polite"');expect(panel).toContain('role="status"');});
 });

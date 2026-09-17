@@ -42,8 +42,8 @@ test.describe('Workstream 10 visible product recovery contract',()=>{
     const page=read('app/member/applications/page.tsx');
     for(const text of [
       "const actionStates=new Set(['clarification_requested','action_required','needs_changes','offered'])",
-      "role="tablist"",
-      "role="tabpanel"",
+      'role="tablist"',
+      'role="tabpanel"',
       'Needs action',
       'Action required: review your project offer',
       'Action required: send the requested clarification',

@@ -1,8 +1,7 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
-
-type Readiness={ready?:boolean;required_milestones?:number;completed_milestones?:number;required_tasks?:number;completed_tasks?:number;project_members_requiring_proof?:number;members_with_verified_proof?:number;pending_contributions?:number;presentation_required?:boolean;presentation_status?:string};
+import {projectCompletionReadiness,type CompletionReadiness} from '@/lib/project-completion-readiness';
 
 export async function GET(request:Request){
  const auth=await createServerSupabaseClient();const {data:{user}}=await auth.auth.getUser();if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});const url=new URL(request.url),projectId=url.searchParams.get('project_id')||'',runId=url.searchParams.get('project_run_id')||'';if(!projectId||!runId)return NextResponse.json({error:'Project and team are required.'},{status:400});const db=serviceDb();if(!db)return NextResponse.json({error:'Project service is not configured.'},{status:503});
@@ -18,6 +17,6 @@ export async function GET(request:Request){
   db.from('project_completion_requests').select('id,status,review_notes,reviewed_at,created_at,requested_by_user_id,reviewed_by_user_id').eq('project_run_id',runId).order('created_at',{ascending:false}).limit(20),
   db.rpc('project_run_completion_readiness',{target_run:runId})
  ]);
- if(!project||!run)return NextResponse.json({error:'Project team not found.'},{status:404});const isAdmin=user.app_metadata?.role==='admin';if(!member&&!isAdmin&&!architect)return NextResponse.json({error:'Project membership is required.'},{status:403});const active=member&&['active','completed'].includes(member.membership_status);const canGrant=Boolean(isAdmin||architect||(active&&member.team_role==='project_lead'));const canSubmit=Boolean(isAdmin||architect||(active&&['project_lead','project_architect'].includes(member.team_role))||delegation);const canReview=Boolean(project.project_type==='partner'&&(isAdmin||architect));const readiness=(readinessResult.data||null) as Readiness|null;
+ if(!project||!run)return NextResponse.json({error:'Project team not found.'},{status:404});const isAdmin=user.app_metadata?.role==='admin';if(!member&&!isAdmin&&!architect)return NextResponse.json({error:'Project membership is required.'},{status:403});const active=member&&['active','completed'].includes(member.membership_status);const canGrant=Boolean(isAdmin||architect||(active&&member.team_role==='project_lead'));const canSubmit=Boolean(isAdmin||architect||(active&&['project_lead','project_architect'].includes(member.team_role))||delegation);const canReview=Boolean(project.project_type==='partner'&&(isAdmin||architect));const readiness=projectCompletionReadiness((readinessResult.data||null) as CompletionReadiness|null);
  return NextResponse.json({project,run,can_grant:canGrant,can_submit:canSubmit,can_review:canReview,delegated:Boolean(delegation),submission:submission||null,completion_request:latestRequest||null,permissions:permissions||[],history:history||[],readiness},{headers:{'Cache-Control':'private, no-store'}});
 }

@@ -6,8 +6,8 @@ function requireText(label,text,needles){for(const needle of needles)if(!text.in
 function forbidText(label,text,needles){for(const needle of needles)if(text.includes(needle)){console.error(`FAIL ${label}: forbidden ${needle}`);failed=true;}}
 
 const applications=read('components/MemberApplicationTracker.tsx');
-requireText('Application actionability guard',applications,["needs:items.filter(item=>item.status==='offered'&&!isClosed(item)).length","view==='needs'?item.status==='offered'&&!isClosed(item)",'Nothing needs your attention']);
-forbidText('Application actionability guard',applications,['actionRequiredStates','Review action','Action required before this application can continue','Accept place','Decline place']);
+requireText('Application actionability guard',applications,["const actionStates=new Set(['clarification_requested','action_required','needs_changes','offered'])","needs:items.filter(item=>actionStates.has(item.status)&&!isClosed(item)).length","view==='needs'?actionStates.has(item.status)&&!isClosed(item)",'Nothing needs your attention','Action required: review your project offer','Action required: send the requested clarification']);
+forbidText('Application actionability guard',applications,['Review action','Action required before this application can continue','Accept place','Decline place']);
 const projectOffers=read('components/MemberProjectOffers.tsx');
 requireText('Project Offer action ownership',projectOffers,['PROJECT PLACE OFFERS','Accept place','Decline',"fetch('/api/project-offers'",'does not start the project or unlock the private workspace yet']);
 forbidText('Project Offer action ownership',projectOffers,['project_members','startProjectRun']);

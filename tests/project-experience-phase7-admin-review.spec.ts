@@ -134,9 +134,9 @@ test.describe('Project Experience Phase 7 source contract',()=>{
 
  test('member Offer copy remains truthful and does not expose Phase 8 acceptance early',()=>{
   const tracker=read('components/MemberApplicationTracker.tsx');
-  expect(tracker).toContain("offered:'Place offered'");
-  expect(tracker).toContain("if(item.status==='offered')return'→ Place offered'");
-  expect(tracker).toContain('Selection does not enrol you automatically');
+  expect(tracker).toContain("offered:'Offer received'");
+  expect(tracker).toContain("if(item.status==='offered')return'→ Offer received'");
+  expect(tracker).toContain('You need to review the offer and respond before its deadline.');
   expect(tracker).not.toContain("withdrawable=new Set(['submitted','in_review','shortlisted','offered'");
  });
 });

@@ -12,6 +12,12 @@ const projectFields='id,slug,title,summary,problem_statement,status,visibility,p
 const typeError='Choose Open Project or Partner Project. Project type cannot be inferred.';
 const openDeadlineError='Open Projects use continuous intake across successive teams and do not use a project-level application deadline.';
 
+async function canonicalPublicationPreflight(db:NonNullable<ReturnType<typeof serviceDb>>,projectId:string){
+ const {data,error}=await db.rpc('workstream2_publication_blockers',{p_project_id:projectId});
+ if(error)throw error;
+ return(Array.isArray(data)?data:[]).map(item=>String(item)).filter(Boolean);
+}
+
 function publicationGuardResponse(error:unknown){const message=error instanceof Error?error.message:String((error as {message?:unknown})?.message??'');const marker='PROJECT_NOT_PUBLICATION_READY:';const index=message.indexOf(marker);if(index<0)return null;const raw=message.slice(index+marker.length).split(/[\n;]/,1)[0]||'';const blockers=raw.split(',').map(item=>item.trim()).filter(Boolean);return NextResponse.json({error:'Project is not publication-ready.',blockers},{status:409})}
 
 export async function GET(){try{const ctx=await adminContext();if('error'in ctx)return ctx.error;const {db}=ctx;const {data:projects,error}=await db.from('projects').select(projectFields).order('created_at',{ascending:false});if(error)throw error;const ids=(projects||[]).map(p=>p.id);const [{data:members},{data:runs}]=ids.length?await Promise.all([db.from('project_members').select('project_id,project_run_id,membership_status').in('project_id',ids).in('membership_status',['waiting','active']),db.from('project_runs').select('id,project_id,run_number,status,required_team_size,has_started').in('project_id',ids).order('run_number',{ascending:false})]):[{data:[]},{data:[]}];const items=(projects||[]).map(project=>{const projectRuns=(runs||[]).filter(run=>run.project_id===project.id);const currentRun=projectRuns.find(run=>run.status==='forming'&&!run.has_started)||projectRuns.find(run=>!['completed','cancelled'].includes(run.status))||projectRuns[0]||null;const filled=currentRun?(members||[]).filter(member=>member.project_run_id===currentRun.id).length:0;return{...project,filled,current_run_id:currentRun?.id||null,current_run_status:currentRun?.status||null,current_run_number:currentRun?.run_number||null,current_run_required_team_size:currentRun?.required_team_size||project.team_size_threshold||null}});return NextResponse.json({items})}catch(error){console.error('admin projects list error',error);return NextResponse.json({error:'Unable to load projects.'},{status:500})}}
@@ -31,6 +37,7 @@ export async function PATCH(request:Request){
   const patch:Record<string,unknown>={};
   if(requestedAction){
     if(!lifecycleActions.has(requestedAction))return NextResponse.json({error:'Unsupported project lifecycle action.'},{status:400});
+    if(publicationActions.has(requestedAction)){const blockers=await canonicalPublicationPreflight(db,id);if(blockers.length)return NextResponse.json({error:'Project is not publication-ready.',blockers},{status:409})}
     action=requestedAction;
   }else{
     if('title'in body){const value=clean(body.title,180);if(!value)return NextResponse.json({error:'Project title is required.'},{status:400});patch.title=value}

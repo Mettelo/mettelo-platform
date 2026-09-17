@@ -19,7 +19,7 @@ export async function GET(){
     const ctx=await adminContext();
     if('error'in ctx)return ctx.error;
     const {db}=ctx;
-    const {data:projects,error}=await db.from('projects').select('id,slug,title,status,visibility,project_type,participation_mode,team_size_threshold,min_team_size,target_team_size,max_team_size,applications_open,updated_at').order('updated_at',{ascending:false});
+    const {data:projects,error}=await db.from('projects').select('id,slug,title,status,visibility,project_type,partner_name,participation_mode,team_size_threshold,min_team_size,target_team_size,max_team_size,applications_open,created_at,updated_at').order('updated_at',{ascending:false});
     if(error)throw error;
     const ids=(projects||[]).map(project=>project.id);
     if(!ids.length)return NextResponse.json({items:[]});
@@ -47,12 +47,12 @@ export async function GET(){
       const published=project.visibility==='public'&&!['draft','archived','cancelled'].includes(project.status);
       const recruitment=currentRun?.recruitment_open===false||project.applications_open===false?'closed':'open';
       return{
-        id:project.id,slug:project.slug,title:project.title,status:project.status,visibility:project.visibility,project_type:project.project_type,
+        id:project.id,slug:project.slug,title:project.title,status:project.status,visibility:project.visibility,project_type:project.project_type,partner_name:project.partner_name,
         participation_mode:project.participation_mode||'team',minimum:min,target,maximum:max,recruitment,
         applications:projectApplications.length,offers:projectOffers.filter(offer=>['pending','accepted'].includes(offer.status)).length,
         team:currentMembers.length,run_status:currentRun?.status||null,run_number:currentRun?.run_number||null,
         lab_readiness:publicationBlockers.length?'blocked':'ready',health:published&&publicationBlockers.length?'attention':publicationBlockers.length?'configuration':'healthy',
-        blocker_count:publicationBlockers.length,updated_at:project.updated_at
+        blocker_count:publicationBlockers.length,created_at:project.created_at,updated_at:project.updated_at
       };
     });
     return NextResponse.json({items},{headers:{'cache-control':'no-store'}});

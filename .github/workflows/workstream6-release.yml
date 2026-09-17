@@ -1,0 +1,214 @@
+name: Workstream 6 Release Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'supabase/migrations/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'package*.json'
+      - '.github/workflows/workstream6-release.yml'
+  push:
+    branches:
+      - workstream6-solo-team-exit-replacement-support-discovery-invitations
+  workflow_dispatch:
+
+concurrency:
+  group: ws6-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  static-contract:
+    name: Workstream 6 lint types and canonical compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Record exact source for reproducible release evidence
+        run: |
+          git rev-parse HEAD > /tmp/workstream6-head.txt
+          git archive --format=tar.gz --output=/tmp/workstream6-source.tar.gz HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: workstream6-source-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            /tmp/workstream6-head.txt
+            /tmp/workstream6-source.tar.gz
+          retention-days: 3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Phase 15 to 20 and Workstream 5 compatibility
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: artifacts/ws6-static.json
+        run: >-
+          npx playwright test
+          tests/project-experience-phase15-solo-conversion.spec.ts
+          tests/project-experience-phase16-member-exit.spec.ts
+          tests/project-experience-phase17-support-safeguarding.spec.ts
+          tests/project-experience-phase18a-member-invitations.spec.ts
+          tests/project-experience-phase18b-marketplace.spec.ts
+          tests/project-experience-phase18c-governance.spec.ts
+          tests/project-experience-phase19-completion-operational-ux.spec.ts
+          tests/project-experience-phase20-proof-operational-verification.spec.ts
+          tests/workstream5-lab-collaboration-pulse-release.spec.ts
+          --project=chromium --workers=1 --retries=0 --reporter=line,json
+      - name: Reject missing failed or skipped contract tests
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const report = JSON.parse(readFileSync('artifacts/ws6-static.json', 'utf8'));
+          const stats = report.stats;
+          if (!stats || stats.expected < 1 || stats.unexpected || stats.skipped || stats.flaky || report.errors?.length) {
+            throw new Error(`WS6 static contract is not green: ${JSON.stringify(stats)}`);
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workstream6-static-results-${{ github.run_attempt }}
+          path: artifacts/ws6-static.json
+          if-no-files-found: error
+          retention-days: 7
+
+  runtime-contract:
+    name: Workstream 6 isolated ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [conversion-exit, support, invitations]
+    env:
+      CI_LOCAL_SUPABASE: '1'
+      E2E_BASE_URL: http://127.0.0.1:3000
+      E2E_MEMBER_EMAIL: member.e2e@example.test
+      E2E_MEMBER_PASSWORD: local-e2e-member-password
+      E2E_ARCHITECT_EMAIL: architect.e2e@example.test
+      E2E_ARCHITECT_PASSWORD: local-e2e-architect-password
+      E2E_ADMIN_EMAIL: admin.e2e@example.test
+      E2E_ADMIN_PASSWORD: local-e2e-admin-password
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      PLAYWRIGHT_JSON_OUTPUT_NAME: artifacts/ws6-runtime.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Record validated source
+        run: git rev-parse HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install chromium
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.111.0
+      - run: node scripts/prepare-local-supabase.mjs
+      - name: Start disposable database
+        run: supabase start --workdir .supabase-ci -x studio,imgproxy,logflare,vector,supavisor
+      - name: Export disposable credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status --workdir .supabase-ci -o env > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "::add-mask::$DB_URL"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_SUPABASE_DB_URL=$DB_URL"
+          } >> "$GITHUB_ENV"
+      - run: npm run build
+      - run: node scripts/setup-local-e2e.mjs
+      - name: Start production build against disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run start -- --hostname 127.0.0.1 > /tmp/mettelo-ws6.log 2>&1 &
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/signin > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/mettelo-ws6.log
+          exit 1
+      - name: Execute targeted runtime contract
+        shell: bash
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: |
+          set -euo pipefail
+          case "$SUITE" in
+            conversion-exit)
+              tests=(tests/project-experience-phase15-solo-conversion-e2e.spec.ts tests/project-experience-phase16-member-exit-e2e.spec.ts tests/workstream5-pulse-member-exit-e2e.spec.ts tests/project-experience-phase12-lab-access-e2e.spec.ts)
+              ;;
+            support)
+              tests=(tests/project-experience-phase17-support-e2e.spec.ts tests/project-experience-phase17-rls-e2e.spec.ts tests/project-experience-phase17-recovery-concurrency-e2e.spec.ts tests/project-experience-phase17-responsive-e2e.spec.ts)
+              ;;
+            invitations)
+              tests=(tests/project-experience-phase18a-member-invitations-e2e.spec.ts tests/project-experience-phase18b-marketplace-e2e.spec.ts tests/project-experience-phase18c-governance-e2e.spec.ts)
+              ;;
+            *) exit 1 ;;
+          esac
+          npx playwright test "${tests[@]}" --project=chromium --workers=1 --retries=0 --reporter=line,json
+      - name: Reject missing failed or skipped runtime tests
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const report = JSON.parse(readFileSync('artifacts/ws6-runtime.json', 'utf8'));
+          const stats = report.stats;
+          if (!stats || stats.expected < 1 || stats.unexpected || stats.skipped || stats.flaky || report.errors?.length) {
+            throw new Error(`WS6 runtime contract is not green: ${JSON.stringify(stats)}`);
+          }
+          NODE
+      - name: Upload exact-head execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workstream6-${{ matrix.suite }}-results-${{ github.run_attempt }}
+          path: |
+            artifacts/ws6-runtime.json
+            test-results/
+            /tmp/mettelo-ws6.log
+            .supabase-ci/manifest.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Stop disposable database
+        if: always()
+        run: supabase stop --workdir .supabase-ci --no-backup
+
+  workstream6-gate:
+    name: Workstream 6 release gate
+    if: always()
+    needs: [static-contract, runtime-contract]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every Workstream 6 layer
+        env:
+          STATIC_RESULT: ${{ needs.static-contract.result }}
+          RUNTIME_RESULT: ${{ needs.runtime-contract.result }}
+        run: |
+          test "$STATIC_RESULT" = success
+          test "$RUNTIME_RESULT" = success

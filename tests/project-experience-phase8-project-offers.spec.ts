@@ -91,10 +91,10 @@ test.describe('Project Experience Phase 8 source contract',()=>{
     expect(tracker).toContain("accepted:'Place accepted'");
     expect(tracker).toContain("expired:'Offer expired'");
     expect(tracker).toContain("const closedStates=new Set(['declined','expired','withdrawn'])");
-    expect(tracker).toContain("needs:items.filter(item=>item.status==='offered'");
+    expect(tracker).toContain("needs:items.filter(item=>actionStates.has(item.status)");
     expect(tracker).toContain("item.status==='accepted'&&item.admission_decision==='auto_qualified'");
     expect(tracker).toContain("item.status==='accepted'&&item.admission_decision==='review_required'");
-    expect(tracker).toContain('review the Project Place Offer above');
+    expect(tracker).toContain('Review your offer');
   });
 
   test('confirmation dialog and success state have explicit focus management',()=>{

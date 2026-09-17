@@ -39,20 +39,27 @@ test.describe('Phase 22 collaboration release acceptance',()=>{
   const grow=read('components/ProjectGrowTeamSection.tsx');
   const finalProof=read('app/api/project-final-proof/route.ts');
   const completion=read('app/api/project-completion/route.ts');
+  const phase19=read('supabase/migrations/20260917160000_workstream7_phase19_atomic_completion.sql');
   for(const text of ['phase9_project_run_capacity','late_joining_enabled','late_joining_cutoff_at','recruitment_open'])expect(grow).toContain(text);
   expect(grow).toContain("run.status==='review'");
-  for(const text of ['freezeRecruitment',"recruitment_open:false","from('project_collaboration_needs')","status:'closed'","from('project_member_collaboration_invitations')","status:'revoked'"])expect(finalProof).toContain(text);
-  expect(completion).toContain('recruitment_open:false');
-  expect(completion).not.toContain('recruitment_open:true');
+  expect(finalProof).toContain("auth.rpc('phase19_submit_final_proof'");
+  expect(completion).toContain("auth.rpc('phase19_review_partner_completion'");
+  for(const text of ["completion_state in ('final_review','changes_requested','completed')","set status='closed'","set status='revoked'","set status='invalidated'","recruitment_open=false"])expect(phase19).toContain(text);
+  expect(phase19).not.toContain('recruitment_open=true');
  });
 
  test('Partner admission and completion remain human-review gated',()=>{
   const policy=read('app/api/admin/collaboration-policy/route.ts');
   const completion=read('app/api/project-completion/route.ts');
+  const phase19=read('supabase/migrations/20260917160000_workstream7_phase19_atomic_completion.sql');
   expect(policy).toContain('Partner Projects always require human review.');
   expect(policy).toContain("project.project_type==='partner'");
   expect(completion).toContain('Only Partner projects use reviewer-gated completion.');
-  expect(completion).toContain('Admin or the assigned Project Architect is required');
+  expect(completion).toContain("auth.rpc('phase19_review_partner_completion'");
+  expect(phase19).toContain('phase19_review_partner_completion');
+  expect(phase19).toContain('NOT_AUTHORIZED');
+  expect(phase19).toContain('project_architect_assignments');
+  expect(phase19).toContain("assignment_status='active'");
  });
 
  test('Proof remains individually attributed, reviewable, privacy-controlled and profile-visible',()=>{

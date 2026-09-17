@@ -179,6 +179,36 @@ test.describe('Project Experience Phase 21 scale contract',()=>{
     expect(duplication).not.toContain('internal_storage_url');
   });
 
+  test('Workstream 9 serializes Admin lifecycle edit archive interest and resource governance on the canonical project row',()=>{
+    const migration=read('supabase/migrations/20260917203000_workstream9_atomic_project_operations.sql');
+    const adminRoute=read('app/api/admin/projects/route.ts');
+    for(const text of [
+      'workstream9_apply_admin_project_operation',
+      'from public.projects',
+      'for update',
+      "p_action in ('publish_pilot','publish_open','publish_recruiting','resume_intake')",
+      'workstream2_publication_blockers',
+      "p_action='archive'",
+      "p_action='edit'",
+      "'previous',to_jsonb(before_row)",
+      "'new',to_jsonb(after_row)",
+      "'atomic',true"
+    ])expect(migration).toContain(text);
+    expect(adminRoute).toContain("db.rpc('workstream9_apply_admin_project_operation'");
+    expect(adminRoute).not.toContain("db.from('projects').update({...patch");
+    expect(migration).toContain('perform 1 from public.projects where id=source_project_id for update');
+    expect(migration).toContain('select * into source_record');
+    expect(migration.indexOf('perform 1 from public.projects where id=source_project_id for update')).toBeLessThan(migration.indexOf('select * into source_record'));
+  });
+
+  test('Workstream 9 keeps Submit Interest on the same project-row lock boundary',()=>{
+    const interest=read('supabase/migrations/20260911110000_submit_interest_participation_journey.sql');
+    const atomic=read('supabase/migrations/20260917203000_workstream9_atomic_project_operations.sql');
+    expect(interest).toContain('select * into v_project from public.projects where id=p_project_id for share');
+    expect(atomic).toContain('where id=p_project_id\n  for update');
+    expect(atomic).toContain("update public.projects set status='archived',visibility='private',applications_open=false");
+  });
+
   test('Phase 21 acceptance authority remains explicit and not falsely approved',()=>{
     const matrix=read('docs/PHASE_21_ACCEPTANCE_MATRIX.md');
     const readiness=read('docs/PHASE_21_READINESS.md');

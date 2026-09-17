@@ -56,6 +56,7 @@ test.describe('Capability Paths Phase 4 member lifecycle',()=>{
 
    await assertResponsiveSurface(page,'/member','Member Home');await assertResponsiveSurface(page,'/member/paths','Capability Paths');await assertResponsiveSurface(page,'/member/discover','Member Discover');await assertResponsiveSurface(page,'/member/projects','My Projects');await assertResponsiveSurface(page,'/member/profile','Member Profile');await assertResponsiveSurface(page,`/member/projects/${projectId}?run=${runId}`,'Mettelo Lab');
   }finally{
+   const contributionCleanup=await service.from('contributions').delete().eq('user_id',memberId).eq('project_id',projectId);if(contributionCleanup.error)throw contributionCleanup.error;
    await service.from('member_capability_paths').delete().eq('user_id',memberId).in('path_id',[pathA.id,pathB.id]);await service.from('capability_paths').delete().in('id',[pathA.id,pathB.id]);
   }
  });

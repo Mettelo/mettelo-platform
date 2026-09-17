@@ -49,6 +49,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Install Playwright Chromium for browser-backed compatibility checks
+        run: npx playwright install chromium
       - run: npm run lint
       - run: npm run typecheck
       - name: Phase 19 and Phase 20-22 compatibility

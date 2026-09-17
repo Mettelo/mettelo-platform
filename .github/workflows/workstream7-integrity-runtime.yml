@@ -1,0 +1,81 @@
+name: Workstream 7 Completion Integrity Runtime
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'supabase/migrations/**'
+      - 'tests/workstream7-phase19-completion-integrity-e2e.spec.ts'
+      - '.github/workflows/workstream7-integrity-runtime.yml'
+  push:
+    branches:
+      - workstream7-phase19-completion-final-review
+  workflow_dispatch:
+
+concurrency:
+  group: ws7-integrity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  completion-integrity:
+    name: WS7 exact-run completion integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI_LOCAL_SUPABASE: '1'
+      E2E_MEMBER_EMAIL: member.e2e@example.test
+      E2E_ARCHITECT_EMAIL: architect.e2e@example.test
+      E2E_ADMIN_EMAIL: admin.e2e@example.test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Record exact validated head
+        run: git rev-parse HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.111.0
+      - run: node scripts/prepare-local-supabase.mjs
+      - name: Start isolated Supabase and apply the complete migration chain
+        run: supabase start --workdir .supabase-ci -x studio,imgproxy,logflare,vector,supavisor
+      - name: Export isolated credentials and generate disposable identity passwords
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status --workdir .supabase-ci -o env > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          MEMBER_PASSWORD="$(openssl rand -hex 18)Aa1!"
+          ARCHITECT_PASSWORD="$(openssl rand -hex 18)Bb2!"
+          ADMIN_PASSWORD="$(openssl rand -hex 18)Cc3!"
+          for value in "$SERVICE_ROLE_KEY" "$ANON_KEY" "$MEMBER_PASSWORD" "$ARCHITECT_PASSWORD" "$ADMIN_PASSWORD"; do echo "::add-mask::$value"; done
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_MEMBER_PASSWORD=$MEMBER_PASSWORD"
+            echo "E2E_ARCHITECT_PASSWORD=$ARCHITECT_PASSWORD"
+            echo "E2E_ADMIN_PASSWORD=$ADMIN_PASSWORD"
+          } >> "$GITHUB_ENV"
+      - name: Seed disposable local identities
+        run: node scripts/setup-local-e2e.mjs
+      - name: Execute Phase 19 database lifecycle integrity
+        run: npx playwright test tests/workstream7-phase19-completion-integrity-e2e.spec.ts --project=chromium --workers=1 --retries=0 --reporter=line
+      - name: Stop isolated Supabase
+        if: always()
+        run: supabase stop --workdir .supabase-ci --no-backup

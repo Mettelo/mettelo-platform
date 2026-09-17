@@ -20,7 +20,7 @@ const review=read('components/ProjectContributionReview.tsx');
 requireText('Contribution review semantics',review,['Request changes','Verify contribution','Do not verify','body.task_updated','Contribution verified.','Contribution not verified.']);
 
 const reviewApi=read('app/api/project-contributions/route.ts');
-requireText('Contribution notification semantics',reviewApi,["title:'Contribution verified'","title:'Changes requested'","title:'Contribution not verified'",'task_updated:Boolean(contribution.task_id)']);
+requireText('Contribution notification semantics',reviewApi,["title:'Contribution verified'","title:'Changes requested'","title:'Contribution not verified'",'task_updated:Boolean(contribution.task_id&&!completedRun)','historical_run:completedRun']);
 forbidText('Contribution notification semantics',reviewApi,["const outcome=status==='verified'?'approved'","'not approved'"]);
 
 const proof=read('app/member/proof/page.tsx');

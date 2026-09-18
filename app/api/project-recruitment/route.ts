@@ -21,7 +21,7 @@ async function context(projectId:string){
 
 export async function GET(request:Request){
  const projectId=new URL(request.url).searchParams.get('project_id')?.trim()||'';if(!projectId)return NextResponse.json({error:'Project is required.'},{status:400});const ctx=await context(projectId);if('error'in ctx)return ctx.error;
- return NextResponse.json({project_id:projectId,public_path:`/projects/${projectId}`,can_share:ctx.canShare,invite_ready:ctx.inviteReady,late_joining_open:ctx.lateJoiningOpen,run_status:ctx.run?.status||null,filled:ctx.run?.filled||0,maximum:ctx.run?.maximum||null});
+ return NextResponse.json({project_id:projectId,project_run_id:ctx.run?.id||null,public_path:`/projects/${projectId}`,can_share:ctx.canShare,invite_ready:ctx.inviteReady,late_joining_open:ctx.lateJoiningOpen,run_status:ctx.run?.status||null,filled:ctx.run?.filled||0,maximum:ctx.run?.maximum||null});
 }
 
 export async function POST(request:Request){
@@ -33,6 +33,6 @@ export async function POST(request:Request){
   }
   if(!ctx.inviteReady)return NextResponse.json({error:'Only the active Project Lead can open member discovery while invitations and late joining are available.'},{status:403});
   await ctx.db.from('project_activity_log').insert({project_id:projectId,project_run_id:ctx.membership?.project_run_id||null,event_type:'collaborator_invite_intent',actor_type:'user',actor_user_id:ctx.user.id,from_status:ctx.run?.status||ctx.project.status,to_status:ctx.run?.status||ctx.project.status,metadata:{phase:'phase18a_member_discovery',membership_created:false}});
-  return NextResponse.json({ok:true,invite_ready:true,message:'Member discovery is ready. Search remains privacy-preserving, and any invitation still requires recipient acceptance plus canonical same-run admission.'});
+  return NextResponse.json({ok:true,invite_ready:true,project_run_id:ctx.run?.id||null,message:'Member discovery is ready. Search remains privacy-preserving, and any invitation still requires recipient acceptance plus canonical same-run admission.'});
  }catch(error){console.error('project recruitment action failed',error);return NextResponse.json({error:'Unable to complete this recruitment action.'},{status:500})}
 }

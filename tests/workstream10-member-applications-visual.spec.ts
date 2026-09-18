@@ -1,6 +1,7 @@
 import {createClient} from '@supabase/supabase-js';
 import {expect,test,type Page} from '@playwright/test';
 import {PROJECT_PARTICIPATION_TERMS_VERSION} from '../lib/project-participation-terms';
+import {makeGovernedProjectPublicationReady} from './helpers/governed-project-fixture';
 
 const projectIds=[
  '00000000-0000-4000-8000-00000000f101',
@@ -21,7 +22,7 @@ test.beforeAll(async()=>{
  const client=db();await cleanup();
  const users=await client.auth.admin.listUsers({page:1,perPage:1000});if(users.error)throw users.error;const member=users.data.users.find(user=>user.email===required('E2E_MEMBER_EMAIL'));if(!member)throw new Error('WS10 requires disposable member identity.');memberId=member.id;
  const titles=['WS10 Submitted Project','WS10 Clarification Project','WS10 Offered Project','WS10 Closed Project'];
- for(let i=0;i<projectIds.length;i++){const inserted=await client.from('projects').insert({id:projectIds[i],slug:`ws10-member-app-${i+1}`,title:titles[i],summary:'Disposable Workstream 10 responsive application fixture.',problem_statement:'Validate member application state hierarchy and responsive presentation.',status:'draft',visibility:'private',project_type:'open',applications_open:false,team_size_threshold:2,min_team_size:2,target_team_size:3,max_team_size:5,participation_mode:'team',admission_mode:'review_required'});if(inserted.error)throw inserted.error}
+ for(let i=0;i<projectIds.length;i++){const inserted=await client.from('projects').insert({id:projectIds[i],slug:`ws10-member-app-${i+1}`,title:titles[i],summary:'Disposable Workstream 10 responsive application fixture.',problem_statement:'Validate member application state hierarchy and responsive presentation.',status:'draft',visibility:'private',project_type:'open',applications_open:false,team_size_threshold:2,min_team_size:2,target_team_size:3,max_team_size:5,participation_mode:'team',admission_mode:'review_required'});if(inserted.error)throw inserted.error;await makeGovernedProjectPublicationReady(client,projectIds[i]);const published=await client.from('projects').update({status:'recruiting',visibility:'public',applications_open:true}).eq('id',projectIds[i]);if(published.error)throw published.error}
  const now=new Date().toISOString();
  const rows=[
   {project_id:projectIds[0],status:'submitted',reviewer_notes:null},

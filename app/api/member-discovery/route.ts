@@ -50,7 +50,7 @@ function explain(member:BaseMember,signals:Signals){
 
  let label='Relevant professional fit';
  let detail='Professional background may complement your collaboration network.';
- let matched=unique(projectMatches.length?projectMatches:shared).slice(0,4);
+ const matched=unique(projectMatches.length?projectMatches:shared).slice(0,4);
  if(projectMatches.length>=2){label='Strong skill match';detail=`${projectMatches.length} relevant capabilities for the current project.`}
  else if(complementary.length){label='Complementary skills';detail=`Matches a current project need: ${complementary.slice(0,2).join(', ')}.`}
  else if(shared.length>=2){label='Strong skill match';detail=`Shared skills: ${shared.slice(0,3).join(', ')}.`}

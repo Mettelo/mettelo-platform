@@ -47,12 +47,16 @@ export default function MemberCollaboratorDiscovery(props:Props){
 
  const activeFilterCount=useMemo(()=>[role,capability,domain,availability,commitment].filter(value=>value.trim()).length,[role,capability,domain,availability,commitment]);
 
- async function discover(value:string,mode:'recommend'|'search'){
-  const term=value.trim();if(term.length<2)return;
-  if(mode==='search'){setWorking('search');setSearched(true)}else setWorking('recommend');
+ async function discover(value:string,mode:'recommend'|'search',selectedNeed=needId){
+  const term=value.trim();
+  if(mode==='search'&&term.length<2)return;
+  if(mode==='search'){setWorking('search');setSearched(true);setSearchedQuery(term)}else setWorking('recommend');
   setStatus('');setError('');
   try{
-   const qs=new URLSearchParams({q:term,limit:'20'});
+   const qs=new URLSearchParams({limit:mode==='recommend'?'9':'20'});
+   if(mode==='recommend')qs.set('mode','recommend');else qs.set('q',term);
+   if(projectId&&projectRunId){qs.set('project_id',projectId);qs.set('project_run_id',projectRunId)}
+   if(selectedNeed)qs.set('collaboration_need',selectedNeed);
    if(mode==='search'){
     if(role.trim())qs.set('role',role.trim());if(capability.trim())qs.set('capability',capability.trim());if(domain.trim())qs.set('domain',domain.trim());if(availability.trim())qs.set('availability',availability.trim());if(commitment.trim())qs.set('commitment',commitment.trim());
    }
@@ -60,8 +64,7 @@ export default function MemberCollaboratorDiscovery(props:Props){
    const body=await response.json().catch(()=>({}));
    if(!response.ok)throw new Error(body.error||'We could not load the Collaboration Network.');
    const items=(body.items||[]) as Member[];
-   if(mode==='recommend'){setRecommended(items);setStatus(items.length?`${items.length} recommended collaborator${items.length===1?'':'s'} available.`:'No project-specific recommendations are visible right now.')}
-   else{setResults(items);setStatus(`${items.length} visible match${items.length===1?'':'es'} found.`)}
+   if(mode==='recommend')setRecommended(items);else setResults(items);
   }catch(err){
    if(mode==='recommend')setRecommended([]);else setResults([]);
    setError(err instanceof Error?err.message:'We could not load the Collaboration Network.');

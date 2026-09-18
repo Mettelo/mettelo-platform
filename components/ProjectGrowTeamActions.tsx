@@ -154,7 +154,7 @@ export default function ProjectGrowTeamActions(props:Props){
   </section>}
 
   {showShare&&activeShareable&&publicPath&&<section className="growTeamShare" aria-label="Share to find collaborators">
-   <strong>Share to find collaborators</strong><p>Only the safe public collaboration opportunity is shared. Private Lab information and technical IDs are not included.</p>
+   <strong>Share to find collaborators</strong><p>Only the safe public collaboration opportunity is shared. Private Lab information is not included, and technical IDs are never shared.</p>
    <CollaborationShareActions url={publicPath} text={shareText} collaborationNeedId={needId!}/>
   </section>}
 

@@ -51,7 +51,7 @@ test.describe('Project Experience Phase 17 private support security journey',()=
    await page.getByRole('button',{name:'Submit private support case'}).click();
    await expect(page.getByText('SUPPORT CASE SUBMITTED')).toBeVisible();
    await expect(page.getByRole('heading',{name:'Your support cases'})).toBeVisible();
-   await expect(page.getByText(/I need private support about project direction/)).toBeVisible();
+   await expect(page.locator('[class*="caseSummary"]').filter({hasText:/I need private support about project direction/}).first()).toBeVisible();
    const stored=await fixture.db.from('project_support_cases').select('id,project_run_id,reporter_project_member_id').eq('project_id',PROJECT).eq('reporter_user_id',fixture.member.id);
    expect(stored.error).toBeNull();expect(stored.data).toHaveLength(1);expect(stored.data?.[0]).toMatchObject({project_run_id:fixture.runId,reporter_project_member_id:fixture.memberMembershipId});
    const caseId=stored.data![0].id;

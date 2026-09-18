@@ -3,6 +3,7 @@ import {createServerSupabaseClient} from '@/lib/supabase/server';
 
 function clean(value:string|null,max=80){return String(value||'').trim().slice(0,max)}
 function norm(value:unknown){return String(value||'').trim().toLocaleLowerCase('en-GB')}
+type DiscoveryMember={current_job_title:string|null;preferred_roles:string[]|null;skills:string[]|null;professional_area:string|null;project_availability:string|null;weekly_capacity:string|null};
 
 export async function GET(request:Request){
   try{
@@ -27,7 +28,7 @@ export async function GET(request:Request){
     }
 
     const role=norm(url.searchParams.get('role')),capability=norm(url.searchParams.get('capability')),domain=norm(url.searchParams.get('domain')),availability=norm(url.searchParams.get('availability')),commitment=norm(url.searchParams.get('commitment'));
-    const items=(data||[]).filter(member=>{
+    const items=((data||[]) as DiscoveryMember[]).filter(member=>{
       const roles=[member.current_job_title,...(member.preferred_roles||[])].map(norm).join(' ');
       const skills=(member.skills||[]).map(norm).join(' ');
       return(!role||roles.includes(role))&&(!capability||skills.includes(capability))&&(!domain||norm(member.professional_area).includes(domain))&&(!availability||norm(member.project_availability).includes(availability))&&(!commitment||norm(member.weekly_capacity).includes(commitment));

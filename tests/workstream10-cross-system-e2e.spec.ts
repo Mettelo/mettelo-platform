@@ -28,7 +28,7 @@ test('published project stays coherent from Discover to review, Offer, team and 
   await memberPage.goto('/member/applications',{waitUntil:'networkidle'});await expect(memberPage.getByText('WS10 Cross-System Project',{exact:true}).first()).toBeVisible();
 
   const adminContext=await browser.newContext();const adminPage=await adminContext.newPage();await signIn(adminPage,'ADMIN',`/admin/project-operations/applications?project=${projectId}`);
-  await adminPage.goto(`/admin/project-operations/applications?project=${projectId}`,{waitUntil:'networkidle'});await expect(adminPage.getByText('WS10 Cross-System Project',{exact:true}).first()).toBeVisible();
+  await adminPage.goto(`/admin/project-operations/applications?project=${projectId}`,{waitUntil:'networkidle'});await expect(adminPage.locator('.applicationTable tbody tr').filter({hasText:'WS10 Cross-System Project'}).first()).toBeVisible();
   for(const status of ['in_review','shortlisted','offered']){const response=await adminPage.context().request.patch('/api/admin/applications',{data:{id:application.data.id,status,reviewer_notes:`WS10 ${status} cross-system review`}});expect(response.status(),await response.text()).toBe(200)}
 
   await memberPage.goto('/member/applications',{waitUntil:'networkidle'});await expect(memberPage.getByRole('button',{name:'Accept place'})).toBeVisible();await memberPage.getByRole('button',{name:'Accept place'}).click();await expect(memberPage.getByRole('dialog',{name:'Accept this project place?'})).toBeVisible();await memberPage.getByRole('button',{name:'Confirm acceptance'}).click();await expect(memberPage.getByText(/Place accepted\. Your commitment/)).toBeVisible();

@@ -110,7 +110,7 @@ test.describe('Project Experience Phase 7 source contract',()=>{
   expect(queue).toContain('{openPlaces(detail)} open');
   expect(page).toContain('Partner / review required');
   expect(page).toContain('AUTO eligibility window');
-  expect(page).toContain('AUTO ready for daily start');
+  expect(page).toContain('AUTO ready to start');
   expect(page).toContain('AUTO needs attention');
   expect(page).not.toContain('AUTO start scheduled');
  });

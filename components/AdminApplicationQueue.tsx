@@ -37,7 +37,7 @@ type Item={
   proof:ProofItem[];
   capacity:{confirmed:number;reservedOffers?:number;minimum:number;target:number;maximum:number};
   communications:{title:string;body:string;created_at:string}[];
-  auto_start:null|{run_id:string;state:'TEAM_FORMING'|'ELIGIBILITY_WINDOW'|'READY_TO_START'|'NEEDS_ATTENTION'|'STARTED';eligible_from:string|null;blockers:string[]};
+  auto_start?:null|{run_id:string;state:'TEAM_FORMING'|'ELIGIBILITY_WINDOW'|'READY_TO_START'|'NEEDS_ATTENTION'|'STARTED';eligible_from:string|null;blockers:string[]};
 };
 
 function isInterest(item:Item){return item.application_kind==='interest'}

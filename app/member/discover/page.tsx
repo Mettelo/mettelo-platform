@@ -68,15 +68,36 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
   for(const item of applications){if(['declined','withdrawn'].includes(item.status))continue;if(!latestActiveApplication.has(item.project_id))latestActiveApplication.set(item.project_id,item)}
   const membershipByProject=new Map(memberships.map(item=>[item.project_id,item]));
   const capacityRows:Capacity[]=[];
-  let capacityLoadError=false;
+  const unresolvedCapacityIds=new Set<string>();
+  const capacityServiceFailureIds=new Set<string>();
   for(let index=0;index<projects.length;index+=MEMBER_CAPACITY_BATCH_SIZE){
     const batchIds=projects.slice(index,index+MEMBER_CAPACITY_BATCH_SIZE).map(project=>project.id);
     const capacityResult=await supabase.rpc('get_member_project_capacities',{p_project_ids:batchIds});
-    if(capacityResult.error){capacityLoadError=true;console.error('member Discover canonical capacity query failed',capacityResult.error);break}
-    capacityRows.push(...((capacityResult.data||[]) as Capacity[]));
+    if(!capacityResult.error){
+      const rows=(capacityResult.data||[]) as Capacity[];
+      capacityRows.push(...rows);
+      const returned=new Set(rows.map(row=>row.project_id));
+      for(const id of batchIds)if(!returned.has(id))unresolvedCapacityIds.add(id);
+      continue;
+    }
+    console.warn('member Discover capacity batch failed; retrying projects independently',capacityResult.error.message);
+    for(const projectId of batchIds){
+      const single=await supabase.rpc('get_member_project_capacities',{p_project_ids:[projectId]});
+      if(single.error){
+        capacityServiceFailureIds.add(projectId);
+        unresolvedCapacityIds.add(projectId);
+        console.error('member Discover canonical capacity query failed for project',projectId,single.error);
+        continue;
+      }
+      const rows=(single.data||[]) as Capacity[];
+      capacityRows.push(...rows);
+      if(!rows.some(row=>row.project_id===projectId))unresolvedCapacityIds.add(projectId);
+    }
   }
   const capacityByProject=new Map(capacityRows.map(item=>[item.project_id,item]));
-  capacityLoadError=capacityLoadError||projects.some(project=>!capacityByProject.has(project.id));
+  for(const project of projects)if(!capacityByProject.has(project.id))unresolvedCapacityIds.add(project.id);
+  const capacitySystemError=projects.length>0&&capacityServiceFailureIds.size===projects.length;
+  if(unresolvedCapacityIds.size&&!capacitySystemError)console.warn('member Discover excluded projects with unresolved canonical capacity',{project_ids:[...unresolvedCapacityIds]});
   const pathContexts=await getMemberProjectPathContexts(supabase,user.id,projects.map(item=>item.id));
   const items=projects.flatMap(project=>{
     const contexts=pathContexts.get(project.id)||[];
@@ -113,7 +134,7 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
     <MemberPageHeader eyebrow="DIRECTION & DISCOVERY · PROJECTS" title="Discover projects" description="Scan projects quickly, then open the brief when one is worth deeper review. Capability Paths can add direction without restricting discovery." actions={<>{pathAction}<a className="mdButton mdDiscoverTopAction" href="/member/recommended">Recommended for you</a></>}/>
     <div className="mdDiscoverControlStack">
       {pathProgress.length?<MemberCapabilityPathFilters paths={pathProgress} selectedPath={selectedPath} selectedStage={selectedStage}/>:<aside className="mdPathPrompt"><div><strong>Want a clearer route through the catalogue?</strong><span>Follow a Capability Path to add sequence and stage context while keeping Discover broad.</span></div><a href="/member/paths">Explore Paths →</a></aside>}
-      {projectsResult.error||capacityLoadError?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Canonical project or capacity state could not be resolved safely. Nothing has been changed. Refresh to try again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<><MemberDiscoverCatalogue projects={items}/><MemberDiscoverPagination/></>}
+      {projectsResult.error||capacitySystemError?<section className="mdDiscoverError" role="alert"><h2>Projects are temporarily unavailable</h2><p>Canonical project or capacity state could not be resolved safely. Nothing has been changed. Refresh to try again.</p><a className="mdButton mdButtonPrimary" href="/member/discover">Try again</a></section>:<><MemberDiscoverCatalogue projects={items}/><MemberDiscoverPagination/></>}
     </div>
     <style>{`
       .mdDiscoverPage{width:100%;max-width:none;margin:0;min-width:0;color:var(--ink)}

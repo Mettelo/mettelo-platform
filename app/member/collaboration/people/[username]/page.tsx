@@ -6,6 +6,7 @@ import MemberPageHeader from '@/components/MemberPageHeader';
 
 export const dynamic='force-dynamic';
 type Search={project_id?:string|string[];project_run_id?:string|string[];collaboration_need?:string|string[]};
+type DiscoveryProfile={username:string;full_name:string|null;headline:string|null;current_job_title:string|null;professional_area:string|null;experience_level:string|null;project_availability:string|null;weekly_capacity:string|null;skills:string[]|null;preferred_roles:string[]|null;avatar_url:string|null};
 function one(value:string|string[]|undefined){return Array.isArray(value)?value[0]||'':value||''}
 
 export default async function CollaborationProfilePage({params,searchParams}:{params:Promise<{username:string}>;searchParams?:Promise<Search>}){
@@ -16,7 +17,7 @@ export default async function CollaborationProfilePage({params,searchParams}:{pa
  if(username.length<2)notFound();
  const {data,error}=await auth.rpc('phase18_search_discoverable_members',{p_query:username,p_limit:20});
  if(error){console.error('collaboration profile lookup failed',{code:error.code,message:error.message});notFound()}
- const member=(data||[]).find(item=>String(item.username||'').toLocaleLowerCase('en-GB')===username.toLocaleLowerCase('en-GB'));
+ const member=((data||[]) as DiscoveryProfile[]).find(item=>String(item.username||'').toLocaleLowerCase('en-GB')===username.toLocaleLowerCase('en-GB'));
  if(!member)notFound();
  const role=member.current_job_title||(member.preferred_roles||[])[0]||member.professional_area||'Mettelo member';
  return <main className="cpRoot">

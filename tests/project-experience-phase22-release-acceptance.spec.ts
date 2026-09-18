@@ -106,6 +106,27 @@ test.describe('Phase 22 collaboration release acceptance',()=>{
   expect(continuation).toContain('intent||fallback');
  });
 
+ test('Workstream 10 visible recovery keeps Discover resilient and Admin admission classification canonical',()=>{
+  const discover=read('app/member/discover/page.tsx');
+  const adminApplications=read('app/admin/project-operations/applications/page.tsx');
+  const adminShell=read('components/AdminShell.tsx');
+  expect(discover).toContain('capacityServiceFailureIds');
+  expect(discover).toContain("p_project_ids:[projectId]");
+  expect(discover).toContain('projectsResult.error||capacitySystemError');
+  expect(discover).not.toContain('capacityLoadError=capacityLoadError||projects.some');
+  expect(adminApplications).toContain("item.decision==='review_required'");
+  expect(adminApplications).toContain("item.decision==='auto_qualified'");
+  expect(adminShell).toContain("label:'Project applications'");
+  expect(adminShell).toContain("label:'Active project operations'");
+ });
+
+ test('Workstream 10 Grow Team binds to the canonical team run resolved by Lab',()=>{
+  const lab=read('components/MetteloLabPanel.tsx');
+  expect(lab).toContain('const resolvedTeamRunId=current?.id||props.projectRunId');
+  expect(lab).toContain('projectRunId={resolvedTeamRunId}');
+  expect(lab).not.toContain('ProjectGrowTeamSection projectId={props.projectId} projectRunId={props.projectRunId}');
+ });
+
  test('release evidence includes same-run, RLS, responsive and public collaboration E2E suites',()=>{
   for(const file of [
    'tests/project-experience-phase18a-member-invitations-e2e.spec.ts',

@@ -71,6 +71,7 @@ export async function POST(request:Request){
   ]);
   if(membershipError||runError)throw membershipError||runError;
   if(!run)return NextResponse.json({error:'Your project run changed before the request was sent. Refresh the page and try again.'},{status:409});
+  if(run.status!=='active')return NextResponse.json({error:'Support case creation is not available for this project state.'},{status:409});
   if(!membership||membership.membership_status!=='active')return NextResponse.json({error:'Your project membership changed before the request was sent. Refresh the page and try again.'},{status:409});
 
   const existing=await db.from('project_support_cases')

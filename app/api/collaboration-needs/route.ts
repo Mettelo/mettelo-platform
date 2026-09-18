@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
+import {verifyCollaborationRecruitmentContext} from '@/lib/collaboration-recruitment-context';
 
 function clean(value:unknown,max=800){return String(value??'').trim().slice(0,max)}
 function idList(value:unknown,max=12){if(!Array.isArray(value))return[];return[...new Set(value.map(item=>clean(item,80)).filter(Boolean))].slice(0,max)}
@@ -59,8 +60,9 @@ export async function GET(request:Request){
 
 export async function POST(request:Request){
  try{
-  const body=await request.json();const projectId=clean(body.project_id,80),runId=clean(body.project_run_id,80);
-  if(!projectId||!runId)return NextResponse.json({error:'Project and run are required.'},{status:400});
+  const body=await request.json();const context=verifyCollaborationRecruitmentContext(clean(body.recruitment_context,1200));
+  if(!context)return NextResponse.json({error:'This recruitment context is invalid or expired. Reopen Grow the Team and try again.'},{status:400});
+  const projectId=context.projectId,runId=context.projectRunId;
   const ctx=await actorContext(projectId,runId);if('error'in ctx)return ctx.error;
   if(!ctx.canManage)return NextResponse.json({error:'Your current project role is not authorized by this project’s recruitment policy.'},{status:403});
   if(ctx.project.collaboration_marketplace_enabled!==true)return NextResponse.json({error:'Collaboration marketplace recruitment is disabled for this project.'},{status:409});

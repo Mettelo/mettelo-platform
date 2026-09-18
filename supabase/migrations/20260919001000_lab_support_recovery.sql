@@ -55,3 +55,9 @@ comment on column public.project_support_cases.reporter_project_member_id is
   'Canonical active project_members row used to authorize this private support case.';
 comment on column public.project_support_cases.submission_key is
   'Server-validated retry key preventing accidental duplicate case creation for one member/run submission.';
+
+drop trigger if exists project_support_cases_validate_context on public.project_support_cases;
+create trigger project_support_cases_validate_context
+before insert or update of project_id,project_run_id,reporter_user_id,reporter_project_member_id
+on public.project_support_cases
+for each row execute function public.phase17_validate_support_case_context();

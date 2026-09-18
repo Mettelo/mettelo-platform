@@ -144,9 +144,9 @@ export default function AdminApplicationQueue({initialItems}:{initialItems:Item[
       const response=await fetch('/api/admin/project-admission',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({project_id:item.project_id,project_run_id:item.auto_start.run_id,action:'start_run'})});
       const body=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(body.error||(Array.isArray(body.blockers)?body.blockers.join(', '):'Project cannot start yet.'));
+      setItems(current=>current.map(row=>row.id===item.id?{...row,auto_start:row.auto_start?{...row.auto_start,state:'STARTED',blockers:[]}:row.auto_start}:row));
       setMessage(`${item.project} started successfully.`);
       setAutoStartPending(null);
-      window.location.reload();
     }catch(error){setMessage(error instanceof Error?error.message:'Project cannot start yet.');setAutoStartPending(null)}finally{setWorking(false)}
   }
 

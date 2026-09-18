@@ -27,7 +27,7 @@ function initials(member:Member){
 }
 
 export default function MemberCollaboratorDiscovery(props:Props){
- const{projectId,projectRunId,initialNeedId,projectTitle}=props;
+ const{projectId,projectRunId,initialNeedId}=props;
  const hasProjectContext=Boolean(projectId&&projectRunId);
  const[needs,setNeeds]=useState<Need[]>([]);
  const[needId,setNeedId]=useState(initialNeedId||'');
@@ -137,7 +137,7 @@ export default function MemberCollaboratorDiscovery(props:Props){
   const profileHref=paramsForProfile(member.username,{...props,initialNeedId:needId||initialNeedId});
   const pending=member.invitation_state==='pending';
 
-  return <article className="mcdCard" key={member.username} aria-labelledby={`collaborator-${member.username}`}>
+  return <article className="mcdCard" role="listitem" key={member.username} aria-labelledby={`collaborator-${member.username}`}>
    <div className="mcdCardBody">
     <header className="mcdIdentity">
      <div className="mcdAvatar">

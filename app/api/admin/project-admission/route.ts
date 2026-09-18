@@ -25,7 +25,7 @@ function booleanOr(value:unknown,fallback:boolean){
 }
 
 const policyFields='id,project_type,partner_name,admission_mode,auto_start_delay_minutes,auto_start_paused_at,late_joining_enabled,late_joining_cutoff_at,project_sharing_enabled,member_invites_enabled,collaboration_marketplace_enabled,project_lead_invites_enabled,team_member_invites_enabled,external_collaboration_invites_enabled,collaboration_social_sharing_enabled,offer_expiry_hours,offer_reminders_enabled,status';
-const runFields='id,run_number,status,has_started,required_team_size,scheduled_start_at,start_scheduled_at,start_ready_at,auto_start_paused_at,auto_start_pause_reason,auto_start_paused_by_user_id,auto_start_blocked_at,auto_start_block_reason,auto_start_blocked_by_user_id,auto_start_failure,recruitment_open';
+const runFields='id,run_number,status,has_started,required_team_size,threshold_reached_at,scheduled_start_at,start_scheduled_at,start_ready_at,auto_start_paused_at,auto_start_pause_reason,auto_start_paused_by_user_id,auto_start_blocked_at,auto_start_block_reason,auto_start_blocked_by_user_id,auto_start_failure,recruitment_open';
 
 function safeReason(value:unknown,max=500){return String(value||'').trim().slice(0,max)}
 async function minimumReady(db:NonNullable<ReturnType<typeof serviceDb>>,runId:string,requiredInput:unknown){
@@ -161,8 +161,15 @@ export async function PATCH(request:Request){
       await db.from('project_runs').update({auto_start_paused_at:null,auto_start_pause_reason:null,auto_start_paused_by_user_id:null,auto_start_failure:null,updated_at:now}).eq('id',runId).eq('has_started',false);
       const result=await startProjectRun({db,projectId,runId,source:action==='start_run'?'manual':'admin_retry',actorUserId:user.id});
       if(result.notReady){
-        await db.from('project_runs').update({auto_start_failure:`readiness:${(result.blockers||[]).join(',')}`,updated_at:now}).eq('id',runId).eq('has_started',false);
-        return NextResponse.json({ok:false,status:'needs_attention',blockers:result.blockers||[]},{status:409});
+        const blockers=result.blockers||[];
+        if(blockers.includes('schedule_not_due')){
+          return NextResponse.json({ok:false,status:'eligibility_window',blockers,error:'The six-hour AUTO eligibility window is not complete yet.'},{status:409});
+        }
+        if(blockers.includes('team_size')){
+          return NextResponse.json({ok:false,status:'team_forming',blockers,filled:result.filled,required_team_size:result.requiredTeamSize,error:`Project cannot start yet. The team is now below its required minimum of ${result.requiredTeamSize} member${result.requiredTeamSize===1?'':'s'}.`},{status:409});
+        }
+        await db.from('project_runs').update({auto_start_failure:`readiness:${blockers.join(',')}`,updated_at:now}).eq('id',runId).eq('has_started',false);
+        return NextResponse.json({ok:false,status:'needs_attention',blockers,error:'Project cannot start yet. Resolve the current readiness blockers and try again.'},{status:409});
       }
       return NextResponse.json({ok:true,action,status:result.started||result.alreadyStarted?'active':'scheduled',result});
     }

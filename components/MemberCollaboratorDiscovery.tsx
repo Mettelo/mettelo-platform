@@ -133,53 +133,57 @@ export default function MemberCollaboratorDiscovery(props:Props){
   const professionalArea=human(member.professional_area)||'Not specified';
   const experience=human(member.experience_level)||'Not specified';
   const summary=member.headline?.trim()||`${roleLabel} open to relevant project collaboration opportunities on Mettelo.`;
-  const skills=(member.skills||[]).filter(Boolean).slice(0,4);
+  const skills=(member.match_skills?.length?member.match_skills:member.skills||[]).filter(Boolean).slice(0,5);
   const profileHref=paramsForProfile(member.username,{...props,initialNeedId:needId||initialNeedId});
+  const pending=member.invitation_state==='pending';
 
-  return <article className="mcdCard" key={member.username}>
-   <div className="mcdCardAccent" aria-hidden="true"/>
+  return <article className="mcdCard" key={member.username} aria-labelledby={`collaborator-${member.username}`}>
    <div className="mcdCardBody">
-    <div className="mcdIdentity">
-     <div className="mcdAvatar" aria-hidden="true">
-      {member.avatar_url?<Image src={member.avatar_url} alt="" width={56} height={56} unoptimized/>:<span>{initials(member)}</span>}
-      {available&&<i className="mcdAvailabilityDot"/>}
+    <header className="mcdIdentity">
+     <div className="mcdAvatar">
+      {member.avatar_url?<Image src={member.avatar_url} alt="" width={64} height={64} unoptimized/>:<span aria-hidden="true">{initials(member)}</span>}
      </div>
      <div className="mcdIdentityCopy">
-      <h3>{member.full_name||member.username}</h3>
+      <h3 id={`collaborator-${member.username}`}>{member.full_name||member.username}</h3>
       <p className="mcdUsername">@{member.username}</p>
       <p className="mcdRole">{roleLabel}</p>
      </div>
-    </div>
-
-    <div className="mcdBadges">
-     {recommendedCard&&<span className="mcdBadge match">Relevant experience</span>}
      {available&&<span className="mcdBadge available">{available}</span>}
-     {capacity&&<span className="mcdBadge capacity">{capacity}</span>}
+    </header>
+
+    {(recommendedCard||member.match_label)&&<div className="mcdMatch">
+     <span>{member.match_label||'Relevant collaborator'}</span>
+     {member.match_detail&&<p>{member.match_detail}</p>}
+    </div>}
+
+    <div className="mcdCapabilityBlock">
+     <div className="mcdMiniLabel">Relevant capabilities</div>
+     {skills.length?<div className="mcdSkills">{skills.map(skill=><span key={skill}>{human(skill)}</span>)}</div>:<p className="mcdNoSkills">No public capability details yet</p>}
     </div>
-
-    <p className="mcdSummary">{summary}</p>
-
-    <div className="mcdMiniLabel">Relevant capabilities</div>
-    {skills.length?<div className="mcdSkills">{skills.map(skill=><span key={skill}>{human(skill)}</span>)}</div>:<p className="mcdNoSkills">Capabilities not specified</p>}
 
     <div className="mcdMeta">
      <div><span>Professional area</span><strong>{professionalArea}</strong></div>
      <div><span>Experience</span><strong>{experience}</strong></div>
+     <div><span>Commitment</span><strong>{capacity||'Not specified'}</strong></div>
     </div>
+
+    <p className="mcdSummary">{summary}</p>
    </div>
 
    <div className="mcdActions">
+    {hasProjectContext&&(pending?<span className="mcdPending" role="status">Request pending</span>:<button className="mcdPrimaryAction" type="button" onClick={()=>void invite(member.username)} disabled={Boolean(working)} aria-label={`Send team request to ${member.full_name||member.username}`}>{working===`invite:${member.username}`?'Sending…':'Send team request'}</button>)}
     <Link className="mcdSecondaryAction" href={profileHref}>View profile</Link>
-    {hasProjectContext&&<button className="mcdPrimaryAction" type="button" onClick={()=>void invite(member.username)} disabled={Boolean(working)}>{working===member.username?'Sending…':'Send team request'}</button>}
    </div>
 
    <div className="mcdCardFooter">
-    <span>Discoverable profile</span>
-    <button className="mcdBlock" type="button" onClick={()=>void block(member.username)} disabled={Boolean(working)}>{working===`block:${member.username}`?'Blocking…':'Block member'}</button>
+    <span>Only discoverable profile information is shown.</span>
+    <details className="mcdMore">
+     <summary aria-label={`More actions for ${member.full_name||member.username}`}>More <span aria-hidden="true">•••</span></summary>
+     <div className="mcdMoreMenu"><button type="button" onClick={()=>void block(member.username)} disabled={Boolean(working)}>{working===`block:${member.username}`?'Blocking…':'Block member'}</button></div>
+    </details>
    </div>
   </article>;
  }
-
  return <div className="mcdRoot">
   <section className="mcdSection" aria-labelledby="recommended-collaborators-title">
    <div className="mcdSectionHead">

@@ -182,8 +182,8 @@ async function recommend(db:NonNullable<ReturnType<typeof serviceDb>>,actor:stri
 
 export async function GET(request:Request){
  try{
-  const auth=await createServerSupabaseClient();
-  const {data:{user}}=await auth.auth.getUser();
+  const supabase=await createServerSupabaseClient();
+  const {data:{user}}=await supabase.auth.getUser();
   if(!user)return NextResponse.json({error:'Authentication required.'},{status:401,headers:{'Cache-Control':'private, no-store'}});
   const db=serviceDb();if(!db)return NextResponse.json({error:'Member discovery is temporarily unavailable.'},{status:503,headers:{'Cache-Control':'private, no-store'}});
 
@@ -208,7 +208,7 @@ export async function GET(request:Request){
   }
 
   if(query.length<2)return NextResponse.json({error:'Enter at least 2 characters to search for a member.'},{status:400,headers:{'Cache-Control':'private, no-store'}});
-  const {data,error}=await auth.rpc('phase18_search_discoverable_members',{p_query:query,p_limit:limit});
+  const {data,error}=await supabase.rpc('phase18_search_discoverable_members',{p_query:query,p_limit:limit});
   if(error){
    const message=String(error.message||'');
    if(message.includes('DISCOVERY_RATE_LIMITED'))return NextResponse.json({error:'Too many member searches. Try again shortly.',code:'DISCOVERY_RATE_LIMITED'},{status:429,headers:{'Cache-Control':'private, no-store','Retry-After':'60'}});

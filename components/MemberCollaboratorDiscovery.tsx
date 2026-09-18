@@ -133,7 +133,7 @@ export default function MemberCollaboratorDiscovery(props:Props){
   const professionalArea=human(member.professional_area)||'Not specified';
   const experience=human(member.experience_level)||'Not specified';
   const summary=member.headline?.trim()||`${roleLabel} open to relevant project collaboration opportunities on Mettelo.`;
-  const skills=(member.match_skills?.length?member.match_skills:member.skills||[]).filter(Boolean).slice(0,5);
+  const skills=[...new Map([...(member.match_skills||[]),...(member.skills||[])].filter(Boolean).map(skill=>[skill.toLocaleLowerCase('en-GB'),skill])).values()].slice(0,5);
   const profileHref=paramsForProfile(member.username,{...props,initialNeedId:needId||initialNeedId});
   const pending=member.invitation_state==='pending';
 

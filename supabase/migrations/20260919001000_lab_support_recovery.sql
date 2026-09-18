@@ -27,6 +27,7 @@ begin
     from public.project_runs pr
     where pr.id=new.project_run_id
       and pr.project_id=new.project_id
+      and pr.status='active'
   ) then
     raise exception using errcode='23514',message='SUPPORT_CASE_PROJECT_RUN_MISMATCH';
   end if;
@@ -61,3 +62,31 @@ create trigger project_support_cases_validate_context
 before insert or update of project_id,project_run_id,reporter_user_id,reporter_project_member_id
 on public.project_support_cases
 for each row execute function public.phase17_validate_support_case_context();
+
+
+drop policy if exists project_support_cases_reporter_insert on public.project_support_cases;
+create policy project_support_cases_reporter_insert
+on public.project_support_cases for insert to authenticated
+with check (
+  reporter_user_id=auth.uid()
+  and exists (
+    select 1 from public.project_members pm
+    where pm.project_id=project_support_cases.project_id
+      and pm.project_run_id=project_support_cases.project_run_id
+      and pm.user_id=auth.uid()
+      and pm.membership_status='active'
+  )
+  and exists (
+    select 1 from public.project_runs pr
+    where pr.id=project_support_cases.project_run_id
+      and pr.project_id=project_support_cases.project_id
+      and pr.status='active'
+  )
+  and status='open'
+  and assigned_admin_user_id is null
+  and resolution is null
+  and internal_notes is null
+  and recovery_plan is null
+  and resolved_at is null
+  and closed_at is null
+);

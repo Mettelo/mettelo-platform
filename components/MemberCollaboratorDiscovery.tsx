@@ -225,7 +225,7 @@ export default function MemberCollaboratorDiscovery(props:Props){
     </div></details>
    </form>
 
-   <p className="mcdPrivacyNote">Only discoverable profile information is shown. A team request does not create membership.</p>
+   <p className="mcdPrivacyNote">Only discoverable profile information is shown. Inviting someone does not add them to your team.</p>
    {error&&<div className="mcdError" role="alert"><strong>We couldn’t load the Collaboration Network.</strong><span>{error}</span></div>}
    <div className="mcdStatus" role="status" aria-live="polite">{status}</div>
 

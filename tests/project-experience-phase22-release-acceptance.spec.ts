@@ -29,7 +29,7 @@ test.describe('Phase 22 collaboration release acceptance',()=>{
   const publicPage=read('app/collaborate/[id]/page.tsx');
   for(const text of ['/api/collaboration-needs','/member/collaboration?view=people','/collaborate/'])expect(grow).toContain(text);
   expect(discovery).toContain('/api/member-collaboration-invitations');
-  expect(findTeam).toContain('project_run_id');
+  expect(findTeam).toContain("redirect('/member/collaboration?view=teams')");
   expect(publicPage).toContain('project_run_id');
   expect(grow+discovery).not.toContain("from('project_members').insert");
   expect(grow+discovery).not.toContain("from('project_runs').insert");

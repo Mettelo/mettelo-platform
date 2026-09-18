@@ -1,6 +1,7 @@
 import {serviceDb} from '@/lib/project-flow';
 import ProjectGrowTeamActions from '@/components/ProjectGrowTeamActions';
 import styles from './MetteloLabPanel.module.css';
+import {createCollaborationRecruitmentContext} from '@/lib/collaboration-recruitment-context';
 
 type Props={projectId:string;projectRunId:string;workspaceRole:string;activeMemberCount:number;isAdmin:boolean};
 type Capacity={available?:number;maximum?:number;occupied?:number;reserved?:number;capacity_available?:boolean};
@@ -15,10 +16,11 @@ function unavailable(message:string){return <section className={styles.teamOpera
 export default async function ProjectGrowTeamSection({projectId,projectRunId,workspaceRole,activeMemberCount,isAdmin}:Props){
  const db=serviceDb();
  if(!db)return unavailable('Team recruitment controls are temporarily unavailable. Your Team workspace remains available and no recruitment action has been performed.');
+ await db.rpc('phase18_refresh_collaboration_needs_for_run',{p_run_id:projectRunId});
  const [projectResult,runResult,needResult,capacityResult,rolesResult,domainsResult,capabilitiesResult,projectRolesResult,assignedResult]=await Promise.all([
   db.from('projects').select('id,title,status,visibility,project_type,weekly_commitment,min_team_size,target_team_size,max_team_size,member_invites_enabled,project_lead_invites_enabled,team_member_invites_enabled,collaboration_marketplace_enabled,project_sharing_enabled,collaboration_social_sharing_enabled,late_joining_enabled,late_joining_cutoff_at').eq('id',projectId).maybeSingle(),
   db.from('project_runs').select('id,status,recruitment_open,completion_requested_at').eq('id',projectRunId).eq('project_id',projectId).maybeSingle(),
-  db.from('project_collaboration_needs').select('id,source,source_project_role_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,project_collaboration_need_capabilities(capability_id)').eq('project_id',projectId).eq('project_run_id',projectRunId).eq('status','active').neq('source','direct_invite').order('created_at',{ascending:false}).limit(1).maybeSingle(),
+  db.from('project_collaboration_needs').select('id,source,source_project_role_id,responsibility,target_role_catalogue_id,target_domain_id,experience_level,weekly_commitment,member_message,status,project_collaboration_need_capabilities(capability_id)').eq('project_id',projectId).eq('project_run_id',projectRunId).in('status',['active','needs_review']).neq('source','direct_invite').order('created_at',{ascending:false}).limit(1).maybeSingle(),
   db.rpc('phase9_project_run_capacity',{p_project_id:projectId,p_run_id:projectRunId}),
   db.from('project_role_catalogue').select('id,title').eq('active',true).order('title').limit(80),
   db.from('domains').select('id,name').eq('is_active',true).order('name').limit(80),
@@ -67,6 +69,7 @@ export default async function ProjectGrowTeamSection({projectId,projectRunId,wor
  for(const role of (projectRolesResult.data||[]) as ProjectRole[]){for(const responsibility of role.responsibilities||[]){if(responsibility.trim()&&!assigned.has(key(responsibility))){suggestedResponsibility=responsibility.trim();suggestedSourceProjectRoleId=String(role.id);break}}if(suggestedResponsibility)break}
  const responsibilityValue=totalResponsibilities?`${assignedResponsibilityCount} / ${totalResponsibilities} assigned`:`${assignedResponsibilityCount} assigned`;
  const growValue=stateLabel==='AVAILABLE'?'Ready to recruit':'Controls visible';
+ const recruitmentContextToken=createCollaborationRecruitmentContext(projectId,projectRunId);
  return <section className={styles.teamOperatingState} aria-labelledby="grow-team-title">
   <div className={styles.teamOperatingHead}><div><span className={styles.cardNumber}>TEAM EXPERIENCE</span><h4 id="grow-team-title">Team operating state</h4><p>See who is active, what is covered, remaining capacity and whether this exact run can grow.</p></div><span className={styles.teamStateBadge}>{stateLabel}</span></div>
   <div className={styles.teamExperienceGrid} aria-label="Team experience summary">
@@ -77,6 +80,6 @@ export default async function ProjectGrowTeamSection({projectId,projectRunId,wor
    <article><span>GROW THE TEAM</span><strong>{growValue}</strong><small>{canManage?'you can manage recruitment':'state remains visible'}</small></article>
   </div>
   <div className={styles.growTeamIntro}><div><span className={styles.cardNumber}>GROW THE TEAM</span><h5>Find the right collaborator</h5><p>Find people on Mettelo, publish a structured collaborator need, or share the same governed opportunity externally. Every route stays tied to this exact project run.</p></div></div>
-  <ProjectGrowTeamActions projectId={projectId} projectRunId={projectRunId} projectTitle={project.title} projectType={project.project_type||null} activeNeedId={need?.id||null} activeNeedLabel={need?.responsibility||need?.member_message||null} activeRoleId={need?.target_role_catalogue_id||null} activeDomainId={need?.target_domain_id||null} activeCapabilityIds={activeCapabilityIds} weeklyCommitment={project.weekly_commitment||null} joiningCutoff={project.late_joining_cutoff_at||null} teamOccupied={occupied} teamMinimum={Number(project.min_team_size||1)} teamTarget={Number(project.target_team_size||maximum)} teamMaximum={maximum} openPlaces={openPlaces} runStatus={run.status} canRecruit={baseRecruitable} canManage={canManage} canFind={canFind} canPost={canPost} canShare={canShare} stateLabel={stateLabel} stateMessage={stateMessage} roleOptions={roleOptions} domainOptions={domainOptions} capabilityOptions={capabilityOptions} suggestedResponsibility={suggestedResponsibility} suggestedSourceProjectRoleId={suggestedSourceProjectRoleId}/>
+  <ProjectGrowTeamActions projectId={projectId} projectRunId={projectRunId} recruitmentContextToken={recruitmentContextToken} projectTitle={project.title} projectType={project.project_type||null} activeNeedId={need?.id||null} activeNeedStatus={need?.status||null} activeNeedLabel={need?.responsibility||null} activeNeedMessage={need?.member_message||null} activeRoleId={need?.target_role_catalogue_id||null} activeDomainId={need?.target_domain_id||null} activeCapabilityIds={activeCapabilityIds} weeklyCommitment={need?.weekly_commitment||project.weekly_commitment||null} joiningCutoff={project.late_joining_cutoff_at||null} teamOccupied={occupied} teamMinimum={Number(project.min_team_size||1)} teamTarget={Number(project.target_team_size||maximum)} teamMaximum={maximum} openPlaces={openPlaces} runStatus={run.status} canRecruit={baseRecruitable} canManage={canManage} canFind={canFind} canPost={canPost} canShare={canShare} stateLabel={stateLabel} stateMessage={stateMessage} roleOptions={roleOptions} domainOptions={domainOptions} capabilityOptions={capabilityOptions} suggestedResponsibility={suggestedResponsibility} suggestedSourceProjectRoleId={suggestedSourceProjectRoleId}/>
  </section>;
 }

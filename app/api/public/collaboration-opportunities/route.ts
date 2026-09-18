@@ -39,12 +39,11 @@ async function projectOpportunity(db:NonNullable<ReturnType<typeof serviceDb>>,n
   const closedReason=accepting?null:need.status!=='active'?'opportunity_closed':terminalProject?'project_closed':!liveRun?'run_closed':!recruitmentOpen?'recruitment_closed':!lateJoinOpen?'joining_closed':!hasCapacity?'full':'unavailable';
   return{
     id:need.id,
-    project:{id:p.id,slug:p.slug,title:p.title,summary:p.summary,project_type:p.project_type},
+    project:{slug:p.slug,title:p.title,summary:p.summary,project_type:p.project_type},
     need:{responsibility:need.responsibility,role:roleResult.data?.title||null,domain:domainResult.data?.name||null,capabilities:(capabilitiesResult.data||[]).map(row=>String(row.name)),experience_level:need.experience_level,weekly_commitment:need.weekly_commitment||p.weekly_commitment||null,message:need.member_message},
     availability:{accepting,closed_reason:closedReason,open_places:accepting?Number(capacity?.available||0):0,joining_deadline:p.late_joining_cutoff_at||null,project_stage:p.status,run_stage:r.status},
     created_at:need.created_at,
-    public_url:`/collaborate/${need.id}`,
-    interest_target:`/member/discover/${p.id}?collaboration_need=${encodeURIComponent(need.id)}`
+    public_url:`/collaborate/${need.id}`
   };
 }
 

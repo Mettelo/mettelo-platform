@@ -1,10 +1,12 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
+import {verifyCollaborationRecruitmentContext} from '@/lib/collaboration-recruitment-context';
 
 function clean(value:unknown,max=800){return String(value??'').trim().slice(0,max)}
 function idList(value:unknown,max=12){if(!Array.isArray(value))return[];return[...new Set(value.map(item=>clean(item,80)).filter(Boolean))].slice(0,max)}
 function isAdmin(user:{app_metadata?:Record<string,unknown>}){return user.app_metadata?.role==='admin'}
+const allowedCommitments=new Set(['1–3 hours / week','3–5 hours / week','5–10 hours / week','10+ hours / week','Flexible']);
 
 type CapacitySnapshot={available?:number;capacity_available?:boolean;maximum?:number;occupied?:number;reserved?:number;late_join_allowed?:boolean};
 function one<T>(value:T|T[]|null|undefined){return Array.isArray(value)?value[0]||null:value||null}
@@ -17,7 +19,7 @@ async function actorContext(projectId:string,runId:string){
  if(!db)return{error:NextResponse.json({error:'Project service is not configured.'},{status:503})};
  const [{data:project},{data:run},{data:membership},{count:activeCount}]=await Promise.all([
   db.from('projects').select('id,status,visibility,project_type,weekly_commitment,late_joining_enabled,late_joining_cutoff_at,member_invites_enabled,project_lead_invites_enabled,team_member_invites_enabled,collaboration_marketplace_enabled').eq('id',projectId).maybeSingle(),
-  db.from('project_runs').select('id,project_id,status,has_started,recruitment_open').eq('id',runId).eq('project_id',projectId).maybeSingle(),
+  db.from('project_runs').select('id,project_id,status,has_started,recruitment_open,completion_state').eq('id',runId).eq('project_id',projectId).maybeSingle(),
   db.from('project_members').select('id,team_role,membership_status').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).limit(1).maybeSingle(),
   db.from('project_members').select('id',{count:'exact',head:true}).eq('project_id',projectId).eq('project_run_id',runId).eq('membership_status','active')
  ]);
@@ -58,11 +60,13 @@ export async function GET(request:Request){
 
 export async function POST(request:Request){
  try{
-  const body=await request.json();const projectId=clean(body.project_id,80),runId=clean(body.project_run_id,80);
-  if(!projectId||!runId)return NextResponse.json({error:'Project and run are required.'},{status:400});
+  const body=await request.json();const context=verifyCollaborationRecruitmentContext(clean(body.recruitment_context,1200));
+  if(!context)return NextResponse.json({error:'This recruitment context is invalid or expired. Reopen Grow the Team and try again.'},{status:400});
+  const projectId=context.projectId,runId=context.projectRunId;
   const ctx=await actorContext(projectId,runId);if('error'in ctx)return ctx.error;
   if(!ctx.canManage)return NextResponse.json({error:'Your current project role is not authorized by this project’s recruitment policy.'},{status:403});
   if(ctx.project.collaboration_marketplace_enabled!==true)return NextResponse.json({error:'Collaboration marketplace recruitment is disabled for this project.'},{status:409});
+  if(['final_review','completed'].includes(String(ctx.run.completion_state||'')))return NextResponse.json({error:'Recruitment is frozen while this project run is in final review or completed.'},{status:409});
   if(!['forming','active'].includes(ctx.run.status))return NextResponse.json({error:'Collaboration recruitment is only available for forming or active runs.'},{status:409});
   if(ctx.run.recruitment_open===false)return NextResponse.json({error:'Recruitment is closed for this project run.'},{status:409});
   if(ctx.project.late_joining_enabled===false&&ctx.run.status==='active')return NextResponse.json({error:'Late joining is disabled for this active project.'},{status:409});
@@ -70,9 +74,10 @@ export async function POST(request:Request){
   const cap=await capacity(ctx.db,projectId,runId);if(cap.error||!cap.snapshot)return NextResponse.json({error:'Current project capacity could not be confirmed.'},{status:503});
   if(cap.snapshot.capacity_available!==true||Number(cap.snapshot.available||0)<1)return NextResponse.json({error:'This project run has no collaboration capacity available.'},{status:409});
 
-  const sourceRoleId=clean(body.source_project_role_id,80)||null;const responsibility=clean(body.responsibility,160)||null;const targetRoleId=clean(body.target_role_catalogue_id,80)||null;const targetDomainId=clean(body.target_domain_id,80)||null;const experience=clean(body.experience_level,30)||null;const message=clean(body.member_message,800)||null;const requestedCommitment=clean(body.weekly_commitment,120)||null;const source=['member','phase15_solo_to_team','phase16_replacement','admin'].includes(clean(body.source,40))?clean(body.source,40):'member';const capabilityIds=idList(body.capability_ids);
-  if(!responsibility&&!targetRoleId&&!capabilityIds.length)return NextResponse.json({error:'Choose at least one governed collaboration need: responsibility, role or capability.'},{status:400});
-  if(requestedCommitment&&ctx.project.weekly_commitment&&requestedCommitment!==ctx.project.weekly_commitment)return NextResponse.json({error:'Commitment must use the project’s canonical weekly commitment.'},{status:409});
+  const sourceRoleId=clean(body.source_project_role_id,80)||null;const responsibility=clean(body.responsibility,160)||null;const targetRoleId=clean(body.target_role_catalogue_id,80)||null;const experience=clean(body.experience_level,30)||null;const message=clean(body.member_message,500)||null;const requestedCommitment=clean(body.weekly_commitment,120)||'Flexible';const source=['member','phase15_solo_to_team','phase16_replacement','admin'].includes(clean(body.source,40))?clean(body.source,40):'member';const capabilityIds=idList(body.capability_ids);
+  const {data:primaryDomain}=await ctx.db.from('project_domains').select('domain_id').eq('project_id',projectId).eq('is_primary',true).limit(1).maybeSingle();const targetDomainId=primaryDomain?.domain_id?String(primaryDomain.domain_id):null;
+  if(!responsibility)return NextResponse.json({error:'Tell potential collaborators what help you need.'},{status:400});
+  if(!allowedCommitments.has(requestedCommitment))return NextResponse.json({error:'Choose a valid weekly commitment.'},{status:400});
 
   const validations=await Promise.all([
    targetRoleId?ctx.db.from('project_role_catalogue').select('id').eq('id',targetRoleId).eq('active',true).maybeSingle():Promise.resolve({data:null,error:null}),
@@ -107,11 +112,50 @@ export async function POST(request:Request){
 
 export async function PATCH(request:Request){
  try{
-  const body=await request.json();const needId=clean(body.id,80),projectId=clean(body.project_id,80),runId=clean(body.project_run_id,80);if(!needId||!projectId||!runId)return NextResponse.json({error:'Collaboration need, project and run are required.'},{status:400});
-  const ctx=await actorContext(projectId,runId);if('error'in ctx)return ctx.error;if(!ctx.canManage)return NextResponse.json({error:'Your current project role is not authorized by this project’s recruitment policy.'},{status:403});
-  const {data:current}=await ctx.db.from('project_collaboration_needs').select('id,status,project_id,project_run_id').eq('id',needId).eq('project_id',projectId).eq('project_run_id',runId).maybeSingle();if(!current)return NextResponse.json({error:'Collaboration need not found.'},{status:404});if(current.status!=='active')return NextResponse.json({ok:true,already_closed:true,item:current});
-  const reason=clean(body.reason,240)||'closed_by_authorized_actor';const now=new Date().toISOString();const {data,error}=await ctx.db.from('project_collaboration_needs').update({status:'closed',closed_reason:reason,closed_at:now,updated_at:now}).eq('id',needId).eq('status','active').select('id,status,closed_at').maybeSingle();if(error)throw error;if(!data)return NextResponse.json({error:'The collaboration need changed before it could be closed.'},{status:409});
-  await ctx.db.from('project_activity_log').insert({project_id:projectId,project_run_id:runId,event_type:'collaboration_need_closed',actor_type:isAdmin(ctx.user)?'admin':'user',actor_user_id:ctx.user.id,from_status:ctx.run.status,to_status:ctx.run.status,metadata:{collaboration_need_id:needId,reason}});
+  const body=await request.json();const needId=clean(body.id,80);const action=clean(body.action,24)||'close';
+  if(!needId)return NextResponse.json({error:'Collaboration need is required.'},{status:400});
+  const db=serviceDb();if(!db)return NextResponse.json({error:'Project service is not configured.'},{status:503});
+  const {data:current}=await db.from('project_collaboration_needs').select('id,status,project_id,project_run_id,source_project_role_id,responsibility,target_role_catalogue_id,target_domain_id,weekly_commitment,member_message').eq('id',needId).maybeSingle();
+  if(!current)return NextResponse.json({error:'Collaboration need not found.'},{status:404});
+  const ctx=await actorContext(String(current.project_id),String(current.project_run_id));if('error'in ctx)return ctx.error;
+  if(!ctx.canManage)return NextResponse.json({error:'Your current project role is not authorized by this project’s recruitment policy.'},{status:403});
+
+  if(action==='edit'||action==='review'){
+   if(!['active','needs_review'].includes(String(current.status)))return NextResponse.json({error:'Only an active or review-required need can be updated.'},{status:409});
+   if(ctx.project.collaboration_marketplace_enabled!==true)return NextResponse.json({error:'Collaboration marketplace recruitment is disabled for this project.'},{status:409});
+   if(!['forming','active'].includes(ctx.run.status)||ctx.run.recruitment_open===false)return NextResponse.json({error:'Recruitment is closed for this project run.'},{status:409});
+   if(['final_review','completed'].includes(String(ctx.run.completion_state||'')))return NextResponse.json({error:'Recruitment is frozen while this project run is in final review or completed.'},{status:409});
+   if(ctx.project.late_joining_enabled===false&&ctx.run.status==='active')return NextResponse.json({error:'Late joining is disabled for this active project.'},{status:409});
+   if(ctx.project.late_joining_cutoff_at&&Date.now()>=new Date(ctx.project.late_joining_cutoff_at).getTime())return NextResponse.json({error:'The joining window for this project has closed.'},{status:409});
+   const cap=await capacity(ctx.db,String(current.project_id),String(current.project_run_id));if(cap.error||!cap.snapshot)return NextResponse.json({error:'Current project capacity could not be confirmed.'},{status:503});if(cap.snapshot.capacity_available!==true||Number(cap.snapshot.available||0)<1)return NextResponse.json({error:'This project run has no collaboration capacity available.'},{status:409});
+
+   const responsibility=clean(body.responsibility,160)||null;const targetRoleId=clean(body.target_role_catalogue_id,80)||null;const capabilityIds=idList(body.capability_ids);const requestedCommitment=clean(body.weekly_commitment,120)||'Flexible';const message=clean(body.member_message,500)||null;
+   if(!responsibility)return NextResponse.json({error:'Tell potential collaborators what help you need.'},{status:400});
+   if(!allowedCommitments.has(requestedCommitment))return NextResponse.json({error:'Choose a valid weekly commitment.'},{status:400});
+   const [{data:role},{data:primaryDomain},{data:capabilities}]=await Promise.all([
+    targetRoleId?ctx.db.from('project_role_catalogue').select('id').eq('id',targetRoleId).eq('active',true).maybeSingle():Promise.resolve({data:null}),
+    ctx.db.from('project_domains').select('domain_id').eq('project_id',current.project_id).eq('is_primary',true).limit(1).maybeSingle(),
+    capabilityIds.length?ctx.db.from('capabilities').select('id').in('id',capabilityIds).eq('is_active',true):Promise.resolve({data:[]})
+   ]);
+   if(targetRoleId&&!role)return NextResponse.json({error:'Choose a valid canonical role.'},{status:400});
+   if(capabilityIds.length&&(capabilities||[]).length!==capabilityIds.length)return NextResponse.json({error:'Choose valid canonical capabilities.'},{status:400});
+   const targetDomainId=primaryDomain?.domain_id?String(primaryDomain.domain_id):null;const now=new Date().toISOString();
+   const {data:updated,error}=await ctx.db.from('project_collaboration_needs').update({responsibility,target_role_catalogue_id:targetRoleId,target_domain_id:targetDomainId,weekly_commitment:requestedCommitment,member_message:message,status:'active',source_project_role_id:null,updated_at:now}).eq('id',needId).in('status',['active','needs_review']).select('id,status,project_id,project_run_id,responsibility,target_role_catalogue_id,target_domain_id,weekly_commitment,member_message').maybeSingle();
+   if(error)throw error;if(!updated)return NextResponse.json({error:'The collaboration need changed before it could be updated.'},{status:409});
+   const {data:oldLinks}=await ctx.db.from('project_collaboration_need_capabilities').select('capability_id').eq('collaboration_need_id',needId);
+   const oldCapabilityIds=(oldLinks||[]).map(item=>String(item.capability_id));
+   const deleted=await ctx.db.from('project_collaboration_need_capabilities').delete().eq('collaboration_need_id',needId);if(deleted.error)throw deleted.error;
+   if(capabilityIds.length){const inserted=await ctx.db.from('project_collaboration_need_capabilities').insert(capabilityIds.map(capabilityId=>({collaboration_need_id:needId,capability_id:capabilityId})));if(inserted.error){if(oldCapabilityIds.length)await ctx.db.from('project_collaboration_need_capabilities').insert(oldCapabilityIds.map(capabilityId=>({collaboration_need_id:needId,capability_id:capabilityId})));throw inserted.error}}
+   await ctx.db.from('project_activity_log').insert({project_id:current.project_id,project_run_id:current.project_run_id,event_type:'collaboration_need_updated',actor_type:isAdmin(ctx.user)?'admin':'user',actor_user_id:ctx.user.id,from_status:ctx.run.status,to_status:ctx.run.status,metadata:{collaboration_need_id:needId,capability_count:capabilityIds.length}});
+   return NextResponse.json({ok:true,item:updated},{headers:{'Cache-Control':'private, no-store'}});
+  }
+
+  if(action!=='close')return NextResponse.json({error:'Unsupported collaboration need action.'},{status:400});
+  if(!['active','needs_review'].includes(String(current.status)))return NextResponse.json({ok:true,already_closed:true,item:current});
+  const reason=clean(body.reason,240)||'No longer needed';const now=new Date().toISOString();
+  const {data,error}=await ctx.db.from('project_collaboration_needs').update({status:'closed',closed_reason:reason,closed_at:now,updated_at:now}).eq('id',needId).in('status',['active','needs_review']).select('id,status,closed_at,closed_reason').maybeSingle();
+  if(error)throw error;if(!data)return NextResponse.json({error:'The collaboration need changed before it could be closed.'},{status:409});
+  await ctx.db.from('project_activity_log').insert({project_id:current.project_id,project_run_id:current.project_run_id,event_type:'collaboration_need_closed',actor_type:isAdmin(ctx.user)?'admin':'user',actor_user_id:ctx.user.id,from_status:ctx.run.status,to_status:ctx.run.status,metadata:{collaboration_need_id:needId,reason}});
   return NextResponse.json({ok:true,item:data},{headers:{'Cache-Control':'private, no-store'}});
- }catch(error){console.error('collaboration need close failed',error);return NextResponse.json({error:'Unable to close this collaboration need.'},{status:500})}
+ }catch(error){console.error('collaboration need update failed',error);return NextResponse.json({error:'Unable to update this collaboration need.'},{status:500})}
 }

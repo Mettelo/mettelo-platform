@@ -93,8 +93,8 @@ test.describe('Phase 22 collaboration release acceptance',()=>{
   const flow=read('components/OnboardingFlow.tsx');
   const complete=read('app/onboarding/complete/page.tsx');
   const continuation=read('app/auth/continue-after-onboarding/route.ts');
-  expect(publicPage).toContain('const interestTarget=`/member/discover/${item.project.id}?collaboration_need=${encodeURIComponent(id)}`');
-  expect(publicPage).toContain('`/signin?next=${encodeURIComponent(inviteToken?inviteLanding:interestTarget)}`');
+  expect(publicPage).toContain('responseTarget=`/collaborate/${encodeURIComponent(id)}/respond`');
+  expect(publicPage).toContain('`/signin?next=${encodeURIComponent(inviteToken?inviteLanding:responseTarget)}`');
   expect(account).toContain("return next==='/member'||next==='/onboarding'?'/onboarding':`/onboarding?next=${encodeURIComponent(next)}`");
   expect(account).toContain('flow=signup&next=${encodeURIComponent(onboarding)}');
   expect(callback).toContain("if(flow==='signup')");

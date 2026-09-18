@@ -23,8 +23,9 @@ test.describe('Workstream 10 visible product recovery contract',()=>{
   test('Admin Project Applications uses the application admission decision as the canonical lane',()=>{
     const page=read('app/admin/project-operations/applications/page.tsx');
     expect(page).toContain("row.admission_decision==='auto_qualified'?'auto':row.admission_decision==='review_required'?'review_required':effective");
-    expect(page).toContain("item.canonicalLane==='review_required'");
+    expect(page).toContain('items=mapped.map(item=>item.queue)');
     expect(page).toContain("item.canonicalLane==='auto'");
+    expect(page).toContain("item.admission_lane==='review_required'");
     expect(page).toContain('Project applications');
     expect(page).toContain('Admin / Recruiting / Project Applications');
   });

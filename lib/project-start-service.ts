@@ -22,7 +22,7 @@ async function assessProjectTeamReadiness(db:Db,projectId:string,runId:string):P
 export async function startProjectRun({db,projectId,runId,source,actorUserId=null}:{db:Db;projectId:string;runId:string;source:StartSource;actorUserId?:string|null}):Promise<StartResult>{
  const [{data:project,error:projectError},{data:run,error:runError}]=await Promise.all([
   db.from('projects').select('id,title,status,project_type,admission_mode,participation_mode,auto_start_paused_at,applications_open,min_team_size,max_team_size,target_team_size,team_size_threshold').eq('id',projectId).maybeSingle(),
-  db.from('project_runs').select('id,run_number,status,required_team_size,has_started,scheduled_start_at,auto_start_paused_at,auto_start_blocked_at').eq('id',runId).eq('project_id',projectId).maybeSingle()
+  db.from('project_runs').select('id,run_number,status,required_team_size,has_started,threshold_reached_at,scheduled_start_at,auto_start_paused_at,auto_start_blocked_at').eq('id',runId).eq('project_id',projectId).maybeSingle()
  ]);
  if(projectError||!project||runError||!run)throw new Error('PROJECT_RUN_NOT_FOUND');
  const participationMode=canonicalParticipationMode(project.participation_mode);
@@ -47,6 +47,10 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
  }
  if(source==='auto_scheduler'&&(project.auto_start_paused_at||run.auto_start_paused_at)){
   return{started:false,paused:true,projectId,runId,runNumber:run.run_number,filled:0,requiredTeamSize:required};
+ }
+ if(effectiveMode==='auto'&&(!run.scheduled_start_at||new Date(run.scheduled_start_at).getTime()>Date.now())){
+  const {count}=await db.from('project_members').select('id',{count:'exact',head:true}).eq('project_run_id',runId).in('membership_status',['waiting','active']);
+  return{started:false,notReady:true,blockers:['schedule_not_due'],projectId,runId,runNumber:run.run_number,filled:count||0,requiredTeamSize:required};
  }
 
  const phase11=await assessProjectTeamReadiness(db,projectId,runId);

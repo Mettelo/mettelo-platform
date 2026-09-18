@@ -19,7 +19,7 @@ const checks=[
   ['lib/project-team-readiness.ts',["from('project_member_responsibilities')",'assignment_status','responsibility_coverage',".select('lab_ready')","if(leads.length===0)blockers.push('project_lead')","if(leads.length>1)blockers.push('multiple_project_leads')",'ready:blockers.length===0']],
   ['lib/project-start-service.ts',["db.rpc('phase9_activate_project_run'",'assessProjectTeamReadiness']],
   ['app/member/applications/page.tsx',['project_application_events','project_run_id','MemberApplicationTracker',"from('project_applications')"]],
-  ['components/MemberApplicationTracker.tsx',['Search project requests','Project requests','Team forming','Project confirmed']],
+  ['components/MemberApplicationTracker.tsx',['Search project requests','Project requests','Team forming','Ready / starting']],
   ['components/ProjectTeamRoster.tsx',['COHORTS','profile photo','is_member']],
   ['app/api/project-team-overview/route.ts',['resolveProjectTeamOverview','Project membership is required.']],
   ['lib/project-team-overview.ts',['ownRunIds','readableRuns','readableRunIds','is_member:isMember','members:isMember?']],

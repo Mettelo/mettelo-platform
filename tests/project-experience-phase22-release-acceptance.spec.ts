@@ -26,6 +26,7 @@ test.describe('Phase 22 collaboration release acceptance',()=>{
   const grow=read('components/ProjectGrowTeamActions.tsx');
   const discovery=read('components/MemberCollaboratorDiscovery.tsx');
   const findTeam=read('app/member/find-a-team/page.tsx');
+  const network=read('app/member/collaboration/page.tsx');
   const publicPage=read('app/collaborate/[id]/page.tsx');
   for(const text of ['/api/collaboration-needs','/member/collaboration?view=people','/collaborate/'])expect(grow).toContain(text);
   expect(discovery).toContain('/api/member-collaboration-invitations');

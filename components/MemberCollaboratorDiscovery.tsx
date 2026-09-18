@@ -72,21 +72,23 @@ export default function MemberCollaboratorDiscovery(props:Props){
  }
 
  useEffect(()=>{
-  if(!hasProjectContext||!projectId||!projectRunId||!projectTitle)return;
   let active=true;
+  if(!hasProjectContext||!projectId||!projectRunId){
+   void discover('','recommend','');
+   return()=>{active=false};
+  }
   const qs=new URLSearchParams({project_id:projectId,project_run_id:projectRunId});
   void fetch(`/api/collaboration-needs?${qs.toString()}`,{cache:'no-store'}).then(async response=>{
    const body=await response.json().catch(()=>({}));
    if(!response.ok)throw new Error(body.error||'Unable to load project collaboration context.');
    if(!active)return;
    const rows=(body.items||[]) as Need[];setNeeds(rows);
-   const selected=rows.find(item=>item.id===initialNeedId)||rows[0]||null;setNeedId(selected?.id||'');
-   const seed=selected?.responsibility||selected?.member_message||projectTitle;
-   if(seed.trim().length>=2)void discover(seed,'recommend');
-  }).catch(()=>{if(active&&projectTitle.trim().length>=2)void discover(projectTitle,'recommend')});
+   const selected=rows.find(item=>item.id===initialNeedId)||rows[0]||null;const selectedId=selected?.id||'';setNeedId(selectedId);
+   void discover('','recommend',selectedId);
+  }).catch(()=>{if(active)void discover('','recommend',initialNeedId||'')});
   return()=>{active=false};
  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[hasProjectContext,projectId,projectRunId,initialNeedId,projectTitle]);
+ },[hasProjectContext,projectId,projectRunId,initialNeedId]);
 
  async function submitSearch(event:FormEvent){
   event.preventDefault();
@@ -117,9 +119,8 @@ export default function MemberCollaboratorDiscovery(props:Props){
   }catch(err){setError(err instanceof Error?err.message:'Unable to send team request.')}finally{setWorking('')}
  }
 
- function clearFilters(){
-  setRole('');setCapability('');setDomain('');setAvailability('');setCommitment('');
- }
+ function clearFilters(){setRole('');setCapability('');setDomain('');setAvailability('');setCommitment('')}
+ function updateQuery(value:string){setQuery(value);if(!value.trim()){setSearched(false);setSearchedQuery('');setResults([]);setError('');setStatus('')}}
 
  function card(member:Member,recommendedCard=false){
   const available=human(member.project_availability);

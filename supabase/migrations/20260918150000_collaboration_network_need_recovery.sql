@@ -161,30 +161,42 @@ $$;
 revoke all on function public.phase18_refresh_collaboration_needs_for_run(uuid) from public,anon,authenticated;
 grant execute on function public.phase18_refresh_collaboration_needs_for_run(uuid) to service_role;
 
-create or replace function public.phase18_refresh_needs_trigger()
+create or replace function public.phase18_refresh_needs_for_run_trigger()
 returns trigger
 language plpgsql
 security definer
 set search_path=public
 as $$
-declare
-  run_id uuid;
 begin
-  run_id:=coalesce(new.project_run_id,old.project_run_id,new.id,old.id);
-  if run_id is not null then
-    perform public.phase18_refresh_collaboration_needs_for_run(run_id);
-  end if;
+  perform public.phase18_refresh_collaboration_needs_for_run(coalesce(new.id,old.id));
   return coalesce(new,old);
 end;
 $$;
 
-revoke all on function public.phase18_refresh_needs_trigger() from public,anon,authenticated;
+revoke all on function public.phase18_refresh_needs_for_run_trigger() from public,anon,authenticated;
 
 drop trigger if exists phase18_refresh_needs_on_run on public.project_runs;
 create trigger phase18_refresh_needs_on_run
 after update of status,recruitment_open,completion_state
 on public.project_runs
-for each row execute function public.phase18_refresh_needs_trigger();
+for each row execute function public.phase18_refresh_needs_for_run_trigger();
+
+create or replace function public.phase18_refresh_needs_for_membership_trigger()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $$
+begin
+  if tg_op='UPDATE' and old.project_run_id is distinct from new.project_run_id then
+    perform public.phase18_refresh_collaboration_needs_for_run(old.project_run_id);
+  end if;
+  perform public.phase18_refresh_collaboration_needs_for_run(coalesce(new.project_run_id,old.project_run_id));
+  return coalesce(new,old);
+end;
+$$;
+
+revoke all on function public.phase18_refresh_needs_for_membership_trigger() from public,anon,authenticated;
 
 create or replace function public.phase18_refresh_needs_for_project_trigger()
 returns trigger
@@ -214,7 +226,7 @@ drop trigger if exists phase18_refresh_needs_on_membership on public.project_mem
 create trigger phase18_refresh_needs_on_membership
 after insert or update of membership_status,project_run_id or delete
 on public.project_members
-for each row execute function public.phase18_refresh_needs_trigger();
+for each row execute function public.phase18_refresh_needs_for_membership_trigger();
 
 comment on function public.phase18_refresh_collaboration_needs_for_run(uuid) is
   'Reconciles canonical collaboration needs against live run/project lifecycle and capacity. Closes invalid listings without deleting history and marks structurally stale records for review.';

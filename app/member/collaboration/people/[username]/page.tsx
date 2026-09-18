@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import {notFound,redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
@@ -22,7 +23,7 @@ export default async function CollaborationProfilePage({params,searchParams}:{pa
   <Link className="cpBack" href={`/member/collaboration?${back.toString()}`}>← Back to Collaboration Network</Link>
   <MemberPageHeader eyebrow="COLLABORATION NETWORK · PEOPLE" title={member.full_name||`@${member.username}`} description={member.headline||role}/>
   <section className="cpCard" aria-label="Discoverable collaborator profile">
-   <div className="cpIdentity"><div className="cpAvatar" aria-hidden="true">{member.avatar_url?<img src={member.avatar_url} alt=""/>:<span>{String(member.full_name||member.username).slice(0,2).toUpperCase()}</span>}</div><div><strong>@{member.username}</strong><span>{role}</span></div></div>
+   <div className="cpIdentity"><div className="cpAvatar" aria-hidden="true">{member.avatar_url?<Image src={member.avatar_url} alt="" width={64} height={64} unoptimized/>:<span>{String(member.full_name||member.username).slice(0,2).toUpperCase()}</span>}</div><div><strong>@{member.username}</strong><span>{role}</span></div></div>
    <dl>
     <div><dt>Professional area</dt><dd>{member.professional_area||'Not specified'}</dd></div>
     <div><dt>Experience</dt><dd>{member.experience_level||'Not specified'}</dd></div>

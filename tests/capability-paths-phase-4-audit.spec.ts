@@ -49,7 +49,7 @@ test.describe('Capability Paths Phase 4 member contract',()=>{
  });
  test('Discover stays broad while Path and stage filters are additive structured context',()=>{
   expect(discover).not.toContain('MemberCapabilityPathsPanel');
-  hasAll(discover,['MemberCapabilityPathFilters','selectedPath','selectedStage','MemberDiscoverCatalogue',"rpc('get_member_project_capacities'",'resolveMemberProjectState','capacityAvailable:capacity.capacity_available','capacityKnown:true','capacity.recruitment_state','summary:project.summary','pathContext:primaryContext']);
+  hasAll(discover,['MemberCapabilityPathFilters','selectedPath','selectedStage','MemberDiscoverCatalogue',"rpc('get_member_project_capacities'",'resolveMemberProjectState','capacityAvailable:capacity?.capacity_available','capacityKnown:Boolean(capacity)','capacity?.recruitment_state','summary:project.summary','pathContext:primaryContext']);
   expect(discover).not.toContain('resolveProjectPublicAvailability');
   expect(discover).not.toContain('occupied_role_count');
   hasAll(filters,['All followed Paths','All stages','Clear Path filters']);hasAll(catalogue,['mdPathContext','Capability Path context','Discover is broad. Recommended is personalised.']);

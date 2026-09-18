@@ -42,9 +42,11 @@ test.describe('Project Experience Phase 17 private support security journey',()=
 
  test('Lab Support uses the canonical active run, submits visibly, persists and deduplicates retries',async({page})=>{test.slow();const fixture=await seed();try{
    const forgedRun='00000000-0000-4000-8000-00000000d199';
-   await login(page,'MEMBER',`/member/projects/${PROJECT}?run=${forgedRun}&view=support`);
+   await login(page,'MEMBER',`/member/projects/${PROJECT}?run=${fixture.runId}&view=support`);
    await expect(page.getByRole('heading',{name:'Get help with your project'})).toBeVisible();
    await expect(page.getByText('Only an active member of this exact project run can create a support case.')).toHaveCount(0);
+   const forbidden=await page.goto(`/member/projects/${PROJECT}?run=${forgedRun}&view=support`,{waitUntil:'domcontentloaded'});expect(forbidden?.status()).toBe(404);
+   await page.goto(`/member/projects/${PROJECT}?run=${fixture.runId}&view=support`,{waitUntil:'networkidle'});
    await expect(page.getByRole('button',{name:'Submit private support case'})).toBeVisible();
    await page.getByLabel('What do you need help with?').selectOption('project_lead_support');
    await page.getByLabel('Tell the support team what is happening').fill('I need private support about project direction and I need this message kept inside the secure Mettelo support workflow.');

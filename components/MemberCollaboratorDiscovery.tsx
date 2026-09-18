@@ -110,12 +110,16 @@ export default function MemberCollaboratorDiscovery(props:Props){
 
  async function invite(username:string){
   if(!projectId||!projectRunId){setError('Open Collaboration Network from an active project before sending a team request.');return}
-  setWorking(username);setStatus('');setError('');
+  setWorking(`invite:${username}`);setStatus('');setError('');
+  const markPending=()=>{const update=(items:Member[])=>items.map(item=>item.username===username?{...item,invitation_state:'pending' as const}:item);setRecommended(update);setResults(update)};
   try{
    const response=await fetch('/api/member-collaboration-invitations',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({project_id:projectId,project_run_id:projectRunId,collaboration_need_id:needId||null,username})});
    const body=await response.json().catch(()=>({}));
-   if(!response.ok)throw new Error(body.error||'Unable to send team request.');
-   setStatus(`Team request sent to @${username}. Membership has not been created; the invitee must review and accept the request before the governed joining journey continues.`);
+   if(!response.ok){
+    if(body.code==='INVITE_ALREADY_PENDING'){markPending();setStatus(`A team request is already pending for @${username}.`);return}
+    throw new Error(body.error||'Unable to send team request.');
+   }
+   markPending();setStatus(`Team request sent to @${username}. Membership has not been created; the request remains pending until they accept and governed joining checks continue.`);
   }catch(err){setError(err instanceof Error?err.message:'Unable to send team request.')}finally{setWorking('')}
  }
 

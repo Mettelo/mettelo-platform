@@ -187,60 +187,53 @@ export default function MemberCollaboratorDiscovery(props:Props){
  return <div className="mcdRoot">
   <section className="mcdSection" aria-labelledby="recommended-collaborators-title">
    <div className="mcdSectionHead">
-    <div>
-     <span>RECOMMENDED COLLABORATORS</span>
-     <h2 id="recommended-collaborators-title">{hasProjectContext?'People who may fit this project':'Recommended collaborators'}</h2>
-     <p>{hasProjectContext?'Recommendations use discoverable skills, professional focus and availability relevant to your current project.':'Open Collaboration Network from an active project to see project-specific collaborator recommendations.'}</p>
-    </div>
-    {hasProjectContext&&working==='recommend'&&<span className="mcdLoading" role="status">Loading…</span>}
+    <div><span>RECOMMENDED COLLABORATORS</span><h2 id="recommended-collaborators-title">People who may be useful collaborators</h2><p>People whose skills, capabilities and availability may fit {hasProjectContext?'your current project':'your professional profile and collaboration interests'}.</p></div>
+    {working==='recommend'&&<span className="mcdLoading" role="status">Finding relevant people…</span>}
    </div>
-
-   {hasProjectContext&&recommended.length>0?<div className="mcdGrid">{recommended.map(member=>card(member,true))}</div>:hasProjectContext&&working!=='recommend'?<div className="mcdEmpty"><strong>No visible recommendations yet</strong><p>Search the network below to find a collaborator by name, role, capability or domain.</p></div>:!hasProjectContext?<div className="mcdContextHint"><div className="mcdHintIcon" aria-hidden="true">+</div><div><strong>Looking for someone for a project?</strong><p>Use Team → Grow the Team → Find people on Mettelo. Your project context will be carried here securely so you can send governed team requests.</p></div></div>:null}
+   {recommended.length>0?<div className="mcdGrid" role="list" aria-label="Recommended collaborators">{recommended.map(member=>card(member,true))}</div>:working!=='recommend'&&!error?<div className="mcdEmpty"><strong>No recommended collaborators yet</strong><p>Try searching by role, skill, capability or domain.</p></div>:null}
   </section>
 
   <section className="mcdSearch" aria-labelledby="search-network-title">
    <div className="mcdSearchHead">
-    <div>
-     <span>SEARCH THE NETWORK</span>
-     <h2 id="search-network-title">Find another collaborator</h2>
-     <p>Search discoverable members by name, @username, role, capability or domain. Private profile information is never included.</p>
-    </div>
+    <div><span>SEARCH THE NETWORK</span><h2 id="search-network-title">Find another collaborator</h2><p>Search by name, @username, role, capability or domain.</p></div>
     <Link className="mcdBlockedLink" href="/member/blocked-members">Manage blocked members</Link>
    </div>
 
-   {hasProjectContext&&needs.length>0&&<label className="mcdNeed">Request context<select value={needId} onChange={event=>{const next=event.target.value;setNeedId(next);const item=needs.find(value=>value.id===next);const seed=item?.responsibility||item?.member_message||projectTitle||'';if(seed.trim().length>=2)void discover(seed,'recommend')}}><option value="">Direct team request</option>{needs.map(item=><option value={item.id} key={item.id}>{item.responsibility||item.member_message||item.weekly_commitment||'Active collaboration need'}</option>)}</select></label>}
+   {hasProjectContext&&needs.length>0&&<label className="mcdNeed">Request context<select value={needId} onChange={event=>{const next=event.target.value;setNeedId(next);void discover('','recommend',next)}}><option value="">Direct team request</option>{needs.map(item=><option value={item.id} key={item.id}>{item.responsibility||item.member_message||item.weekly_commitment||'Active collaboration need'}</option>)}</select></label>}
 
    <form onSubmit={submitSearch}>
     <label className="mcdSearchLabel" htmlFor="collaboration-member-search">Search by name, @username, role, capability or domain</label>
     <div className="mcdSearchRow">
-     <div className="mcdSearchInputWrap">
-      <span aria-hidden="true">⌕</span>
-      <input id="collaboration-member-search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search people, roles, capabilities or domains"/>
-     </div>
+     <div className="mcdSearchInputWrap"><span aria-hidden="true">⌕</span><input id="collaboration-member-search" value={query} onChange={event=>updateQuery(event.target.value)} placeholder="Search people, roles, capabilities or domains"/></div>
      <button className="mcdSearchButton" type="submit" disabled={working==='search'}>{working==='search'?'Searching…':'Search network'}</button>
     </div>
-
-    <details className="mcdFilterPanel">
-     <summary>Filters{activeFilterCount>0?<b>{activeFilterCount}</b>:null}</summary>
-     <div className="mcdFilters">
-      <label>Role<input value={role} onChange={event=>setRole(event.target.value)} placeholder="Any role"/></label>
-      <label>Capability<input value={capability} onChange={event=>setCapability(event.target.value)} placeholder="Any capability"/></label>
-      <label>Domain<input value={domain} onChange={event=>setDomain(event.target.value)} placeholder="Any domain"/></label>
-      <label>Availability<input value={availability} onChange={event=>setAvailability(event.target.value)} placeholder="Any availability"/></label>
-      <label>Commitment<input value={commitment} onChange={event=>setCommitment(event.target.value)} placeholder="Any commitment"/></label>
-      {activeFilterCount>0&&<button type="button" className="mcdClearFilters" onClick={clearFilters}>Clear filters</button>}
-     </div>
-    </details>
+    <div className="mcdDesktopFilters" aria-label="Search filters">
+     <label>Role<input value={role} onChange={event=>setRole(event.target.value)} placeholder="Any role"/></label>
+     <label>Capability<input value={capability} onChange={event=>setCapability(event.target.value)} placeholder="Any capability"/></label>
+     <label>Domain<input value={domain} onChange={event=>setDomain(event.target.value)} placeholder="Any domain"/></label>
+     <label>Availability<input value={availability} onChange={event=>setAvailability(event.target.value)} placeholder="Any availability"/></label>
+     <label>Commitment<input value={commitment} onChange={event=>setCommitment(event.target.value)} placeholder="Any commitment"/></label>
+     {activeFilterCount>0&&<button type="button" className="mcdClearFilters" onClick={clearFilters}>Clear</button>}
+    </div>
+    <details className="mcdMobileFilters"><summary>Filters{activeFilterCount>0?<b>{activeFilterCount}</b>:null}</summary><div>
+     <label>Role<input value={role} onChange={event=>setRole(event.target.value)} placeholder="Any role"/></label>
+     <label>Capability<input value={capability} onChange={event=>setCapability(event.target.value)} placeholder="Any capability"/></label>
+     <label>Domain<input value={domain} onChange={event=>setDomain(event.target.value)} placeholder="Any domain"/></label>
+     <label>Availability<input value={availability} onChange={event=>setAvailability(event.target.value)} placeholder="Any availability"/></label>
+     <label>Commitment<input value={commitment} onChange={event=>setCommitment(event.target.value)} placeholder="Any commitment"/></label>
+     {activeFilterCount>0&&<button type="button" className="mcdClearFilters" onClick={clearFilters}>Clear</button>}
+    </div></details>
    </form>
 
-   <p className="mcdPrivacyNote">Inviting someone does not add them to your team. A request stays pending until they accept and the governed joining checks continue.</p>
-
+   <p className="mcdPrivacyNote">Only discoverable profile information is shown. A team request does not create membership.</p>
    {error&&<div className="mcdError" role="alert"><strong>We couldn’t load the Collaboration Network.</strong><span>{error}</span></div>}
    <div className="mcdStatus" role="status" aria-live="polite">{status}</div>
 
-   {searched&&(results.length?<div className="mcdResults"><div className="mcdResultsMeta"><span>{results.length} visible match{results.length===1?'':'es'}</span><span>Discoverable members only</span></div><div className="mcdGrid" aria-label="Search results">{results.map(member=>card(member,false))}</div></div>:working!=='search'&&!error?<div className="mcdEmpty"><strong>No visible matches yet</strong><p>Try another search or adjust your filters.</p></div>:null)}
+   {searched&&<section className="mcdResults" aria-labelledby="search-results-title">
+    <div className="mcdResultsMeta"><div><span>SEARCH RESULTS</span><strong id="search-results-title">Search results for “{searchedQuery}”</strong></div>{results.length>0&&<span>{results.length} collaborator{results.length===1?'':'s'}</span>}</div>
+    {results.length?<div className="mcdGrid" role="list" aria-label="Search results">{results.map(member=>card(member,false))}</div>:working!=='search'&&!error?<div className="mcdEmpty"><strong>No matches found</strong><p>Try another term or adjust your filters.</p></div>:null}
+   </section>}
   </section>
-
   <style jsx>{`
    .mcdRoot{display:grid;gap:38px;min-width:0}
    .mcdSection{display:grid;gap:18px;min-width:0}

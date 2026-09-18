@@ -22,7 +22,7 @@ function normalizeCommitment(value:string|null){if(!value)return'Flexible';const
 export default function ProjectGrowTeamActions(props:Props){
  const{
   projectId,projectRunId,recruitmentContextToken,projectTitle,projectType,activeNeedId,activeNeedStatus,activeNeedLabel,activeNeedMessage,
-  activeRoleId,activeCapabilityIds,weeklyCommitment,joiningCutoff,teamOccupied,teamMinimum,teamTarget,teamMaximum,
+  activeRoleId,activeCapabilityIds,weeklyCommitment,joiningCutoff,teamOccupied,teamMaximum,
   openPlaces,runStatus,canRecruit,canManage,canFind,canPost,canShare,stateLabel,stateMessage,roleOptions,
   capabilityOptions,suggestedResponsibility,suggestedSourceProjectRoleId
  }=props;

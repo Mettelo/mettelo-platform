@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import {FormEvent,useEffect,useState} from 'react';
 
@@ -101,7 +102,7 @@ export default function MemberCollaboratorDiscovery(props:Props){
   const roleLabel=member.current_job_title||(member.preferred_roles||[])[0]||member.professional_area||'Mettelo member';
   return <article className="mcdCard" key={member.username}>
    <div className="mcdIdentity">
-    <div className="mcdAvatar" aria-hidden="true">{member.avatar_url?<img src={member.avatar_url} alt=""/>:<span>{(member.full_name||member.username).slice(0,2).toUpperCase()}</span>}</div>
+    <div className="mcdAvatar" aria-hidden="true">{member.avatar_url?<Image src={member.avatar_url} alt="" width={52} height={52} unoptimized/>:<span>{(member.full_name||member.username).slice(0,2).toUpperCase()}</span>}</div>
     <div><h3>{member.full_name||member.username}</h3><p>@{member.username} · {roleLabel}</p></div>
    </div>
    <div className="mcdBadges">{available&&<span>{available}</span>}{recommendedCard&&<span>Relevant experience</span>}{member.weekly_capacity&&<span>{member.weekly_capacity}</span>}</div>

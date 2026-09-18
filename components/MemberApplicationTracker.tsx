@@ -102,7 +102,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
   if(!items.length)return <>
     <section className="mmaEmpty mmaInitialEmpty" aria-labelledby="no-applications"><h2 id="no-applications">No project requests yet</h2><p>When you submit interest in a Mettelo project, you’ll track it here from submission through review, team formation, confirmation or closure. Legacy project applications also remain visible here.</p><div className="mmaActions"><a className="mmaBtn mmaPrimary" href="/projects">Discover projects</a><a className="mmaBtn" href="/member/recommended">Recommended</a></div></section>
     <Explore/>
-    <style jsx global>{baseStyles}</style>
+    <style>{baseStyles}</style>
   </>;
 
   return <>
@@ -156,7 +156,7 @@ export default function MemberApplicationTracker({applications}:{applications:Ap
       </>}
     </dialog>
 
-    <style jsx global>{baseStyles}</style>
+    <style>{baseStyles}</style>
   </>;
 }
 

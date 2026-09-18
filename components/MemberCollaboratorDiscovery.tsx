@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {FormEvent,useEffect,useMemo,useState} from 'react';
 
 type Need={id:string;responsibility:string|null;member_message:string|null;weekly_commitment:string|null};
-type Member={username:string;full_name:string|null;headline:string|null;current_job_title:string|null;professional_area:string|null;experience_level:string|null;project_availability:string|null;weekly_capacity:string|null;skills:string[];preferred_roles:string[];avatar_url:string|null};
+type Member={username:string;full_name:string|null;headline:string|null;current_job_title:string|null;professional_area:string|null;experience_level:string|null;project_availability:string|null;weekly_capacity:string|null;skills:string[];preferred_roles:string[];avatar_url:string|null;invitation_state?:'pending'|null;match_label?:string|null;match_detail?:string|null;match_skills?:string[]};
 type Props={projectId?:string;projectRunId?:string;initialNeedId?:string;projectTitle?:string};
 
 function paramsForProfile(username:string,props:Props){
@@ -38,6 +38,7 @@ export default function MemberCollaboratorDiscovery(props:Props){
  const[error,setError]=useState('');
  const[working,setWorking]=useState('');
  const[searched,setSearched]=useState(false);
+ const[searchedQuery,setSearchedQuery]=useState('');
  const[role,setRole]=useState('');
  const[capability,setCapability]=useState('');
  const[domain,setDomain]=useState('');

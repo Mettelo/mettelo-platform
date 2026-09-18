@@ -46,8 +46,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
-      - name: Canonical Phase 9 10 11 ownership
-        run: npx playwright test tests/project-experience-phase9-participation-model.spec.ts tests/project-experience-phase10-team-formation.spec.ts tests/project-experience-phase-11-readiness.spec.ts --project=chromium --workers=1
+      - name: Canonical Phase 9 10 11 ownership and Admin applications acceptance
+        run: npx playwright test tests/project-experience-phase9-participation-model.spec.ts tests/project-experience-phase10-team-formation.spec.ts tests/project-experience-phase-11-readiness.spec.ts tests/admin-project-applications-review-auto-start.spec.ts --project=chromium --workers=1
       - name: Admin Team Formation deterministic contract
         run: npm run audit:admin
       - name: Upstream admission preservation
@@ -121,8 +121,8 @@ jobs:
           exit 1
       - name: Mandatory minimum capacity activation Lead responsibility and leave-start races
         run: npx playwright test tests/workstream4-race-acceptance-e2e.spec.ts tests/project-experience-phase6-auto-concurrency.spec.ts tests/project-experience-phase8-project-offers-e2e.spec.ts tests/project-experience-phase9-lock-order-e2e.spec.ts --project=chromium --workers=1
-      - name: Team Solo Flexible formation six-hour readiness and atomic activation
-        run: npx playwright test tests/project-experience-phase9-participation-e2e.spec.ts tests/project-experience-phase10-team-formation-e2e.spec.ts tests/project-experience-phase-11-readiness.spec.ts --project=chromium --workers=1
+      - name: Team Solo Flexible formation six-hour readiness atomic activation and Admin start
+        run: npx playwright test tests/project-experience-phase9-participation-e2e.spec.ts tests/project-experience-phase10-team-formation-e2e.spec.ts tests/project-experience-phase-11-readiness.spec.ts tests/admin-project-applications-review-auto-start-e2e.spec.ts --project=chromium --workers=1
       - name: RLS IDOR private Lab late join departure and recovery boundaries
         run: npx playwright test tests/project-experience-phase12-lab-access-e2e.spec.ts tests/project-experience-phase16-member-exit-e2e.spec.ts tests/project-experience-phase17-rls-e2e.spec.ts tests/project-experience-phase17-recovery-concurrency-e2e.spec.ts --project=chromium --workers=1
       - name: Mobile keyboard screen-reader semantics and 200 percent reflow

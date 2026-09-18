@@ -168,8 +168,8 @@ security definer
 set search_path=public
 as $$
 begin
-  perform public.phase18_refresh_collaboration_needs_for_run(coalesce(new.id,old.id));
-  return coalesce(new,old);
+  perform public.phase18_refresh_collaboration_needs_for_run(new.id);
+  return new;
 end;
 $$;
 
@@ -207,10 +207,10 @@ as $$
 declare
   item record;
 begin
-  for item in select id from public.project_runs where project_id=coalesce(new.id,old.id) loop
+  for item in select id from public.project_runs where project_id=new.id loop
     perform public.phase18_refresh_collaboration_needs_for_run(item.id);
   end loop;
-  return coalesce(new,old);
+  return new;
 end;
 $$;
 

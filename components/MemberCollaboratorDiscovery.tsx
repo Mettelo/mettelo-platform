@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {FormEvent,useEffect,useMemo,useState} from 'react';
 
 type Need={id:string;responsibility:string|null;member_message:string|null;weekly_commitment:string|null};
-type Member={username:string;full_name:string|null;headline:string|null;current_job_title:string|null;professional_area:string|null;experience_level:string|null;project_availability:string|null;weekly_capacity:string|null;skills:string[];preferred_roles:string[];avatar_url:string|null};
+type Member={username:string;full_name:string|null;headline:string|null;current_job_title:string|null;professional_area:string|null;experience_level:string|null;project_availability:string|null;weekly_capacity:string|null;skills:string[];preferred_roles:string[];avatar_url:string|null;invitation_state?:'pending'|null;match_label?:string|null;match_detail?:string|null;match_skills?:string[]};
 type Props={projectId?:string;projectRunId?:string;initialNeedId?:string;projectTitle?:string};
 
 function paramsForProfile(username:string,props:Props){
@@ -27,7 +27,7 @@ function initials(member:Member){
 }
 
 export default function MemberCollaboratorDiscovery(props:Props){
- const{projectId,projectRunId,initialNeedId,projectTitle}=props;
+ const{projectId,projectRunId,initialNeedId}=props;
  const hasProjectContext=Boolean(projectId&&projectRunId);
  const[needs,setNeeds]=useState<Need[]>([]);
  const[needId,setNeedId]=useState(initialNeedId||'');
@@ -38,6 +38,7 @@ export default function MemberCollaboratorDiscovery(props:Props){
  const[error,setError]=useState('');
  const[working,setWorking]=useState('');
  const[searched,setSearched]=useState(false);
+ const[searchedQuery,setSearchedQuery]=useState('');
  const[role,setRole]=useState('');
  const[capability,setCapability]=useState('');
  const[domain,setDomain]=useState('');
@@ -46,12 +47,16 @@ export default function MemberCollaboratorDiscovery(props:Props){
 
  const activeFilterCount=useMemo(()=>[role,capability,domain,availability,commitment].filter(value=>value.trim()).length,[role,capability,domain,availability,commitment]);
 
- async function discover(value:string,mode:'recommend'|'search'){
-  const term=value.trim();if(term.length<2)return;
-  if(mode==='search'){setWorking('search');setSearched(true)}else setWorking('recommend');
+ async function discover(value:string,mode:'recommend'|'search',selectedNeed=needId){
+  const term=value.trim();
+  if(mode==='search'&&term.length<2)return;
+  if(mode==='search'){setWorking('search');setSearched(true);setSearchedQuery(term)}else setWorking('recommend');
   setStatus('');setError('');
   try{
-   const qs=new URLSearchParams({q:term,limit:'20'});
+   const qs=new URLSearchParams({limit:mode==='recommend'?'9':'20'});
+   if(mode==='recommend')qs.set('mode','recommend');else qs.set('q',term);
+   if(projectId&&projectRunId){qs.set('project_id',projectId);qs.set('project_run_id',projectRunId)}
+   if(selectedNeed)qs.set('collaboration_need',selectedNeed);
    if(mode==='search'){
     if(role.trim())qs.set('role',role.trim());if(capability.trim())qs.set('capability',capability.trim());if(domain.trim())qs.set('domain',domain.trim());if(availability.trim())qs.set('availability',availability.trim());if(commitment.trim())qs.set('commitment',commitment.trim());
    }
@@ -59,8 +64,7 @@ export default function MemberCollaboratorDiscovery(props:Props){
    const body=await response.json().catch(()=>({}));
    if(!response.ok)throw new Error(body.error||'We could not load the Collaboration Network.');
    const items=(body.items||[]) as Member[];
-   if(mode==='recommend'){setRecommended(items);setStatus(items.length?`${items.length} recommended collaborator${items.length===1?'':'s'} available.`:'No project-specific recommendations are visible right now.')}
-   else{setResults(items);setStatus(`${items.length} visible match${items.length===1?'':'es'} found.`)}
+   if(mode==='recommend')setRecommended(items);else setResults(items);
   }catch(err){
    if(mode==='recommend')setRecommended([]);else setResults([]);
    setError(err instanceof Error?err.message:'We could not load the Collaboration Network.');
@@ -68,21 +72,23 @@ export default function MemberCollaboratorDiscovery(props:Props){
  }
 
  useEffect(()=>{
-  if(!hasProjectContext||!projectId||!projectRunId||!projectTitle)return;
   let active=true;
+  if(!hasProjectContext||!projectId||!projectRunId){
+   void discover('','recommend','');
+   return()=>{active=false};
+  }
   const qs=new URLSearchParams({project_id:projectId,project_run_id:projectRunId});
   void fetch(`/api/collaboration-needs?${qs.toString()}`,{cache:'no-store'}).then(async response=>{
    const body=await response.json().catch(()=>({}));
    if(!response.ok)throw new Error(body.error||'Unable to load project collaboration context.');
    if(!active)return;
    const rows=(body.items||[]) as Need[];setNeeds(rows);
-   const selected=rows.find(item=>item.id===initialNeedId)||rows[0]||null;setNeedId(selected?.id||'');
-   const seed=selected?.responsibility||selected?.member_message||projectTitle;
-   if(seed.trim().length>=2)void discover(seed,'recommend');
-  }).catch(()=>{if(active&&projectTitle.trim().length>=2)void discover(projectTitle,'recommend')});
+   const selected=rows.find(item=>item.id===initialNeedId)||rows[0]||null;const selectedId=selected?.id||'';setNeedId(selectedId);
+   void discover('','recommend',selectedId);
+  }).catch(()=>{if(active)void discover('','recommend',initialNeedId||'')});
   return()=>{active=false};
  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[hasProjectContext,projectId,projectRunId,initialNeedId,projectTitle]);
+ },[hasProjectContext,projectId,projectRunId,initialNeedId]);
 
  async function submitSearch(event:FormEvent){
   event.preventDefault();
@@ -104,18 +110,21 @@ export default function MemberCollaboratorDiscovery(props:Props){
 
  async function invite(username:string){
   if(!projectId||!projectRunId){setError('Open Collaboration Network from an active project before sending a team request.');return}
-  setWorking(username);setStatus('');setError('');
+  setWorking(`invite:${username}`);setStatus('');setError('');
+  const markPending=()=>{const update=(items:Member[])=>items.map(item=>item.username===username?{...item,invitation_state:'pending' as const}:item);setRecommended(update);setResults(update)};
   try{
    const response=await fetch('/api/member-collaboration-invitations',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({project_id:projectId,project_run_id:projectRunId,collaboration_need_id:needId||null,username})});
    const body=await response.json().catch(()=>({}));
-   if(!response.ok)throw new Error(body.error||'Unable to send team request.');
-   setStatus(`Team request sent to @${username}. Membership has not been created; the invitee must review and accept the request before the governed joining journey continues.`);
+   if(!response.ok){
+    if(body.code==='INVITE_ALREADY_PENDING'){markPending();setStatus(`A team request is already pending for @${username}.`);return}
+    throw new Error(body.error||'Unable to send team request.');
+   }
+   markPending();setStatus(`Team request sent to @${username}. Membership has not been created; the request remains pending until they accept and governed joining checks continue.`);
   }catch(err){setError(err instanceof Error?err.message:'Unable to send team request.')}finally{setWorking('')}
  }
 
- function clearFilters(){
-  setRole('');setCapability('');setDomain('');setAvailability('');setCommitment('');
- }
+ function clearFilters(){setRole('');setCapability('');setDomain('');setAvailability('');setCommitment('')}
+ function updateQuery(value:string){setQuery(value);if(!value.trim()){setSearched(false);setSearchedQuery('');setResults([]);setError('');setStatus('')}}
 
  function card(member:Member,recommendedCard=false){
   const available=human(member.project_availability);
@@ -124,110 +133,107 @@ export default function MemberCollaboratorDiscovery(props:Props){
   const professionalArea=human(member.professional_area)||'Not specified';
   const experience=human(member.experience_level)||'Not specified';
   const summary=member.headline?.trim()||`${roleLabel} open to relevant project collaboration opportunities on Mettelo.`;
-  const skills=(member.skills||[]).filter(Boolean).slice(0,4);
+  const skills=[...new Map([...(member.match_skills||[]),...(member.skills||[])].filter(Boolean).map(skill=>[skill.toLocaleLowerCase('en-GB'),skill])).values()].slice(0,5);
   const profileHref=paramsForProfile(member.username,{...props,initialNeedId:needId||initialNeedId});
+  const pending=member.invitation_state==='pending';
 
-  return <article className="mcdCard" key={member.username}>
-   <div className="mcdCardAccent" aria-hidden="true"/>
+  return <article className="mcdCard" role="listitem" key={member.username} aria-labelledby={`collaborator-${member.username}`}>
    <div className="mcdCardBody">
-    <div className="mcdIdentity">
-     <div className="mcdAvatar" aria-hidden="true">
-      {member.avatar_url?<Image src={member.avatar_url} alt="" width={56} height={56} unoptimized/>:<span>{initials(member)}</span>}
-      {available&&<i className="mcdAvailabilityDot"/>}
+    <header className="mcdIdentity">
+     <div className="mcdAvatar">
+      {member.avatar_url?<Image src={member.avatar_url} alt="" width={64} height={64} unoptimized/>:<span aria-hidden="true">{initials(member)}</span>}
      </div>
      <div className="mcdIdentityCopy">
-      <h3>{member.full_name||member.username}</h3>
+      <h3 id={`collaborator-${member.username}`}>{member.full_name||member.username}</h3>
       <p className="mcdUsername">@{member.username}</p>
       <p className="mcdRole">{roleLabel}</p>
      </div>
-    </div>
-
-    <div className="mcdBadges">
-     {recommendedCard&&<span className="mcdBadge match">Relevant experience</span>}
      {available&&<span className="mcdBadge available">{available}</span>}
-     {capacity&&<span className="mcdBadge capacity">{capacity}</span>}
+    </header>
+
+    {(recommendedCard||member.match_label)&&<div className="mcdMatch">
+     <span>{member.match_label||'Relevant collaborator'}</span>
+     {member.match_detail&&<p>{member.match_detail}</p>}
+    </div>}
+
+    <div className="mcdCapabilityBlock">
+     <div className="mcdMiniLabel">Relevant capabilities</div>
+     {skills.length?<div className="mcdSkills">{skills.map(skill=><span key={skill}>{human(skill)}</span>)}</div>:<p className="mcdNoSkills">No public capability details yet</p>}
     </div>
-
-    <p className="mcdSummary">{summary}</p>
-
-    <div className="mcdMiniLabel">Relevant capabilities</div>
-    {skills.length?<div className="mcdSkills">{skills.map(skill=><span key={skill}>{human(skill)}</span>)}</div>:<p className="mcdNoSkills">Capabilities not specified</p>}
 
     <div className="mcdMeta">
      <div><span>Professional area</span><strong>{professionalArea}</strong></div>
      <div><span>Experience</span><strong>{experience}</strong></div>
+     <div><span>Commitment</span><strong>{capacity||'Not specified'}</strong></div>
     </div>
+
+    <p className="mcdSummary">{summary}</p>
    </div>
 
    <div className="mcdActions">
+    {hasProjectContext&&(pending?<span className="mcdPending" role="status">Request pending</span>:<button className="mcdPrimaryAction" type="button" onClick={()=>void invite(member.username)} disabled={Boolean(working)} aria-label={`Send team request to ${member.full_name||member.username}`}>{working===`invite:${member.username}`?'Sending…':'Send team request'}</button>)}
     <Link className="mcdSecondaryAction" href={profileHref}>View profile</Link>
-    {hasProjectContext&&<button className="mcdPrimaryAction" type="button" onClick={()=>void invite(member.username)} disabled={Boolean(working)}>{working===member.username?'Sending…':'Send team request'}</button>}
    </div>
 
    <div className="mcdCardFooter">
-    <span>Discoverable profile</span>
-    <button className="mcdBlock" type="button" onClick={()=>void block(member.username)} disabled={Boolean(working)}>{working===`block:${member.username}`?'Blocking…':'Block member'}</button>
+    <span>Only discoverable profile information is shown.</span>
+    <details className="mcdMore">
+     <summary aria-label={`More actions for ${member.full_name||member.username}`}>More <span aria-hidden="true">•••</span></summary>
+     <div className="mcdMoreMenu"><button type="button" onClick={()=>void block(member.username)} disabled={Boolean(working)}>{working===`block:${member.username}`?'Blocking…':'Block member'}</button></div>
+    </details>
    </div>
   </article>;
  }
-
  return <div className="mcdRoot">
   <section className="mcdSection" aria-labelledby="recommended-collaborators-title">
    <div className="mcdSectionHead">
-    <div>
-     <span>RECOMMENDED COLLABORATORS</span>
-     <h2 id="recommended-collaborators-title">{hasProjectContext?'People who may fit this project':'Recommended collaborators'}</h2>
-     <p>{hasProjectContext?'Recommendations use discoverable skills, professional focus and availability relevant to your current project.':'Open Collaboration Network from an active project to see project-specific collaborator recommendations.'}</p>
-    </div>
-    {hasProjectContext&&working==='recommend'&&<span className="mcdLoading" role="status">Loading…</span>}
+    <div><span>RECOMMENDED COLLABORATORS</span><h2 id="recommended-collaborators-title">People who may be useful collaborators</h2><p>People whose skills, capabilities and availability may fit {hasProjectContext?'your current project':'your professional profile and collaboration interests'}.</p></div>
+    {working==='recommend'&&<span className="mcdLoading" role="status">Finding relevant people…</span>}
    </div>
-
-   {hasProjectContext&&recommended.length>0?<div className="mcdGrid">{recommended.map(member=>card(member,true))}</div>:hasProjectContext&&working!=='recommend'?<div className="mcdEmpty"><strong>No visible recommendations yet</strong><p>Search the network below to find a collaborator by name, role, capability or domain.</p></div>:!hasProjectContext?<div className="mcdContextHint"><div className="mcdHintIcon" aria-hidden="true">+</div><div><strong>Looking for someone for a project?</strong><p>Use Team → Grow the Team → Find people on Mettelo. Your project context will be carried here securely so you can send governed team requests.</p></div></div>:null}
+   {recommended.length>0?<div className="mcdGrid" role="list" aria-label="Recommended collaborators">{recommended.map(member=>card(member,true))}</div>:working!=='recommend'&&!error?<div className="mcdEmpty"><strong>No recommended collaborators yet</strong><p>Try searching by role, skill, capability or domain.</p></div>:null}
   </section>
 
   <section className="mcdSearch" aria-labelledby="search-network-title">
    <div className="mcdSearchHead">
-    <div>
-     <span>SEARCH THE NETWORK</span>
-     <h2 id="search-network-title">Find another collaborator</h2>
-     <p>Search discoverable members by name, @username, role, capability or domain. Private profile information is never included.</p>
-    </div>
+    <div><span>SEARCH THE NETWORK</span><h2 id="search-network-title">Find another collaborator</h2><p>Search by name, @username, role, capability or domain.</p></div>
     <Link className="mcdBlockedLink" href="/member/blocked-members">Manage blocked members</Link>
    </div>
 
-   {hasProjectContext&&needs.length>0&&<label className="mcdNeed">Request context<select value={needId} onChange={event=>{const next=event.target.value;setNeedId(next);const item=needs.find(value=>value.id===next);const seed=item?.responsibility||item?.member_message||projectTitle||'';if(seed.trim().length>=2)void discover(seed,'recommend')}}><option value="">Direct team request</option>{needs.map(item=><option value={item.id} key={item.id}>{item.responsibility||item.member_message||item.weekly_commitment||'Active collaboration need'}</option>)}</select></label>}
+   {hasProjectContext&&needs.length>0&&<label className="mcdNeed">Request context<select value={needId} onChange={event=>{const next=event.target.value;setNeedId(next);void discover('','recommend',next)}}><option value="">Direct team request</option>{needs.map(item=><option value={item.id} key={item.id}>{item.responsibility||item.member_message||item.weekly_commitment||'Active collaboration need'}</option>)}</select></label>}
 
    <form onSubmit={submitSearch}>
     <label className="mcdSearchLabel" htmlFor="collaboration-member-search">Search by name, @username, role, capability or domain</label>
     <div className="mcdSearchRow">
-     <div className="mcdSearchInputWrap">
-      <span aria-hidden="true">⌕</span>
-      <input id="collaboration-member-search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search people, roles, capabilities or domains"/>
-     </div>
+     <div className="mcdSearchInputWrap"><span aria-hidden="true">⌕</span><input id="collaboration-member-search" value={query} onChange={event=>updateQuery(event.target.value)} placeholder="Search people, roles, capabilities or domains"/></div>
      <button className="mcdSearchButton" type="submit" disabled={working==='search'}>{working==='search'?'Searching…':'Search network'}</button>
     </div>
-
-    <details className="mcdFilterPanel">
-     <summary>Filters{activeFilterCount>0?<b>{activeFilterCount}</b>:null}</summary>
-     <div className="mcdFilters">
-      <label>Role<input value={role} onChange={event=>setRole(event.target.value)} placeholder="Any role"/></label>
-      <label>Capability<input value={capability} onChange={event=>setCapability(event.target.value)} placeholder="Any capability"/></label>
-      <label>Domain<input value={domain} onChange={event=>setDomain(event.target.value)} placeholder="Any domain"/></label>
-      <label>Availability<input value={availability} onChange={event=>setAvailability(event.target.value)} placeholder="Any availability"/></label>
-      <label>Commitment<input value={commitment} onChange={event=>setCommitment(event.target.value)} placeholder="Any commitment"/></label>
-      {activeFilterCount>0&&<button type="button" className="mcdClearFilters" onClick={clearFilters}>Clear filters</button>}
-     </div>
-    </details>
+    <div className="mcdDesktopFilters" aria-label="Search filters">
+     <label>Role<input value={role} onChange={event=>setRole(event.target.value)} placeholder="Any role"/></label>
+     <label>Capability<input value={capability} onChange={event=>setCapability(event.target.value)} placeholder="Any capability"/></label>
+     <label>Domain<input value={domain} onChange={event=>setDomain(event.target.value)} placeholder="Any domain"/></label>
+     <label>Availability<input value={availability} onChange={event=>setAvailability(event.target.value)} placeholder="Any availability"/></label>
+     <label>Commitment<input value={commitment} onChange={event=>setCommitment(event.target.value)} placeholder="Any commitment"/></label>
+     {activeFilterCount>0&&<button type="button" className="mcdClearFilters" onClick={clearFilters}>Clear</button>}
+    </div>
+    <details className="mcdMobileFilters"><summary>Filters{activeFilterCount>0?<b>{activeFilterCount}</b>:null}</summary><div>
+     <label>Role<input value={role} onChange={event=>setRole(event.target.value)} placeholder="Any role"/></label>
+     <label>Capability<input value={capability} onChange={event=>setCapability(event.target.value)} placeholder="Any capability"/></label>
+     <label>Domain<input value={domain} onChange={event=>setDomain(event.target.value)} placeholder="Any domain"/></label>
+     <label>Availability<input value={availability} onChange={event=>setAvailability(event.target.value)} placeholder="Any availability"/></label>
+     <label>Commitment<input value={commitment} onChange={event=>setCommitment(event.target.value)} placeholder="Any commitment"/></label>
+     {activeFilterCount>0&&<button type="button" className="mcdClearFilters" onClick={clearFilters}>Clear</button>}
+    </div></details>
    </form>
 
-   <p className="mcdPrivacyNote">Inviting someone does not add them to your team. A request stays pending until they accept and the governed joining checks continue.</p>
-
+   <p className="mcdPrivacyNote">Only discoverable profile information is shown. Inviting someone does not add them to your team.</p>
    {error&&<div className="mcdError" role="alert"><strong>We couldn’t load the Collaboration Network.</strong><span>{error}</span></div>}
    <div className="mcdStatus" role="status" aria-live="polite">{status}</div>
 
-   {searched&&(results.length?<div className="mcdResults"><div className="mcdResultsMeta"><span>{results.length} visible match{results.length===1?'':'es'}</span><span>Discoverable members only</span></div><div className="mcdGrid" aria-label="Search results">{results.map(member=>card(member,false))}</div></div>:working!=='search'&&!error?<div className="mcdEmpty"><strong>No visible matches yet</strong><p>Try another search or adjust your filters.</p></div>:null)}
+   {searched&&<section className="mcdResults" aria-labelledby="search-results-title">
+    <div className="mcdResultsMeta"><div><span>SEARCH RESULTS</span><strong id="search-results-title">Search results for “{searchedQuery}”</strong></div>{results.length>0&&<span>{results.length} collaborator{results.length===1?'':'s'}</span>}</div>
+    {results.length?<div className="mcdGrid" role="list" aria-label="Search results">{results.map(member=>card(member,false))}</div>:working!=='search'&&!error?<div className="mcdEmpty"><strong>No matches found</strong><p>Try another term or adjust your filters.</p></div>:null}
+   </section>}
   </section>
-
   <style jsx>{`
    .mcdRoot{display:grid;gap:38px;min-width:0}
    .mcdSection{display:grid;gap:18px;min-width:0}
@@ -238,13 +244,14 @@ export default function MemberCollaboratorDiscovery(props:Props){
    .mcdSectionHead p,.mcdSearchHead p{max-width:680px;margin:0;color:var(--slate);font-size:.84rem;line-height:1.55}
    .mcdLoading{font-size:.75rem;color:var(--slate)}
    .mcdGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-   .mcdCard{position:relative;display:flex;flex-direction:column;min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:var(--white);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
-   .mcdCard:hover{transform:translateY(-2px);border-color:#d9cfbe;box-shadow:var(--shadow-sm)}
+   .mcdCard{position:relative;display:flex;flex-direction:column;min-width:0;border:1px solid #e0ddd5;border-radius:16px;background:var(--white);box-shadow:0 2px 8px rgba(16,19,29,.035);overflow:visible;transition:border-color .18s ease,box-shadow .18s ease}
+   .mcdCard:hover{border-color:#d9cfbe;box-shadow:0 5px 14px rgba(16,19,29,.055)}
+   .mcdCard:focus-within{border-color:var(--bronze);box-shadow:0 0 0 3px rgba(198,137,42,.12)}
    .mcdCardAccent{height:4px;background:linear-gradient(90deg,var(--bronze),var(--bronze-2) 45%,var(--indigo) 100%)}
    .mcdCardBody{display:flex;flex:1;flex-direction:column;padding:20px}
-   .mcdIdentity{display:flex;align-items:center;gap:13px;min-width:0}
-   .mcdAvatar{position:relative;width:56px;height:56px;border-radius:50%;overflow:visible;display:grid;place-items:center;flex:0 0 auto;background:linear-gradient(145deg,var(--indigo),var(--ink));color:#fff;font-weight:850}
-   .mcdAvatar :global(img){width:56px;height:56px;border-radius:50%;object-fit:cover}
+   .mcdIdentity{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:start;gap:13px;min-width:0}
+   .mcdAvatar{width:64px;height:64px;border-radius:14px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(145deg,var(--indigo),var(--ink));color:#fff;font-weight:850}
+   .mcdAvatar :global(img){width:64px;height:64px;object-fit:cover}
    .mcdAvailabilityDot{position:absolute;right:0;bottom:2px;width:13px;height:13px;border:3px solid #fff;border-radius:50%;background:var(--green)}
    .mcdIdentityCopy{min-width:0}
    .mcdIdentity h3{margin:0;overflow:hidden;text-overflow:ellipsis;font-size:1.05rem;white-space:nowrap}
@@ -253,14 +260,14 @@ export default function MemberCollaboratorDiscovery(props:Props){
    .mcdBadges{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
    .mcdBadge{display:inline-flex;align-items:center;min-height:27px;padding:5px 9px;border-radius:999px;font-size:.65rem;font-weight:800}
    .mcdBadge.match{background:#eaf6ef;color:var(--green)}
-   .mcdBadge.available{background:#edf3fc;color:var(--blue)}
+   .mcdBadge.available{background:#eaf6ef;color:#236642;white-space:nowrap}
    .mcdBadge.capacity{background:var(--sand);color:var(--bronze-deep)}
-   .mcdSummary{min-height:62px;margin:15px 0 0;color:var(--slate);font-size:.78rem;line-height:1.55}
+   .mcdSummary{margin:16px 0 0;color:var(--slate);font-size:.75rem;line-height:1.5}
    .mcdMiniLabel{margin-top:17px;color:var(--muted);font:800 .58rem/1.2 var(--font-mono);letter-spacing:.1em;text-transform:uppercase}
    .mcdSkills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
    .mcdSkills span{padding:6px 9px;border:1px solid #e5e6e9;border-radius:8px;background:#f8f8f7;color:#424a59;font-size:.67rem;font-weight:700}
    .mcdNoSkills{margin:8px 0 0;color:var(--muted);font-size:.72rem}
-   .mcdMeta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+   .mcdMeta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px}
    .mcdMeta div{padding:10px 11px;border-radius:11px;background:#f7f7f5}
    .mcdMeta span{display:block;color:var(--muted);font-size:.58rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
    .mcdMeta strong{display:block;margin-top:3px;font-size:.7rem;overflow-wrap:anywhere}
@@ -270,11 +277,16 @@ export default function MemberCollaboratorDiscovery(props:Props){
    .mcdPrimaryAction{border:1px solid var(--ink);background:var(--ink);color:#fff}
    .mcdPrimaryAction:disabled{opacity:.58;cursor:not-allowed}
    .mcdActions:has(.mcdSecondaryAction:only-child){grid-template-columns:1fr}
-   .mcdCardFooter{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px;padding:10px 20px;border-top:1px solid #f0eee9;background:#fcfcfa}
+   .mcdCardFooter{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px;padding:10px 20px;border-top:1px solid #f0eee9;background:#fcfcfa;border-radius:0 0 16px 16px}
    .mcdCardFooter>span{color:var(--muted);font-size:.62rem}
    .mcdBlock{min-height:32px;border:0;background:transparent;color:var(--muted);font:700 .64rem/1.2 inherit;cursor:pointer}
    .mcdBlock:hover{color:var(--red)}
    .mcdBlock:disabled{opacity:.5;cursor:not-allowed}
+   .mcdMatch{display:grid;gap:4px;margin-top:16px;padding:10px 11px;border-radius:10px;background:#f4f1e9}.mcdMatch>span{color:var(--bronze-deep);font-size:.63rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase}.mcdMatch p{margin:0;color:var(--slate);font-size:.7rem;line-height:1.4}
+   .mcdCapabilityBlock{margin-top:17px}
+   .mcdPending{display:flex;align-items:center;justify-content:center;min-height:44px;padding:9px 12px;border:1px solid #dbc891;border-radius:12px;background:#fff9e9;color:#76591c;font-size:.64rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase}
+   .mcdMore{position:relative}.mcdMore summary{list-style:none;display:flex;align-items:center;gap:5px;min-height:36px;padding:6px 8px;border-radius:8px;color:var(--slate);font-size:.65rem;font-weight:800;cursor:pointer}.mcdMore summary::-webkit-details-marker{display:none}.mcdMore summary:focus-visible,.mcdPrimaryAction:focus-visible,.mcdSecondaryAction:focus-visible{outline:3px solid #173f8f;outline-offset:2px}.mcdMoreMenu{position:absolute;right:0;bottom:42px;z-index:10;min-width:150px;padding:6px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:var(--shadow-sm)}.mcdMoreMenu button{width:100%;min-height:40px;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:#7d2929;text-align:left;font:750 .69rem/1.2 inherit;cursor:pointer}.mcdMoreMenu button:hover{background:#fff4f4}
+
    .mcdEmpty,.mcdContextHint{grid-column:1/-1;border:1px solid var(--line);border-radius:18px;background:var(--white);padding:19px 20px}
    .mcdEmpty p,.mcdContextHint p{margin:5px 0 0;color:var(--slate);font-size:.8rem;line-height:1.55}
    .mcdContextHint{display:flex;align-items:flex-start;gap:13px}
@@ -292,6 +304,8 @@ export default function MemberCollaboratorDiscovery(props:Props){
    .mcdSearchInputWrap input:focus{border-color:var(--bronze);box-shadow:0 0 0 3px rgba(198,137,42,.12)}
    .mcdSearchButton{min-height:50px;padding:0 22px;border:1px solid var(--ink);border-radius:13px;background:var(--ink);color:#fff;font-weight:800;cursor:pointer}
    .mcdSearchButton:disabled{opacity:.58;cursor:not-allowed}
+   .mcdDesktopFilters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:9px;margin-top:11px}.mcdDesktopFilters label{display:grid;gap:5px;font-size:.68rem;font-weight:750}.mcdDesktopFilters input{width:100%;min-width:0;min-height:42px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+   .mcdMobileFilters{display:none}
    .mcdFilterPanel{margin-top:11px}
    .mcdFilterPanel summary{display:flex;align-items:center;gap:7px;min-height:44px;width:max-content;cursor:pointer;color:var(--ink);font-size:.76rem;font-weight:850}
    .mcdFilterPanel summary b{display:grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--ink);color:#fff;font-size:.6rem}
@@ -305,9 +319,10 @@ export default function MemberCollaboratorDiscovery(props:Props){
    .mcdError span{color:var(--slate);font-size:.75rem}
    .mcdResults{display:grid;gap:12px}
    .mcdResultsMeta{display:flex;justify-content:space-between;gap:14px;color:var(--slate);font-size:.7rem}
-   @media(max-width:1080px){.mcdGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.mcdFilters{grid-template-columns:repeat(2,minmax(0,1fr))}}
-   @media(max-width:640px){.mcdRoot{gap:30px}.mcdSectionHead,.mcdSearchHead{display:grid;align-items:start}.mcdGrid,.mcdSearchRow,.mcdFilters{grid-template-columns:1fr}.mcdSearch{padding:16px}.mcdBlockedLink{width:max-content}.mcdActions{grid-template-columns:1fr}.mcdSearchButton{width:100%}.mcdResultsMeta{display:grid}.mcdSummary{min-height:0}}
-   @media(max-width:390px){.mcdCardBody{padding:16px}.mcdActions{padding:0 16px 16px}.mcdCardFooter{padding:9px 16px}.mcdMeta{grid-template-columns:1fr}.mcdIdentity{align-items:flex-start}.mcdContextHint{padding:16px}}
+   @media(max-width:1080px){.mcdGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.mcdDesktopFilters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+   @media(max-width:700px){.mcdDesktopFilters{display:none}.mcdMobileFilters{display:block;margin-top:10px}.mcdMobileFilters summary{display:flex;align-items:center;gap:7px;min-height:44px;width:max-content;cursor:pointer;font-size:.76rem;font-weight:850}.mcdMobileFilters summary b{display:grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--ink);color:#fff;font-size:.6rem}.mcdMobileFilters>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding-top:9px}.mcdMobileFilters label{display:grid;gap:5px;font-size:.68rem;font-weight:750}.mcdMobileFilters input{width:100%;min-width:0;min-height:42px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}}
+   @media(max-width:640px){.mcdRoot{gap:30px}.mcdSectionHead,.mcdSearchHead{display:grid;align-items:start}.mcdGrid,.mcdSearchRow{grid-template-columns:1fr}.mcdSearch{padding:16px}.mcdBlockedLink{width:max-content}.mcdActions{grid-template-columns:1fr}.mcdSearchButton{width:100%}.mcdResultsMeta{display:grid}.mcdSummary{min-height:0}.mcdIdentity{grid-template-columns:56px minmax(0,1fr)}.mcdAvatar,.mcdAvatar :global(img){width:56px;height:56px}.mcdIdentity>.mcdBadge{grid-column:1/-1;width:max-content}.mcdMeta{grid-template-columns:1fr}.mcdPending{grid-row:1}.mcdPrimaryAction{grid-row:1}.mcdSecondaryAction{grid-row:2}}
+   @media(max-width:430px){.mcdMobileFilters>div{grid-template-columns:1fr}.mcdCardBody{padding:16px}.mcdActions{padding:0 16px 16px}.mcdCardFooter{padding:9px 16px}.mcdIdentity{align-items:flex-start}.mcdSkills span{max-width:100%;overflow-wrap:anywhere}}
    @media(max-width:360px){.mcdSearch{padding:14px}.mcdCard{border-radius:17px}}
   `}</style>
  </div>;

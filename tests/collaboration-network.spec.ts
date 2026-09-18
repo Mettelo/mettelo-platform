@@ -30,7 +30,7 @@ test.describe('Canonical Collaboration Network',()=>{
  test('People view leads with recommendations and keeps search bounded',()=>{
   const discovery=read('components/MemberCollaboratorDiscovery.tsx');
   const api=read('app/api/member-discovery/route.ts');
-  for(const text of ['RECOMMENDED COLLABORATORS','Recommended collaborators','SEARCH THE NETWORK','Search by name, @username, role, capability or domain'])expect(discovery).toContain(text);
+  for(const text of ['RECOMMENDED COLLABORATORS','People who may be useful collaborators','SEARCH THE NETWORK','Search by name, @username, role, capability or domain'])expect(discovery).toContain(text);
   for(const text of ["url.searchParams.get('role')","url.searchParams.get('capability')","url.searchParams.get('domain')","url.searchParams.get('availability')","url.searchParams.get('commitment')"])expect(api).toContain(text);
   expect(api).toContain('Math.min(Math.max(Math.trunc(requestedLimit),1),20)');
  });
@@ -69,7 +69,8 @@ test.describe('Canonical Collaboration Network',()=>{
   expect(page).toContain('@media(max-width:390px)');
   expect(discovery).toContain('@media(max-width:640px)');
   expect(discovery).toContain('@media(max-width:360px)');
-  expect(discovery).toContain('<details className="mcdFilterPanel">');
+  expect(discovery).toContain('mcdDesktopFilters');
+  expect(discovery).toContain('mcdMobileFilters');
   expect(discovery).toContain('min-height:44px');
  });
  test('legacy Find People also converges on the canonical People view',()=>{
@@ -128,6 +129,26 @@ test.describe('Canonical Collaboration Network',()=>{
   for(const text of ['Link copied','We could not copy the link','Native sharing is unavailable','navigator.share','navigator.clipboard?.writeText','role="status"','aria-live="polite"'])expect(share).toContain(text);
   expect(share).toContain('navigator.clipboard.writeText(absoluteUrl)');
  });
+ test('People recommendation contract excludes self team blocked and pending candidates server-side',()=>{
+  const api=read('app/api/member-discovery/route.ts');
+  for(const text of [".neq('id',actor)",'member_interaction_blocks','teamIds','pendingIds',"membership_status',['waiting','active','completed']","status','pending'"])expect(api).toContain(text);
+  expect(api).toContain("mode==='recommend'");
+  expect(api).toContain("Math.min(Math.max(Math.trunc(requestedLimit),1),mode==='recommend'?12:20)");
+ });
+ test('People cards are structured, explainable and keep safety actions secondary',()=>{
+  const discovery=read('components/MemberCollaboratorDiscovery.tsx');
+  for(const text of ['mcdIdentity','mcdSkills','Professional area','Experience','Commitment','match_label','match_detail','Request pending','Send team request','View profile','mcdMoreMenu','Block member'])expect(discovery).toContain(text);
+  expect(discovery).not.toContain('<button className="mcdBlock"');
+  expect(discovery).toContain('Only discoverable profile information is shown.');
+ });
+ test('search clearing returns to recommendation-first state and one result count',()=>{
+  const discovery=read('components/MemberCollaboratorDiscovery.tsx');
+  expect(discovery).toContain("if(!value.trim()){setSearched(false)");
+  expect(discovery).toContain('Search results for “{searchedQuery}”');
+  expect(discovery).not.toContain('visible match found');
+  expect(discovery).not.toContain('visible match{');
+ });
+
  test('Vercel remains manual-only and is not a release gate',()=>{
   const config=JSON.parse(read('vercel.json')) as {git?:{deploymentEnabled?:boolean}};
   expect(config.git?.deploymentEnabled).toBe(false);

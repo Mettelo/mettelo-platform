@@ -9,6 +9,7 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
  test('Lab Support recovery binds the UI and API to canonical run membership with retry protection',()=>{
   const page=read('app/member/projects/[id]/page.tsx'),panel=read('components/MetteloLabPanel.tsx'),route=read('app/api/project-support-cases/route.ts'),migration=read('supabase/migrations/20260919001000_lab_support_recovery.sql');
   expect(page).toContain("canonicalMemberships=(memberships||[]).filter(item=>['active','completed'].includes(String(item.membership_status)))");
+  expect(page).toContain("if(requestedRun&&!isAdmin&&!requestedMembership)notFound()");
   expect(page).toContain("let runId=(isAdmin&&requestedRun)||membership?.project_run_id||null");
   expect(panel).toContain('projectRunId={canonicalRunId}');
   expect(panel).toContain("member.status==='active'");

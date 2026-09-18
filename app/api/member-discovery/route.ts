@@ -111,43 +111,32 @@ async function loadSignals(db:NonNullable<ReturnType<typeof serviceDb>>,actor:st
  const memberArea=profile?.professional_area?String(profile.professional_area):null;
  if(!projectId||!runId)return{projectSkills:[],projectRoles:[],projectAreas:[],memberSkills,memberRoles,memberArea};
 
- const [{data:projectCaps},{data:projectRoles},{data:projectDomains},{data:need}]=await Promise.all([
-  db.from('project_capabilities').select('capability_id,capabilities(name)').eq('project_id',projectId).limit(80),
+ const [{data:projectCapLinks},{data:projectRoles},{data:projectDomainLinks},{data:need}]=await Promise.all([
+  db.from('project_capabilities').select('capability_id').eq('project_id',projectId).limit(80),
   db.from('project_roles').select('title,skills,recommended_skills,responsibilities').eq('project_id',projectId).limit(80),
-  db.from('project_domains').select('domain_id,domains(name)').eq('project_id',projectId).limit(20),
-  needId?db.from('project_collaboration_needs').select('id,responsibility,target_role_catalogue_id,project_collaboration_need_capabilities(capability_id,capabilities(name)),project_role_catalogue(title)').eq('id',needId).eq('project_id',projectId).eq('project_run_id',runId).in('status',['active','needs_review']).maybeSingle():Promise.resolve({data:null})
+  db.from('project_domains').select('domain_id').eq('project_id',projectId).limit(20),
+  needId?db.from('project_collaboration_needs').select('id,responsibility,target_role_catalogue_id').eq('id',needId).eq('project_id',projectId).eq('project_run_id',runId).in('status',['active','needs_review']).maybeSingle():Promise.resolve({data:null})
  ]);
-
- const capNames=(projectCaps||[]).flatMap(item=>{
-  const rel=item.capabilities as unknown as {name?:string}|{name?:string}[]|null;
-  const row=Array.isArray(rel)?rel[0]:rel;
-  return row?.name?[String(row.name)]:[];
- });
+ const projectCapIds=unique((projectCapLinks||[]).map(item=>String(item.capability_id||'')));
+ const domainIds=unique((projectDomainLinks||[]).map(item=>String(item.domain_id||'')));
+ const [{data:projectCaps},{data:domains},{data:needCapLinks},{data:targetRole}]=await Promise.all([
+  projectCapIds.length?db.from('capabilities').select('id,name').in('id',projectCapIds).eq('is_active',true):Promise.resolve({data:[]}),
+  domainIds.length?db.from('domains').select('id,name').in('id',domainIds).eq('is_active',true):Promise.resolve({data:[]}),
+  needId?db.from('project_collaboration_need_capabilities').select('capability_id').eq('collaboration_need_id',needId).limit(20):Promise.resolve({data:[]}),
+  need?.target_role_catalogue_id?db.from('project_role_catalogue').select('id,title').eq('id',need.target_role_catalogue_id).eq('active',true).maybeSingle():Promise.resolve({data:null})
+ ]);
+ const needCapIds=unique((needCapLinks||[]).map(item=>String(item.capability_id||'')));
+ const {data:needCaps}=needCapIds.length?await db.from('capabilities').select('id,name').in('id',needCapIds).eq('is_active',true):{data:[]};
  const roleSignals=(projectRoles||[]).flatMap(item=>[
-  String(item.title||''),
-  ...(((item.skills||[]) as string[])),
-  ...(((item.recommended_skills||[]) as string[])),
-  ...(((item.responsibilities||[]) as string[]))
+  String(item.title||''),...(((item.skills||[]) as string[])),...(((item.recommended_skills||[]) as string[])),...(((item.responsibilities||[]) as string[]))
  ]);
- const domainNames=(projectDomains||[]).flatMap(item=>{
-  const rel=item.domains as unknown as {name?:string}|{name?:string}[]|null;
-  const row=Array.isArray(rel)?rel[0]:rel;
-  return row?.name?[String(row.name)]:[];
- });
- const needCaps=((need?.project_collaboration_need_capabilities||[]) as unknown as {capabilities?:{name?:string}|{name?:string}[]|null}[]).flatMap(item=>{
-  const rel=item.capabilities;const row=Array.isArray(rel)?rel[0]:rel;return row?.name?[String(row.name)]:[];
- });
- const roleRel=need?.project_role_catalogue as unknown as {title?:string}|{title?:string}[]|null;
- const roleRow=Array.isArray(roleRel)?roleRel[0]:roleRel;
-
  return{
-  projectSkills:unique([...capNames,...roleSignals,...needCaps,need?.responsibility?String(need.responsibility):'']),
-  projectRoles:unique([roleRow?.title?String(roleRow.title):'',...(projectRoles||[]).map(item=>String(item.title||''))]),
-  projectAreas:unique(domainNames),
+  projectSkills:unique([...(projectCaps||[]).map(item=>String(item.name||'')),...roleSignals,...(needCaps||[]).map(item=>String(item.name||'')),need?.responsibility?String(need.responsibility):'']),
+  projectRoles:unique([targetRole?.title?String(targetRole.title):'',...(projectRoles||[]).map(item=>String(item.title||''))]),
+  projectAreas:unique((domains||[]).map(item=>String(item.name||''))),
   memberSkills,memberRoles,memberArea
  };
 }
-
 async function recommend(db:NonNullable<ReturnType<typeof serviceDb>>,actor:string,signals:Signals,projectId:string|null,runId:string|null,limit:number){
  const {blockedIds,teamIds,pendingIds}=await contextExclusions(db,actor,projectId,runId);
  const {data:profiles,error}=await db.from('profiles')

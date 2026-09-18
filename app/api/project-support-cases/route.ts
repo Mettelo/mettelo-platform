@@ -10,13 +10,24 @@ const CATEGORIES=new Set([
 function clean(value:unknown,max=6000){return String(value??'').trim().slice(0,max)}
 function safeErrorCode(error:unknown){if(error&&typeof error==='object'){const value=error as{code?:unknown;name?:unknown};if(typeof value.code==='string'&&value.code)return value.code;if(typeof value.name==='string'&&value.name)return value.name}return'UNCLASSIFIED'}
 
-export async function GET(){
+export async function GET(request:Request){
  try{
   const auth=await createServerSupabaseClient();
   const {data:{user}}=await auth.auth.getUser();
   if(!user)return NextResponse.json({error:'Authentication required.'},{status:401});
   const db=serviceDb();
   if(!db)return NextResponse.json({error:'Project service is not configured.'},{status:503});
+
+  const url=new URL(request.url);
+  const projectId=clean(url.searchParams.get('project_id'),80),runId=clean(url.searchParams.get('project_run_id'),80);
+  let eligibility:{can_create:boolean;reason:string|null}={can_create:false,reason:'missing_context'};
+  if(projectId&&runId){
+   const [{data:run},{data:membership}]=await Promise.all([
+    db.from('project_runs').select('id,status').eq('id',runId).eq('project_id',projectId).maybeSingle(),
+    db.from('project_members').select('id,membership_status').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).maybeSingle()
+   ]);
+   eligibility=!run?{can_create:false,reason:'stale_run'}:membership?.membership_status==='active'?{can_create:true,reason:null}:{can_create:false,reason:membership?'inactive_membership':'not_a_member'};
+  }
 
   const {data:cases,error}=await db.from('project_support_cases')
    .select('id,project_id,project_run_id,category,description,status,resolution,recovery_plan,created_at,updated_at,resolved_at,closed_at')
@@ -31,7 +42,7 @@ export async function GET(){
    if(result.error)throw result.error;
    updates=result.data??[];
   }
-  return NextResponse.json({cases:cases??[],updates},{headers:{'Cache-Control':'private, no-store'}});
+  return NextResponse.json({cases:cases??[],updates,eligibility},{headers:{'Cache-Control':'private, no-store'}});
  }catch(error){
   console.error('project support case read error',{code:safeErrorCode(error)});
   return NextResponse.json({error:'Unable to load your support cases right now.'},{status:500,headers:{'Cache-Control':'private, no-store'}});
@@ -42,10 +53,11 @@ export async function POST(request:Request){
  try{
   const body=await request.json();
   const projectId=clean(body.project_id,80),runId=clean(body.project_run_id,80);
-  const category=clean(body.category,64),description=clean(body.description,6000);
+  const category=clean(body.category,64),description=clean(body.description,6000),submissionKey=clean(body.submission_key,100);
   if(!projectId||!runId)return NextResponse.json({error:'Project and project run are required.'},{status:400});
   if(!CATEGORIES.has(category))return NextResponse.json({error:'Choose a valid support category.'},{status:422});
   if(description.length<20)return NextResponse.json({error:'Add enough detail for the support team to understand what needs attention.'},{status:422});
+  if(submissionKey.length<8)return NextResponse.json({error:'Support request could not be validated. Please try again.'},{status:422});
 
   const auth=await createServerSupabaseClient();
   const {data:{user}}=await auth.auth.getUser();
@@ -53,15 +65,31 @@ export async function POST(request:Request){
   const db=serviceDb();
   if(!db)return NextResponse.json({error:'Project service is not configured.'},{status:503});
 
-  const [{data:membership},{data:run}]=await Promise.all([
+  const [{data:membership,error:membershipError},{data:run,error:runError}]=await Promise.all([
    db.from('project_members').select('id,membership_status').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).maybeSingle(),
-   db.from('project_runs').select('id').eq('id',runId).eq('project_id',projectId).maybeSingle()
+   db.from('project_runs').select('id,status').eq('id',runId).eq('project_id',projectId).maybeSingle()
   ]);
-  if(!run)return NextResponse.json({error:'Project run not found.'},{status:404});
-  if(!membership||membership.membership_status!=='active')return NextResponse.json({error:'Only an active member of this exact project run can create a support case.'},{status:403});
+  if(membershipError||runError)throw membershipError||runError;
+  if(!run)return NextResponse.json({error:'Your project run changed before the request was sent. Refresh the page and try again.'},{status:409});
+  if(!membership||membership.membership_status!=='active')return NextResponse.json({error:'Your project membership changed before the request was sent. Refresh the page and try again.'},{status:409});
 
-  const {data:created,error}=await db.from('project_support_cases').insert({project_id:projectId,project_run_id:runId,reporter_user_id:user.id,category,description,status:'open'}).select('id,project_id,project_run_id,category,description,status,created_at,updated_at').single();
-  if(error)throw error;
+  const existing=await db.from('project_support_cases')
+   .select('id,project_id,project_run_id,category,description,status,created_at,updated_at')
+   .eq('reporter_user_id',user.id).eq('project_run_id',runId).eq('submission_key',submissionKey).maybeSingle();
+  if(existing.error)throw existing.error;
+  if(existing.data)return NextResponse.json({ok:true,case:existing.data,duplicate:true},{status:200,headers:{'Cache-Control':'private, no-store'}});
+
+  const {data:created,error}=await db.from('project_support_cases').insert({
+   project_id:projectId,project_run_id:runId,reporter_user_id:user.id,reporter_project_member_id:membership.id,
+   category,description,status:'open',submission_key:submissionKey
+  }).select('id,project_id,project_run_id,category,description,status,created_at,updated_at').single();
+  if(error){
+   if(error.code==='23505'){
+    const retry=await db.from('project_support_cases').select('id,project_id,project_run_id,category,description,status,created_at,updated_at').eq('reporter_user_id',user.id).eq('project_run_id',runId).eq('submission_key',submissionKey).maybeSingle();
+    if(retry.data)return NextResponse.json({ok:true,case:retry.data,duplicate:true},{status:200,headers:{'Cache-Control':'private, no-store'}});
+   }
+   throw error;
+  }
   const {error:updateError}=await db.from('project_support_case_updates').insert({case_id:created.id,actor_user_id:user.id,action:'created',member_visible:true,body:'Your private support case was submitted. An authorized Mettelo administrator will review it.'});
   if(updateError)throw updateError;
 
@@ -71,7 +99,7 @@ export async function POST(request:Request){
   return NextResponse.json({ok:true,case:created},{status:201,headers:{'Cache-Control':'private, no-store'}});
  }catch(error){
   console.error('project support case create error',{code:safeErrorCode(error)});
-  return NextResponse.json({error:'Unable to create your private support case right now.'},{status:500,headers:{'Cache-Control':'private, no-store'}});
+  return NextResponse.json({error:"We couldn't submit your case. Please try again."},{status:500,headers:{'Cache-Control':'private, no-store'}});
  }
 }
 

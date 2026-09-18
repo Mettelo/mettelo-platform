@@ -5,7 +5,7 @@ import CollaborationShareActions from '@/components/CollaborationShareActions';
 
 type Option={id:string;label:string};
 type Props={
- projectId:string;projectRunId:string;projectTitle:string;projectType:string|null;
+ projectId:string;projectRunId:string;recruitmentContextToken:string;projectTitle:string;projectType:string|null;
  activeNeedId:string|null;activeNeedStatus:string|null;activeNeedLabel:string|null;activeNeedMessage:string|null;
  activeRoleId:string|null;activeDomainId:string|null;activeCapabilityIds:string[];weeklyCommitment:string|null;
  joiningCutoff:string|null;teamOccupied:number;teamMinimum:number;teamTarget:number;teamMaximum:number;openPlaces:number;
@@ -21,7 +21,7 @@ function normalizeCommitment(value:string|null){if(!value)return'Flexible';const
 
 export default function ProjectGrowTeamActions(props:Props){
  const{
-  projectId,projectRunId,projectTitle,projectType,activeNeedId,activeNeedStatus,activeNeedLabel,activeNeedMessage,
+  projectId,projectRunId,recruitmentContextToken,projectTitle,projectType,activeNeedId,activeNeedStatus,activeNeedLabel,activeNeedMessage,
   activeRoleId,activeCapabilityIds,weeklyCommitment,joiningCutoff,teamOccupied,teamMinimum,teamTarget,teamMaximum,
   openPlaces,runStatus,canRecruit,canManage,canFind,canPost,canShare,stateLabel,stateMessage,roleOptions,
   capabilityOptions,suggestedResponsibility,suggestedSourceProjectRoleId
@@ -87,7 +87,7 @@ export default function ProjectGrowTeamActions(props:Props){
     action:'edit',id:needId,responsibility:help,target_role_catalogue_id:roleId||null,
     capability_ids:selectedCapabilities,member_message:message.trim()||null,weekly_commitment:commitment
    }:{
-    project_id:projectId,project_run_id:projectRunId,responsibility:help,
+    recruitment_context:recruitmentContextToken,responsibility:help,
     source_project_role_id:help===suggestedResponsibility?suggestedSourceProjectRoleId:null,
     target_role_catalogue_id:roleId||null,capability_ids:selectedCapabilities,
     member_message:message.trim()||null,weekly_commitment:commitment,source:'member'

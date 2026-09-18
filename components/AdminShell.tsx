@@ -13,7 +13,7 @@ type NavGroup={label:string;items:NavItem[]};
 const groups:NavGroup[]=[
  {label:'Website',items:[{label:'Website overview',href:'/admin/website'},{label:'Pages',href:'/admin/website/pages'},{label:'Navigation',href:'/admin/website/navigation'},{label:'Footer & Social',href:'/admin/website/footer'},{label:'Branding',href:'/admin/website/branding'}]},
  {label:'Recruiting',items:[{label:'Careers',href:'/admin/careers/roles'},{label:'Project applications',href:'/admin/project-operations/applications'},{label:'Opportunity review',href:'/admin/opportunities'},{label:'Job sources',href:'/admin/opportunity-sources'}]},
- {label:'Projects',items:[{label:'Project operations',href:'/admin/project-operations/projects'},{label:'Project Architect',href:'/admin/project-architect-applications'},{label:'Project governance',href:'/admin/project-governance'}]},
+ {label:'Projects',items:[{label:'Active project operations',href:'/admin/project-operations/projects'},{label:'Project Architect',href:'/admin/project-architect-applications'},{label:'Project governance',href:'/admin/project-governance'}]},
  {label:'Community & Proof',items:[{label:'Proof review',href:'/admin/proof'},{label:'Spotlight & awards',href:'/admin/spotlights'},{label:'Events',href:'/admin/events'}]},
  {label:'Content & Comms',items:[{label:'Content & Insights',href:'/admin/content/news'},{label:'Communications',href:'/admin/notifications/overview'}]},
  {label:'Platform',items:[{label:'Platform overview',href:'/admin/platform'},{label:'Settings',href:'/admin/settings'},{label:'Auth & SSO status',href:'/admin/platform/auth'}]},

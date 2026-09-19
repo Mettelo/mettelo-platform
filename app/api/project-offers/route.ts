@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {notifyUser,serviceDb} from '@/lib/project-flow';
+import {startProjectRun} from '@/lib/project-start-service';
 
 type OfferResult={
   offer_id:string;
@@ -12,6 +13,8 @@ type OfferResult={
   creates_membership?:boolean;
   capacity_released?:boolean;
 };
+type FormationResult={formed?:boolean;already_formed?:boolean;membership_id?:string;membership_status?:string;run_id?:string;required_team_size?:number;participation_preference?:'solo'|'team'|'flexible'};
+type ActivationResult={started:boolean;alreadyStarted?:boolean;notReady?:boolean;paused?:boolean;blocked?:boolean;blockers?:string[];runId:string};
 type OfferProject={title:string|null};
 type OfferRow={
   id:string;
@@ -66,6 +69,9 @@ export async function PATCH(request:Request){
     const db=serviceDb();
     let communicationRecorded=true;
     let projectTitle='your Mettelo project';
+    let formation:FormationResult|null=null;
+    let activation:ActivationResult|null=null;
+    let formationError:string|null=null;
 
     if(db){
       const {data:offerData}=await db
@@ -77,12 +83,42 @@ export async function PATCH(request:Request){
       const project=offer?(Array.isArray(offer.projects)?offer.projects[0]||null:offer.projects):null;
       projectTitle=project?.title||projectTitle;
 
+      if(result.status==='accepted'&&offer?.user_id===user.id){
+        const {data:formationData,error:formationRpcError}=await db.rpc('phase10_form_accepted_offer',{p_application_id:offer.application_id});
+        if(formationRpcError){
+          formationError=String(formationRpcError.message||'ACCEPTED_OFFER_FORMATION_FAILED');
+          console.error('accepted offer formation error',{offer_id:offerId,application_id:offer.application_id,error:formationRpcError});
+        }else{
+          formation=(formationData||{}) as FormationResult;
+          const independent=formation.participation_preference==='solo'||formation.participation_preference==='flexible';
+          const onePerson=Math.max(1,Number(formation.required_team_size||1))===1;
+          if(independent&&onePerson&&formation.run_id){
+            try{
+              activation=await startProjectRun({
+                db,
+                projectId:offer.project_id,
+                runId:formation.run_id,
+                source:'manual',
+                actorUserId:user.id
+              }) as ActivationResult;
+            }catch(error){
+              console.error('accepted offer immediate start error',{offer_id:offerId,run_id:formation.run_id,error});
+              activation={started:false,notReady:true,blockers:['start_service_unavailable'],runId:formation.run_id};
+            }
+          }
+        }
+      }
+
       if(!result.already_in_state&&offer?.user_id===user.id){
         const isAccepted=result.status==='accepted';
         const isDeclined=result.status==='declined';
         const title=isAccepted?'Project place accepted':isDeclined?'Project place declined':'Project offer expired';
         const message=isAccepted
-          ?`You accepted your place on ${projectTitle}. Your commitment is recorded. Mettelo will move this accepted place into the governed team-formation journey; project membership and private workspace access are not active yet.`
+          ?activation?.started||activation?.alreadyStarted
+            ?`You accepted your place on ${projectTitle}. Your place is confirmed and the project is active. Open My Projects to begin.`
+            :formation?.membership_id
+              ?`You accepted your place on ${projectTitle}. Your place is confirmed in the canonical project run. ${activation?.blockers?.length?`Start readiness still needs: ${activation.blockers.join(', ').replaceAll('_',' ')}.`:'Team formation/readiness is continuing.'}`
+              :`You accepted your place on ${projectTitle}. Your acceptance is recorded, but formation needs operational attention before the project can start.`
           :isDeclined
             ?`You declined your place on ${projectTitle}. The reserved capacity has been released and this offer is now closed.`
             :`Your offer for ${projectTitle} expired before a response was recorded. The reserved capacity has been released.`;
@@ -120,12 +156,31 @@ export async function PATCH(request:Request){
       },{status:409});
     }
 
+    const accepted=result.status==='accepted';
+    const started=Boolean(activation?.started||activation?.alreadyStarted);
     return NextResponse.json({
       ok:true,
       already_in_state:Boolean(result.already_in_state),
       offer:{id:result.offer_id,status:result.status},
-      application:{id:result.application_id,status:result.status},
-      participation:{creates_membership:false,capacity_released:Boolean(result.capacity_released)},
+      application:{
+        id:result.application_id,
+        status:accepted
+          ?started?'team_complete':formation?.membership_id?'waiting_for_team':'accepted'
+          :result.status
+      },
+      participation:{
+        creates_membership:accepted&&Boolean(formation?.membership_id),
+        membership_id:formation?.membership_id||null,
+        membership_status:started?'active':formation?.membership_status||null,
+        run_id:formation?.run_id||null,
+        effective_path:formation?.participation_preference||null,
+        required_team_size:formation?.required_team_size??null,
+        project_active:started,
+        start_blockers:activation?.blockers||[],
+        formation_needs_attention:accepted&&!formation?.membership_id,
+        formation_error:formationError,
+        capacity_released:Boolean(result.capacity_released)
+      },
       communication:{recorded:communicationRecorded}
     });
   }catch(error){

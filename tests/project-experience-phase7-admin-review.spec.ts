@@ -65,7 +65,7 @@ test.describe('Project Experience Phase 7 source contract',()=>{
   const route=read('app/api/admin/applications/route.ts');
   const migration=read('supabase/migrations/20260905178000_project_experience_phase_7_review_offer_boundary.sql');
   expect(route).toContain("'clarification_requested'");
-  expect(route).toContain("auth.rpc('phase7_transition_review_request'");
+  expect(route).toContain("db.rpc('phase7_transition_review_request_server'");
   expect(route).toContain('creates_membership:false');
   expect(migration).toContain("(app.status='in_review' and p_to_status in ('clarification_requested','shortlisted','offered','declined'))");
   expect(migration).toContain("(app.status='clarification_requested' and p_to_status in ('in_review','declined'))");

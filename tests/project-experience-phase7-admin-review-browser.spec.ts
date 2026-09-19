@@ -33,7 +33,8 @@ test('Partner review context and Offer boundary are rendered accessibly',async({
  await expect(dialog.getByText('Self-declared professional profile')).toBeVisible();
  await expect(dialog.getByRole('heading',{name:'Verified Mettelo Proof'})).toBeVisible();
  await expect(dialog.getByText('Partner organisation')).toBeVisible();
- await expect(dialog.getByText(/2 confirmed · 0 offered · 3 open · minimum 2 · target 4 · maximum 5/)).toBeVisible();
+ await expect(dialog.getByText(/2 confirmed · 0 offered · 3 open/)).toBeVisible();
+ await expect(dialog.getByText(/Min 2 · Target 4 · Max 5/)).toBeVisible();
  await expect(dialog.getByRole('button',{name:'Start review'})).toBeVisible();
  await expect(dialog.getByRole('button',{name:'Decline'})).toBeVisible();
  await dialog.getByRole('button',{name:'Close interest detail'}).click();

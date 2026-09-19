@@ -12,11 +12,38 @@ test.describe('Admin Project Applications review + AUTO start contract',()=>{
   const phase7=read('supabase/migrations/20260905178000_project_experience_phase_7_review_offer_boundary.sql');
   expect(queue).toContain("await update(item,'in_review'");
   expect(queue).toContain('The review workspace is now open.');
-  expect(route).toContain("auth.rpc('phase7_transition_review_request'");
+  expect(route).toContain("db.rpc('phase7_transition_review_request_server'");
   expect(route).toContain("event_type:status==='in_review'?'review_started'");
   expect(phase7).toContain("role_name<>'admin'");
   expect(phase7).toContain("insert into public.project_application_events");
   expect(phase7).toContain("actor_user_id,reviewer_notes");
+ });
+
+ test('review recovery uses server authority, explicit actor/timestamps and stale-state protection',()=>{
+  const route=read('app/api/admin/applications/route.ts');
+  const migration=read('supabase/migrations/20260919043000_project_application_review_participation_recovery.sql');
+  const queue=read('components/AdminApplicationQueue.tsx');
+  expect(route).toContain("db.rpc('phase7_transition_review_request_server'");
+  expect(route).toContain('p_actor_user_id:user.id');
+  expect(route).toContain('p_expected_status:expectedStatus');
+  expect(route).toContain('STALE_REVIEW_STATE');
+  for(const text of ['review_started_at','reviewer_user_id','declined_at','STALE_REVIEW_STATE','for update'])expect(migration).toContain(text);
+  expect(queue).toContain('expected_status:item.status');
+  expect(queue).toContain('Decline project request?');
+ });
+
+ test('Admin distinguishes project participation, member choice, effective formation and start threshold',()=>{
+  const page=read('app/admin/project-operations/applications/page.tsx');
+  const queue=read('components/AdminApplicationQueue.tsx');
+  const admission=read('lib/project-admission.ts');
+  expect(page).toContain('effectiveApplicationParticipation');
+  expect(page).toContain('applicationStartThreshold');
+  for(const text of ['Project participation','Member participation choice','Effective formation path','Start threshold','Team configuration'])expect(queue).toContain(text);
+  expect(admission).toContain("if(input.preference==='solo')return'solo'");
+  expect(admission).toContain("if(input.preference==='team')return'team'");
+  expect(admission).toContain("return effective==='team'?Math.max(1,Number(input.minimum||1)):1");
+  expect(queue).not.toContain('<dt>Participation mode</dt>');
+  expect(queue).not.toContain('<dt>Participation preference</dt>');
  });
 
  test('SC-06..10 admission mode is independent from participation and Partner remains review-required',()=>{
@@ -71,8 +98,8 @@ test.describe('Admin Project Applications review + AUTO start contract',()=>{
   for(const label of ['Partner / review required','Open review required','AUTO team forming','AUTO eligibility window','AUTO ready to start','AUTO needs attention','Started'])expect(page).toContain(label);
   expect(page).toContain("state==='READY_TO_START'");
   expect(page).toContain('<AdminAutoStartAction');
-  expect(queue).toContain('{openPlaces(item)} places open');
-  expect(queue).toContain('Min {item.capacity.minimum} · Target {item.capacity.target} · Max {item.capacity.maximum}');
+  expect(queue).toContain("{item.start_threshold} member{item.start_threshold===1?'':'s'} to start");
+  expect(queue).toContain('Project team config: Min {item.team_configuration.minimum} · Target {item.team_configuration.target} · Max {item.team_configuration.maximum}');
   expect(queue).not.toContain("if(item.admission_lane==='auto')return['in_review'");
  });
 

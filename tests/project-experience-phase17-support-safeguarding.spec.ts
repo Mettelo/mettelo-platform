@@ -13,8 +13,8 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
   expect(page).toContain("let runId=(isAdmin&&requestedRun)||membership?.project_run_id||null");
   expect(panel).toContain('projectRunId={canonicalRunId}');
   expect(panel).toContain("member.status==='active'");
-  for(const text of ['reporter_project_member_id','submission_key','project_support_cases_submission_key_uidx','canonical_membership_id'])expect(migration).toContain(text);
-  for(const text of ["eq('project_run_id',runId).eq('user_id',user.id)","submissionKey.length<8","error.code==='23505'","duplicate:true"])expect(route).toContain(text);
+  for(const text of ['reporter_project_member_id','submission_key','project_support_cases_submission_key_uidx','canonical_membership_id','SUPPORT_CASE_RUN_NOT_ACTIVE'])expect(migration).toContain(text);
+  for(const text of ["eq('project_run_id',runId).eq('user_id',user.id)","run.status!=='active'","submissionKey.length<8","error.code==='23505'","duplicate:true"])expect(route).toContain(text);
  });
  test('support cases attach to canonical project/run/membership without creating parallel systems',()=>{
   const migration=read('supabase/migrations/20260908010000_project_experience_phase_17_support_conflict_safeguarding.sql');

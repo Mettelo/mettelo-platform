@@ -43,6 +43,21 @@ export function resolveParticipationPreference(mode:ProjectParticipationMode,val
   return{ok:false,error:`Choose a participation option supported by this ${mode} project.`};
 }
 
+export function effectiveApplicationParticipation(input:{participationMode:ProjectParticipationMode;preference:ParticipationPreference|null|undefined;flexiblePreference?:string|null}):ProjectParticipationMode{
+  if(input.participationMode==='solo')return'solo';
+  if(input.participationMode==='team')return'team';
+  if(input.preference==='solo')return'solo';
+  if(input.preference==='team')return'team';
+  if(input.preference==='flexible'&&input.flexiblePreference==='prefer_team')return'team';
+  if(input.preference==='flexible'&&input.flexiblePreference==='prefer_solo')return'solo';
+  return'flexible';
+}
+
+export function applicationStartThreshold(input:{participationMode:ProjectParticipationMode;preference:ParticipationPreference|null|undefined;flexiblePreference?:string|null;minimum:number|null|undefined}){
+  const effective=effectiveApplicationParticipation(input);
+  return effective==='team'?Math.max(1,Number(input.minimum||1)):1;
+}
+
 export function requiredMembersToScheduleStart(input:{participationMode:ProjectParticipationMode;preference:ParticipationPreference;minimum:number|null|undefined}){
   if(input.participationMode==='solo'||input.preference==='solo')return 1;
   // Preserve the established pre-redesign `either` capacity contract for older callers.

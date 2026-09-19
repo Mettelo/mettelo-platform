@@ -54,7 +54,7 @@ export async function PATCH(request:Request){
   try{
     const connection=await adminDb();
     if('error' in connection)return connection.error;
-    const {auth,db,user}=connection;
+    const {db,user}=connection;
     const body=await request.json();
     const id=String(body.id||'');
     const status=String(body.status||'') as ReviewStatus;

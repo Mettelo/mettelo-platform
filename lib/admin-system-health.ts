@@ -3,10 +3,12 @@ import {serviceDb} from '@/lib/project-flow';
 export type HealthSourceState='available'|'unknown';
 export type AuditHealth={state:HealthSourceState;events_24h:number|null;denied_24h:number|null;failures_24h:number|null;latest_event_at:string|null};
 export type DeliveryHealth={state:HealthSourceState;queued:number|null;retrying:number|null;failed:number|null;dead_letter:number|null;sent_24h:number|null;latest_delivery_at:string|null};
-export type AdminSystemHealth={generated_at:string;audit:AuditHealth;delivery:DeliveryHealth};
+export type BackendContractHealth={state:'available'|'degraded'|'unknown';checked:number|null;missing:string[]};
+export type AdminSystemHealth={generated_at:string;audit:AuditHealth;delivery:DeliveryHealth;backend_contract:BackendContractHealth};
 
 const unknownAudit:AuditHealth={state:'unknown',events_24h:null,denied_24h:null,failures_24h:null,latest_event_at:null};
 const unknownDelivery:DeliveryHealth={state:'unknown',queued:null,retrying:null,failed:null,dead_letter:null,sent_24h:null,latest_delivery_at:null};
+const unknownBackendContract:BackendContractHealth={state:'unknown',checked:null,missing:[]};
 
 async function auditHealth(){
  const db=serviceDb();if(!db)return unknownAudit;
@@ -21,6 +23,21 @@ async function auditHealth(){
   if(events.error||denied.error||failures.error||latest.error)throw events.error||denied.error||failures.error||latest.error;
   return{state:'available' as const,events_24h:events.count||0,denied_24h:denied.count||0,failures_24h:failures.count||0,latest_event_at:latest.data?.created_at||null};
  }catch(error){console.error('system health audit summary unavailable',{message:error instanceof Error?error.message:'unknown'});return unknownAudit;}
+}
+
+
+async function backendContractHealth(){
+ const db=serviceDb();if(!db)return unknownBackendContract;
+ try{
+  const {data,error}=await db.rpc('admin_backend_contract_health');
+  if(error)throw error;
+  const payload=(data||{}) as {state?:string;checked?:number;missing?:unknown};
+  return{
+   state:payload.state==='available'?'available' as const:payload.state==='degraded'?'degraded' as const:'unknown' as const,
+   checked:Number.isFinite(Number(payload.checked))?Number(payload.checked):null,
+   missing:Array.isArray(payload.missing)?payload.missing.filter((item):item is string=>typeof item==='string'):[]
+  };
+ }catch(error){console.error('system health backend contract unavailable',{message:error instanceof Error?error.message:'unknown'});return unknownBackendContract;}
 }
 
 async function deliveryHealth(){
@@ -42,6 +59,6 @@ async function deliveryHealth(){
 }
 
 export async function getAdminSystemHealth():Promise<AdminSystemHealth>{
- const [audit,delivery]=await Promise.all([auditHealth(),deliveryHealth()]);
- return{generated_at:new Date().toISOString(),audit,delivery};
+ const [audit,delivery,backend_contract]=await Promise.all([auditHealth(),deliveryHealth(),backendContractHealth()]);
+ return{generated_at:new Date().toISOString(),audit,delivery,backend_contract};
 }

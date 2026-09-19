@@ -6,6 +6,16 @@ const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
 
 test.describe('Project Experience Phase 17 support, conflict and safeguarding contract',()=>{
+ test('Lab Support recovery binds the UI and API to canonical run membership with retry protection',()=>{
+  const page=read('app/member/projects/[id]/page.tsx'),panel=read('components/MetteloLabPanel.tsx'),route=read('app/api/project-support-cases/route.ts'),migration=read('supabase/migrations/20260919001000_lab_support_recovery.sql');
+  expect(page).toContain("canonicalMemberships=(memberships||[]).filter(item=>['active','completed'].includes(String(item.membership_status)))");
+  expect(page).toContain("if(requestedRun&&!isAdmin&&!requestedMembership)notFound()");
+  expect(page).toContain("let runId=(isAdmin&&requestedRun)||membership?.project_run_id||null");
+  expect(panel).toContain('projectRunId={canonicalRunId}');
+  expect(panel).toContain("member.status==='active'");
+  for(const text of ['reporter_project_member_id','submission_key','project_support_cases_submission_key_uidx','canonical_membership_id','SUPPORT_CASE_RUN_NOT_ACTIVE'])expect(migration).toContain(text);
+  for(const text of ["eq('project_run_id',runId).eq('user_id',user.id)","run.status!=='active'","submissionKey.length<8","error.code==='23505'","duplicate:true"])expect(route).toContain(text);
+ });
  test('support cases attach to canonical project/run/membership without creating parallel systems',()=>{
   const migration=read('supabase/migrations/20260908010000_project_experience_phase_17_support_conflict_safeguarding.sql');
   const hardening=read('supabase/migrations/20260908013000_project_experience_phase_17_signoff_hardening.sql');
@@ -89,7 +99,7 @@ test.describe('Project Experience Phase 17 support, conflict and safeguarding co
   expect(phase15).not.toContain("import './project-experience-phase16-member-exit-e2e.spec'");
  });
  test('member Lab surface provides private entry, safe reference, tracker and secure information response',()=>{
-  const member=read('components/project-experience/ProjectSupportCaseSection.tsx');for(const text of ['PRIVATE SUPPORT','Your Project Lead and teammates do not automatically receive access','Support case created. Reference','Mettelo project support is not an emergency service.',"item.status==='awaiting_member'",'Respond securely','Send secure response',"item.status==='closed'"])expect(member).toContain(text);
+  const member=read('components/project-experience/ProjectSupportCaseSection.tsx');for(const text of ['PRIVATE SUPPORT','Project Leads and teammates do not automatically receive access','SUPPORT CASE SUBMITTED','You can track updates here.','View case','Mettelo project support is not an emergency service.',"item.status==='awaiting_member'",'Respond securely','Send secure response',"item.status==='closed'"])expect(member).toContain(text);
  });
  test('readiness document keeps all seventeen release criteria explicit',()=>{
   const doc=read('docs/PHASE_17_SUPPORT_CONFLICT_SAFEGUARDING_READINESS.md');for(const text of ['Member can create case.','Correct project/run attached.','Case private.','Admin access restricted.','Lead complaint does not require Lead permission.','Sensitive details not emailed.','Case states work.','Audit works.','Recovery plan works.','Replacement can follow resolution.','Removal authorized.','RLS passes.','Mobile works.','Accessibility passes.','Security review passes.','Support E2E passes.','Docs updated.'])expect(doc).toContain(text);

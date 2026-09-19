@@ -5,7 +5,7 @@ import ProjectSupportCaseSection from '@/components/project-experience/ProjectSu
 
 const LAB_VIEW_EVENT='mettelo-lab-view-change';
 
-export default function MetteloLabSupportView({projectId,projectRunId,runStatus}:{projectId:string;projectRunId:string;runStatus:string}){
+export default function MetteloLabSupportView({projectId,projectRunId,runStatus,canCreateSupport}:{projectId:string;projectRunId:string;runStatus:string;canCreateSupport:boolean}){
  const [visible,setVisible]=useState(false);
  useEffect(()=>{
   const sync=()=>setVisible(new URL(window.location.href).searchParams.get('view')==='support');
@@ -22,5 +22,5 @@ export default function MetteloLabSupportView({projectId,projectRunId,runStatus}
   };
  },[]);
  if(!visible)return null;
- return <ProjectSupportCaseSection projectId={projectId} projectRunId={projectRunId} runStatus={runStatus}/>;
+ return <ProjectSupportCaseSection projectId={projectId} projectRunId={projectRunId} runStatus={runStatus} canCreateSupport={canCreateSupport}/>;
 }

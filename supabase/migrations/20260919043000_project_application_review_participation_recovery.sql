@@ -84,7 +84,14 @@ begin
   end if;
 
   if p_expected_status is not null and app.status<>p_expected_status then
-    raise exception using errcode='40001',message='STALE_REVIEW_STATE';
+    return jsonb_build_object(
+      'id',app.id,
+      'status',app.status,
+      'stale_state',true,
+      'error_code','STALE_REVIEW_STATE',
+      'expected_status',p_expected_status,
+      'creates_membership',false
+    );
   end if;
 
   if not (

@@ -90,7 +90,10 @@ export async function PATCH(request:Request){
       return NextResponse.json({error:mapped.error},{status:mapped.status});
     }
 
-    const result=transition as {id:string;status:string;previous_status?:string;already_in_state?:boolean;review_started_at?:string|null;reviewer_user_id?:string|null;declined_at?:string|null;creates_membership?:boolean;requires_member_acceptance?:boolean;capacity?:unknown};
+    const result=transition as {id:string;status:string;previous_status?:string;already_in_state?:boolean;stale_state?:boolean;error_code?:string;expected_status?:string|null;review_started_at?:string|null;reviewer_user_id?:string|null;declined_at?:string|null;creates_membership?:boolean;requires_member_acceptance?:boolean;capacity?:unknown};
+    if(result.stale_state||result.error_code==='STALE_REVIEW_STATE'){
+      return NextResponse.json({error:'This request has already changed. Refresh the page to see its latest state.',application:{id:result.id,status:result.status},expected_status:result.expected_status||expectedStatus},{status:409});
+    }
     if(result.already_in_state){
       return NextResponse.json({ok:true,already_in_state:true,application:{id:result.id,status:result.status},selection:{status:result.status,creates_membership:false,requires_member_acceptance:result.status==='offered'}});
     }

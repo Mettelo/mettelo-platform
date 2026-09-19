@@ -27,7 +27,6 @@ begin
     from public.project_runs pr
     where pr.id=new.project_run_id
       and pr.project_id=new.project_id
-      and pr.status='active'
   ) then
     raise exception using errcode='23514',message='SUPPORT_CASE_PROJECT_RUN_MISMATCH';
   end if;
@@ -43,6 +42,16 @@ begin
 
   if canonical_membership_id is null then
     raise exception using errcode='23514',message='SUPPORT_CASE_ACTIVE_REPORTER_MEMBERSHIP_REQUIRED';
+  end if;
+
+  if not exists (
+    select 1
+    from public.project_runs pr
+    where pr.id=new.project_run_id
+      and pr.project_id=new.project_id
+      and pr.status='active'
+  ) then
+    raise exception using errcode='23514',message='SUPPORT_CASE_RUN_NOT_ACTIVE';
   end if;
 
   new.reporter_project_member_id=canonical_membership_id;
@@ -75,12 +84,6 @@ with check (
       and pm.project_run_id=project_support_cases.project_run_id
       and pm.user_id=auth.uid()
       and pm.membership_status='active'
-  )
-  and exists (
-    select 1 from public.project_runs pr
-    where pr.id=project_support_cases.project_run_id
-      and pr.project_id=project_support_cases.project_id
-      and pr.status='active'
   )
   and status='open'
   and assigned_admin_user_id is null

@@ -43,6 +43,7 @@ function notificationMeta(status:ReviewStatus,kind:string|null){
 function rpcMessage(message:string){
   if(message.includes('OFFER_CAPACITY_FULL'))return{status:409,error:'This project no longer has capacity for another outstanding offer. Refresh the queue before making a different decision.'};
   if(message.includes('AUTO_REVIEW_FORBIDDEN'))return{status:409,error:'AUTO admissions are managed through the scheduled-start controls, not the human review queue.'};
+  if(message.includes('STALE_REVIEW_STATE'))return{status:409,error:'This request has already changed. Refresh the page to see its latest state.'};
   if(message.includes('INVALID_REVIEW_TRANSITION'))return{status:409,error:'This project request changed or cannot make that review transition. Refresh before trying again.'};
   if(message.includes('ADMIN_REQUIRED'))return{status:403,error:'Admin access required.'};
   if(message.includes('APPLICATION_NOT_FOUND'))return{status:404,error:'Project request not found.'};
@@ -59,6 +60,7 @@ export async function PATCH(request:Request){
     const status=String(body.status||'') as ReviewStatus;
     const reviewerNotes=String(body.reviewer_notes||'').trim().slice(0,1500);
     const customMessage=String(body.custom_message||'').trim().slice(0,1800);
+    const expectedStatus=String(body.expected_status||'').trim()||null;
 
     if(!id||!reviewStatuses.has(status))return NextResponse.json({error:'Choose a valid project request and review action.'},{status:400});
     if(status==='clarification_requested'&&!reviewerNotes&&!customMessage){
@@ -75,17 +77,20 @@ export async function PATCH(request:Request){
     const project=Array.isArray(application.projects)?application.projects[0]:application.projects;
     if(!project)return NextResponse.json({error:'Project not found.'},{status:404});
 
-    const {data:transition,error:transitionError}=await auth.rpc('phase7_transition_review_request',{
+    const {data:transition,error:transitionError}=await db.rpc('phase7_transition_review_request_server',{
       p_application_id:id,
       p_to_status:status,
-      p_reviewer_notes:reviewerNotes||null
+      p_reviewer_notes:reviewerNotes||null,
+      p_actor_user_id:user.id,
+      p_expected_status:expectedStatus
     });
     if(transitionError){
+      console.error('project review transition failed',{application_id:id,project_id:application.project_id,actor_user_id:user.id,from_status:application.status,to_status:status,code:transitionError.code||null,message:transitionError.message||null});
       const mapped=rpcMessage(String(transitionError.message||''));
       return NextResponse.json({error:mapped.error},{status:mapped.status});
     }
 
-    const result=transition as {id:string;status:string;previous_status?:string;already_in_state?:boolean;creates_membership?:boolean;requires_member_acceptance?:boolean;capacity?:unknown};
+    const result=transition as {id:string;status:string;previous_status?:string;already_in_state?:boolean;review_started_at?:string|null;reviewer_user_id?:string|null;declined_at?:string|null;creates_membership?:boolean;requires_member_acceptance?:boolean;capacity?:unknown};
     if(result.already_in_state){
       return NextResponse.json({ok:true,already_in_state:true,application:{id:result.id,status:result.status},selection:{status:result.status,creates_membership:false,requires_member_acceptance:result.status==='offered'}});
     }
@@ -145,7 +150,7 @@ export async function PATCH(request:Request){
 
     return NextResponse.json({
       ok:true,
-      application:{id:result.id,status:result.status},
+      application:{id:result.id,status:result.status,review_started_at:result.review_started_at||null,reviewer_user_id:result.reviewer_user_id||null,declined_at:result.declined_at||null},
       selection:{status:result.status,creates_membership:false,requires_member_acceptance:result.status==='offered',capacity:result.capacity||null,offer:offer?{id:offer.id,expires_at:offer.expires_at}:null},
       communication:{body:memberMessage,recorded:communicationRecorded}
     });

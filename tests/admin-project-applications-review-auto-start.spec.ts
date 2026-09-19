@@ -12,7 +12,7 @@ test.describe('Admin Project Applications review + AUTO start contract',()=>{
   const phase7=read('supabase/migrations/20260905178000_project_experience_phase_7_review_offer_boundary.sql');
   expect(queue).toContain("await update(item,'in_review'");
   expect(queue).toContain('The review workspace is now open.');
-  expect(route).toContain("auth.rpc('phase7_transition_review_request'");
+  expect(route).toContain("db.rpc('phase7_transition_review_request_server'");
   expect(route).toContain("event_type:status==='in_review'?'review_started'");
   expect(phase7).toContain("role_name<>'admin'");
   expect(phase7).toContain("insert into public.project_application_events");

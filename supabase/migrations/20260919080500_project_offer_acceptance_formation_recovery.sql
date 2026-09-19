@@ -291,3 +291,87 @@ grant execute on function public.phase10_form_accepted_offer(uuid) to service_ro
 
 comment on function public.phase10_form_accepted_offer(uuid) is
   'Service-only Phase 10 accepted-Offer formation. Reuses a canonical active run for Phase-9-permitted late joining; otherwise reuses/creates only an appropriate forming run. Never activates or restarts a project.';
+
+
+-- Reconcile durable accepted Offers that were stranded before the application
+-- route began invoking Phase 10. Historical rows without trustworthy current
+-- participation evidence are deliberately left explicit and untouched.
+do $$
+declare
+  candidate record;
+  formed jsonb;
+  readiness jsonb;
+  activated jsonb;
+begin
+  for candidate in
+    select
+      a.id as application_id,
+      a.project_id,
+      a.participation_preference,
+      a.flexible_preference
+    from public.project_applications a
+    join public.project_offers o on o.application_id=a.id
+    join public.projects p on p.id=a.project_id
+    where a.status='accepted'
+      and a.participation_preference in ('solo','team','flexible')
+      and o.status='accepted'
+      and o.accepted_at is not null
+      and o.capacity_released_at is null
+      and o.capacity_consumed_at is null
+      and public.effective_project_admission_mode(p.project_type,p.admission_mode)='review_required'
+      and p.status not in ('cancelled','completed','archived')
+    order by o.accepted_at asc,o.id asc
+  loop
+    begin
+      formed:=public.phase10_form_accepted_offer(candidate.application_id);
+
+      -- One-person review-required paths must not remain queued after a valid
+      -- acceptance. Re-use the canonical Phase 11 readiness projection and
+      -- atomic Phase 9 activation authority. Team paths continue formation.
+      if coalesce((formed->>'required_team_size')::integer,0)=1
+         and coalesce(formed->>'participation_preference','') in ('solo','flexible')
+         and nullif(formed->>'run_id','') is not null then
+        readiness:=public.phase11_project_start_readiness(
+          candidate.project_id,
+          (formed->>'run_id')::uuid
+        );
+
+        if coalesce((readiness->>'ready')::boolean,false) then
+          activated:=public.phase9_activate_project_run(
+            candidate.project_id,
+            (formed->>'run_id')::uuid,
+            'manual',
+            null
+          );
+
+          insert into public.project_activity_log(
+            project_id,project_run_id,event_type,actor_type,from_status,to_status,metadata
+          ) values (
+            candidate.project_id,
+            (formed->>'run_id')::uuid,
+            'accepted_offer_recovery_reconciled',
+            'system',
+            'accepted',
+            case when coalesce((activated->>'started')::boolean,false)
+                   or coalesce((activated->>'already_started')::boolean,false)
+                 then 'active' else 'waiting_for_team' end,
+            jsonb_build_object(
+              'application_id',candidate.application_id,
+              'formation',formed,
+              'readiness',readiness,
+              'activation',activated,
+              'source','20260919080500_project_offer_acceptance_formation_recovery'
+            )
+          );
+        end if;
+      end if;
+    exception when others then
+      -- Do not invent or coerce ambiguous historical participation. A malformed
+      -- legacy row stays explicit for governed Admin recovery instead of making
+      -- the migration unsafe or silently rewriting member intent.
+      raise warning 'accepted Offer reconciliation skipped application %: %',
+        candidate.application_id,sqlerrm;
+    end;
+  end loop;
+end
+$$;

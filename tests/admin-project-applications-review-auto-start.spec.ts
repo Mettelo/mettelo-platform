@@ -98,8 +98,8 @@ test.describe('Admin Project Applications review + AUTO start contract',()=>{
   for(const label of ['Partner / review required','Open review required','AUTO team forming','AUTO eligibility window','AUTO ready to start','AUTO needs attention','Started'])expect(page).toContain(label);
   expect(page).toContain("state==='READY_TO_START'");
   expect(page).toContain('<AdminAutoStartAction');
-  expect(queue).toContain('{openPlaces(item)} places open');
-  expect(queue).toContain('Min {item.capacity.minimum} · Target {item.capacity.target} · Max {item.capacity.maximum}');
+  expect(queue).toContain("{item.start_threshold} member{item.start_threshold===1?'':'s'} to start");
+  expect(queue).toContain('Project team config: Min {item.team_configuration.minimum} · Target {item.team_configuration.target} · Max {item.team_configuration.maximum}');
   expect(queue).not.toContain("if(item.admission_lane==='auto')return['in_review'");
  });
 

@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 
 const checks=[
- ['lib/admin-system-health.ts',['admin_audit_log','email_outbox','state:\'unknown\'','events_24h','denied_24h','failures_24h','dead_letter','sent_24h','latest_event_at','latest_delivery_at']],
+ ['lib/admin-system-health.ts',['admin_audit_log','email_outbox','admin_backend_contract_health','backend_contract','state:\'unknown\'','events_24h','denied_24h','failures_24h','dead_letter','sent_24h','latest_event_at','latest_delivery_at']],
  ['app/api/admin/system/health/route.ts',["hasAdminCapability(user,'system.audit.read')",'can_manage_delivery','cache-control','no-store']],
  ['app/admin/system/health/page.tsx',["hasAdminCapability(user,'system.audit.read')",'AdminSystemHealth',"hasAdminCapability(user,'communications.manage')"]],
- ['components/AdminSystemHealth.tsx',['System health','Unknown is not healthy.','Admin audit activity','Transactional email delivery','DATA BOUNDARY','recipient email addresses','Refresh status','aria-live="polite"','@media(max-width:480px)','grid-template-columns:repeat(2,minmax(0,1fr))']],
+ ['components/AdminSystemHealth.tsx',['System health','Unknown is not healthy.','Admin audit activity','Backend contract integrity','Transactional email delivery','DATA BOUNDARY','recipient email addresses','Refresh status','aria-live="polite"','@media(max-width:480px)','grid-template-columns:repeat(2,minmax(0,1fr))']],
  ['app/admin/system/page.tsx',["hasAdminCapability(user,'system.audit.read')","hasAdminCapability(user,'communications.manage')",'/admin/system/health','/admin/notifications/delivery','General background-job telemetry']],
  ['app/admin/notifications/delivery/page.tsx',["hasAdminCapability(user,'communications.manage')",'AdminNotificationOps']],
  ['app/api/admin/notifications/retry/route.ts',["hasAdminCapability(user,'communications.manage')",'communications.delivery.retry_requested','recordAdminAudit','Authentication required.']],

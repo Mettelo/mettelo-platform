@@ -22,7 +22,7 @@ begin
     insert into public.project_application_events(
       application_id,from_status,to_status,actor_user_id,reviewer_notes,created_at
     ) values(
-      new.id,null,new.status,coalesce(new.reviewer_user_id,auth.uid()),new.reviewer_notes,coalesce(new.submitted_at,now())
+      new.id,null,new.status,coalesce(auth.uid(),new.reviewer_user_id),new.reviewer_notes,coalesce(new.submitted_at,now())
     );
   elsif old.status is distinct from new.status then
     insert into public.project_application_events(

@@ -26,7 +26,7 @@ export async function GET(request:Request){
     db.from('project_runs').select('id,status').eq('id',runId).eq('project_id',projectId).maybeSingle(),
     db.from('project_members').select('id,membership_status').eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',user.id).maybeSingle()
    ]);
-   eligibility=!run?{can_create:false,reason:'stale_run'}:membership?.membership_status==='active'?{can_create:true,reason:null}:{can_create:false,reason:membership?'inactive_membership':'not_a_member'};
+   eligibility=!run?{can_create:false,reason:'stale_run'}:run.status!=='active'?{can_create:false,reason:'inactive_run'}:membership?.membership_status==='active'?{can_create:true,reason:null}:{can_create:false,reason:membership?'inactive_membership':'not_a_member'};
   }
 
   const {data:cases,error}=await db.from('project_support_cases')

@@ -79,7 +79,7 @@ test.describe('Project Experience Phase 8 source contract',()=>{
     expect(component).toContain('Partner organisation:');
     expect(component).toContain('Accept place');
     expect(component).toContain('Decline');
-    expect(component).toContain('does not start the project or unlock the private workspace yet');
+    expect(component).toContain('Solo and Flexible-independent participation can start immediately when readiness is clear');
     expect(component).toContain('Discover projects');
     expect(mine).toContain('project_type,partner_name,weekly_commitment,duration_weeks');
     expect(mine).toContain('team_state:');

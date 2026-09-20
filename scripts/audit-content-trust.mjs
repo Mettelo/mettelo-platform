@@ -9,7 +9,7 @@ const applications=read('components/MemberApplicationTracker.tsx');
 requireText('Application actionability guard',applications,["const actionStates=new Set(['clarification_requested','action_required','needs_changes','offered'])","needs:items.filter(item=>actionStates.has(item.status)&&!isClosed(item)).length","view==='needs'?actionStates.has(item.status)&&!isClosed(item)",'Nothing needs your attention','Action required: review your project offer','Action required: send the requested clarification']);
 forbidText('Application actionability guard',applications,['Review action','Action required before this application can continue','Accept place','Decline place']);
 const projectOffers=read('components/MemberProjectOffers.tsx');
-requireText('Project Offer action ownership',projectOffers,['PROJECT PLACE OFFERS','Accept place','Decline',"fetch('/api/project-offers'",'does not start the project or unlock the private workspace yet']);
+requireText('Project Offer action ownership',projectOffers,['PROJECT PLACE OFFERS','Accept place','Decline',"fetch('/api/project-offers'",'Solo and Flexible-independent participation can start immediately when readiness is clear']);
 forbidText('Project Offer action ownership',projectOffers,['project_members','startProjectRun']);
 
 const contributionForm=read('components/ContributionForm.tsx');

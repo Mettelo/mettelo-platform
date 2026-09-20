@@ -55,6 +55,9 @@ declare
   team_geometry boolean:=false;
   late_join boolean:=false;
   capacity_snapshot jsonb;
+  occupied integer:=0;
+  reserved integer:=0;
+  maximum_members integer:=1;
   now_at timestamptz:=now();
 begin
   select a.project_id into project_id_hint
@@ -176,7 +179,21 @@ begin
 
   if run_row.id is not null then
     capacity_snapshot:=public.phase9_project_run_capacity(project_row.id,run_row.id);
-    if not coalesce((capacity_snapshot->>'late_join_allowed')::boolean,false) then
+    occupied:=coalesce((capacity_snapshot->>'occupied')::integer,0);
+    reserved:=coalesce((capacity_snapshot->>'reserved')::integer,0);
+    maximum_members:=coalesce((capacity_snapshot->>'maximum')::integer,1);
+
+    -- Preserve the Phase 16 replacement-capacity handoff: the accepted Offer
+    -- being converted into membership must not count against itself. Other live
+    -- reservations remain protected by the canonical capacity contract.
+    if offer_row.capacity_consumed_at is null then
+      reserved:=greatest(reserved-1,0);
+    end if;
+
+    if coalesce(run_row.recruitment_open,true)<>true
+       or coalesce(project_row.late_joining_enabled,true)<>true
+       or (project_row.late_joining_cutoff_at is not null and now_at>=project_row.late_joining_cutoff_at)
+       or occupied+reserved>=maximum_members then
       raise exception using errcode='23514',message='LATE_JOIN_NOT_ALLOWED';
     end if;
     late_join:=true;

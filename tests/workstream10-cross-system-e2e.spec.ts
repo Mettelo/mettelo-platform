@@ -31,15 +31,18 @@ test('published project stays coherent from Discover to review, Offer, team and 
   await adminPage.goto(`/admin/project-operations/applications?project=${projectId}`,{waitUntil:'networkidle'});await expect(adminPage.locator('.applicationTable tbody tr').filter({hasText:'WS10 Cross-System Project'}).first()).toBeVisible();
   for(const status of ['in_review','shortlisted','offered']){const response=await adminPage.context().request.patch('/api/admin/applications',{data:{id:application.data.id,status,reviewer_notes:`WS10 ${status} cross-system review`}});expect(response.status(),await response.text()).toBe(200)}
 
-  await memberPage.goto('/member/applications',{waitUntil:'networkidle'});await expect(memberPage.getByRole('button',{name:'Accept place'})).toBeVisible();await memberPage.getByRole('button',{name:'Accept place'}).click();await expect(memberPage.getByRole('dialog',{name:'Accept this project place?'})).toBeVisible();await memberPage.getByRole('button',{name:'Confirm acceptance'}).click();await expect(memberPage.locator('.mpoStatus.mpoSuccess').filter({hasText:'Place accepted.'})).toBeVisible();
+  await memberPage.goto('/member/applications',{waitUntil:'networkidle'});await expect(memberPage.getByRole('button',{name:'Accept place'})).toBeVisible();await memberPage.getByRole('button',{name:'Accept place'}).click();await expect(memberPage.getByRole('dialog',{name:'Accept this project place?'})).toBeVisible();await memberPage.getByRole('button',{name:'Confirm acceptance'}).click();await expect(memberPage.getByText(/Place accepted/).first()).toBeVisible();
 
+  const formedApplication=await client.from('project_applications').select('status,project_run_id').eq('id',application.data.id).single();if(formedApplication.error||!formedApplication.data?.project_run_id)throw formedApplication.error||new Error('Acceptance did not form the canonical run.');
+  const runId=formedApplication.data.project_run_id;
+  const {data:formedMembers,error:formedMembersError}=await client.from('project_members').select('id,project_run_id,membership_status').eq('project_id',projectId).eq('user_id',userId);if(formedMembersError)throw formedMembersError;expect(formedMembers).toHaveLength(1);expect(formedMembers?.[0]?.project_run_id).toBe(runId);
   const activeAt=new Date().toISOString();
-  const run=await client.from('project_runs').insert({project_id:projectId,run_number:1,status:'active',team_size_threshold:1,required_team_size:1,has_started:true,recruitment_open:true,started_at:activeAt,kickoff_at:activeAt}).select('id').single();if(run.error||!run.data)throw run.error||new Error('Cross-system active run was not created.');
-  const membership=await client.from('project_members').insert({project_id:projectId,project_run_id:run.data.id,user_id:userId,team_role:'project_lead',membership_status:'active',activated_at:activeAt});if(membership.error)throw membership.error;
+  const run=await client.from('project_runs').update({status:'active',has_started:true,recruitment_open:true,started_at:activeAt,kickoff_at:activeAt}).eq('id',runId).eq('project_id',projectId).select('id').single();if(run.error||!run.data)throw run.error||new Error('Cross-system formed run could not be activated for downstream Lab proof.');
+  const membership=await client.from('project_members').update({team_role:'project_lead',membership_status:'active',activated_at:activeAt}).eq('project_id',projectId).eq('project_run_id',runId).eq('user_id',userId);if(membership.error)throw membership.error;
   const activated=await client.from('projects').update({status:'active',visibility:'public',applications_open:true}).eq('id',projectId);if(activated.error)throw activated.error;
-  const linked=await client.from('project_applications').update({status:'team_complete',project_run_id:run.data.id,updated_at:activeAt}).eq('id',application.data.id);if(linked.error)throw linked.error;
+  const linked=await client.from('project_applications').update({status:'team_complete',project_run_id:runId,updated_at:activeAt}).eq('id',application.data.id);if(linked.error)throw linked.error;
 
-  await memberPage.goto(`/member/projects/${projectId}?run=${run.data.id}&view=team`,{waitUntil:'networkidle'});
+  await memberPage.goto(`/member/projects/${projectId}?run=${runId}&view=team`,{waitUntil:'networkidle'});
   await expect(memberPage.getByRole('heading',{name:'Team operating state'})).toBeVisible();
   await expect(memberPage.getByText('AVAILABLE',{exact:true}).first()).toBeVisible();
   await expect(memberPage.getByText('1 / 5',{exact:true}).first()).toBeVisible();

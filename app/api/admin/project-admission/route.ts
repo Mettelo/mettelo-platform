@@ -25,7 +25,7 @@ function booleanOr(value:unknown,fallback:boolean){
 }
 
 const policyFields='id,title,project_type,partner_name,admission_mode,auto_start_delay_minutes,auto_start_paused_at,late_joining_enabled,late_joining_cutoff_at,project_sharing_enabled,member_invites_enabled,collaboration_marketplace_enabled,project_lead_invites_enabled,team_member_invites_enabled,external_collaboration_invites_enabled,collaboration_social_sharing_enabled,offer_expiry_hours,offer_reminders_enabled,status';
-const runFields='id,run_number,status,has_started,required_team_size,threshold_reached_at,scheduled_start_at,start_scheduled_at,start_ready_at,auto_start_paused_at,auto_start_pause_reason,auto_start_paused_by_user_id,auto_start_blocked_at,auto_start_block_reason,auto_start_blocked_by_user_id,auto_start_failure,recruitment_open';
+const runFields='id,run_number,status,has_started,required_team_size,scheduled_start_at,start_scheduled_at,start_ready_at,auto_start_paused_at,auto_start_pause_reason,auto_start_paused_by_user_id,auto_start_blocked_at,auto_start_block_reason,auto_start_blocked_by_user_id,auto_start_failure,recruitment_open';
 
 function safeReason(value:unknown,max=500){return String(value||'').trim().slice(0,max)}
 async function memberEmail(db:NonNullable<ReturnType<typeof serviceDb>>,userId:string){const {data}=await db.auth.admin.getUserById(userId);return data.user?.email||null}
@@ -104,7 +104,8 @@ export async function PATCH(request:Request){
 
       if(!runId)return NextResponse.json({error:'No current project run is available to force start. Form the accepted place first or refresh the application.'},{status:409});
       const {data:run,error:runError}=await db.from('project_runs').select(runFields).eq('id',runId).eq('project_id',projectId).maybeSingle();
-      if(runError||!run)return NextResponse.json({error:'Project run not found.'},{status:404});
+      if(runError){console.error('admin project run lookup failed',{project_id:projectId,run_id:runId,error:runError});return NextResponse.json({error:'Unable to load the current project run.'},{status:500})}
+      if(!run)return NextResponse.json({error:'Project run not found.'},{status:404});
       if(run.has_started||run.status==='active')return NextResponse.json({ok:true,action,already_started:true,status:'active'});
 
       const {data:forced,error:forceError}=await db.rpc('admin_force_start_project_run',{

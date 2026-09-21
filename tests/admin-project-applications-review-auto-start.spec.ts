@@ -142,6 +142,15 @@ test.describe('Admin Project Applications review + AUTO start contract',()=>{
   expect(route).toContain("db.rpc('admin_force_start_project_run'");
  });
 
+
+ test('AUTO policy cannot be enabled on an incomplete project',()=>{
+  const route=read('app/api/admin/project-admission/route.ts');
+  expect(route).toContain(".from('project_experience_readiness')");
+  expect(route).toContain(".select('publication_ready,lab_ready,publication_blockers,lab_missing')");
+  expect(route).toContain("if(!readiness?.publication_ready||!readiness?.lab_ready)");
+  expect(route).toContain('AUTO cannot be enabled until project readiness is complete.');
+ });
+
  test('SC-64..66 Vercel remains manual-only while lint typecheck build stay release gates',()=>{
   const config=JSON.parse(read('vercel.json')) as {git?:{deploymentEnabled?:boolean}};
   expect(config.git?.deploymentEnabled).toBe(false);

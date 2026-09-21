@@ -26,6 +26,8 @@ begin
     order by o.accepted_at asc,o.id asc
   loop
     begin
+      readiness:=null;
+      activated:=null;
       formed:=public.phase10_form_accepted_offer(candidate.application_id);
 
       if coalesce((formed->>'required_team_size')::integer,0)=1

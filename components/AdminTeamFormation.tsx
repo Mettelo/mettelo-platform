@@ -6,7 +6,7 @@ import AdminStatusBadge from './AdminStatusBadge';
 type Role={id:string;title:string;responsibilities:string[]};
 type Responsibility={id:string;responsibility:string;source_project_role_id:string|null};
 type Member={membership_id:string;id:string;name:string;headline:string|null;team_role:string;membership_status:string;leadership_interest:boolean;responsibilities:Responsibility[]};
-type Readiness={ready?:boolean;reason_codes?:string[];blockers?:string[];team?:{required_team_size?:number;project_lead_count?:number};system?:{start_paused?:boolean;start_blocked?:boolean}};
+type Readiness={ready?:boolean;reason_codes?:string[];blockers?:string[];team?:{required_team_size?:number;project_lead_count?:number};system?:{ready?:boolean;start_paused?:boolean;start_blocked?:boolean}};
 type ReadinessItem={run_id:string;readiness:Readiness|null;scheduled_start_at:string|null};
 type Team={id:string;run_id:string;run_number:number;title:string;project_type:string;partner_name:string|null;admission_mode:string|null;participation_mode:string|null;status:string;team_size_threshold:number;min_team_size:number;target_team_size:number;max_team_size:number;open_places:number;forming_deadline:string|null;kickoff_at:string|null;filled:number;roles:Role[];team:Member[];readiness?:Readiness|null;scheduled_start_at?:string|null};
 type StatusFilter='current'|'forming'|'active'|'paused'|'all';

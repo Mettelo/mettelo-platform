@@ -129,6 +129,19 @@ test.describe('Admin Project Applications review + AUTO start contract',()=>{
   expect(force).toContain("readiness->'system'->>'ready'");
  });
 
+ test('accepted REVIEW_REQUIRED applications expose governed Admin force start in the queue and submission modal',()=>{
+  const queue=read('components/AdminApplicationQueue.tsx');
+  const route=read('app/api/admin/project-admission/route.ts');
+  expect(queue).toContain("function canForceStart(item:Item)");
+  expect(queue).toContain("['accepted','waiting_for_team'].includes(item.status)");
+  expect(queue).toContain('Force start project');
+  expect(queue).toContain('Reason for force start');
+  expect(queue).toContain("action:'force_start_application'");
+  expect(route).toContain("action==='force_start_run'||action==='force_start_application'");
+  expect(route).toContain("db.rpc('phase10_form_accepted_offer'");
+  expect(route).toContain("db.rpc('admin_force_start_project_run'");
+ });
+
  test('SC-64..66 Vercel remains manual-only while lint typecheck build stay release gates',()=>{
   const config=JSON.parse(read('vercel.json')) as {git?:{deploymentEnabled?:boolean}};
   expect(config.git?.deploymentEnabled).toBe(false);

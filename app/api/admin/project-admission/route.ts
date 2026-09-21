@@ -74,10 +74,35 @@ export async function PATCH(request:Request){
     const effectiveMode=effectiveProjectAdmissionMode(project.project_type,project.admission_mode);
     const canonicalDelay=safeAutoStartDelayMinutes(project.auto_start_delay_minutes);
 
-    if(action==='force_start_run'){
+    if(action==='force_start_run'||action==='force_start_application'){
       if(!reason||reason.length<8)return NextResponse.json({error:'Record a clear reason for force-starting this project.'},{status:400});
-      const runId=String(body.project_run_id||'').trim();
-      if(!runId)return NextResponse.json({error:'Project run is required.'},{status:400});
+      let runId=String(body.project_run_id||'').trim();
+
+      if(action==='force_start_application'){
+        const applicationId=String(body.application_id||'').trim();
+        if(!applicationId)return NextResponse.json({error:'Project application is required.'},{status:400});
+        const {data:application,error:applicationError}=await db.from('project_applications')
+          .select('id,project_id,project_run_id,status')
+          .eq('id',applicationId)
+          .eq('project_id',projectId)
+          .maybeSingle();
+        if(applicationError||!application)return NextResponse.json({error:'Project application not found.'},{status:404});
+        if(!['accepted','waiting_for_team','team_complete'].includes(String(application.status))){
+          return NextResponse.json({error:'Force start is available only after the project place has been accepted.'},{status:409});
+        }
+        runId=String(application.project_run_id||'').trim();
+        if(!runId&&application.status==='accepted'){
+          const {data:formation,error:formationError}=await db.rpc('phase10_form_accepted_offer',{p_application_id:applicationId});
+          if(formationError){
+            const message=String(formationError.message||'');
+            if(message.includes('PARTICIPATION_PREFERENCE_REQUIRED'))return NextResponse.json({error:'This accepted application needs a valid participation choice before it can be formed.'},{status:409});
+            throw formationError;
+          }
+          runId=String((formation as {run_id?:unknown}|null)?.run_id||'').trim();
+        }
+      }
+
+      if(!runId)return NextResponse.json({error:'No current project run is available to force start. Form the accepted place first or refresh the application.'},{status:409});
       const {data:run,error:runError}=await db.from('project_runs').select(runFields).eq('id',runId).eq('project_id',projectId).maybeSingle();
       if(runError||!run)return NextResponse.json({error:'Project run not found.'},{status:404});
       if(run.has_started||run.status==='active')return NextResponse.json({ok:true,action,already_started:true,status:'active'});

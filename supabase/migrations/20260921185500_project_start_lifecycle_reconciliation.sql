@@ -170,7 +170,13 @@ set min_team_size=2,
     updated_at=now()
 where participation_mode='team'
   and coalesce(target_team_size,max_team_size,2)>=2
-  and (min_team_size is distinct from 2 or team_size_threshold is distinct from 2);
+  and (min_team_size is distinct from 2 or team_size_threshold is distinct from 2)
+  and exists (
+    select 1
+    from public.project_experience_readiness readiness
+    where readiness.project_id=projects.id
+      and readiness.publication_ready
+  );
 
 update public.project_runs r
 set required_team_size=2,
@@ -179,6 +185,12 @@ set required_team_size=2,
 from public.projects p
 where r.project_id=p.id
   and p.participation_mode='team'
+  and exists (
+    select 1
+    from public.project_experience_readiness readiness
+    where readiness.project_id=p.id
+      and readiness.publication_ready
+  )
   and r.status='forming'
   and coalesce(r.has_started,false)=false
   and (r.required_team_size is distinct from 2 or r.team_size_threshold is distinct from 2);

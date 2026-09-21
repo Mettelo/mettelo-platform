@@ -116,6 +116,19 @@ test.describe('Admin Project Applications review + AUTO start contract',()=>{
   expect(activation).toContain("where id=run_row.id and status='forming' and has_started=false");
  });
 
+ test('Admin force start is explicit, reasoned, audited and cannot bypass hard system integrity',()=>{
+  const admin=read('app/api/admin/project-admission/route.ts');
+  const detail=read('components/AdminProjectDetailActions.tsx');
+  const force=read('supabase/migrations/20260921095600_admin_force_start_project_run.sql');
+  expect(admin).toContain("action==='force_start_run'");
+  expect(admin).toContain("db.rpc('admin_force_start_project_run'");
+  expect(detail).toContain('Force start project');
+  expect(detail).toContain('Reason for override');
+  for(const text of ['FORCE_START_REQUIRES_MEMBER','FORCE_START_SYSTEM_NOT_READY','FORCE_START_CAPACITY_INVALID','project_admin_force_started','overrode_team_minimum'])expect(force).toContain(text);
+  expect(force).toContain("membership_status in ('waiting','active')");
+  expect(force).toContain("readiness->'system'->>'ready'");
+ });
+
  test('SC-64..66 Vercel remains manual-only while lint typecheck build stay release gates',()=>{
   const config=JSON.parse(read('vercel.json')) as {git?:{deploymentEnabled?:boolean}};
   expect(config.git?.deploymentEnabled).toBe(false);

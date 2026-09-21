@@ -219,3 +219,14 @@ begin
     end if;
   end loop;
 end $$;
+
+
+-- Historical invariant recovery: an active run with an established kickoff is
+-- started even if a legacy writer omitted the has_started/started_at fields.
+update public.project_runs
+set has_started=true,
+    started_at=coalesce(started_at,kickoff_at,updated_at,created_at,now()),
+    updated_at=now()
+where status='active'
+  and coalesce(has_started,false)=false
+  and kickoff_at is not null;

@@ -267,6 +267,26 @@ export async function PATCH(request:Request){
     if(project.project_type==='partner'&&requestedMode==='auto'){
       return NextResponse.json({error:'Partner Projects always require human review. AUTO cannot be enabled.'},{status:409});
     }
+    if(requestedMode==='auto'&&effectiveMode!=='auto'){
+      const {data:readiness,error:readinessError}=await db
+        .from('project_experience_readiness')
+        .select('publication_ready,lab_ready,publication_blockers,lab_blockers')
+        .eq('project_id',projectId)
+        .maybeSingle();
+      if(readinessError)throw readinessError;
+      if(!readiness?.publication_ready||!readiness?.lab_ready){
+        const blockers=Array.from(new Set([
+          ...((readiness?.publication_blockers as string[]|null)||[]),
+          ...((readiness?.lab_blockers as string[]|null)||[])
+        ]));
+        return NextResponse.json({
+          error:blockers.length
+            ? `AUTO cannot be enabled until project readiness is complete. Resolve: ${blockers.join(', ').replaceAll('_',' ')}.`
+            : 'AUTO cannot be enabled until the project is publication and Lab ready.',
+          blockers
+        },{status:409});
+      }
+    }
     if(effectiveMode==='auto'&&requestedMode==='review_required'){
       return NextResponse.json({error:'Use the explicit “Convert to review required” action so waiting AUTO memberships and schedules are unwound safely and audited.'},{status:409});
     }

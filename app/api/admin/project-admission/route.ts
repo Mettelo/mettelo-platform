@@ -270,14 +270,14 @@ export async function PATCH(request:Request){
     if(requestedMode==='auto'&&effectiveMode!=='auto'){
       const {data:readiness,error:readinessError}=await db
         .from('project_experience_readiness')
-        .select('publication_ready,lab_ready,publication_blockers,lab_blockers')
+        .select('publication_ready,lab_ready,publication_blockers,lab_missing')
         .eq('project_id',projectId)
         .maybeSingle();
       if(readinessError)throw readinessError;
       if(!readiness?.publication_ready||!readiness?.lab_ready){
         const blockers=Array.from(new Set([
           ...((readiness?.publication_blockers as string[]|null)||[]),
-          ...((readiness?.lab_blockers as string[]|null)||[])
+          ...((readiness?.lab_missing as string[]|null)||[])
         ]));
         return NextResponse.json({
           error:blockers.length

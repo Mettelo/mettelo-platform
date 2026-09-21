@@ -151,10 +151,10 @@ test.describe('Admin Project Applications review + AUTO start contract',()=>{
   expect(route).toContain('AUTO cannot be enabled until project readiness is complete.');
  });
 
- test('AUTO scheduler cadence cannot drift behind the six-hour eligibility contract',()=>{
+ test('AUTO scheduler remains Hobby-compatible while due-time checks preserve six-hour eligibility',()=>{
   const config=JSON.parse(read('vercel.json')) as {crons?:Array<{path:string;schedule:string}>};
   const formation=config.crons?.find(item=>item.path==='/api/cron/project-formation');
-  expect(formation?.schedule).toBe('0 * * * *');
+  expect(formation?.schedule).toBe('0 6 * * *');
  });
 
  test('SC-64..66 Vercel remains manual-only while lint typecheck build stay release gates',()=>{

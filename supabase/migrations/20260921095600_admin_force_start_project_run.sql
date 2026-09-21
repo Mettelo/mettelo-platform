@@ -239,7 +239,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path=public
-as $
+as $$
 declare
   project_row public.projects%rowtype;
   readiness jsonb;
@@ -288,6 +288,6 @@ begin
 
   return new;
 end;
-$;
+$$;
 
 revoke all on function public.phase11_guard_run_activation() from public,anon,authenticated;

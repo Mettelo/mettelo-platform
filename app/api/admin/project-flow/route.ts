@@ -186,12 +186,43 @@ export async function POST(request:Request){
     }
 
     if(action==='force_start'){
-      if(run.status!=='forming'||run.has_started)return NextResponse.json({error:'Only a forming team can be started.'},{status:409});
-      const result=await startProjectRun({db,projectId,runId,source:'manual',actorUserId:user.id});
-      const blockers=result.blockers||[result.paused?'auto_start_paused':result.blocked?'auto_start_blocked':'project_readiness'];
-      const readiness={ready:result.started,blockers,filled:result.filled,threshold:result.requiredTeamSize};
-      if(!readiness.ready)return NextResponse.json(result.alreadyStarted?{ok:true,message:`Team ${run.run_number} is already active.`}:{error:`This team is not ready to start. Resolve: ${blockers.join(', ').replaceAll('_',' ')}.`,readiness},{status:result.alreadyStarted?200:409});
-      return NextResponse.json({ok:true,message:`Team ${result.runNumber} started with ${result.filled} member${result.filled===1?'':'s'} through the canonical atomic start boundary.`});
+      if(run.status!=='forming'||run.has_started)return NextResponse.json({error:'Only a forming team can be force-started.'},{status:409});
+      if(!reason||reason.length<8)return NextResponse.json({error:'Record a clear reason before force-starting this team.'},{status:400});
+
+      const {data:forced,error:forceError}=await db.rpc('admin_force_start_project_run',{
+        p_project_id:projectId,
+        p_run_id:runId,
+        p_actor_user_id:user.id,
+        p_reason:reason
+      });
+      if(forceError){
+        const message=String(forceError.message||'');
+        if(message.includes('FORCE_START_REQUIRES_MEMBER'))return NextResponse.json({error:'Force start requires at least one confirmed team member.'},{status:409});
+        if(message.includes('FORCE_START_SYSTEM_NOT_READY')){
+          const {data:readiness}=await db.rpc('phase11_project_start_readiness',{p_project_id:projectId,p_run_id:runId});
+          const snapshot=(readiness||{}) as {system?:{blockers?:string[]};project?:{blockers?:string[]}};
+          const blockers=Array.from(new Set([...(snapshot.system?.blockers||[]),...(snapshot.project?.blockers||[])]));
+          return NextResponse.json({
+            error:blockers.length
+              ? `The Lab/system is not ready. Resolve: ${blockers.map(value=>value.replaceAll('_',' ')).join(', ')}.`
+              : 'The Lab/system is not ready for force start.',
+            blockers,
+            readiness:snapshot
+          },{status:409});
+        }
+        if(message.includes('FORCE_START_CAPACITY_INVALID'))return NextResponse.json({error:'Current membership exceeds the project maximum capacity.'},{status:409});
+        if(message.includes('FORCE_START_RUN_LIFECYCLE_INVALID')||message.includes('PROJECT_NOT_JOINABLE'))return NextResponse.json({error:'This run cannot be force-started in its current lifecycle state.'},{status:409});
+        throw forceError;
+      }
+
+      const result=(forced||{}) as {started?:boolean;already_started?:boolean;filled?:number;run_number?:number};
+      return NextResponse.json({
+        ok:true,
+        message:result.already_started
+          ? `Team ${run.run_number} is already active.`
+          : `Team ${result.run_number||run.run_number} was force-started with ${result.filled||0} confirmed member${Number(result.filled||0)===1?'':'s'} after hard Lab/system readiness passed.`,
+        result
+      });
     }
 
     if(action==='cancel'){

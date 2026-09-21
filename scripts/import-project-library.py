@@ -415,7 +415,11 @@ def project_payload(r: dict[str, Any], new: bool) -> dict[str, Any]:
         "difficulty_level": r["difficulty"] or None,
         "duration_weeks": r["duration_weeks"],
         "weekly_commitment": r["weekly_commitment"] or None,
-        "team_size_threshold": r["team_size"],
+        "participation_mode": "solo" if r["team_size"] == 1 else "team",
+        "min_team_size": 1 if r["team_size"] == 1 else 2,
+        "target_team_size": r["team_size"],
+        "max_team_size": r["team_size"],
+        "team_size_threshold": 1 if r["team_size"] == 1 else 2,
     }
     if new:
         payload.update({
@@ -429,7 +433,7 @@ def project_payload(r: dict[str, Any], new: bool) -> dict[str, Any]:
 
 
 def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> tuple[str, dict[str, int]]:
-    writes = {"project": 0, "brief": 0, "deliverables": 0, "success_criteria": 0, "roles": 0, "sources": 0}
+    writes = {"project": 0, "brief": 0, "deliverables": 0, "success_criteria": 0, "milestones": 0, "roles": 0, "sources": 0}
     was_existing = match is not None
     if match:
         project_uuid = str(match["id"])
@@ -458,8 +462,8 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> t
         "primary_use_case": r["use_case"],
         "primary_objective": r["objective"],
         "supporting_objectives": [],
-        "key_questions": [],
-        "in_scope": [],
+        "key_questions": [r["decision_to_support"] or r["objective"]],
+        "in_scope": [r["use_case"]],
         "out_of_scope": r["out_of_scope"],
         "decision_to_support": r["decision_to_support"],
         "constraints_trade_offs": r["constraints"],
@@ -486,6 +490,7 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> t
     existing_deliverables = api.request("GET", f"project_deliverables?select=*&project_id=eq.{qid}&project_run_id=is.null") or []
     existing_criteria = api.request("GET", f"project_success_criteria?select=*&project_id=eq.{qid}") or []
     existing_roles = api.request("GET", f"project_roles?select=*&project_id=eq.{qid}") or []
+    existing_milestones = api.request("GET", f"project_milestones?select=*&project_id=eq.{qid}&project_run_id=is.null") or []
     existing_sources = api.request("GET", f"project_data_sources?select=*&project_id=eq.{qid}&project_run_id=is.null") or []
 
     for i, item in enumerate(r["deliverables"], 1):
@@ -530,6 +535,27 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> t
         else:
             api.upsert("project_success_criteria", "project_id,canonical_item_key", payload)
             writes["success_criteria"] += 1
+
+    # Phase 11 requires a canonical project-scoped timeline before Lab activation.
+    # The workbook supplies duration and governed deliverables, so materialise one
+    # deterministic first milestone rather than leaving every imported project blocked.
+    if not existing_milestones and r["deliverables"]:
+        api.insert("project_milestones", {
+            "project_id": project_uuid,
+            "project_run_id": None,
+            "title": "Initial governed delivery milestone",
+            "description": short_title(
+                "Begin delivery against the approved project objective: " + r["objective"],
+                1800,
+            ),
+            "status": "planned",
+            "sort_order": 1,
+            "is_required": True,
+            "week_start": 1,
+            "week_end": max(1, min(r["duration_weeks"] or 1, 2)),
+            "expected_output": short_title(r["deliverables"][0], 900),
+        })
+        writes["milestones"] += 1
 
     role_skills = list(dict.fromkeys(r["technical_skills"] + r["professional_skills"]))
     for i, role in enumerate(r["roles"], 1):
@@ -668,7 +694,7 @@ def main() -> int:
         if duplicate_ids or required_failures or report["ambiguous_matches"]:
             raise SystemExit("Apply blocked: resolve duplicate/required-field/team-size/data-link/ambiguous-match issues in the dry-run report first.")
         counts = {"updated": 0, "created": 0, "unchanged": 0}
-        writes = {"project": 0, "brief": 0, "deliverables": 0, "success_criteria": 0, "roles": 0, "sources": 0}
+        writes = {"project": 0, "brief": 0, "deliverables": 0, "success_criteria": 0, "milestones": 0, "roles": 0, "sources": 0}
         for r in records:
             match, _ = matches[r["project_id"]]
             action, record_writes = apply_record(api, r, match)

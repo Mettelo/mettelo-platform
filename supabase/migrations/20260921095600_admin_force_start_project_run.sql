@@ -27,6 +27,7 @@ declare
   run_row public.project_runs%rowtype;
   readiness jsonb;
   system_ready boolean:=false;
+  ordinary_system_ready boolean:=false;
   filled integer:=0;
   required_members integer:=1;
   maximum_members integer:=1;
@@ -98,10 +99,25 @@ begin
   end if;
 
   readiness:=public.phase11_project_start_readiness(project_row.id,run_row.id);
-  system_ready:=coalesce((readiness->'system'->>'ready')::boolean,false);
+  ordinary_system_ready:=coalesce((readiness->'system'->>'ready')::boolean,false);
+
+  -- Force start may override ordinary start policy such as team minimum,
+  -- Project Lead/responsibility readiness, AUTO schedule eligibility, pause or
+  -- an operational start block. It must not bypass the hard workspace/system
+  -- prerequisites required for members to enter a usable project.
+  system_ready:=
+    coalesce((readiness->'system'->>'lab_ready')::boolean,false)
+    and coalesce((readiness->'system'->>'permissions_ready')::boolean,false)
+    and coalesce((readiness->'system'->>'private_resources_ready')::boolean,false)
+    and coalesce((readiness->'system'->>'first_milestone_ready')::boolean,false);
   if not system_ready then
     raise exception using errcode='23514',message='FORCE_START_SYSTEM_NOT_READY';
   end if;
+
+  -- The normal ACTIVE-transition trigger intentionally rejects below-minimum or
+  -- schedule-not-due starts. This transaction-local flag is set only by this
+  -- service-only Admin RPC after the hard integrity checks above have passed.
+  perform set_config('mettelo.admin_force_start','1',true);
 
   update public.project_runs
   set status='active',
@@ -121,6 +137,8 @@ begin
       updated_at=now_at
   where id=run_row.id
     and coalesce(has_started,false)=false;
+
+  perform set_config('mettelo.admin_force_start','0',true);
 
   if not found then
     return jsonb_build_object(
@@ -187,7 +205,9 @@ begin
       'overrode_team_minimum',filled<required_members,
       'overrode_readiness',not coalesce((readiness->>'ready')::boolean,false),
       'system_ready',system_ready,
-      'activation_contract','admin_force_start_v1'
+      'ordinary_system_ready',ordinary_system_ready,
+      'overrode_auto_schedule',coalesce((readiness->'system'->>'schedule_due')::boolean,true)=false,
+      'activation_contract','admin_force_start_v2'
     )
   );
 
@@ -209,4 +229,65 @@ grant execute on function public.admin_force_start_project_run(uuid,uuid,uuid,te
   to service_role;
 
 comment on function public.admin_force_start_project_run(uuid,uuid,uuid,text) is
-  'Service-only audited Admin override. May bypass ordinary team/project readiness but never terminal lifecycle, zero-membership, maximum-capacity, or system/Lab readiness.';
+  'Service-only audited Admin override. May bypass ordinary team/project readiness and AUTO timing, but never terminal lifecycle, zero-membership, maximum-capacity, or hard Lab/system readiness.';
+
+-- Keep the canonical Phase 11 guard for every normal start. Only the
+-- transaction-local flag set inside admin_force_start_project_run may pass the
+-- ACTIVE boundary without full ordinary readiness.
+create or replace function public.phase11_guard_run_activation()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $
+declare
+  project_row public.projects%rowtype;
+  readiness jsonb;
+  effective_admission text;
+  codes text;
+begin
+  if not ((new.status='active' or coalesce(new.has_started,false)=true)
+      and not (old.status='active' or coalesce(old.has_started,false)=true)) then
+    return new;
+  end if;
+
+  if new.project_id is distinct from old.project_id then
+    raise exception using errcode='23514',message='PROJECT_RUN_PROJECT_IMMUTABLE_AT_START';
+  end if;
+
+  -- A governed Admin force-start has already revalidated hard lifecycle,
+  -- membership, capacity and workspace/system integrity inside the same locked
+  -- transaction. No other caller receives this exception path.
+  if current_setting('mettelo.admin_force_start',true)='1' then
+    return new;
+  end if;
+
+  select * into project_row from public.projects where id=old.project_id;
+  if project_row.id is null then
+    raise exception using errcode='23503',message='PROJECT_NOT_FOUND';
+  end if;
+
+  readiness:=public.phase11_project_start_readiness(old.project_id,old.id);
+  if not coalesce((readiness->>'ready')::boolean,false) then
+    codes:=coalesce((readiness->'reason_codes')::text,'[]');
+    raise exception using errcode='23514',message='PHASE11_START_NOT_READY',detail=codes;
+  end if;
+
+  effective_admission:=public.effective_project_admission_mode(project_row.project_type,project_row.admission_mode);
+  if effective_admission='auto' then
+    if old.scheduled_start_at is null or old.scheduled_start_at>now() then
+      raise exception using errcode='23514',message='SCHEDULE_NOT_DUE';
+    end if;
+    if project_row.auto_start_paused_at is not null or old.auto_start_paused_at is not null then
+      raise exception using errcode='23514',message='PROJECT_PAUSED';
+    end if;
+    if old.auto_start_blocked_at is not null then
+      raise exception using errcode='23514',message='PROJECT_BLOCKED';
+    end if;
+  end if;
+
+  return new;
+end;
+$;
+
+revoke all on function public.phase11_guard_run_activation() from public,anon,authenticated;

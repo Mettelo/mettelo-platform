@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {notifyUser,serviceDb} from '@/lib/project-flow';
+import {startProjectRun} from '@/lib/project-start-service';
 
 type Db=NonNullable<ReturnType<typeof serviceDb>>;
 
@@ -182,6 +183,20 @@ export async function POST(request:Request){
       const {data:members}=await db.from('project_members').select('user_id').eq('project_run_id',runId).in('membership_status',['waiting','active']);
       await Promise.all((members||[]).map(async member=>notifyUser(db,{userId:member.user_id,email:await emailFor(db,member.user_id),projectId,type:'project_resumed',title:'Your project team has resumed',body:`Team ${run.run_number} for ${project.title} has resumed. ${nextStatus==='active'?'Continue from the project workspace.':'Team formation is continuing and we will confirm kickoff when ready.'}`,actionUrl:nextStatus==='active'?`/member/projects/${projectId}?run=${runId}`:'/member/applications',subject:`Project resumed: ${project.title}`})));
       return NextResponse.json({ok:true,message:`Team ${run.run_number} resumed as ${nextStatus}.`});
+    }
+
+    if(action==='start'){
+      if(run.status!=='forming'||run.has_started)return NextResponse.json({error:'Only a forming team can be started.'},{status:409});
+      const result=await startProjectRun({db,projectId,runId,source:'manual',actorUserId:user.id});
+      const blockers=result.blockers||[result.paused?'auto_start_paused':result.blocked?'auto_start_blocked':'project_readiness'];
+      if(result.alreadyStarted)return NextResponse.json({ok:true,message:`Team ${run.run_number} is already active.`});
+      if(!result.started){
+        return NextResponse.json({
+          error:`This team is not ready to start normally. Resolve: ${blockers.join(', ').replaceAll('_',' ')}.`,
+          readiness:{ready:false,blockers,filled:result.filled,threshold:result.requiredTeamSize}
+        },{status:409});
+      }
+      return NextResponse.json({ok:true,message:`Team ${result.runNumber} started normally with ${result.filled} member${result.filled===1?'':'s'} after full canonical readiness passed.`});
     }
 
     if(action==='force_start'){

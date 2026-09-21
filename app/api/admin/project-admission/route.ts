@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
-import {serviceDb} from '@/lib/project-flow';
+import {notifyUser,serviceDb} from '@/lib/project-flow';
 import {effectiveProjectAdmissionMode,safeAutoStartDelayMinutes} from '@/lib/project-admission';
 import {startProjectRun} from '@/lib/project-start-service';
 
@@ -24,10 +24,11 @@ function booleanOr(value:unknown,fallback:boolean){
   return value===undefined?fallback:value===true;
 }
 
-const policyFields='id,project_type,partner_name,admission_mode,auto_start_delay_minutes,auto_start_paused_at,late_joining_enabled,late_joining_cutoff_at,project_sharing_enabled,member_invites_enabled,collaboration_marketplace_enabled,project_lead_invites_enabled,team_member_invites_enabled,external_collaboration_invites_enabled,collaboration_social_sharing_enabled,offer_expiry_hours,offer_reminders_enabled,status';
+const policyFields='id,title,project_type,partner_name,admission_mode,auto_start_delay_minutes,auto_start_paused_at,late_joining_enabled,late_joining_cutoff_at,project_sharing_enabled,member_invites_enabled,collaboration_marketplace_enabled,project_lead_invites_enabled,team_member_invites_enabled,external_collaboration_invites_enabled,collaboration_social_sharing_enabled,offer_expiry_hours,offer_reminders_enabled,status';
 const runFields='id,run_number,status,has_started,required_team_size,threshold_reached_at,scheduled_start_at,start_scheduled_at,start_ready_at,auto_start_paused_at,auto_start_pause_reason,auto_start_paused_by_user_id,auto_start_blocked_at,auto_start_block_reason,auto_start_blocked_by_user_id,auto_start_failure,recruitment_open';
 
 function safeReason(value:unknown,max=500){return String(value||'').trim().slice(0,max)}
+async function memberEmail(db:NonNullable<ReturnType<typeof serviceDb>>,userId:string){const {data}=await db.auth.admin.getUserById(userId);return data.user?.email||null}
 async function minimumReady(db:NonNullable<ReturnType<typeof serviceDb>>,runId:string,requiredInput:unknown){
   const required=Math.max(1,Number(requiredInput||1));
   const {count,error}=await db.from('project_members').select('id',{count:'exact',head:true}).eq('project_run_id',runId).in('membership_status',['waiting','active']);
@@ -72,6 +73,50 @@ export async function PATCH(request:Request){
     if(projectError||!project)return NextResponse.json({error:'Project not found.'},{status:404});
     const effectiveMode=effectiveProjectAdmissionMode(project.project_type,project.admission_mode);
     const canonicalDelay=safeAutoStartDelayMinutes(project.auto_start_delay_minutes);
+
+    if(action==='force_start_run'){
+      if(!reason||reason.length<8)return NextResponse.json({error:'Record a clear reason for force-starting this project.'},{status:400});
+      const runId=String(body.project_run_id||'').trim();
+      if(!runId)return NextResponse.json({error:'Project run is required.'},{status:400});
+      const {data:run,error:runError}=await db.from('project_runs').select(runFields).eq('id',runId).eq('project_id',projectId).maybeSingle();
+      if(runError||!run)return NextResponse.json({error:'Project run not found.'},{status:404});
+      if(run.has_started||run.status==='active')return NextResponse.json({ok:true,action,already_started:true,status:'active'});
+
+      const {data:forced,error:forceError}=await db.rpc('admin_force_start_project_run',{
+        p_project_id:projectId,
+        p_run_id:runId,
+        p_actor_user_id:user.id,
+        p_reason:reason
+      });
+      if(forceError){
+        const message=String(forceError.message||'');
+        if(message.includes('FORCE_START_REQUIRES_MEMBER'))return NextResponse.json({error:'Force start requires at least one confirmed project member.'},{status:409});
+        if(message.includes('FORCE_START_SYSTEM_NOT_READY'))return NextResponse.json({error:'The project Lab/system is not ready. Resolve the system readiness blockers before force start.'},{status:409});
+        if(message.includes('FORCE_START_CAPACITY_INVALID'))return NextResponse.json({error:'Current membership exceeds the project maximum capacity. Resolve capacity before force start.'},{status:409});
+        if(message.includes('PROJECT_NOT_JOINABLE')||message.includes('FORCE_START_RUN_LIFECYCLE_INVALID'))return NextResponse.json({error:'This project run cannot be force-started in its current lifecycle state.'},{status:409});
+        if(message.includes('FORCE_START_REASON_REQUIRED'))return NextResponse.json({error:'Record a clear reason for force-starting this project.'},{status:400});
+        throw forceError;
+      }
+
+      const result=(forced||{}) as {started?:boolean;already_started?:boolean;forced?:boolean;filled?:number;required_team_size?:number};
+      if(result.started||result.already_started){
+        const {data:members}=await db.from('project_members').select('user_id').eq('project_run_id',runId).eq('membership_status','active');
+        await Promise.allSettled((members||[]).map(async member=>notifyUser(db,{
+          userId:member.user_id,
+          email:await memberEmail(db,member.user_id),
+          projectId,
+          type:'project_kickoff',
+          title:'Your project is starting',
+          body:`${project.title||'Your project'} has been started by a Mettelo Admin. Open the workspace to begin.`,
+          actionUrl:`/member/projects/${projectId}?run=${runId}`,
+          subject:`Your project is starting: ${project.title||'Mettelo project'}`,
+          templateKey:'project_kickoff',
+          dedupeKey:`admin-force-start:${runId}:kickoff:${member.user_id}`,
+          payload:{project_title:project.title||'Mettelo project',forced:true,reason}
+        })));
+      }
+      return NextResponse.json({ok:true,action,status:'active',result});
+    }
 
     if(action==='convert_to_review_required'){
       if(project.project_type==='partner')return NextResponse.json({error:'Partner Projects are already permanently REVIEW_REQUIRED.'},{status:409});

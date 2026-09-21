@@ -1,7 +1,6 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {notifyUser,serviceDb} from '@/lib/project-flow';
-import {startProjectRun} from '@/lib/project-start-service';
 
 type Db=NonNullable<ReturnType<typeof serviceDb>>;
 

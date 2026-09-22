@@ -71,7 +71,8 @@ const v2Files={
   adminApplicationRoute:'app/api/admin/applications/route.ts',
   adminTeamRoute:'app/api/admin/project-flow/route.ts',
   projectStartService:'lib/project-start-service.ts',
-  projectFormationCron:'app/api/cron/project-formation/route.ts'
+  projectFormationCron:'app/api/cron/project-formation/route.ts',
+  adminForceStart:'supabase/migrations/20260921095600_admin_force_start_project_run.sql'
 };
 for(const [name,file] of Object.entries(v2Files)){if(!fs.existsSync(file))failures.push(`Project Experience V2: missing ${name} implementation ${file}`)}
 
@@ -107,6 +108,7 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   const adminTeamRoute=fs.readFileSync(v2Files.adminTeamRoute,'utf8');
   const projectStartService=fs.readFileSync(v2Files.projectStartService,'utf8');
   const projectFormationCron=fs.readFileSync(v2Files.projectFormationCron,'utf8');
+  const adminForceStart=fs.readFileSync(v2Files.adminForceStart,'utf8');
 
   for(const marker of ['getPublicProjectExperienceData','buildProjectExperienceModel','ProjectPublicDetailV2'])if(!publicPage.includes(marker))failures.push(`Project Experience Phase 4: public detail is missing secure canonical wiring marker ${marker}`);
   for(const forbidden of ['getProjectDetailContent','getProjectExperiencePlanning','getProjectExperienceRoleDetails'])if(publicPage.includes(forbidden))failures.push(`Project Experience Phase 4: public detail reintroduced privileged helper ${forbidden}`);
@@ -164,7 +166,10 @@ if(Object.values(v2Files).every(file=>fs.existsSync(file))){
   if(!projectStartService.includes('assessProjectTeamReadiness')||!projectFormationCron.includes("source:'auto_scheduler'"))failures.push('Project Experience V2: Open Project auto-start is not gated through the canonical team-readiness/start service');
   if(projectStartService.includes("if(full&&project.project_type==='open'&&!run.has_started)")||projectFormationCron.includes("if(full&&project.project_type==='open'&&!run.has_started)"))failures.push('Project Experience V2: legacy headcount-only auto-start was reintroduced');
   if(!adminTeamRoute.includes("Project Lead can only be changed while the team is still forming."))failures.push('Project Experience V2: Admin can change leadership after team lock');
-  if(!adminTeamRoute.includes('if(!readiness.ready)return NextResponse.json'))failures.push('Project Experience V2: Admin team start can bypass readiness');
+  if(!adminTeamRoute.includes("if(action==='start')")||!adminTeamRoute.includes("startProjectRun({db,projectId,runId,source:'manual'"))failures.push('Project Experience V2: normal Admin team start does not use canonical Phase 11 start service');
+  if(!adminTeamRoute.includes("if(action==='force_start')")||!adminTeamRoute.includes("db.rpc('admin_force_start_project_run'"))failures.push('Project Experience V2: governed Admin force-start path is missing');
+  if(!adminTeamRoute.includes("reason.length<8"))failures.push('Project Experience V2: Admin force start lost mandatory operational reason');
+  for(const marker of ['FORCE_START_REQUIRES_MEMBER','FORCE_START_SYSTEM_NOT_READY','FORCE_START_CAPACITY_INVALID','FORCE_START_RUN_LIFECYCLE_INVALID',"membership_status in ('waiting','active')","readiness->'system'->>'lab_ready'","readiness->'system'->>'permissions_ready'","readiness->'system'->>'private_resources_ready'","readiness->'system'->>'first_milestone_ready'",'project_admin_force_started'])if(!adminForceStart.includes(marker))failures.push(`Project Experience V2: governed Admin force-start hard boundary lost ${marker}`);
 }
 
 if(failures.length){console.error('Critical regression coverage audit failed:');failures.forEach(failure=>console.error(`- ${failure}`));process.exit(1)}

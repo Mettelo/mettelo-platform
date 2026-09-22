@@ -6,7 +6,7 @@ import AdminStatusBadge from './AdminStatusBadge';
 type Role={id:string;title:string;responsibilities:string[]};
 type Responsibility={id:string;responsibility:string;source_project_role_id:string|null};
 type Member={membership_id:string;id:string;name:string;headline:string|null;team_role:string;membership_status:string;leadership_interest:boolean;responsibilities:Responsibility[]};
-type Readiness={ready?:boolean;reason_codes?:string[];blockers?:string[];team?:{required_team_size?:number;project_lead_count?:number};system?:{start_paused?:boolean;start_blocked?:boolean}};
+type Readiness={ready?:boolean;reason_codes?:string[];blockers?:string[];team?:{required_team_size?:number;project_lead_count?:number};system?:{ready?:boolean;start_paused?:boolean;start_blocked?:boolean}};
 type ReadinessItem={run_id:string;readiness:Readiness|null;scheduled_start_at:string|null};
 type Team={id:string;run_id:string;run_number:number;title:string;project_type:string;partner_name:string|null;admission_mode:string|null;participation_mode:string|null;status:string;team_size_threshold:number;min_team_size:number;target_team_size:number;max_team_size:number;open_places:number;forming_deadline:string|null;kickoff_at:string|null;filled:number;roles:Role[];team:Member[];readiness?:Readiness|null;scheduled_start_at?:string|null};
 type StatusFilter='current'|'forming'|'active'|'paused'|'all';
@@ -85,6 +85,7 @@ export default function AdminTeamFormation({focusProjectId}:{focusProjectId?:str
       <div className="runList">{group.teams.map(item=>{
         const readiness=item.readiness;
         const canStart=item.status==='forming'&&readiness?.ready===true;
+        const canForceStart=item.status==='forming'&&item.filled>0;
         const blockers=readiness?.reason_codes||readiness?.blockers||[];
         const hasLead=item.team.some(member=>member.team_role==='project_lead');
         const requiresLead=item.min_team_size>1;
@@ -106,7 +107,7 @@ export default function AdminTeamFormation({focusProjectId}:{focusProjectId?:str
             </section>
           }):<div className="adminEmpty compact"><p>No admitted members in this run yet.</p></div>}</div>
 
-          <div className="teamActions"><button className="button dark" type="button" disabled={!canStart||working!==''} title={canStart?'Canonical readiness passed.':blockers.length?`Blocked: ${blockers.map(words).join(', ')}`:'Readiness has not passed.'} onClick={()=>act(item,'force_start')}>Start this team</button>{item.status==='paused'?<button className="button dark" type="button" disabled={working!==''} onClick={()=>act(item,'resume')}>Resume team</button>:['forming','active'].includes(item.status)&&<><label>Pause reason<input value={reason[item.run_id]||''} onChange={e=>setReason(current=>({...current,[item.run_id]:e.target.value}))} placeholder="Required reason"/></label><button className="button ghost" type="button" disabled={working!==''||!(reason[item.run_id]||'').trim()} onClick={()=>act(item,'pause')}>Pause team</button></>}<a className="button ghost" href={`/member/projects/${item.id}?run=${item.run_id}`}>Open workspace</a></div>
+          <div className="teamActions"><button className="button dark" type="button" disabled={!canStart||working!==''} title={canStart?'Canonical readiness passed.':blockers.length?`Blocked: ${blockers.map(words).join(', ')}`:'Readiness has not passed.'} onClick={()=>act(item,'start')}>Start normally</button><button className="button ghost" type="button" disabled={!canForceStart||working!==''||!(reason[item.run_id]||'').trim()||String(reason[item.run_id]||'').trim().length<8} title={canForceStart?'Force start may override ordinary Team formation and AUTO timing blockers. The server still revalidates hard Lab/system readiness, lifecycle and capacity.':'Force start requires a forming run with at least one confirmed member.'} onClick={()=>act(item,'force_start')}>Force start</button>{item.status==='paused'?<button className="button dark" type="button" disabled={working!==''} onClick={()=>act(item,'resume')}>Resume team</button>:['forming','active'].includes(item.status)&&<><label>Admin intervention reason<input value={reason[item.run_id]||''} onChange={e=>setReason(current=>({...current,[item.run_id]:e.target.value}))} placeholder="Required reason"/></label><button className="button ghost" type="button" disabled={working!==''||!(reason[item.run_id]||'').trim()} onClick={()=>act(item,'pause')}>Pause team</button></>}<a className="button ghost" href={`/member/projects/${item.id}?run=${item.run_id}`}>Open workspace</a></div>
         </article>
       })}</div>
     </section>)}

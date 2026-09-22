@@ -47,7 +47,7 @@ test.describe('Workstream 3 Submit Interest admission and operations recovery',(
     expect(interestBranch).not.toContain("from('project_members').insert");
   });
 
-  test('six hours is eligibility and the daily 06:00 processor remains the start owner',()=>{
+  test('six hours is eligibility and the Hobby-compatible daily formation processor remains the start owner',()=>{
     const recovery=source('supabase/migrations/20260913140000_workstream3_interest_admission_recovery.sql');
     const phase9=source('supabase/migrations/20260906002000_project_experience_phase_9_participation_hardening.sql');
     const cron=source('app/api/cron/project-formation/route.ts');

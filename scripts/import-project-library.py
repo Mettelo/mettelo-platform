@@ -415,7 +415,11 @@ def project_payload(r: dict[str, Any], new: bool) -> dict[str, Any]:
         "difficulty_level": r["difficulty"] or None,
         "duration_weeks": r["duration_weeks"],
         "weekly_commitment": r["weekly_commitment"] or None,
-        "team_size_threshold": r["team_size"],
+        "participation_mode": "solo" if r["team_size"] == 1 else "team",
+        "min_team_size": 1 if r["team_size"] == 1 else 2,
+        "target_team_size": r["team_size"],
+        "max_team_size": r["team_size"],
+        "team_size_threshold": 1 if r["team_size"] == 1 else 2,
     }
     if new:
         payload.update({
@@ -429,7 +433,7 @@ def project_payload(r: dict[str, Any], new: bool) -> dict[str, Any]:
 
 
 def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> tuple[str, dict[str, int]]:
-    writes = {"project": 0, "brief": 0, "deliverables": 0, "success_criteria": 0, "roles": 0, "sources": 0}
+    writes = {"project": 0, "brief": 0, "deliverables": 0, "success_criteria": 0, "milestones": 0, "capabilities": 0, "roles": 0, "sources": 0}
     was_existing = match is not None
     if match:
         project_uuid = str(match["id"])
@@ -458,8 +462,8 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> t
         "primary_use_case": r["use_case"],
         "primary_objective": r["objective"],
         "supporting_objectives": [],
-        "key_questions": [],
-        "in_scope": [],
+        "key_questions": [r["decision_to_support"] or r["objective"]],
+        "in_scope": [r["use_case"]],
         "out_of_scope": r["out_of_scope"],
         "decision_to_support": r["decision_to_support"],
         "constraints_trade_offs": r["constraints"],
@@ -486,6 +490,8 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> t
     existing_deliverables = api.request("GET", f"project_deliverables?select=*&project_id=eq.{qid}&project_run_id=is.null") or []
     existing_criteria = api.request("GET", f"project_success_criteria?select=*&project_id=eq.{qid}") or []
     existing_roles = api.request("GET", f"project_roles?select=*&project_id=eq.{qid}") or []
+    existing_milestones = api.request("GET", f"project_milestones?select=*&project_id=eq.{qid}&project_run_id=is.null") or []
+    existing_capabilities = api.request("GET", f"project_capabilities?select=project_id,capability_id,evidence_expected&project_id=eq.{qid}") or []
     existing_sources = api.request("GET", f"project_data_sources?select=*&project_id=eq.{qid}&project_run_id=is.null") or []
 
     for i, item in enumerate(r["deliverables"], 1):
@@ -530,6 +536,58 @@ def apply_record(api: Api, r: dict[str, Any], match: dict[str, Any] | None) -> t
         else:
             api.upsert("project_success_criteria", "project_id,canonical_item_key", payload)
             writes["success_criteria"] += 1
+
+    # Phase 11 requires a canonical project-scoped timeline before Lab activation.
+    # The workbook supplies duration and governed deliverables, so materialise one
+    # deterministic first milestone rather than leaving every imported project blocked.
+    if not existing_milestones and r["deliverables"]:
+        api.insert("project_milestones", {
+            "project_id": project_uuid,
+            "project_run_id": None,
+            "title": "Initial governed delivery milestone",
+            "description": short_title(
+                "Begin delivery against the approved project objective: " + r["objective"],
+                1800,
+            ),
+            "status": "planned",
+            "sort_order": 1,
+            "is_required": True,
+            "week_start": 1,
+            "week_end": max(1, min(r["duration_weeks"] or 1, 2)),
+            "expected_output": short_title(r["deliverables"][0], 900),
+        })
+        writes["milestones"] += 1
+
+    # Publication/start readiness also requires at least one curated capability
+    # with evidence expected. Match the workbook's technical skills to the active
+    # catalogue and use Data Analysis only as a safe general fallback.
+    if not existing_capabilities:
+        catalogue = api.request(
+            "GET",
+            "capabilities?select=id,slug,name,sort_order&is_active=eq.true&limit=500",
+        ) or []
+        skill_terms = [normal_title(x) for x in r["technical_skills"] if text(x)]
+        matches = [
+            cap for cap in catalogue
+            if any(
+                normal_title(text(cap.get("name"))) == skill
+                or normal_title(text(cap.get("name"))) in skill
+                or skill in normal_title(text(cap.get("name")))
+                for skill in skill_terms
+            )
+        ]
+        matches.sort(key=lambda cap: (int(cap.get("sort_order") or 9999), text(cap.get("id"))))
+        selected = matches[:5]
+        if not selected:
+            selected = [cap for cap in catalogue if text(cap.get("slug")) == "data-analysis"][:1]
+        for cap in selected:
+            api.upsert("project_capabilities", "project_id,capability_id", {
+                "project_id": project_uuid,
+                "capability_id": cap["id"],
+                "importance": "core",
+                "evidence_expected": True,
+            })
+            writes["capabilities"] += 1
 
     role_skills = list(dict.fromkeys(r["technical_skills"] + r["professional_skills"]))
     for i, role in enumerate(r["roles"], 1):
@@ -668,7 +726,7 @@ def main() -> int:
         if duplicate_ids or required_failures or report["ambiguous_matches"]:
             raise SystemExit("Apply blocked: resolve duplicate/required-field/team-size/data-link/ambiguous-match issues in the dry-run report first.")
         counts = {"updated": 0, "created": 0, "unchanged": 0}
-        writes = {"project": 0, "brief": 0, "deliverables": 0, "success_criteria": 0, "roles": 0, "sources": 0}
+        writes = {"project": 0, "brief": 0, "deliverables": 0, "success_criteria": 0, "milestones": 0, "capabilities": 0, "roles": 0, "sources": 0}
         for r in records:
             match, _ = matches[r["project_id"]]
             action, record_writes = apply_record(api, r, match)

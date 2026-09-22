@@ -117,7 +117,25 @@ export async function PATCH(request:Request){
       if(forceError){
         const message=String(forceError.message||'');
         if(message.includes('FORCE_START_REQUIRES_MEMBER'))return NextResponse.json({error:'Force start requires at least one confirmed project member.'},{status:409});
-        if(message.includes('FORCE_START_SYSTEM_NOT_READY'))return NextResponse.json({error:'The project Lab/system is not ready. Resolve the system readiness blockers before force start.'},{status:409});
+        if(message.includes('FORCE_START_SYSTEM_NOT_READY')){
+          const {data:readiness}=await db.rpc('phase11_project_start_readiness',{
+            p_project_id:projectId,
+            p_run_id:runId
+          });
+          const snapshot=(readiness||{}) as {system?:{blockers?:string[]};project?:{blockers?:string[]};team?:{blockers?:string[]}};
+          const blockers=Array.from(new Set([
+            ...(snapshot.system?.blockers||[]),
+            ...(snapshot.project?.blockers||[])
+          ]));
+          const detail=blockers.length
+            ? blockers.map(value=>value.replaceAll('_',' ')).join(', ')
+            : 'Lab/system readiness';
+          return NextResponse.json({
+            error:`The project cannot be force-started yet. Resolve: ${detail}.`,
+            blockers,
+            readiness:snapshot
+          },{status:409});
+        }
         if(message.includes('FORCE_START_CAPACITY_INVALID'))return NextResponse.json({error:'Current membership exceeds the project maximum capacity. Resolve capacity before force start.'},{status:409});
         if(message.includes('PROJECT_NOT_JOINABLE')||message.includes('FORCE_START_RUN_LIFECYCLE_INVALID'))return NextResponse.json({error:'This project run cannot be force-started in its current lifecycle state.'},{status:409});
         if(message.includes('FORCE_START_REASON_REQUIRED'))return NextResponse.json({error:'Record a clear reason for force-starting this project.'},{status:400});
@@ -248,6 +266,26 @@ export async function PATCH(request:Request){
     const requestedMode=String(body.admission_mode||'review_required')==='auto'?'auto':'review_required';
     if(project.project_type==='partner'&&requestedMode==='auto'){
       return NextResponse.json({error:'Partner Projects always require human review. AUTO cannot be enabled.'},{status:409});
+    }
+    if(requestedMode==='auto'&&effectiveMode!=='auto'){
+      const {data:readiness,error:readinessError}=await db
+        .from('project_experience_readiness')
+        .select('publication_ready,lab_ready,publication_blockers,lab_missing')
+        .eq('project_id',projectId)
+        .maybeSingle();
+      if(readinessError)throw readinessError;
+      if(!readiness?.publication_ready||!readiness?.lab_ready){
+        const blockers=Array.from(new Set([
+          ...((readiness?.publication_blockers as string[]|null)||[]),
+          ...((readiness?.lab_missing as string[]|null)||[])
+        ]));
+        return NextResponse.json({
+          error:blockers.length
+            ? `AUTO cannot be enabled until project readiness is complete. Resolve: ${blockers.join(', ').replaceAll('_',' ')}.`
+            : 'AUTO cannot be enabled until the project is publication and Lab ready.',
+          blockers
+        },{status:409});
+      }
     }
     if(effectiveMode==='auto'&&requestedMode==='review_required'){
       return NextResponse.json({error:'Use the explicit “Convert to review required” action so waiting AUTO memberships and schedules are unwound safely and audited.'},{status:409});

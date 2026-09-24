@@ -1,7 +1,7 @@
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {notifyUser,serviceDb} from '@/lib/project-flow';
-import {startProjectRun} from '@/lib/project-start-service';
+import {notifyProjectKickoffMembers,startProjectRun} from '@/lib/project-start-service';
 
 type Db=NonNullable<ReturnType<typeof serviceDb>>;
 
@@ -230,6 +230,15 @@ export async function POST(request:Request){
       }
 
       const result=(forced||{}) as {started?:boolean;already_started?:boolean;filled?:number;run_number?:number};
+      if(result.started&&!result.already_started){
+        await notifyProjectKickoffMembers({
+          db,
+          projectId,
+          runId,
+          projectTitle:project.title,
+          runNumber:Number(result.run_number||run.run_number)
+        });
+      }
       return NextResponse.json({
         ok:true,
         message:result.already_started

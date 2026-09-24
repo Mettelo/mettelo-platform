@@ -9,6 +9,15 @@ type Phase11ReadinessRpc={ready?:boolean;blockers?:string[];project?:{ready?:boo
 
 async function memberEmail(db:Db,userId:string){const {data}=await db.auth.admin.getUserById(userId);return data.user?.email||null}
 
+export async function notifyProjectKickoffMembers({db,projectId,runId,projectTitle,runNumber,participationMode=null}:{db:Db;projectId:string;runId:string;projectTitle:string;runNumber:number;participationMode?:string|null}){
+ const {data:members,error}=await db.from('project_members').select('user_id').eq('project_run_id',runId).eq('membership_status','active');
+ if(error){console.error('project kickoff member lookup failed',{projectId,runId,error});return{attempted:0,failed:1}}
+ const results=await Promise.allSettled((members||[]).map(async member=>notifyUser(db,{userId:member.user_id,email:await memberEmail(db,member.user_id),projectId,type:'project_kickoff',title:'Your project is starting',body:`${projectTitle} is ready. Open the workspace to begin.`,actionUrl:`/member/projects/${projectId}?run=${runId}`,subject:`Your project is starting: ${projectTitle}`,templateKey:'project_kickoff',dedupeKey:`phase11:${runId}:kickoff:${member.user_id}`,payload:{project_title:projectTitle,team_number:runNumber,participation_mode:participationMode}})));
+ const failed=results.filter(result=>result.status==='rejected').length;
+ if(failed)console.error('project kickoff notification delivery had failures',{projectId,runId,attempted:results.length,failed});
+ return{attempted:results.length,failed};
+}
+
 // Historical callers and regression contracts refer to the shared team-readiness
 // gate as assessProjectTeamReadiness. It is intentionally only a thin adapter to
 // the canonical Phase 11 database authority; no independent TypeScript policy is
@@ -79,7 +88,6 @@ export async function startProjectRun({db,projectId,runId,source,actorUserId=nul
   return{started:false,notReady:true,blockers:result.blockers||['project_readiness'],projectId,runId,runNumber,filled,requiredTeamSize};
  }
 
- const {data:members}=await db.from('project_members').select('user_id').eq('project_run_id',runId).eq('membership_status','active');
- await Promise.allSettled((members||[]).map(async member=>notifyUser(db,{userId:member.user_id,email:await memberEmail(db,member.user_id),projectId,type:'project_kickoff',title:'Your project is starting',body:`${project.title} is ready. Open the workspace to begin.`,actionUrl:`/member/projects/${projectId}?run=${runId}`,subject:`Your project is starting: ${project.title}`,templateKey:'project_kickoff',dedupeKey:`phase11:${runId}:kickoff:${member.user_id}`,payload:{project_title:project.title,team_number:runNumber,participation_mode:participationMode}})));
+ await notifyProjectKickoffMembers({db,projectId,runId,projectTitle:project.title,runNumber,participationMode});
  return{started:true,projectId,runId,runNumber,filled,requiredTeamSize};
 }

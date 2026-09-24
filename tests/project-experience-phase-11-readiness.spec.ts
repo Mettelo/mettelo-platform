@@ -120,6 +120,16 @@ test.describe('Project Experience Phase 11 start readiness contract',()=>{
     expect(forceStart).not.toContain("from('project_applications').update({status:'team_complete'");
   });
 
+  test('every successful start path emits the same idempotent member kickoff notification',()=>{
+    expect(startService).toContain('export async function notifyProjectKickoffMembers');
+    expect(startService).toContain("type:'project_kickoff'");
+    expect(startService).toContain('dedupeKey:`phase11:${runId}:kickoff:${member.user_id}`');
+    expect(startService).toContain('await notifyProjectKickoffMembers({db,projectId,runId,projectTitle:project.title,runNumber,participationMode})');
+    const forceStart=adminFlow.slice(adminFlow.indexOf("if(action==='force_start')"),adminFlow.indexOf("if(action==='cancel')"));
+    expect(forceStart).toContain('if(result.started&&!result.already_started)');
+    expect(forceStart).toContain('await notifyProjectKickoffMembers({');
+  });
+
   test('Admin readiness UI consumes server authority and exposes grouped textual status',()=>{
     expect(adminReadinessApi).toContain("rpc('phase11_project_start_readiness'");
     expect(adminReadinessUi).toContain('PROJECT');

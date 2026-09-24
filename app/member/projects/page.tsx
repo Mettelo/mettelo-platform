@@ -36,9 +36,14 @@ export default async function MyProjectsPage({searchParams}:{searchParams:Promis
   if(!user)redirect('/signin?next=/member/projects');
 
   const [membersResult,proofCountResult]=await Promise.all([
-    supabase.from('project_members').select('id,team_role,membership_status,joined_at,project_id,project_run_id,projects(id,title,status,team_size_threshold,project_type),project_runs(id,status,run_number,scheduled_start_at,started_at)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']).order('joined_at',{ascending:false}).limit(120),
+    supabase.from('project_members').select('id,team_role,membership_status,joined_at,project_id,project_run_id,projects(id,title,status,team_size_threshold,project_type),project_runs:project_runs!project_members_project_run_id_fkey(id,status,run_number,scheduled_start_at,started_at)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']).order('joined_at',{ascending:false}).limit(120),
     supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified')
   ]);
+
+  if(membersResult.error){
+    console.error('Failed to load My Projects membership portfolio',membersResult.error);
+    throw new Error('Unable to load your project portfolio right now.');
+  }
 
   const memberships=((membersResult.data||[]) as unknown as Membership[]).filter(item=>Boolean(one(item.projects)));
   const active=memberships.filter(item=>item.membership_status==='active'&&canOpenLab(item));

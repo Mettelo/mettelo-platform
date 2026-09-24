@@ -14,6 +14,8 @@ const preparingSection=preparingStart>=0&&preparingEnd>preparingStart?page.slice
 const checks=[
  ['Projects remains server authenticated',page.includes('createServerSupabaseClient')&&page.includes("redirect('/signin?next=/member/projects')")],
  ['portfolio uses bounded membership retrieval',page.includes(".limit(120)")&&page.includes("project_members")],
+ ['portfolio pins the membership-to-run foreign key',page.includes("project_runs:project_runs!project_members_project_run_id_fkey")],
+ ['portfolio membership query errors cannot become false zero-state data',page.includes("if(membersResult.error)")&&page.includes("Unable to load your project portfolio right now." )],
  ['active priority uses real task state',page.includes('projectPriority(')&&helper.includes('overdue')&&helper.includes('blocked')&&helper.includes('dueSoon')],
  ['active project CTA opens Mettelo Lab',page.includes('Open Mettelo Lab')&&page.includes('labHref(')],
  ['Lab authorization remains server side',gate.includes("['active','completed'].includes(membership.membership_status)")&&gate.includes("['active','review','completed'].includes(runStatus)" )],

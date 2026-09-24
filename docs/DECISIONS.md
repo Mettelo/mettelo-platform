@@ -153,3 +153,12 @@ This is a running record of consequential choices. Add new entries at the top. D
 **Fix:** Detect the empty-identities response, provide sign-in/reset recovery choices without confirming account existence, reset stale recovery UI between modes, and make the configured site origin authoritative.  
 **Reasoning:** The flow needs to be recoverable while preserving account-enumeration protections. Every environment must explicitly configure its callback origin.  
 **Author/source:** commit `6311ffb` (“Fix duplicate signup recovery and localhost auth fallback”).
+
+
+## Pin My Projects to the canonical membership-to-run relationship
+**Date:** 24 September 2026  
+**Problem:** The authenticated My Projects page showed zero Active, Preparing, and Completed projects even when production memberships existed.  
+**Root cause:** `project_members` now has more than one relationship involving `project_runs`, so PostgREST returned HTTP 300 for the unqualified embedded `project_runs(...)` select. The page also treated a failed membership query as an empty data set.  
+**Fix:** Qualify the embedded run join with `project_members_project_run_id_fkey` and fail closed when the membership portfolio query returns an error instead of rendering false zero-state data.  
+**Reasoning:** A member portfolio must resolve the run explicitly assigned by `project_members.project_run_id`; relationship ambiguity must never be interpreted as an empty portfolio.  
+**Author/source:** senior development session, 24 September 2026; branch `fix/member-projects-portfolio-relationship`.

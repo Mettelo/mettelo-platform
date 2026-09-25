@@ -162,3 +162,12 @@ This is a running record of consequential choices. Add new entries at the top. D
 **Fix:** Qualify the embedded run join with `project_members_project_run_id_fkey` and fail closed when the membership portfolio query returns an error instead of rendering false zero-state data.  
 **Reasoning:** A member portfolio must resolve the run explicitly assigned by `project_members.project_run_id`; relationship ambiguity must never be interpreted as an empty portfolio.  
 **Author/source:** senior development session, 24 September 2026; branch `fix/member-projects-portfolio-relationship`.
+
+## Rebuild Collaboration Network cards around member decisions, not raw profile data
+**Date:** 25 September 2026  
+**Problem:** Repeated visual tweaks left People and Teams cards dense, weakly prioritised and difficult to scan. The member view exposed too many equally weighted profile/project attributes, repeated privacy copy per card, and permanently visible filter controls.  
+**Root cause:** discovery orchestration, card markup and a large inline style block were coupled in one component, while team opportunity presentation lived directly in the page. Iterations therefore accumulated CSS without creating stable card-level information architecture.  
+**Fix:** separate People and Teams into dedicated card components backed by one CSS-module visual system; limit initial recommended people to six; collapse secondary filters behind progressive disclosure; show only the highest-value skills and metadata; move privacy guidance to the result-area level; give team cards one clear primary action ("View opportunity") with project navigation secondary.  
+**Reasoning:** Collaboration Network is a decision surface. Members first need to identify a useful person or an open team need, then inspect detail. The card should support that decision rather than reproduce the underlying data model. Dedicated components also make responsive and visual regression coverage deterministic.  
+**Preserved contracts:** member discovery API, privacy projection, blocking, exact-run invitation context, pending invitation semantics, collaboration-need governance, live capacity checks, auth and RLS remain unchanged.  
+**Author/source:** senior UI/UX engineering session, 25 September 2026; branch `feature/collaboration-network-v2`.

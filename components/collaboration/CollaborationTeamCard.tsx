@@ -21,7 +21,7 @@ export default function CollaborationTeamCard({item}:{item:CollaborationTeamCard
  const visibleSkills=item.capabilities.slice(0,3);
  const hiddenSkills=Math.max(0,item.capabilities.length-visibleSkills.length);
 
- return <article className={styles.teamCard}>
+ return <article className={`${styles.teamCard} cnTeamCard`}>
   <div className={styles.teamBody}>
    <header className={styles.teamHead}>
     <div className={styles.teamHeadCopy}>

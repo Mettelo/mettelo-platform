@@ -40,7 +40,7 @@ export default async function MemberHome(){
   const [profileResult,appsResult,membersResult,proofResult,savedResult,savedProjectsResult,tasksResult,spotlightResult,identityResult,leadResult,domainPrefsResult,toolPrefsResult,recommendationProjectsResult]=await Promise.all([
     supabase.from('profiles').select('*').eq('id',user.id).maybeSingle(),
     supabase.from('project_applications').select('id,status,updated_at,project_id,project_run_id,projects(id,title,status,project_type)',{count:'exact'}).eq('user_id',user.id).order('updated_at',{ascending:false}).limit(3),
-    supabase.from('project_members').select('id,team_role,membership_status,project_id,project_run_id,projects(id,title,status,project_type),project_runs(status,run_number)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']).order('joined_at',{ascending:false}),
+    supabase.from('project_members').select('id,team_role,membership_status,project_id,project_run_id,projects(id,title,status,project_type),project_runs:project_runs!project_members_project_run_id_fkey(status,run_number)').eq('user_id',user.id).in('membership_status',['waiting','active','completed']).order('joined_at',{ascending:false}),
     supabase.from('contributions').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('verification_status','verified'),
     supabase.from('saved_opportunities').select('opportunity_id',{count:'exact',head:true}).eq('user_id',user.id),
     supabase.from('saved_projects').select('project_id',{count:'exact',head:true}).eq('user_id',user.id),
@@ -55,11 +55,19 @@ export default async function MemberHome(){
 
   const profile=profileResult.data||{};
   const applications=(appsResult.data||[]) as unknown as Application[];
-  const memberships=(membersResult.data||[]) as unknown as Membership[];
+  const membershipLoadFailed=Boolean(membersResult.error);
+  if(membersResult.error)console.error('member home project membership query failed',membersResult.error);
+  const memberships=membershipLoadFailed?[]:(membersResult.data||[]) as unknown as Membership[];
   const tasks=(tasksResult.data||[]) as unknown as Task[];
   const spotlights=(spotlightResult.data||[]) as Spotlight[];
-  const activeMemberships=memberships.filter(item=>item.membership_status==='active'&&(!one(item.project_runs)||one(item.project_runs)?.status==='active'));
-  const waitingMemberships=memberships.filter(item=>item.membership_status==='waiting');
+  const activeMemberships=memberships.filter(item=>{
+    const run=one(item.project_runs);
+    return item.membership_status==='active'&&Boolean(run&&['active','review','completed'].includes(run.status));
+  });
+  const waitingMemberships=memberships.filter(item=>{
+    const run=one(item.project_runs);
+    return item.membership_status==='waiting'||(item.membership_status==='active'&&!run)||Boolean(item.membership_status==='active'&&run&&!['active','review','completed'].includes(run.status));
+  });
   const latestApplication=applications[0]||null;
   const latestApplicationMeta=latestApplication?applicationStatus(latestApplication.status):null;
   const pendingSpotlight=spotlights.find(item=>item.status==='draft'&&item.consent_status==='pending')||null;
@@ -95,6 +103,10 @@ export default async function MemberHome(){
     title:overdueTask?.id===nextTask.id?`Resume overdue work: ${nextTask.title}`:blockedTask?.id===nextTask.id?`Resolve your blocker: ${nextTask.title}`:`Continue: ${nextTask.title}`,
     text:`${one(nextTask.projects)?.title||'Your active project'}${nextTask.due_at?` · due ${dateLabel(nextTask.due_at)}`:''}${nextTask.blocker_reason?` · blocker: ${nextTask.blocker_reason}`:''}`,
     href:labHref(nextTask.project_id,nextTask.project_run_id),cta:'Open Mettelo Lab'
+  }:membershipLoadFailed?{
+    label:'Up next · Project status',title:'Check your project workspace',text:'Home could not verify your current project status, so it will not show a misleading zero. Open My Projects for the authoritative portfolio view.',href:'/member/projects',cta:'Open My Projects'
+  }:activeProject&&activeProjectData?{
+    label:'Up next · Active project',title:`Continue ${activeProjectData.title}`,text:`${activeProject.team_role.replaceAll('_',' ')}${activeRun?.run_number?` · Team ${activeRun.run_number}`:''}. Your project is in delivery and Mettelo Lab is ready when you are.`,href:labHref(activeProject.project_id,activeProject.project_run_id),cta:'Open Mettelo Lab'
   }:pendingSpotlight?{
     label:'Up next · Consent',title:'Review your Spotlight recognition',text:'Mettelo will not publish this recognition without your explicit permission.',href:'/member/spotlight',cta:'Review Spotlight'
   }:latestApplication&&latestApplicationMeta?.actionRequired?{
@@ -110,7 +122,7 @@ export default async function MemberHome(){
   if(pendingSpotlight&&upNext.href!=='/member/spotlight')updates.push({kind:'CONSENT',title:'Spotlight recognition needs your review',text:'Publication requires your explicit permission. Declining does not affect your account.',href:'/member/spotlight',symbol:'★'});
 
   const overview=[
-    {label:'Active project',plural:'Active projects',value:activeMemberships.length,helper:activeMemberships.length?'Continue your current work':'No active project right now',href:'/member/projects'},
+    {label:'Active project',plural:'Active projects',value:membershipLoadFailed?'—':activeMemberships.length,helper:membershipLoadFailed?'Project status temporarily unavailable':activeMemberships.length?'Continue your current work':'No active project right now',href:'/member/projects'},
     {label:'Application',plural:'Applications',value:appsResult.count||0,helper:waitingMemberships.length?`${waitingMemberships.length} team${waitingMemberships.length===1?' is':'s are'} forming`:'Track your application history',href:'/member/applications'},
     {label:'Verified Proof',plural:'Verified Proof',value:proofResult.count||0,helper:(proofResult.count||0)?'Reusable evidence from verified work':'Build evidence through project work',href:'/member/proof'},
     {label:'Saved',plural:'Saved',value:savedCount,helper:'Projects and opportunities retained for later',href:'/member/saved'}
@@ -120,7 +132,7 @@ export default async function MemberHome(){
 
   return <section className={`${styles.home} memberWorkspace`} aria-labelledby="member-home-title"><div className={styles.wrap}>
     <header className={styles.hero}>
-      <div className={styles.welcome}><div className={styles.eyebrow}>MY METTELO · HOME</div><h1 id="member-home-title">Good to see you, {firstName}.</h1><p className={styles.heroText}>Your work, progress and next actions — in one place.</p></div>
+      <div className={styles.welcome}><div className={styles.eyebrow}>MY METTELO · HOME</div><h1 id="member-home-title">Good to see you, {firstName}.</h1><p className={styles.heroText}>Start with what needs attention now. Everything else stays available without competing for focus.</p></div>
       <aside className={styles.profileMini} aria-label="Profile completion"><div className={styles.profileMiniTop}><div className={styles.eyebrow}>PROFILE COMPLETION</div><strong>{profileReady?'Complete':`${profilePercent}% · ${profileRemaining} left`}</strong></div><div className={styles.meter} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={profilePercent} aria-label="Profile completion"><span style={{width:`${profilePercent}%`}}/></div><p>{profileReady?'Your editable professional profile is complete.':'Complete the remaining profile details. Matching and application readiness are evaluated separately.'}</p></aside>
     </header>
 
@@ -130,7 +142,7 @@ export default async function MemberHome(){
 
     <div className={styles.grid}>
       <div className={styles.stack}>
-        <section className={styles.panel} aria-labelledby="continue-working-heading"><div className={styles.panelHead}><div><div className={styles.eyebrow}>MY PROJECTS</div><h2 id="continue-working-heading">Continue working</h2></div><Link className={styles.panelLink} href="/member/projects">View all projects →</Link></div>{activeProject&&activeProjectData?<article className={styles.project}><span className={styles.state}>● Active</span><h3>{activeProjectData.title}</h3><p>{activeProjectData.project_type==='partner'?'Partner Project':'Open Project'}{activeRun?.run_number?` · Team ${activeRun.run_number}`:''} · {activeProject.team_role.replaceAll('_',' ')}</p><div className={styles.nextWork}><small>NEXT STEP</small><strong>{activeProjectTask?.title||'Review the current delivery plan and confirm your next assigned action.'}</strong>{activeProjectTask?.due_at&&<span>Due {dateLabel(activeProjectTask.due_at)}</span>}</div><div className={styles.actions}><Link className={`${styles.button} ${styles.buttonDark}`} href={labHref(activeProject.project_id,activeProject.project_run_id)}>Open Mettelo Lab</Link><Link className={styles.button} href="/member/projects">Project details</Link></div></article>:<div className={styles.empty}><h3>No active project right now.</h3><p>{waitingMemberships.length?'Your confirmed place is still in team formation. Applications owns the full status.':'When a project starts, this is where you will resume its Mettelo Lab.'}</p><Link href={waitingMemberships.length?'/member/applications':'/member/discover'}>{waitingMemberships.length?'Track team formation':'Discover projects'} →</Link></div>}</section>
+        <section className={styles.panel} aria-labelledby="continue-working-heading"><div className={styles.panelHead}><div><div className={styles.eyebrow}>CURRENT WORK</div><h2 id="continue-working-heading">Continue working</h2></div><Link className={styles.panelLink} href="/member/projects">View all projects →</Link></div>{membershipLoadFailed?<div className={styles.dataWarning} role="status"><span>Project status unavailable</span><h3>We couldn’t verify your current project list.</h3><p>Home is deliberately not showing “0 active” while project membership data is unavailable. Use My Projects for the authoritative portfolio view.</p><Link href="/member/projects">Open My Projects →</Link></div>:activeProject&&activeProjectData?<article className={styles.project}><span className={styles.state}>● Active</span><h3>{activeProjectData.title}</h3><p>{activeProjectData.project_type==='partner'?'Partner Project':'Open Project'}{activeRun?.run_number?` · Team ${activeRun.run_number}`:''} · {activeProject.team_role.replaceAll('_',' ')}</p><div className={styles.nextWork}><small>NEXT STEP</small><strong>{activeProjectTask?.title||'Review the current delivery plan and confirm your next assigned action.'}</strong>{activeProjectTask?.due_at&&<span>Due {dateLabel(activeProjectTask.due_at)}</span>}</div><div className={styles.actions}><Link className={`${styles.button} ${styles.buttonDark}`} href={labHref(activeProject.project_id,activeProject.project_run_id)}>Open Mettelo Lab</Link><Link className={styles.button} href="/member/projects">Project details</Link></div></article>:<div className={styles.empty}><h3>No active project right now.</h3><p>{waitingMemberships.length?'Your confirmed place is still in team formation. Applications owns the full status.':'When a project starts, this is where you will resume its Mettelo Lab.'}</p><Link href={waitingMemberships.length?'/member/applications':'/member/discover'}>{waitingMemberships.length?'Track team formation':'Discover projects'} →</Link></div>}</section>
 
         <section className={styles.panel} aria-labelledby="updates-heading"><div className={styles.panelHead}><div><div className={styles.eyebrow}>IMPORTANT UPDATES</div><h2 id="updates-heading">What changed</h2></div>{updates.length>0&&<span>{updates.length} recent update{updates.length===1?'':'s'}</span>}</div>{updates.length?<div className={styles.queue}>{updates.map(item=><Link className={styles.queueRow} href={item.href} key={`${item.kind}:${item.title}`}><span className={styles.queueIcon} aria-hidden="true">{item.symbol}</span><span className={styles.queueCopy}><strong>{item.title}</strong><small>{item.text}</small></span><b className={`${styles.queueKind} ${item.kind==='CONSENT'?styles.consentKind:''}`}>{item.kind}</b></Link>)}</div>:<div className={`${styles.empty} ${styles.emptyCompact}`}><h3>You are up to date.</h3><p>No new application or recognition update currently needs your attention.</p></div>}</section>
 

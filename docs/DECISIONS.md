@@ -162,3 +162,11 @@ This is a running record of consequential choices. Add new entries at the top. D
 **Fix:** Qualify the embedded run join with `project_members_project_run_id_fkey` and fail closed when the membership portfolio query returns an error instead of rendering false zero-state data.  
 **Reasoning:** A member portfolio must resolve the run explicitly assigned by `project_members.project_run_id`; relationship ambiguity must never be interpreted as an empty portfolio.  
 **Author/source:** senior development session, 24 September 2026; branch `fix/member-projects-portfolio-relationship`.
+
+## Make project kickoff communication part of every successful start path
+**Date:** 24 September 2026  
+**Problem:** Members who had accepted a project place could enter an active run without receiving the project-start notification. Production evidence showed active runs with active members but no `project_kickoff` notification.  
+**Root cause:** Normal and AUTO activation flowed through `startProjectRun`, which emitted kickoff notifications, while Admin force start called `admin_force_start_project_run` directly and returned success without invoking the notification boundary.  
+**Fix:** Extract one idempotent `notifyProjectKickoffMembers` helper, use it after canonical normal/AUTO activation and after a successful Admin force start, preserve the existing per-run/member dedupe key, and assert notification creation/idempotency in the Phase 11 and formation-cron release tests.  
+**Reasoning:** Project activation is one business event regardless of who initiated it. Member communication must be attached to every successful activation path without moving notification side effects into the atomic database transition.  
+**Author/source:** senior development session, 24 September 2026; branch `fix/project-start-member-notifications`.

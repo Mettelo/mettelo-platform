@@ -54,7 +54,7 @@ export default function CollaborationPersonCard({member,profileHref,hasProjectCo
  const visibleSkills=allSkills.slice(0,4);
  const hiddenSkills=Math.max(0,allSkills.length-visibleSkills.length);
 
- return <article className={styles.personCard} role="listitem" aria-labelledby={`collaborator-${member.username}`}>
+ return <article className={`${styles.personCard} mcdCard`} role="listitem" aria-labelledby={`collaborator-${member.username}`}>
   <div className={styles.personBody}>
    <header className={styles.identity}>
     <div className={styles.avatar}>
@@ -75,7 +75,7 @@ export default function CollaborationPersonCard({member,profileHref,hasProjectCo
 
    <p className={styles.summary}>{summary}</p>
 
-   {visibleSkills.length>0&&<div className={styles.skillList} aria-label="Relevant skills">
+   {visibleSkills.length>0&&<div className={`${styles.skillList} mcdSkills`} aria-label="Relevant skills">
     {visibleSkills.map(skill=><span className={styles.skill} key={skill}>{human(skill)}</span>)}
     {hiddenSkills>0&&<span className={styles.skillMore}>+{hiddenSkills}</span>}
    </div>}

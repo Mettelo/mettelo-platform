@@ -27,11 +27,12 @@ test.describe('Canonical Collaboration Network',()=>{
   for(const text of [".eq('project_id',requestedProjectId)",".eq('project_run_id',requestedRunId)",".eq('user_id',user.id)",".eq('membership_status','active')",'phase9_project_run_capacity'])expect(page).toContain(text);
   expect(page).toContain('Team request controls remain unavailable');
  });
- test('People view leads with recommendations and keeps search bounded',()=>{
+ test('People view leads with recommendations and keeps search progressive and bounded',()=>{
   const discovery=read('components/MemberCollaboratorDiscovery.tsx');
   const api=read('app/api/member-discovery/route.ts');
-  for(const text of ['RECOMMENDED COLLABORATORS','People who may be useful collaborators','SEARCH THE NETWORK','Search by name, @username, role, capability or domain'])expect(discovery).toContain(text);
+  for(const text of ['RECOMMENDED COLLABORATORS','People who may be useful collaborators','EXPLORE PEOPLE','Search people, roles, skills or domains','<details className={styles.filters}>'])expect(discovery).toContain(text);
   for(const text of ["url.searchParams.get('role')","url.searchParams.get('capability')","url.searchParams.get('domain')","url.searchParams.get('availability')","url.searchParams.get('commitment')"])expect(api).toContain(text);
+  expect(discovery).toContain("limit:mode==='recommend'?'6':'20'");
   expect(api).toContain('Math.min(Math.max(Math.trunc(requestedLimit),1),20)');
  });
  test('collaborator profiles remain projected through privacy-preserving discovery',()=>{
@@ -50,9 +51,11 @@ test.describe('Canonical Collaboration Network',()=>{
   expect(invitations).not.toContain(".from('project_members').insert");
   for(const text of ['phase9_project_run_capacity','blocked(db,user.id,invitee.id)','phase18_consume_member_invite_rate_limit'])expect(invitations).toContain(text);
  });
- test('Teams & Projects consumes canonical collaboration needs and live capacity',()=>{
+ test('Teams & Projects consumes canonical collaboration needs and delegates presentation to a dedicated card',()=>{
   const page=read('app/member/collaboration/page.tsx');
-  for(const text of ['project_collaboration_needs','phase9_project_run_capacity',"neq('source','direct_invite')",'capacity_available','View collaboration need'])expect(page).toContain(text);
+  const card=read('components/collaboration/CollaborationTeamCard.tsx');
+  for(const text of ['project_collaboration_needs','phase9_project_run_capacity',"neq('source','direct_invite')",'capacity_available','CollaborationTeamCard'])expect(page).toContain(text);
+  for(const text of ['COLLABORATOR NEEDED','View opportunity','View project →','place{item.openPlaces===1?'])expect(card).toContain(text);
   expect(page).not.toContain('create table');
  });
  test('member-facing Grow Team no longer renders raw run identifiers',()=>{
@@ -62,16 +65,12 @@ test.describe('Canonical Collaboration Network',()=>{
   expect(actions).not.toContain('<span>Project / run</span>');
   expect(actions).not.toContain('projectTitle} ·');
  });
- test('responsive controls preserve touch and reflow',()=>{
-  const page=read('app/member/collaboration/page.tsx');
+ test('responsive controls preserve touch reflow and reduced motion in the V2 visual system',()=>{
+  const css=read('components/collaboration/CollaborationNetwork.module.css');
   const discovery=read('components/MemberCollaboratorDiscovery.tsx');
-  expect(page).toContain('@media(max-width:700px)');
-  expect(page).toContain('@media(max-width:390px)');
-  expect(discovery).toContain('@media(max-width:640px)');
-  expect(discovery).toContain('@media(max-width:360px)');
+  for(const text of ['@media(max-width:1100px)','@media(max-width:700px)','@media(max-width:480px)','@media(prefers-reduced-motion:reduce)','min-height:44px'])expect(css).toContain(text);
   expect(discovery).toContain('mcdDesktopFilters');
-  expect(discovery).toContain('mcdMobileFilters');
-  expect(discovery).toContain('min-height:44px');
+  expect(discovery).toContain('<details className={styles.filters}>');
  });
  test('legacy Find People also converges on the canonical People view',()=>{
   const people=read('app/member/find-people/page.tsx');
@@ -135,18 +134,33 @@ test.describe('Canonical Collaboration Network',()=>{
   expect(api).toContain("mode==='recommend'");
   expect(api).toContain("Math.min(Math.max(Math.trunc(requestedLimit),1),mode==='recommend'?12:20)");
  });
- test('People cards are structured, explainable and keep safety actions secondary',()=>{
+ test('People cards are dedicated, explainable and keep safety actions secondary',()=>{
   const discovery=read('components/MemberCollaboratorDiscovery.tsx');
-  for(const text of ['mcdIdentity','mcdSkills','Professional area','Experience','Commitment','match_label','match_detail','Request pending','Send team request','View profile','mcdMoreMenu','Block member'])expect(discovery).toContain(text);
-  expect(discovery).not.toContain('<button className="mcdBlock"');
-  expect(discovery).toContain('Only discoverable profile information is shown.');
+  const card=read('components/collaboration/CollaborationPersonCard.tsx');
+  for(const text of ['CollaborationPersonCard','Only discoverable profile information is shown.'])expect(discovery).toContain(text);
+  for(const text of ['Professional area','Experience','Commitment','match_label','match_detail','Request pending','Invite to project','View profile','Block member','mcdCard','mcdSkills'])expect(card).toContain(text);
+  expect(card).not.toContain('<button className="mcdBlock"');
  });
  test('search clearing returns to recommendation-first state and one result count',()=>{
   const discovery=read('components/MemberCollaboratorDiscovery.tsx');
   expect(discovery).toContain("if(!value.trim()){setSearched(false)");
-  expect(discovery).toContain('Search results for “{searchedQuery}”');
+  expect(discovery).toContain('Results for “{searchedQuery}”');
   expect(discovery).not.toContain('visible match found');
   expect(discovery).not.toContain('visible match{');
+ });
+
+ test('Collaboration Network V2 separates card architecture from discovery orchestration',()=>{
+  const discovery=read('components/MemberCollaboratorDiscovery.tsx');
+  const people=read('components/collaboration/CollaborationPersonCard.tsx');
+  const teams=read('components/collaboration/CollaborationTeamCard.tsx');
+  const css=read('components/collaboration/CollaborationNetwork.module.css');
+  expect(discovery).not.toContain('<style jsx>');
+  expect(people).toContain('export default function CollaborationPersonCard');
+  expect(teams).toContain('export default function CollaborationTeamCard');
+  expect(css).toContain('.personGrid');
+  expect(css).toContain('.teamGrid');
+  expect(css).toContain('.personCard');
+  expect(css).toContain('.teamCard');
  });
 
  test('Vercel remains manual-only and is not a release gate',()=>{

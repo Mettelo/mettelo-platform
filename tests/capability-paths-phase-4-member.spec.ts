@@ -4,7 +4,23 @@ import {expect,test,type APIRequestContext,type Page} from '@playwright/test';
 
 type CreatedPath={id:string;slug:string};
 function credentials(kind:'admin'|'member'){const email=process.env[kind==='admin'?'E2E_ADMIN_EMAIL':'E2E_MEMBER_EMAIL']?.trim(),password=process.env[kind==='admin'?'E2E_ADMIN_PASSWORD':'E2E_MEMBER_PASSWORD'];if(!email||!password)throw new Error(`Missing E2E ${kind} credentials.`);return{email,password}}
-async function signIn(page:Page,kind:'admin'|'member',next:string){const account=credentials(kind);await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'domcontentloaded'});const main=page.locator('#main-content');await main.locator('input[type="email"]').fill(account.email);await main.locator('input[type="password"]').fill(account.password);await main.getByRole('button',{name:'Sign in →'}).click();await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000})}
+async function signIn(page:Page,kind:'admin'|'member',next:string){
+ const account=credentials(kind);
+ await page.goto(`/signin?next=${encodeURIComponent(next)}`,{waitUntil:'domcontentloaded'});
+ const main=page.locator('#main-content');
+ const email=main.locator('input[type="email"]'),password=main.locator('input[type="password"]'),submit=main.getByRole('button',{name:'Sign in →'});
+ await email.fill(account.email);await password.fill(account.password);await submit.click();
+ try{await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000})}
+ catch{
+  const stillOnSignin=new URL(page.url()).pathname.startsWith('/signin');
+  if(!stillOnSignin) return;
+  const visibleError=await main.locator('[role="alert"]').filter({hasText:/invalid|error|failed|unable/i}).first().isVisible().catch(()=>false);
+  if(visibleError)throw new Error(`Sign-in failed for ${kind}: ${await main.locator('[role="alert"]').first().innerText().catch(()=> 'authentication error')}`);
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await page.waitForURL(url=>!url.pathname.startsWith('/signin'),{timeout:20_000});
+ }
+}
 async function createPath(api:APIRequestContext,name:string,stamp:number){const response=await api.post('/api/admin/capability-paths',{data:{name,slug:`${name.toLowerCase().replaceAll(' ','-')}-${stamp}`,target_role:name,target_outcome:`Build toward advanced ${name} capability.`}});expect(response.status()).toBe(201);return(await response.json()).item as CreatedPath}
 async function structure(api:APIRequestContext,path:CreatedPath,stage:string,position:number,projectId:string){const response=await api.put('/api/admin/capability-paths',{data:{id:path.id,stages:[{slug:stage.toLowerCase(),name:stage,position:1}],placements:[{project_id:projectId,stage_slug:stage.toLowerCase(),position,competency_focus:'Evidence-backed analytical judgement',capability_built:'Turn governed project evidence into a professional decision',prerequisite_project_id:'',prerequisite_mode:'recommended',path_outcome:'Demonstrate practical delivery judgement',placement_type:'recommended'}]}});expect(response.status()).toBe(200)}
 async function publish(api:APIRequestContext,path:CreatedPath){const response=await api.patch('/api/admin/capability-paths',{data:{id:path.id,action:'publish'}});expect(response.status()).toBe(200)}

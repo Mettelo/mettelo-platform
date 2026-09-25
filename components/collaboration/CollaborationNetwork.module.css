@@ -1,0 +1,79 @@
+.personGrid,.teamGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.personCard,.teamCard{min-width:0;background:#fff;border:1px solid #e2e4e8;border-radius:18px;box-shadow:0 6px 20px rgba(16,24,40,.045);overflow:hidden;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.personCard:hover,.teamCard:hover{border-color:#d4c6ae;box-shadow:0 12px 30px rgba(16,24,40,.075);transform:translateY(-1px)}
+.personCard:focus-within,.teamCard:focus-within{outline:3px solid rgba(23,63,143,.22);outline-offset:2px}
+.personBody,.teamBody{padding:20px}
+.identity{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:start}
+.avatar{width:56px;height:56px;border-radius:14px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(145deg,#173f8f,#121722);color:#fff;font-weight:850}
+.avatar img{width:56px;height:56px;object-fit:cover}
+.identityCopy{min-width:0}
+.identityCopy h3,.teamHead h3{margin:0;font-size:1rem;line-height:1.3;color:#151821}
+.username{margin:2px 0 0;color:#667085;font-size:.72rem;overflow-wrap:anywhere}
+.role{margin:5px 0 0;color:#2b3340;font-size:.77rem;font-weight:800}
+.availability,.openBadge,.matchBadge,.pending{display:inline-flex;align-items:center;min-height:27px;padding:5px 9px;border-radius:999px;font-size:.65rem;font-weight:850}
+.availability{background:#eaf6ef;color:#236642;white-space:nowrap}
+.matchRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:15px}
+.matchBadge{background:#f8efe0;color:#7c5318}
+.matchText{color:#667085;font-size:.72rem;line-height:1.4}
+.summary{margin:15px 0 0;color:#667085;font-size:.76rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.skillList{display:flex;gap:6px;flex-wrap:wrap;margin-top:15px}
+.skill{padding:6px 9px;border:1px solid #e5e7eb;border-radius:999px;background:#f8f9fa;color:#475467;font-size:.67rem;font-weight:750}
+.skillMore{padding:6px 8px;color:#667085;font-size:.67rem;font-weight:800}
+.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:17px}
+.metaItem{min-width:0;padding:10px 11px;border-radius:11px;background:#f7f7f5}
+.metaItem span{display:block;color:#7b8493;font-size:.58rem;font-weight:850;letter-spacing:.05em;text-transform:uppercase}
+.metaItem strong{display:block;margin-top:3px;color:#252b36;font-size:.69rem;overflow-wrap:anywhere}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 16px}
+.actions.single{grid-template-columns:1fr}
+.primary,.secondary,.textAction{min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:11px;font-size:.72rem;font-weight:850;text-decoration:none;cursor:pointer}
+.primary{border:1px solid #111827;background:#111827;color:#fff}
+.secondary{border:1px solid #d5d8de;background:#fff;color:#111827}
+.primary:disabled{opacity:.55;cursor:not-allowed}
+.pending{justify-content:center;border:1px solid #dbc891;background:#fff9e9;color:#76591c;text-transform:uppercase;letter-spacing:.04em}
+.footer{display:flex;justify-content:flex-end;padding:8px 14px 10px;border-top:1px solid #f0f1f2;background:#fcfcfb}
+.more{position:relative}
+.more summary{list-style:none;min-height:36px;display:flex;align-items:center;padding:6px 8px;border-radius:8px;color:#667085;font-size:.66rem;font-weight:800;cursor:pointer}
+.more summary::-webkit-details-marker{display:none}
+.moreMenu{position:absolute;right:0;bottom:40px;z-index:10;min-width:150px;padding:6px;border:1px solid #e0e2e6;border-radius:10px;background:#fff;box-shadow:0 12px 30px rgba(16,24,40,.12)}
+.moreMenu button{width:100%;min-height:40px;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:#7d2929;text-align:left;font-size:.69rem;font-weight:800;cursor:pointer}
+.moreMenu button:hover{background:#fff4f4}
+.privacyNote{margin:10px 0 0;color:#7b8493;font-size:.7rem}
+.searchShell{display:grid;gap:14px;padding:18px;border:1px solid #e3e5e8;border-radius:18px;background:#fff;box-shadow:0 4px 14px rgba(16,24,40,.025)}
+.searchRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+.searchInput{width:100%;min-height:50px;padding:12px 14px;border:1px solid #d6dae0;border-radius:12px;background:#fbfbfa;color:#111827}
+.searchButton{min-height:50px;padding:0 20px;border:1px solid #111827;border-radius:12px;background:#111827;color:#fff;font-weight:850;cursor:pointer}
+.filters{border-top:1px solid #eef0f2;padding-top:2px}
+.filters summary{display:flex;align-items:center;gap:8px;min-height:44px;width:max-content;list-style:none;cursor:pointer;color:#344054;font-size:.74rem;font-weight:850}
+.filters summary::-webkit-details-marker{display:none}
+.filterCount{display:grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#111827;color:#fff;font-size:.6rem}
+.filterGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:9px;padding-top:8px}
+.filterGrid label{display:grid;gap:5px;color:#475467;font-size:.67rem;font-weight:800}
+.filterGrid input,.filterGrid select{width:100%;min-width:0;min-height:42px;padding:9px 10px;border:1px solid #d9dde3;border-radius:10px;background:#fbfbfa;color:#111827}
+.clear{align-self:end;min-height:42px;padding:8px 11px;border:1px solid #d9dde3;border-radius:10px;background:#fff;color:#667085;font-weight:800;cursor:pointer}
+.sectionHead{display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.sectionHead h2{margin:5px 0 4px;font-size:clamp(1.35rem,2.1vw,1.75rem)}
+.sectionHead p{margin:0;color:#667085;font-size:.82rem;line-height:1.5;max-width:680px}
+.eyebrow{font-size:.66rem;font-weight:850;letter-spacing:.11em;color:#8a5a16}
+.empty,.error{padding:18px;border:1px solid #e1e4e8;border-radius:16px;background:#fff}
+.empty p,.error p{margin:5px 0 0;color:#667085;font-size:.78rem}
+.error{border-color:#e2b7b7;background:#fff7f7}
+.teamHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.teamHeadCopy{min-width:0}
+.teamEyebrow{font-size:.64rem;font-weight:850;letter-spacing:.09em;color:#8a5a16}
+.teamSubline{margin:5px 0 0;color:#667085;font-size:.73rem}
+.openBadge{flex:none;background:#eef6ef;color:#246342}
+.teamDescription{margin:14px 0 0;color:#667085;font-size:.76rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.teamStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+.teamStat{padding:10px;border-radius:10px;background:#f7f7f5}
+.teamStat span{display:block;color:#7b8493;font-size:.58rem;font-weight:850;text-transform:uppercase;letter-spacing:.05em}
+.teamStat strong{display:block;margin-top:3px;font-size:.7rem}
+.teamActions{display:flex;align-items:center;gap:12px;padding:0 20px 18px}
+.teamActions .primary{padding:0 14px;flex:1}
+.textAction{min-height:44px;color:#344054;justify-content:flex-end;white-space:nowrap}
+.searchLabel{display:block;margin-bottom:6px;color:#344054;font-size:.69rem;font-weight:850}
+.resultMeta{display:flex;justify-content:space-between;gap:12px;color:#667085;font-size:.7rem}
+@media(max-width:1100px){.personGrid,.teamGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.filterGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.personGrid,.teamGrid,.searchRow{grid-template-columns:1fr}.filterGrid{grid-template-columns:1fr 1fr}.teamHead{display:grid}.openBadge{width:max-content}.teamActions{display:grid;grid-template-columns:1fr}.textAction{justify-content:center}.searchButton{width:100%}}
+@media(max-width:480px){.personBody,.teamBody{padding:16px}.actions{grid-template-columns:1fr;padding:0 16px 16px}.footer{padding-inline:12px}.identity{grid-template-columns:52px minmax(0,1fr)}.avatar,.avatar img{width:52px;height:52px}.availability{grid-column:1/-1;width:max-content}.meta,.teamStats,.filterGrid{grid-template-columns:1fr}.searchShell{padding:14px}.sectionHead{display:grid;align-items:start}}
+@media(prefers-reduced-motion:reduce){.personCard,.teamCard{transition:none;transform:none!important}}
+.primary:focus-visible,.secondary:focus-visible,.textAction:focus-visible,.more summary:focus-visible,.searchInput:focus-visible,.searchButton:focus-visible,.filters summary:focus-visible,.filterGrid input:focus-visible,.filterGrid select:focus-visible,.clear:focus-visible{outline:3px solid #173f8f;outline-offset:2px}

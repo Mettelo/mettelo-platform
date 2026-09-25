@@ -177,7 +177,7 @@ export default function MemberCollaboratorDiscovery(props:Props){
 
     <details className={styles.filters}>
      <summary>Filters{activeFilterCount>0&&<span className={styles.filterCount}>{activeFilterCount}</span>}</summary>
-     <div className={styles.filterGrid}>
+     <div className={`${styles.filterGrid} mcdDesktopFilters`}>
       <label>Role<input value={role} onChange={event=>setRole(event.target.value)} placeholder="Any role"/></label>
       <label>Capability<input value={capability} onChange={event=>setCapability(event.target.value)} placeholder="Any capability"/></label>
       <label>Domain<input value={domain} onChange={event=>setDomain(event.target.value)} placeholder="Any domain"/></label>
@@ -189,7 +189,7 @@ export default function MemberCollaboratorDiscovery(props:Props){
    </form>
 
    {error&&<div className={styles.error} role="alert"><strong>We couldn’t load the Collaboration Network.</strong><p>{error}</p></div>}
-   <div role="status" aria-live="polite">{status}</div>
+   <div className="mcdStatus" role="status" aria-live="polite">{status}</div>
 
    {searched&&<section aria-labelledby="search-results-title">
     <div className={styles.resultMeta}><strong id="search-results-title">Results for “{searchedQuery}”</strong>{results.length>0&&<span>{results.length} collaborator{results.length===1?'':'s'}</span>}</div>

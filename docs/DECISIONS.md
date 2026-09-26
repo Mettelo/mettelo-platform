@@ -188,3 +188,12 @@ This is a running record of consequential choices. Add new entries at the top. D
 **Database impact:** none. The existing foreign key and project/run schema are reused; no table, column, migration, RLS policy or backfill is required.  
 **Preserved contracts:** auth, RLS, application workflow, membership lifecycle, Mettelo Lab routing, Proof, Saved, profile-completion calculation and recommendations remain unchanged.  
 **Design reference:** approved Member Home senior UX concept supplied in the product review session; production remains live-data driven and does not hard-code prototype content.
+
+## Treat mobile Project Chat as a mobile conversation surface
+**Date:** 26 September 2026  
+**Problem:** At phone widths, Project Chat still behaved like a desktop panel compressed into a narrow card. The message-actions popover could overlap the conversation, the header and message-type selector consumed too much vertical space, and the composer reduced the visible conversation area.  
+**Root cause:** the interaction contract already called for a mobile overlay sheet, but the implementation still reused desktop menu structure and an older selector path; the composer also kept the full desktop-style message-type control on mobile.  
+**Fix:** use a true mobile bottom sheet with backdrop, explicit close action, Escape dismissal and focus restoration; expose message type as compact mobile chips; shorten the Chat header copy; reduce mobile panel/message chrome while keeping readable message width and 44px action targets.  
+**Preserved contracts:** collaboration API payloads, polling cadence, auth/RLS, project/run boundaries, edit/delete/pin/classification behavior, project-item linking, mentions, optimistic sending and read-only permissions remain unchanged.  
+**Database impact:** none. No migration, table, column, RLS policy or data backfill is required.  
+**Author/source:** senior UI/UX engineering session, 26 September 2026; branch `fix/mobile-project-chat-v2`.

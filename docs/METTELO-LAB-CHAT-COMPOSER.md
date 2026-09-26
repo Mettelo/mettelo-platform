@@ -31,9 +31,11 @@ The composer must remain visually lighter than the message feed and should not l
 
 ## Mobile contract
 
+- message type is exposed as compact, horizontally scrollable chips so the selector does not consume a full form row;
 - textarea font size is at least 16px;
 - textarea and Send control remain inside the Chat panel flow;
 - Send keeps a compact square footprint;
+- the composer remains visually lighter than the feed and uses the minimum practical vertical footprint;
 - safe-area inset is respected;
 - mention suggestions remain reachable above persistent navigation;
 - short landscape states may reduce composer height but keep at least 44px controls;

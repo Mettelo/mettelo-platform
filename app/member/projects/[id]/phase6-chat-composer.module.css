@@ -227,3 +227,63 @@
     max-height:min(42dvh,300px)!important;
   }
 }
+
+
+/* Mobile Chat V2: compact type chips + lighter composer. */
+.composerExperience :global([data-lab-view="chat"] .messageTypeQuick){display:none}
+
+@media(max-width:680px){
+  .composerExperience :global([data-lab-view="chat"] .messageComposer){
+    grid-template-columns:minmax(0,1fr) 46px!important;
+    gap:7px!important;
+    padding:8px 9px max(8px,env(safe-area-inset-bottom))!important;
+    box-shadow:0 -1px 0 color-mix(in srgb,var(--lab-shell-ink) 4%,transparent)!important;
+  }
+  .composerExperience :global([data-lab-view="chat"] .messageTypeControl){
+    display:none!important;
+  }
+  .composerExperience :global([data-lab-view="chat"] .messageTypeQuick){
+    grid-column:1/-1!important;
+    display:flex!important;
+    gap:6px!important;
+    overflow-x:auto!important;
+    padding:0 0 1px!important;
+    scrollbar-width:none!important;
+  }
+  .composerExperience :global([data-lab-view="chat"] .messageTypeQuick::-webkit-scrollbar){display:none!important}
+  .composerExperience :global([data-lab-view="chat"] .messageTypeQuick button){
+    flex:0 0 auto!important;
+    min-height:36px!important;
+    padding:0 11px!important;
+    border:1px solid var(--lab-shell-border)!important;
+    border-radius:999px!important;
+    background:#f8f9fa!important;
+    color:#667085!important;
+    font:inherit!important;
+    font-size:.72rem!important;
+    font-weight:800!important;
+  }
+  .composerExperience :global([data-lab-view="chat"] .messageTypeQuick button[aria-pressed="true"]){
+    border-color:#cab07a!important;
+    background:#f6eedf!important;
+    color:#6d4c12!important;
+  }
+  .composerExperience :global([data-lab-view="chat"] .messageTypeQuick button:focus-visible){
+    outline:3px solid var(--lab-shell-focus)!important;
+    outline-offset:2px!important;
+  }
+  .composerExperience :global([data-lab-view="chat"] .messageComposer textarea){
+    min-height:46px!important;
+    max-height:104px!important;
+    padding:10px 11px!important;
+    border-radius:12px!important;
+    font-size:16px!important;
+    line-height:1.4!important;
+  }
+  .composerExperience :global([data-lab-view="chat"] .messageSend){
+    width:46px!important;
+    min-width:46px!important;
+    min-height:46px!important;
+    border-radius:12px!important;
+  }
+}

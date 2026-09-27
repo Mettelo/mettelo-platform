@@ -244,29 +244,28 @@
   }
   .composerExperience :global([data-lab-view="chat"] .messageTypeQuick){
     grid-column:1/-1!important;
-    display:flex!important;
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
     gap:6px!important;
-    overflow-x:auto!important;
+    overflow:visible!important;
     padding:0 0 1px!important;
-    scrollbar-width:none!important;
   }
-  .composerExperience :global([data-lab-view="chat"] .messageTypeQuick::-webkit-scrollbar){display:none!important}
   .composerExperience :global([data-lab-view="chat"] .messageTypeQuick button){
-    flex:0 0 auto!important;
+    min-width:0!important;
     min-height:36px!important;
-    padding:0 11px!important;
+    padding:0 8px!important;
     border:1px solid var(--lab-shell-border)!important;
     border-radius:999px!important;
-    background:#f8f9fa!important;
-    color:#667085!important;
+    background:color-mix(in srgb,var(--lab-shell-surface) 94%,var(--lab-shell-surface-muted))!important;
+    color:color-mix(in srgb,var(--lab-shell-ink) 64%,transparent)!important;
     font:inherit!important;
     font-size:.72rem!important;
     font-weight:800!important;
   }
   .composerExperience :global([data-lab-view="chat"] .messageTypeQuick button[aria-pressed="true"]){
-    border-color:#cab07a!important;
-    background:#f6eedf!important;
-    color:#6d4c12!important;
+    border-color:color-mix(in srgb,var(--lab-shell-bronze) 58%,var(--lab-shell-border))!important;
+    background:color-mix(in srgb,var(--lab-shell-bronze) 14%,var(--lab-shell-surface))!important;
+    color:color-mix(in srgb,var(--lab-shell-bronze) 78%,var(--lab-shell-ink))!important;
   }
   .composerExperience :global([data-lab-view="chat"] .messageTypeQuick button:focus-visible){
     outline:3px solid var(--lab-shell-focus)!important;
@@ -285,5 +284,15 @@
     min-width:46px!important;
     min-height:46px!important;
     border-radius:12px!important;
+  }
+}
+
+@media(max-width:480px){
+  .composerExperience :global([data-lab-view="chat"] .messageTypeQuick){
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  .composerExperience :global([data-lab-view="chat"] .messageTypeQuick button){
+    white-space:normal!important;
+    line-height:1.2!important;
   }
 }

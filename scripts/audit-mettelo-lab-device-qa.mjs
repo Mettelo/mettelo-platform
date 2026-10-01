@@ -11,7 +11,7 @@ const checks=[
  ['secondary More drop-up hierarchy covered',spec.includes('Mettelo Lab More is an anchored drop-up and preserves secondary location')&&spec.includes("data-active','true")&&spec.includes('More, ${label} selected')],
  ['instant local navigation timing covered',spec.includes('local Lab view switch should not wait for a server reload')&&spec.includes('toBeLessThan(750)')],
  ['Chat composer viewport coverage retained',spec.includes('toBeInViewport()')&&spec.includes('Chat composer stays above bottom navigation')],
- ['compact dismissible message actions covered',spec.includes('Message actions remains compact')&&spec.includes("page.keyboard.press('Escape')")],
+ ['mobile message action bottom sheet covered',spec.includes('message actions use a bottom sheet')&&spec.includes('Message action sheet spans the mobile interaction width')&&spec.includes("page.keyboard.press('Escape')")],
  ['permission-aware Events legend coverage retained',spec.includes('Events legends stay in card flow for a lead-capable user')&&spec.includes("signIn(page,urlFor('events'),'admin')")],
  ['short mobile landscape covered',spec.includes('width:430,height:500')&&spec.includes('short mobile landscape')],
  ['interactive viewport containment covered',spec.includes('assertVisibleContentWithinViewport')],

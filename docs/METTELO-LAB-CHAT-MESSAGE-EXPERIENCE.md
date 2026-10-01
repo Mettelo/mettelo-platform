@@ -38,6 +38,7 @@ Phase 5 owns presentation inside each message:
 - Long links may break safely without causing horizontal overflow.
 - Supporting state chips do not compete with the message body.
 - The action control remains reachable and preserves Phase 4's 44px interaction target.
+- Opening actions presents a bottom sheet above persistent Lab navigation, with the message feed visually de-emphasised by a backdrop.
 
 ## Long-content contract
 

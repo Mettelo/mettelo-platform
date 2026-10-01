@@ -141,12 +141,12 @@
   color:var(--chat-message-muted);
 }
 
-.experience :global(#discussion .messageMenu>summary){
+.experience :global(#discussion .messageMenuTrigger){
   opacity:.72;
 }
 
-.experience :global(#discussion .messageBubble:hover .messageMenu>summary),
-.experience :global(#discussion .messageBubble:focus-within .messageMenu>summary),
+.experience :global(#discussion .messageBubble:hover .messageMenuTrigger),
+.experience :global(#discussion .messageBubble:focus-within .messageMenuTrigger),
 .experience :global(#discussion .messageMenu[open]>summary){
   opacity:1;
 }
@@ -224,7 +224,7 @@
 }
 
 @media(prefers-reduced-motion:reduce){
-  .experience :global(#discussion .messageMenu>summary){
+  .experience :global(#discussion .messageMenuTrigger){
     transition:none;
   }
 }
@@ -367,7 +367,7 @@
   flex:none!important;
   background:transparent!important;
 }
-.experience :global(#discussion .messageMenu>summary){
+.experience :global(#discussion .messageMenuTrigger){
   width:34px!important;
   height:34px!important;
   min-width:34px!important;
@@ -382,8 +382,8 @@
   line-height:1!important;
   opacity:.72!important;
 }
-.experience :global(#discussion .messageMenu>summary:hover),
-.experience :global(#discussion .messageMenu>summary:focus-visible),
+.experience :global(#discussion .messageMenuTrigger:hover),
+.experience :global(#discussion .messageMenuTrigger:focus-visible),
 .experience :global(#discussion .messageMenu[open]>summary){
   border-color:#d7dde5!important;
   background:#f3f5f7!important;
@@ -482,7 +482,7 @@
     font-size:.92rem!important;
     line-height:1.48!important;
   }
-  .experience :global(#discussion .messageMenu>summary){
+  .experience :global(#discussion .messageMenuTrigger){
     width:44px!important;
     height:44px!important;
     min-width:44px!important;
@@ -497,5 +497,185 @@
     max-height:min(58dvh,420px)!important;
     overflow-y:auto!important;
     border-radius:14px!important;
+  }
+}
+
+
+/* Mobile Chat V2: action sheet and tighter conversation hierarchy. */
+.experience :global(#discussion .messageActionBackdrop),
+.experience :global(#discussion .messageActionSheetHeader){display:none}
+
+@media(max-width:680px){
+  .experience :global(#discussion.messagePanel){
+    padding:0!important;
+    border-radius:16px!important;
+    box-shadow:none!important;
+  }
+  .experience :global(#discussion .messagePanelHeader){
+    padding:12px 14px 10px!important;
+    min-height:auto!important;
+  }
+  .experience :global(#discussion .messagePanelHeader .cardNumber){
+    font-size:.58rem!important;
+    line-height:1.2!important;
+  }
+  .experience :global(#discussion .messagePanelHeader h3){
+    margin:4px 0 3px!important;
+    font-size:1.02rem!important;
+  }
+  .experience :global(#discussion .messagePanelHeader p){
+    max-width:36ch!important;
+    margin:0!important;
+    font-size:.74rem!important;
+    line-height:1.4!important;
+  }
+  .experience :global(#discussion .messageConnection){
+    align-self:start!important;
+    margin-top:1px!important;
+  }
+  .experience :global(#discussion .messageFeed){
+    gap:10px!important;
+    padding:12px 10px 16px!important;
+    background:#f7f8fa!important;
+  }
+  .experience :global(#discussion .messageBubbleRow){
+    width:100%!important;
+    max-width:100%!important;
+  }
+  .experience :global(#discussion .messageBubble){
+    width:auto!important;
+    min-width:min(150px,100%)!important;
+    max-width:88%!important;
+    padding:10px 11px 8px!important;
+    box-shadow:none!important;
+  }
+  .experience :global(#discussion .messageBubbleRow.own .messageBubble){
+    justify-self:end!important;
+  }
+  .experience :global(#discussion .messageBubble header){
+    grid-template-columns:minmax(0,1fr)!important;
+    gap:1px!important;
+  }
+  .experience :global(#discussion .messageBubble header strong){
+    font-size:.75rem!important;
+    line-height:1.3!important;
+  }
+  .experience :global(#discussion .messageBubble time){
+    font-size:.55rem!important;
+    white-space:normal!important;
+  }
+  .experience :global(#discussion .messageBubble>p){
+    margin-top:5px!important;
+    font-size:.9rem!important;
+    line-height:1.48!important;
+  }
+  .experience :global(#discussion .messageBubble footer){
+    margin-top:4px!important;
+  }
+  .experience :global(#discussion .messageMenuTrigger){
+    width:44px!important;
+    height:44px!important;
+    min-width:44px!important;
+    border-radius:11px!important;
+    opacity:1!important;
+  }
+  .experience :global(#discussion .messageActionBackdrop){
+    position:fixed!important;
+    display:block!important;
+    inset:0 0 calc(var(--lab-shell-mobile-nav) + env(safe-area-inset-bottom)) 0!important;
+    z-index:58!important;
+    border:0!important;
+    background:rgba(16,19,29,.34)!important;
+    padding:0!important;
+  }
+  .experience :global(#discussion .messageActions){
+    position:fixed!important;
+    left:0!important;
+    right:0!important;
+    bottom:calc(var(--lab-shell-mobile-nav) + env(safe-area-inset-bottom))!important;
+    z-index:60!important;
+    width:100%!important;
+    max-width:none!important;
+    max-height:min(62dvh,520px)!important;
+    overflow-y:auto!important;
+    gap:2px!important;
+    padding:8px 12px 14px!important;
+    border:1px solid #d9dfe6!important;
+    border-bottom:0!important;
+    border-radius:20px 20px 0 0!important;
+    background:#fff!important;
+    box-shadow:0 -18px 48px rgba(16,19,29,.18)!important;
+    overscroll-behavior:contain!important;
+  }
+  .experience :global(#discussion .messageActionSheetHeader){
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:12px!important;
+    min-height:48px!important;
+    padding:2px 2px 8px!important;
+    border-bottom:1px solid #edf0f3!important;
+  }
+  .experience :global(#discussion .messageActionSheetHeader strong){
+    color:#111827!important;
+    font-size:.88rem!important;
+    font-weight:850!important;
+  }
+  .experience :global(#discussion .messageActionClose){
+    width:44px!important;
+    height:44px!important;
+    display:grid!important;
+    place-items:center!important;
+    padding:0!important;
+    border:1px solid #dfe3e8!important;
+    border-radius:999px!important;
+    background:#f8f9fa!important;
+    color:#344054!important;
+    font-size:1.3rem!important;
+    line-height:1!important;
+  }
+  .experience :global(#discussion .messageActions>button[role="menuitem"]){
+    width:100%!important;
+    min-height:48px!important;
+    padding:11px 10px!important;
+    border:0!important;
+    border-bottom:1px solid #f0f1f3!important;
+    border-radius:8px!important;
+    text-align:left!important;
+    font-size:.82rem!important;
+    font-weight:750!important;
+  }
+  .experience :global(#discussion .messageActions>button[role="menuitem"]:last-child){
+    border-bottom:0!important;
+  }
+  .experience :global(#discussion .messageDeleteAction){
+    color:#9b2c2c!important;
+  }
+  .experience :global(#discussion .messageLinkControl){
+    display:grid!important;
+    gap:6px!important;
+    padding:10px!important;
+    border-bottom:1px solid #f0f1f3!important;
+  }
+  .experience :global(#discussion .messageLinkControl select){
+    min-height:44px!important;
+  }
+}
+
+@media(max-width:480px){
+  .experience :global(#discussion .messageAvatar){
+    width:28px!important;
+    height:28px!important;
+    min-width:28px!important;
+  }
+  .experience :global(#discussion .messageBubbleRow){
+    grid-template-columns:28px minmax(0,1fr)!important;
+    gap:6px!important;
+  }
+  .experience :global(#discussion .messageBubbleRow.own){
+    grid-template-columns:minmax(0,1fr) 28px!important;
+  }
+  .experience :global(#discussion .messageBubble){
+    max-width:90%!important;
   }
 }

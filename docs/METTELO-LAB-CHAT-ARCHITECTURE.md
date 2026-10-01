@@ -45,7 +45,7 @@ At `<=480px`:
 - own messages use `minmax(0,1fr) 36px`; other messages use `36px minmax(0,1fr)`;
 - message bubbles consume the available content column and may not collapse into the avatar column;
 - message action targets are at least 44px;
-- message actions use a mobile overlay sheet rather than expanding the bubble;
+- message actions use a mobile bottom sheet with backdrop, explicit close control, Escape dismissal and trigger-focus restoration rather than a desktop popover or expanding the bubble;
 - composer text remains at least 16px to avoid iOS focus zoom;
 - safe-area bottom inset is respected;
 - short landscape viewports reduce secondary copy rather than overlap the composer.

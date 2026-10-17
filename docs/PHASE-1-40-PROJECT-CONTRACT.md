@@ -47,3 +47,12 @@ The master's brief repository and the team's delivery repository are distinct. F
 Verified: `docs/projects.json` contains 50 entries, 50 distinct IDs, all numeric suffixes 001–050 and nonempty `brief`, `roles`, `repository` values. URLs are structurally within the Mettelo GitHub organisation. The final five (046–050) are AI copilot/assistant projects. **Repository existence/content and access remain to be independently verified.** Ten early entries (001–010) have empty `use_case` and `data_source`; resolve by content approval or versioned schema rule, not fabrication.
 
 **Updated success gate:** approve all 50 specific source IDs and master links; resolve mandatory metadata; classify all 305 legacy project records and preserve 12 applications, 10 runs, 8 memberships, 4 offers and all other related records; approve ERD, Lab and public/member page design, one delivery GitHub URL input with independent Proof review, rollback and security regression. Phase 1 remains open until objective evidence is complete. No automated deployment, Production deletion or code cutover authorised.
+
+
+## Evidence update — complete master README and first-order protected-link audit
+
+**Repository verification:** independently fetched `README.md` from the named GitHub repository of all 50 catalogue entries with the connected GitHub integration. **50/50 succeeded**; no missing README files. This proves authenticated connector access/readability, **not** that every repo is publicly accessible anonymously or that every master brief meets content acceptance standards. The 10 blank early `use_case`/`data_source` entries remain a separate content/schema decision.
+
+**Read-only Supabase linkage:** cross-referenced 305 projects against applications, project runs, memberships and offers. **11 project records have at least one such operational link** and **294 have no links in these four categories**. This is *not* a declaration that the 294 are safe to delete: other FKs (tasks, notifications, Lab, resource records, governance, other history) still require a complete dependency inventory. One project can have multiple applications/runs; do not infer row totals from joined aggregates. Previously verified totals: 12 applications, 10 runs, 8 memberships, 4 offers.
+
+**Phase 1 result:** master README existence gate is PASSED; full content/public visibility, field gaps, complete FK data-disposition crosswalk, redesigned schema, UX and signed-owner final gate remain OPEN. No database write, frontend change or deployment performed.

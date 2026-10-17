@@ -13,7 +13,7 @@
 2. Execute **one phase at a time**, one focused branch/PR per coherent change, with a human approval gate. Do not combine migration, UX, publication, data deletion and unrelated refactors.
 3. Before each phase write user stories, exact success criteria, preservation boundaries, RED/AMBER/GREEN risk classification, verification steps and rollback plan.
 4. Change relevant docs and regression tests in the same PR. Use the repository's exact gate definitions; skipped critical tests are not green.
-5. Record source SHAs, CI/deployment references, before/after counts, screenshots, RLS evidence and owner sign-off in every handoff.
+5. Record source SHAs, CI references, before/after counts, screenshots, RLS evidence and owner sign-off in every handoff.
 
 ## 1. Business outcomes and scope
 
@@ -89,7 +89,7 @@ Design loading, empty, stale-source, invalid-link, closed, validation, error and
 
 | Phase | Deliverable | Mandatory exit gate |
 | --- | --- | --- |
-| **0 — Evidence/bootstrapping** | Repository Readiness Brief; exact source SHAs; CI/deployment; dependency graph; UI baseline; data counts | No edits; current risks and preservation approved |
+| **0 — Evidence/bootstrapping** | Repository Readiness Brief; exact source SHAs; CI; dependency graph; UI baseline; data counts | No edits; current risks and preservation approved |
 | **1 — Product contract and UX** | Approved user stories, field ownership, layout/states, journeys, acceptance tests, accessibility specification | Owner signs off before code |
 | **2 — Project-library quality** | Versioned JSON schema, validator, clean taxonomy, link/ID validation, CI fixtures | All approved entries validate; exceptions reported |
 | **3 — Ingest and caching** | Secure server-side import/projection, provenance, stale/failure recovery, observability | Verified failure modes; exact-head tests green |
@@ -105,7 +105,7 @@ Each phase must have a focused PR, tests, documentation update, security review 
 
 ### Phase 0 — mandatory cold start
 
-> Read and execute AGENTS.md, CONTRIBUTING.md and docs/DEVELOPER-START-HERE.md in Mettelo/mettelo-platform. Verify exact main SHA, CI, deployment, protection, open PRs and current relevant risks. Audit public and member project flows, application/admission/run/Lab/Proof dependencies, database relationships, RLS and tests. Inspect Mettelo/project-library README, CATALOGUE_SCHEMA.md, docs/projects.json and representative master repositories. Return an evidence-based Repository Readiness Brief, dependency map, data inventory, stale claims and preservation boundaries. Do not modify files or data.
+> Read and execute AGENTS.md, CONTRIBUTING.md and docs/DEVELOPER-START-HERE.md in Mettelo/mettelo-platform. Verify exact main SHA, CI, protection, open PRs and current relevant risks. Audit public and member project flows, application/admission/run/Lab/Proof dependencies, database relationships, RLS and tests. Inspect Mettelo/project-library README, CATALOGUE_SCHEMA.md, docs/projects.json and representative master repositories. Return an evidence-based Repository Readiness Brief, dependency map, data inventory, stale claims and preservation boundaries. Do not modify files or data.
 
 ### Phase 1 — product and experience
 
@@ -129,7 +129,7 @@ Each phase must have a focused PR, tests, documentation update, security review 
 
 ### Phases 7 and 8 — operations and release
 
-> Confirm Lab, Admin, run isolation, completion, Proof, kickoff notifications and repository provenance against current product boundaries. Execute exact-head CI, staging/security/browser release gates, shadow compare old/new catalogues and rehearse feature-flag rollback. Obtain owner approval before Production switch; verify resulting main SHA and deployed Production SHA. Do not treat merge alone as proof of deployment.
+> Confirm Lab, Admin, run isolation, completion, Proof, kickoff notifications and repository provenance against current product boundaries. Execute exact-head CI, staging/security/browser release gates, shadow compare old/new catalogues and rehearse feature-flag rollback. Obtain owner approval before Production switch; verify resulting main SHA and separately, after owner-managed deployment, manually recorded Production SHA. Do not treat merge alone as proof of deployment.
 
 ## 8. Acceptance test checklist
 
@@ -146,7 +146,7 @@ Each phase must have a focused PR, tests, documentation update, security review 
 | SEC-01 | No XSS/SSRF/unsafe redirects, secrets exposure or unauthorised Admin mutation |
 | SEC-02 | Public, Member, Admin, Lead and Reviewer permissions; cross-run isolation tested |
 | UX-01 | Full responsive, WCAG, keyboard, 200% zoom and all UI state matrix passed |
-| REL-01 | Exact SHA CI/Release/Deployment evidence, real deployed SHA and exercised rollback |
+| REL-01 | Exact SHA CI/Release evidence, real deployed SHA and exercised rollback |
 
 ## 9. Operator incident responses
 
@@ -157,11 +157,11 @@ Each phase must have a focused PR, tests, documentation update, security review 
 | Unexpected project count or deleted external ID | Pause publication, diff IDs, require editorial review |
 | Schema change/invalid taxonomy | Reject changed snapshot, preserve last approved edition |
 | Identity mismatch or corrupt mapping | Disable new read path, preserve operational data, verify restoration |
-| CI or deployment gate red | Do not merge/deploy; investigate exact SHA and preserve last green baseline |
+| CI or regression gate red | Do not merge; investigate exact SHA and preserve last green baseline |
 
 ## 10. Required handoff per phase
 
-Record: phase and PR; base/head/resulting main SHAs; verified CI/deployment links; user problem; acceptance criteria and protected boundaries; changed code/database files; counts before/after; screenshots and test commands; RLS/security evidence; outstanding issues; rollback; and explicit owner approval.
+Record: phase and PR; base/head/resulting main SHAs; verified CI links; user problem; acceptance criteria and protected boundaries; changed code/database files; counts before/after; screenshots and test commands; RLS/security evidence; outstanding issues; rollback; and explicit owner approval.
 
 **Immediate action:** execute Phase 0 only. Do not start data deletion or Production catalogue cutover until crosswalk and system dependency assessment are complete.
 
@@ -270,7 +270,7 @@ Safeguard schema with RLS, explicit role permissions, unique indexes, exact-run 
 > Inspect app/api/project-final-proof/route.ts, phase19_submit_final_proof RPC, project final-proof UI, project completion conditions, GitHub policies, admin/partner review and individual Proof implementation/tests. The new GitHub-first project team should submit only its own delivery GitHub repository URL, not a mandatory summary or separate evidence URL. Design coordinated API/schema/RPC migrations and compatible historical reads. Require exact-run submission authority, validated distinct team repository, verifiable accessibility, idempotent resubmission and server-recorded provenance/review states. Preserve independent member Proof verification and existing security/readiness unless separately approved. Implement in one narrow governed PR after sign-off; test Open/Partner, rejection/review and all malicious/invalid/concurrent cases.
 
 ### PROMPT — 40-only cutover acceptance
-> Verify the approved source snapshot has exactly 40 GitHub master projects. Stage a shadow comparison of old and new public/member/SEO/recommended catalogues. Confirm only 40 appear after feature-flag switch, all links resolve, old routes safely redirect/archive, applications and active historical runs remain accessible to their members, team delivery submissions and Proof work, and last-good snapshot survives GitHub errors. Execute full exact-head security, migration, browser, CI and release gates. Request explicit owner approval before any Production data mutation or cutover; capture deployed exact SHA, rollback and before/after database counts. Do not destroy the old 300-project data without a later explicit audited purge authorisation.
+> Verify the approved source snapshot has exactly 40 GitHub master projects. Stage a shadow comparison of old and new public/member/SEO/recommended catalogues. Confirm only 40 appear after feature-flag switch, all links resolve, old routes safely redirect/archive, applications and active historical runs remain accessible to their members, team delivery submissions and Proof work, and last-good snapshot survives GitHub errors. Execute full exact-head security, migration, browser, CI and release gates. Request explicit owner approval before any Production data mutation or cutover; after the owner performs a manual deployment, separately record deployed exact SHA, rollback and before/after database counts. Do not destroy the old 300-project data without a later explicit audited purge authorisation.
 
 ## G. Revised acceptance requirements
 
@@ -282,3 +282,14 @@ Safeguard schema with RLS, explicit role permissions, unique indexes, exact-run 
 - **PROOF-INDEPENDENT:** final team repository submission or run completion never automatically grants Verified Proof to individuals.
 - **SECURITY:** no cross-run reads/writes, unauthorized final submission, unsafe URLs or non-approved external repository exposure.
 - **RELEASE:** current exact-head CI and staging E2E pass; rollback tested; Production deletion requires separate explicit owner authorisation.
+
+
+## V1.2 mandatory delivery-policy amendment — MANUAL DEPLOYMENT ONLY (17 October 2026)
+
+**Overrides every earlier deployment-gate instruction in this document.** Mettelo's owner performs all Preview/Staging/Production deployments manually. A PR, phase or Release gate must **not** require a successful Vercel deployment, deployment status check, deployment promotion, or deployed SHA to pass. A deployment must not be triggered automatically by CI or merging this playbook. Do not disable quality, security, regression, data-integrity or exact-commit build checks.
+
+**Before code merge / phase sign-off (automated gates):** validate exact-head lint, TypeScript, build, impacted unit/API/RLS/security/data-integrity checks, scope-appropriate browser tests, and source/provenance assertions. Record baseline database counts and frontend regression results; every unexpected change must fail. Documentation-only changes may be permitted an explicitly scoped docs-only gate, but must not silence genuine regression failures without investigation.
+
+**After approved merge (manual operator-only process):** the owner independently chooses if/when to deploy. The owner performs any Preview/Staging/Production deployment, validates actual deployed SHA and smoke tests, and records deployment outcome **outside PR acceptance**. A manual deployment failure creates an operational incident or release hold, not an automatic retroactive PR CI failure. Provide manual rollback instructions and deployment checklists but do not execute the deployment.
+
+**PR #281 observation:** the reported failure on previous head `382bf39d` was **Fast regression gate → Release gate → status bridge**, while **Deployment gate was skipped**. Removing deployment checks alone does not fix the reported browser regression failure. Preserve and investigate that separately; do not mark this PR green until relevant checks pass.

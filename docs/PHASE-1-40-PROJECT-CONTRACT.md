@@ -56,3 +56,21 @@ Verified: `docs/projects.json` contains 50 entries, 50 distinct IDs, all numeric
 **Read-only Supabase linkage:** cross-referenced 305 projects against applications, project runs, memberships and offers. **11 project records have at least one such operational link** and **294 have no links in these four categories**. This is *not* a declaration that the 294 are safe to delete: other FKs (tasks, notifications, Lab, resource records, governance, other history) still require a complete dependency inventory. One project can have multiple applications/runs; do not infer row totals from joined aggregates. Previously verified totals: 12 applications, 10 runs, 8 memberships, 4 offers.
 
 **Phase 1 result:** master README existence gate is PASSED; full content/public visibility, field gaps, complete FK data-disposition crosswalk, redesigned schema, UX and signed-owner final gate remain OPEN. No database write, frontend change or deployment performed.
+
+
+## Database FK topology audit — live read-only inspection, 17 October 2026
+
+PostgreSQL `information_schema` identified **47 direct foreign-key edges to public.projects (47 distinct child tables)** and **37 direct foreign-key edges to public.project_runs (37 distinct child tables)**. These overlap and are not 84 independent tables. This is the *declared FK topology*, not yet a complete row-level disposition or an inventory of application-code references, trigger functions, views, storage objects or non-FK references.
+
+Critical families requiring explicit preservation and before/after regression: application/offer/admission, project roles/author assignments, runs/membership, tasks/workstreams/milestones, Lab chat/collaboration, events/notifications, data source and resource governance, support, final delivery/review, contributions/Proof, saved projects, spotlight and capability paths. The source `projects` table cannot be dropped in isolation without breaking declarative referential integrity.
+
+**Recommended Phase 1 architecture decision for formal approval:** retain current operational tables/UUIDs and separately introduce a governed catalogue projection for the 50 GitHub specs. Retire the legacy 305 records from discoverability with publication filtering after dependency tests, rather than deleting the Supabase database. A complete isolated replacement instance is a separate high-risk option requiring Auth/RLS migration, full data/relationship transfer, dual-read/rollback and proven restore. No migration SQL has been executed.
+
+### Required row-level work to close this gate
+1. Produce for **all 47 + 37 FK edges** child-row counts, counts of distinct referenced project/run IDs, orphan checks and ON DELETE behaviour, using read-only grouped aggregates.
+2. Inventory triggers, RPCs, views, storage, environment/service keys and application query paths beyond declared FKs; test every protected journey.
+3. Draft per-project action mapping: approved master ID, existing operational UUID, active/historical references, archive/unpublish/retain/new record action and explicit human approval.
+4. Run snapshots/restore rehearsal on isolated non-Production environment before any destructive replacement work.
+5. Verify new target ERD/RLS/migration on isolated staging and compare all protected entity counts/keys and permissions before cutover.
+
+**Current gate:** the relational topology is identified but a destructive delete/new database remains BLOCKED. Existing 305 projects, 12 applications, 10 runs, 8 memberships and 4 offers must remain intact until approved, verified migration.

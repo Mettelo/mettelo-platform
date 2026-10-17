@@ -39,3 +39,35 @@ The master's brief repository and the team's delivery repository are distinct. F
 - [ ] Only checks appropriate to this **docs-only** change required; no automated deployment.
 
 **Gate rule:** If any criterion is incomplete, Phase 1 remains OPEN. No destructive database operation, frontend cutover or automatic deployment can proceed.
+
+
+## Phase 1 audit evidence — 17 October 2026 (read-only)
+
+### GitHub catalogue: launch cohort selection blocker
+- `Mettelo/project-library/docs/projects.json` inspected blob SHA `524ef5de2838f0b849c6a6c4258c1aa53d312f60`.
+- **45 entries, 45 unique IDs**, rather than previously documented 40. New items `MTL-BA-041` to `MTL-BA-045` form five **Business Analysis** projects. The agreed launch target is the original 001–040 cohort; **this is a candidate cohort definition, not automatic approval to hide five valid projects**.
+- All 45 `status=Available`; all 45 have a `brief` and `roles`, and their master repository URL strings conform to the Mettelo GitHub URL pattern. Live target HTTP reachability was **not** verified.
+- `use_case` and `data_source` are empty on **10 projects each**; schema audit should distinguish legacy optional-empty values from enforced required values. `source_guide` absent/empty on 30, `data_downloads` on 35; these latter two are explicitly optional. Do not invent content to pass checks.
+- **Gate decision:** source-validation subcriterion remains open pending business confirmation whether initial cohort is 001–040, all 45, or another approved explicit list. The importer must implement explicit cohort pinning, not rely on the current growing JSON count.
+
+### Supabase current-state baseline
+Read-only standalone counts (avoid joined counts because multiple child rows can multiply joined totals):
+
+| Table | Count |
+| --- | ---: |
+| `projects` | 305 |
+| `project_applications` | 12 |
+| `project_runs` | 10 |
+| `project_members` | 8 |
+| `project_offers` | 4 |
+| `project_final_proof_submissions` | 0 |
+| `contributions` | 0 |
+
+The 305 projects include 302 open, one draft, one forming and one pilot. Applications touch 9 distinct project identities. The initial foreign-key inspection shows many additional children of projects/runs including tasks, capability paths, notifications, Lab data, final submission, governance, events and source records. The precise per-project archive/mapping disposition remains **uncompleted**: individual protected records must not be purged or reassigned.
+
+### Unfinished verification and next steps
+1. Confirm immutable source **commit SHA** (blob SHA above is file identity, not necessarily commit SHA), master repository HEAD/visibility and the initial approved cohort selection.
+2. Generate per-project protected-dependency crosswalk and classified disposition, keeping identifying personal/member data out of published docs.
+3. Draft approved ERD and compare in-place parallel schema against separate database design, with migration/rollback and historical preservation.
+4. Complete public/member/Lab UX contract and one-repository-URL delivery acceptance scenarios.
+5. Pass docs-only CI and obtain human sign-off. **This Phase 1 gate has not passed.** No deployment, schema mutations, delete or frontend cutover performed.

@@ -79,7 +79,10 @@ jobs:
             echo "classification=runtime-or-backend-impact" >> "$GITHUB_OUTPUT"
           else
             echo "requires_staging=false" >> "$GITHUB_OUTPUT"
-            echo "run_fast_browser=true" >> "$GITHUB_OUTPUT"
+            # Docs and CI-policy changes do not alter application/runtime behavior.
+            # Keep lint, typecheck, audits, catalogue browser contract and build;
+            # reserve the 535-test regression browser lane for runtime risk.
+            echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
             echo "classification=docs-or-ci-policy-only" >> "$GITHUB_OUTPUT"
           fi
 

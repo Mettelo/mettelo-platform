@@ -58,7 +58,7 @@
     "admin:promote": "node scripts/promote-admin.mjs",
     "test:workstream10": "playwright test tests/workstream10-visible-recovery.spec.ts --project=chromium",
     "test:workstream10:e2e": "playwright test tests/member-discover-v1-visual.spec.ts tests/project-experience-phase7-admin-review-e2e.spec.ts tests/project-experience-phase18-recovery-operational-ux.spec.ts tests/workstream10-member-applications-visual.spec.ts tests/workstream10-cross-system-e2e.spec.ts --project=chromium --workers=1",
-    "test:catalogue-source": "node --test tests/github-first-catalogue-validator.test.mjs"
+    "test:catalogue-source": "node --test tests/github-first-catalogue-validator.test.mjs && node --test tests/github-catalogue-import-preview.test.mjs"
   },
   "dependencies": {
     "@livekit/components-react": "2.9.24",

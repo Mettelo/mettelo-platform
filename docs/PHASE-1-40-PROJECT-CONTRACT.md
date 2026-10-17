@@ -111,3 +111,7 @@ Read-only actual table counts (not mutually exclusive project IDs): `project_del
 
 ### Explicit release process
 CI Release gate requires risk-appropriate lint/typecheck/build, schema/security and browser regression. **There is no deployment check and no automated deployment.** Owner alone performs manual deployment after independently approving a release.
+
+
+### Canonical identifier compatibility check
+Read-only query shows **0/305** existing project records have a `canonical_project_key` matching the new `MTL-{track}-{001..050}` shape. **300/305** have legacy workbook-style `B…` keys; **5/305** have null canonical keys. Therefore joining old records to the 50 GitHub records by numeric position or key is invalid. Treat the new 50 as new catalogue identities, with distinct governed operational UUID records or reviewed manual matches; never rename an active old project merely to force a match. Actual protected FK preservation remains required.

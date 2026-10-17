@@ -79,7 +79,10 @@ jobs:
             echo "classification=runtime-or-backend-impact" >> "$GITHUB_OUTPUT"
           else
             echo "requires_staging=false" >> "$GITHUB_OUTPUT"
-            echo "run_fast_browser=true" >> "$GITHUB_OUTPUT"
+            # Docs and CI-policy changes do not alter application/runtime behavior.
+            # Keep lint, typecheck, audits, catalogue browser contract and build;
+            # reserve the 535-test regression browser lane for runtime risk.
+            echo "run_fast_browser=false" >> "$GITHUB_OUTPUT"
             echo "classification=docs-or-ci-policy-only" >> "$GITHUB_OUTPUT"
           fi
 
@@ -309,19 +312,5 @@ jobs:
             fi
           fi
 
-  deployment-gate:
-    name: Deployment gate
-    needs: [scope, release-gate]
-    if: always() && needs.release-gate.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Confirm release is eligible for deployment validation
-        env:
-          CLASSIFICATION: ${{ needs.scope.outputs.classification }}
-        run: |
-          if [[ "$CLASSIFICATION" == release-train-* ]]; then
-            echo "Integration branch is eligible for additional reviewed PRs. Production promotion remains blocked until the release-train PR into main passes the full release gate."
-          else
-            echo "All required release prerequisites passed for scope=$CLASSIFICATION."
-            echo "Deployment validation/promotion may run now when deployment is required by that scope."
-          fi
+  # Deployment is performed manually by the repository owner. CI ends at the
+  # Release gate, which continues to enforce the required regression checks.

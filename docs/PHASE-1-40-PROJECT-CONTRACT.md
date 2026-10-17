@@ -1,4 +1,4 @@
-# Phase 1 — 40-project catalogue and experience contract
+# Phase 1 — 50-project catalogue and experience contract
 **State:** proposed acceptance contract; no runtime/database writes. **Base:** 07099572bfe01c49a746fda4a4406f72a284439c. **Deployment:** manual only, not CI acceptance.
 
 ## Entry conditions and phase success criteria
@@ -39,3 +39,11 @@ The master's brief repository and the team's delivery repository are distinct. F
 - [ ] Only checks appropriate to this **docs-only** change required; no automated deployment.
 
 **Gate rule:** If any criterion is incomplete, Phase 1 remains OPEN. No destructive database operation, frontend cutover or automatic deployment can proceed.
+
+
+## Authoritative scope update — 50 projects (17 October 2026)
+**Supersedes all references to 40 as the initial launch count in this Phase 1 contract.** Owner has approved **50** launch projects. Pin the source to `Mettelo/project-library` main commit `65dc740ac1c6c8f88868863a6772150c1a5a12f7` and JSON blob `44477ee087cf22a7d2a9427a7613186f96a407fe` for the current audit; repin if source changes before implementation.
+
+Verified: `docs/projects.json` contains 50 entries, 50 distinct IDs, all numeric suffixes 001–050 and nonempty `brief`, `roles`, `repository` values. URLs are structurally within the Mettelo GitHub organisation. The final five (046–050) are AI copilot/assistant projects. **Repository existence/content and access remain to be independently verified.** Ten early entries (001–010) have empty `use_case` and `data_source`; resolve by content approval or versioned schema rule, not fabrication.
+
+**Updated success gate:** approve all 50 specific source IDs and master links; resolve mandatory metadata; classify all 305 legacy project records and preserve 12 applications, 10 runs, 8 memberships, 4 offers and all other related records; approve ERD, Lab and public/member page design, one delivery GitHub URL input with independent Proof review, rollback and security regression. Phase 1 remains open until objective evidence is complete. No automated deployment, Production deletion or code cutover authorised.

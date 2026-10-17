@@ -1,4 +1,4 @@
-# Phase 1 — 40-project catalogue and experience contract
+# Phase 1 — 50-project catalogue and experience contract
 **State:** proposed acceptance contract; no runtime/database writes. **Base:** 07099572bfe01c49a746fda4a4406f72a284439c. **Deployment:** manual only, not CI acceptance.
 
 ## Entry conditions and phase success criteria
@@ -39,3 +39,79 @@ The master's brief repository and the team's delivery repository are distinct. F
 - [ ] Only checks appropriate to this **docs-only** change required; no automated deployment.
 
 **Gate rule:** If any criterion is incomplete, Phase 1 remains OPEN. No destructive database operation, frontend cutover or automatic deployment can proceed.
+
+
+## Authoritative scope update — 50 projects (17 October 2026)
+**Supersedes all references to 40 as the initial launch count in this Phase 1 contract.** Owner has approved **50** launch projects. Pin the source to `Mettelo/project-library` main commit `65dc740ac1c6c8f88868863a6772150c1a5a12f7` and JSON blob `44477ee087cf22a7d2a9427a7613186f96a407fe` for the current audit; repin if source changes before implementation.
+
+Verified: `docs/projects.json` contains 50 entries, 50 distinct IDs, all numeric suffixes 001–050 and nonempty `brief`, `roles`, `repository` values. URLs are structurally within the Mettelo GitHub organisation. The final five (046–050) are AI copilot/assistant projects. **Repository existence/content and access remain to be independently verified.** Ten early entries (001–010) have empty `use_case` and `data_source`; resolve by content approval or versioned schema rule, not fabrication.
+
+**Updated success gate:** approve all 50 specific source IDs and master links; resolve mandatory metadata; classify all 305 legacy project records and preserve 12 applications, 10 runs, 8 memberships, 4 offers and all other related records; approve ERD, Lab and public/member page design, one delivery GitHub URL input with independent Proof review, rollback and security regression. Phase 1 remains open until objective evidence is complete. No automated deployment, Production deletion or code cutover authorised.
+
+
+## Evidence update — complete master README and first-order protected-link audit
+
+**Repository verification:** independently fetched `README.md` from the named GitHub repository of all 50 catalogue entries with the connected GitHub integration. **50/50 succeeded**; no missing README files. This proves authenticated connector access/readability, **not** that every repo is publicly accessible anonymously or that every master brief meets content acceptance standards. The 10 blank early `use_case`/`data_source` entries remain a separate content/schema decision.
+
+**Read-only Supabase linkage:** cross-referenced 305 projects against applications, project runs, memberships and offers. **11 project records have at least one such operational link** and **294 have no links in these four categories**. This is *not* a declaration that the 294 are safe to delete: other FKs (tasks, notifications, Lab, resource records, governance, other history) still require a complete dependency inventory. One project can have multiple applications/runs; do not infer row totals from joined aggregates. Previously verified totals: 12 applications, 10 runs, 8 memberships, 4 offers.
+
+**Phase 1 result:** master README existence gate is PASSED; full content/public visibility, field gaps, complete FK data-disposition crosswalk, redesigned schema, UX and signed-owner final gate remain OPEN. No database write, frontend change or deployment performed.
+
+
+## Database FK topology audit — live read-only inspection, 17 October 2026
+
+PostgreSQL `information_schema` identified **47 direct foreign-key edges to public.projects (47 distinct child tables)** and **37 direct foreign-key edges to public.project_runs (37 distinct child tables)**. These overlap and are not 84 independent tables. This is the *declared FK topology*, not yet a complete row-level disposition or an inventory of application-code references, trigger functions, views, storage objects or non-FK references.
+
+Critical families requiring explicit preservation and before/after regression: application/offer/admission, project roles/author assignments, runs/membership, tasks/workstreams/milestones, Lab chat/collaboration, events/notifications, data source and resource governance, support, final delivery/review, contributions/Proof, saved projects, spotlight and capability paths. The source `projects` table cannot be dropped in isolation without breaking declarative referential integrity.
+
+**Recommended Phase 1 architecture decision for formal approval:** retain current operational tables/UUIDs and separately introduce a governed catalogue projection for the 50 GitHub specs. Retire the legacy 305 records from discoverability with publication filtering after dependency tests, rather than deleting the Supabase database. A complete isolated replacement instance is a separate high-risk option requiring Auth/RLS migration, full data/relationship transfer, dual-read/rollback and proven restore. No migration SQL has been executed.
+
+### Required row-level work to close this gate
+1. Produce for **all 47 + 37 FK edges** child-row counts, counts of distinct referenced project/run IDs, orphan checks and ON DELETE behaviour, using read-only grouped aggregates.
+2. Inventory triggers, RPCs, views, storage, environment/service keys and application query paths beyond declared FKs; test every protected journey.
+3. Draft per-project action mapping: approved master ID, existing operational UUID, active/historical references, archive/unpublish/retain/new record action and explicit human approval.
+4. Run snapshots/restore rehearsal on isolated non-Production environment before any destructive replacement work.
+5. Verify new target ERD/RLS/migration on isolated staging and compare all protected entity counts/keys and permissions before cutover.
+
+**Current gate:** the relational topology is identified but a destructive delete/new database remains BLOCKED. Existing 305 projects, 12 applications, 10 runs, 8 memberships and 4 offers must remain intact until approved, verified migration.
+
+## Phase 1 final architecture and frontend contract (planning deliverable)
+
+### Canonical entities and lifecycle
+```
+catalogue_revision (GitHub commit, imported time, approval, validation)
+  -> catalogue_project (unique external ID, summary, track, skills, master_repo, publication)
+  -> operational_project_mapping (external ID <-> stable project UUID)
+  -> project (existing UUID, lifecycle, eligibility, capacity, application policy)
+  -> project_run (run UUID, distinct cohort)
+  -> project_members / offers / tasks / Lab conversations
+  -> team_submission (run UUID, team GitHub delivery repository, review/version/audit)
+  -> individual contribution / independently reviewed Proof
+```
+For initial cutover, retain original Supabase operational structures and PKs; introduce new catalogue/sync/mapping and team-delivery projection additively in later phases. Rebuilding the entire database is **not** the initial default because the existing schema serves identity, notifications, RLS, Lab, governance and history. A fresh instance is an optional separate decision after parity and restore rehearsal. Data-loss prevention is non-negotiable.
+
+### Screen-by-screen decision contract
+1. **Public catalogue:** exactly 50 approved IDs at launch, accessible keyword/search/role/sector/track filters, true operational status and paging; no hidden legacy results in search, suggestions, sitemap, SEO or cached pages.
+2. **Public project detail:** title, 2–3 sentence brief, concise problem/outcome, team/role/skill tags only when evidenced, **Read full master brief on GitHub** link, canonical apply or sign-in CTA and accurate eligibility/closure.
+3. **Member Discover/detail:** same catalogue ID/projection plus save/apply/status, member suitability and admin policy states. Only published and eligible projects accept submissions.
+4. **My Projects:** preserve all legitimate historical and active runs independent of whether their master projects are among the new 50. An archived catalogue listing must not erase member access to active work.
+5. **Mettelo Lab first screen:** title, short summary, run/team/role status, master GitHub brief CTA and distinct **team delivery repository** section. Collapse/remove duplicate canonical brief/resource/milestone specification paragraphs in UI only after classifying whether they support server readiness or run tooling.
+6. **Final delivery:** one required member-entered **team's GitHub repository URL**. Do not reuse the GitHub master brief URL as submission; validate and record run/auth/revision/timestamp; preserve Open/Partner review semantics and member Proof verification.
+
+### Source schema resolution
+The 10 legacy blank `use_case` and `data_source` fields are a catalogue *quality* issue. Proposed controlled fallback: render validated `brief` and a GitHub master specification link; treat empty `use_case`/`data_source` as optional in the current v1 index with validation warnings rather than invented descriptions. Make these mandatory only after editorial backfill approval. No source GitHub repository edits in this planning phase.
+
+### New evidence: populated dependent entities
+Read-only actual table counts (not mutually exclusive project IDs): `project_deliverables=4500`, `project_data_sources=300`, `project_milestones=303`, `project_problem_briefs=300`, `project_discussions=14`, `project_tasks=6`, `project_activity_log=44`, `notifications` with project ID `=83`, `saved_projects=0`, `project_resources=0`, `project_support_cases=0`, `project_weekly_pulses=0`. A previous audit established 47 direct FK child tables of projects and 37 of runs; populated data-source, deliverable and notification rows mean a blanket project delete is not acceptable.
+
+### Final safety gate, prerequisites for implementation
+**Non-negotiable quantitative invariant:** before/after for every protected table: record counts, distinct PKs, FK orphans, active membership/run access, project application/offer invariants, server RLS and RPC tests, public/member visual routes. A legitimate 305->50 discoverability change is expected, but unexpected changes in operational rows are a failure.
+
+**Phase 1 document deliverables:** source 50-entry count and 50 accessible master READMEs verified; FK topology and representative row counts verified; target ERD and page contracts specified; submission input/Proof boundary documented. **Still missing:** full all-84-FK per-table counts and project-by-project crosswalk, public-anonymous repository access, approved wireframes, source 001–010 editorial policy signoff, isolated backup/restore proof and end-to-end runtime regression. Therefore Phase 1 is **DOCUMENTED BUT NOT APPROVED**; do not auto-advance or apply schema/deletes to Production.
+
+### Explicit release process
+CI Release gate requires risk-appropriate lint/typecheck/build, schema/security and browser regression. **There is no deployment check and no automated deployment.** Owner alone performs manual deployment after independently approving a release.
+
+
+### Canonical identifier compatibility check
+Read-only query shows **0/305** existing project records have a `canonical_project_key` matching the new `MTL-{track}-{001..050}` shape. **300/305** have legacy workbook-style `B…` keys; **5/305** have null canonical keys. Therefore joining old records to the 50 GitHub records by numeric position or key is invalid. Treat the new 50 as new catalogue identities, with distinct governed operational UUID records or reviewed manual matches; never rename an active old project merely to force a match. Actual protected FK preservation remains required.

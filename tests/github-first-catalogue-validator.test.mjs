@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateCatalogue} from '../scripts/validate-github-first-catalogue.mjs';
+const make=i=>({id:`MTL-DA-${String(i).padStart(3,'0')}`,name:`Project ${i}`,brief:'A real business need and expected outcome.',problem:'A problem to solve.',sector:'Financial Services',status:'Available',track:'Data Analytics',roles:['Data Analyst'],capabilities:['SQL'],repository:`https://github.com/Mettelo/project-${i}`,use_case:'',data_source:''});
+const valid=()=>Array.from({length:50},(_,i)=>make(i+1));
+test('accepts 50 unique projects and reports incomplete optional metadata',()=>{const r=validateCatalogue(valid());assert.equal(r.ok,true);assert.equal(r.count,50);assert.equal(r.warnings.length,100)});
+test('rejects missing project and duplicate external ID',()=>{const v=valid();v[49]=v[0];const r=validateCatalogue(v);assert.equal(r.ok,false);assert.match(r.errors.join(' '),/duplicate id/);assert.match(r.errors.join(' '),/Missing project numeric suffix 050/)});
+test('rejects wrong count and missing mandated field',()=>{const v=valid().slice(0,49);v[0].brief='';const r=validateCatalogue(v);assert.equal(r.ok,false);assert.match(r.errors.join(' '),/Expected 50/);assert.match(r.errors.join(' '),/missing brief/)});
+test('rejects external and deceptive GitHub URLs',()=>{for(const url of ['https://github.com.evil.test/Mettelo/x','https://github.com/Mettelo/x?secret=yes','http://github.com/Mettelo/x','https://github.com/other/x']){const v=valid();v[0].repository=url;assert.equal(validateCatalogue(v).ok,false,url)}});
+test('rejects duplicate master repositories and malformed arrays',()=>{const v=valid();v[1].repository=v[0].repository;v[2].roles=[];assert.equal(validateCatalogue(v).ok,false);assert.equal(validateCatalogue({}).ok,false)});

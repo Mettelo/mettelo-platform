@@ -3,6 +3,12 @@ on:
   pull_request:
     paths:
       - 'data/github-master-projects.json'
+      - 'app/projects/**'
+      - 'components/GithubMasterCatalogue.tsx'
+      - 'lib/github-master-projects.ts'
+      - 'tests/phase2-50-master-discovery-browser.spec.ts'
+      - 'package.json'
+      - 'package-lock.json'
       - 'scripts/generate-isolated-catalogue-rehearsal.mjs'
       - 'scripts/preview-github-catalogue-import.mjs'
       - 'scripts/validate-github-first-catalogue.mjs'
@@ -112,3 +118,36 @@ jobs:
             END IF;
           END $verify$;
           SQL
+
+  ephemeral-browser-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      METTELO_PHASE2_CATALOGUE_MODE: github50
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-public-key-for-isolated-ui-test
+      SUPABASE_SERVICE_ROLE_KEY: dummy-server-key-for-isolated-ui-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci
+      - name: Install Chromium for local-only browser acceptance
+        run: npx playwright install --with-deps chromium
+      - name: Exercise 50-project catalogue against local Next.js
+        run: npm run test:phase2-browser
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2-local-browser-failure
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 3

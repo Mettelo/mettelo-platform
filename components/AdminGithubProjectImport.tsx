@@ -49,6 +49,6 @@ export default function GithubProjectImport(){
    <p className="mt-3 text-sm">This creates an Open Project draft. Recruitment settings and publication remain under the existing Admin workflow.</p>
    <button type="button" disabled={busy||!Number.isInteger(Number(teamSize))||Number(teamSize)<1||Number(teamSize)>50} onClick={createDraft} className="mt-4 rounded-md bg-slate-900 px-4 py-2 text-white disabled:opacity-50">Create private draft</button>
   </section>:null}
-  {created?<section className="mt-6 rounded-xl border border-green-600 p-5" role="status"><h2 className="text-xl font-semibold">Draft created</h2><p className="mt-2">The project is private. No applications have been opened and no historical records were modified.</p><Link className="mt-3 inline-block underline" href="/admin/content#publisher">Continue in Admin publishing →</Link></section>:null}
+  {created?<section className="mt-6 rounded-xl border border-green-600 p-5" role="status"><h2 className="text-xl font-semibold">Draft created</h2><p className="mt-2">The project is private. No applications have been opened and no historical records were modified.</p><Link className="mt-3 inline-block underline" href="/admin/projects/github-import/review">Review imported projects →</Link></section>:null}
  </main>;
 }

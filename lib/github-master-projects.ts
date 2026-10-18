@@ -4,6 +4,7 @@ export type GithubMasterProject = {
  id:string;name:string;track:string;brief:string;problem:string;sector:string;
  roles:string[];capabilities:string[];repository:string;status:string;
  use_case?:string;data_source?:string;duration?:string;team_size?:string;
+ operationalId?:string;applicationsOpen?:boolean;
 };
 const pinnedSourceCommit='65dc740ac1c6c8f88868863a6772150c1a5a12f7';
 const records=masters as GithubMasterProject[];

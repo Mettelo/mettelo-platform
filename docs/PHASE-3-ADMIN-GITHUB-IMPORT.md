@@ -54,3 +54,13 @@ GitHub repository → validated manifest → Admin preview → private operation
 ## Safe repository update inspection
 
 Admin can select **Check GitHub changes** on the review page. The server fetches the current validated GitHub manifest, compares it with the immutable revision-1 import snapshot, reports changed fields, and refuses any change to canonical project ID or repository. This endpoint performs **no database write** and cannot silently alter applications, runs, members, project status or publication. Explicit approved revision writes are a separate follow-on task, and both Phase 3 flags remain OFF.
+
+## Explicit draft revision approval (new, disabled)
+
+- Admin review shows **Approve draft revision** only after a changed GitHub manifest has been checked, and only for a private draft when `METTELO_PHASE3_GITHUB_REVISION_APPROVAL_ENABLED=true`.
+- The operator must confirm; the server refetches the GitHub manifest and checks its blob SHA against the preview to prevent approving a changed file accidentally.
+- The **unapplied** migration `supabase/migrations/20261018010000_phase3_github_revision_approval.sql` defines a transactionally atomic, row-locked `phase3_approve_github_revision` function. It rejects stale revisions, changes to canonical ID or repository, and attempts to modify published projects.
+- Approval changes only a private draft's title, summary and problem statement and appends an immutable `github_manifest_revision_approved` audit event with the validated snapshot and revision number. It does **not** publish the project, open applications, or modify runs, offers, members or applications.
+- Once separately published via the existing lifecycle, the catalogue uses the latest approved snapshot for taxonomy, roles and capabilities, while operational fields remain authoritative for title and intake.
+- The disposable PostgreSQL 17 CI rehearsal now covers approval, audit persistence, stale revision rejection and published-project rejection.
+- All three Phase 3 flags remain OFF by default. **Do not enable any of them or apply either migration without explicit Production change approval.**

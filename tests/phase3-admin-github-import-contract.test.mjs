@@ -46,3 +46,16 @@ test('future publishing is explicitly blocked until database uniqueness and pers
  assert.match(doc,/persistent versioned master catalogue/);
  assert.match(doc,/Do not enable/);
 });
+
+test('repository change preview is read-only, admin-only and refuses project identity changes',()=>{
+ const preview=read('app/api/admin/projects/github-revision-preview/route.ts');
+ const review=read('components/AdminGithubProjectReview.tsx');
+ assert.ok(preview.includes("user.app_metadata?.role!=='admin'"));
+ assert.match(preview,/fetchGithubProjectManifest/);
+ assert.match(preview,/Repository identity cannot change/);
+ assert.match(preview,/changed_fields:changedFields/);
+ assert.match(preview,/applied:false/);
+ assert.doesNotMatch(preview,/\.insert\(|\.update\(|\.delete\(/);
+ assert.match(review,/Check GitHub changes/);
+ assert.match(review,/github-revision-preview/);
+});

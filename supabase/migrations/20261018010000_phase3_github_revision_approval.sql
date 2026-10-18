@@ -12,7 +12,7 @@ DECLARE
  last_revision integer;
  next_revision integer;
 BEGIN
- IF p_actor_user_id IS NULL OR p_expected_revision < 1 OR p_expected_revision > 100000
+ IF p_actor_user_id IS NULL OR p_expected_revision IS NULL OR p_expected_revision < 1 OR p_expected_revision > 100000
  OR p_manifest IS NULL OR jsonb_typeof(p_manifest) <> 'object'
  OR length(coalesce(p_blob_sha,'')) <> 40 OR p_blob_sha !~ '^[0-9a-f]{40}$'
  THEN RAISE EXCEPTION 'Invalid revision approval input'; END IF;

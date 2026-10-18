@@ -25,7 +25,9 @@ test('existing project creation supports verified GitHub imports only behind dis
 });
 test('admin import page is discoverable, supports preview, and retains manual creation route',()=>{
  const home=read('app/admin/page.tsx');
- const page=read('app/admin/projects/github-import/page.tsx');
+ const page=read('components/AdminGithubProjectImport.tsx');
+ const guard=read('app/admin/projects/github-import/page.tsx');
+ assert.match(guard,/user.app_metadata\\?\\.role!=='admin'/);
  assert.match(home,/\/admin\/projects\/github-import/);
  assert.match(home,/\/admin\/content#publisher/);
  assert.match(page,/github-preview/);

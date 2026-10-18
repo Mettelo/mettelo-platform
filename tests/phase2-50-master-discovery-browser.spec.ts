@@ -14,7 +14,7 @@ test.describe('Phase 2 GitHub master discovery opt-in',()=>{
   await expect(page.locator('article')).toHaveCount(1);
   await page.getByRole('link',{name:'View project brief'}).click();
   await expect(page.getByRole('heading',{name:'Cybersecurity Framework Change Intelligence Assistant'})).toBeVisible();
-  await expect(page.getByText('Applications for this catalogue are not enabled yet.')).toBeVisible();
+  await expect(page.getByText(/Applications for the initial master catalogue are not enabled yet/)).toBeVisible();
  });
  test('track filters and clear filters restore all projects',async({page})=>{
   await page.goto('/projects');

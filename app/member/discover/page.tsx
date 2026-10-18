@@ -1,3 +1,5 @@
+import GithubMasterCatalogue from '@/components/GithubMasterCatalogue';
+import {getGithubMasterProjects,isGithubMasterDiscoveryEnabled} from '@/lib/github-master-projects';
 import {redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {calculateMemberReadiness} from '@/lib/member-readiness';
@@ -40,6 +42,7 @@ export default async function MemberDiscoverPage({searchParams}:{searchParams?:P
   const supabase=await createServerSupabaseClient();
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)redirect('/signin?next=%2Fmember%2Fdiscover');
+  if(isGithubMasterDiscoveryEnabled())return <GithubMasterCatalogue projects={getGithubMasterProjects()} member/>;
 
   const [profileResult,domainPrefs,toolPrefs,projectsResult,applicationsResult,membershipsResult,savedResult,pathProgress,capabilityAliasesResult]=await Promise.all([
     supabase.from('profiles').select('full_name,headline,current_job_title,professional_area,bio,location,experience_level,employment_status,project_availability,weekly_capacity,primary_goal,linkedin_url,github_url,portfolio_url,skills,preferred_roles').eq('id',user.id).maybeSingle(),

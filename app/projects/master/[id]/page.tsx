@@ -2,7 +2,7 @@ import {getExpandableGithubProject} from '@/lib/expandable-github-catalogue';
 import type {Metadata} from 'next';
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
-import {getGithubMasterProject,isGithubMasterDiscoveryEnabled} from '@/lib/github-master-projects';
+import {isGithubMasterDiscoveryEnabled} from '@/lib/github-master-projects';
 export const dynamic='force-dynamic';
 type Props={params:Promise<{id:string}>};
 export async function generateMetadata({params}:Props):Promise<Metadata>{
@@ -27,7 +27,7 @@ export default async function MasterProjectDetail({params}:Props){
   {project.data_source?<section className="mt-8"><h2 className="text-xl font-semibold">Data source</h2><p className="mt-2">{project.data_source}</p></section>:null}
   {project.operationalId&&project.applicationsOpen?<div className="mt-8 rounded-lg border border-slate-300 p-5">
    <h2 className="text-lg font-semibold">Applications are open</h2>
-   <p className="mt-2 text-sm">This project is managed through Mettelo's existing operational application and team workflow.</p>
+   <p className="mt-2 text-sm">This project is managed through Mettelo&apos;s existing operational application and team workflow.</p>
    <Link href={`/projects/${project.operationalId}`} className="mt-3 inline-block rounded-md bg-slate-900 px-4 py-3 text-white">View project and apply</Link>
   </div>:null}
   <div className="mt-10 rounded-lg border border-slate-300 p-5">

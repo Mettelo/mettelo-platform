@@ -16,7 +16,7 @@ export async function getExpandableGithubProjects(){
  if(!ids.length)return base;
  const audits:AuditRow[]=[];
  for(let start=0;start<ids.length;start+=100){
-  const {data,error:auditError}=await db.from('project_activity_log').select('project_id,metadata,created_at').in('project_id',ids.slice(start,start+100)).eq('event_type','project_created').order('created_at',{ascending:true}).limit(5000);
+  const {data,error:auditError}=await db.from('project_activity_log').select('project_id,event_type,metadata,created_at').in('project_id',ids.slice(start,start+100)).in('event_type',['project_created','github_manifest_revision_approved']).order('created_at',{ascending:true}).limit(5000);
   if(auditError)throw new Error('Unable to validate GitHub project provenance');
   audits.push(...(data||[]));
  }

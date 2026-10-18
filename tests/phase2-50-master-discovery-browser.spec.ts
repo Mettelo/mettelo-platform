@@ -8,7 +8,7 @@ test.describe('Phase 2 GitHub master discovery opt-in',()=>{
   await expect(page.getByText('50 of 50 projects')).toBeVisible();
   await expect(page.locator('article')).toHaveCount(12);
   await page.getByRole('button',{name:'Next'}).click();
-  await expect(page.getByText('Page 2 of 5')).toBeVisible();
+  await expect(page.getByRole('navigation',{name:'Master project pages'}).getByText('Page 2 of 5')).toBeVisible();
   await page.getByLabel('Search projects').fill('Cybersecurity Framework Change Intelligence Assistant');
   await expect(page.getByText('1 of 50 projects')).toBeVisible();
   await expect(page.locator('article')).toHaveCount(1);

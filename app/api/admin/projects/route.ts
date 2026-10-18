@@ -9,7 +9,7 @@ function clean(value:unknown,max=2000){return String(value??'').trim().slice(0,m
 function slugify(value:string){return value.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80)}
 const lifecycleActions=new Set<ProjectLifecycleAction>(['publish_pilot','publish_open','publish_recruiting','pause_intake','resume_intake','unpublish','archive']);
 const publicationActions=new Set<ProjectLifecycleAction>(['publish_pilot','publish_open','publish_recruiting','resume_intake']);
-const projectFields='id,slug,title,summary,problem_statement,status,visibility,project_type,partner_name,team_size_threshold,duration_weeks,weekly_commitment,application_deadline,applications_open,project_type_review_required,presentation_required,github_repo_required,final_proof_required,created_at,updated_at,updated_by_user_id';
+const projectFields='id,slug,title,summary,problem_statement,canonical_project_key,github_url,status,visibility,project_type,partner_name,team_size_threshold,duration_weeks,weekly_commitment,application_deadline,applications_open,project_type_review_required,presentation_required,github_repo_required,final_proof_required,created_at,updated_at,updated_by_user_id';
 const typeError='Choose Open Project or Partner Project. Project type cannot be inferred.';
 const openDeadlineError='Open Projects use continuous intake across successive teams and do not use a project-level application deadline.';
 

@@ -21,6 +21,9 @@ test('existing project creation supports verified GitHub imports only behind dis
  assert.match(api,/github_url:manifest\?\.repository/);
  assert.match(api,/status:'draft',visibility:'private'/);
  assert.match(api,/applications_open:false/);
+ assert.match(api,/GitHub import currently supports Open Project drafts only/);
+ assert.match(api,/if\(auditError\)/);
+ assert.match(api,/GitHub import draft cleanup failed/);
  assert.match(api,/canonical_project_key\.eq\./);
 });
 test('admin import page is discoverable, supports preview, and retains manual creation route',()=>{

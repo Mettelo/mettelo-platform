@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'supabase/migrations/*phase3_github_project_uniqueness.sql'
+      - 'supabase/migrations/*phase3_github_revision_approval.sql'
       - 'lib/expandable-github-catalogue.ts'
       - 'app/api/admin/projects/route.ts'
       - 'tests/phase3-expandable-catalogue-contract.test.mjs'
@@ -72,4 +73,64 @@ jobs:
             WHERE actual.digest IS DISTINCT FROM saved.digest;
             IF changed<>0 THEN RAISE EXCEPTION 'Legacy historical identities changed'; END IF;
           END $verify$;
+          SQL
+
+      - name: Test atomic draft-only revision approval and optimistic replay rejection
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          ALTER TABLE public.projects
+            ADD COLUMN title text, ADD COLUMN summary text, ADD COLUMN problem_statement text,
+            ADD COLUMN status text DEFAULT 'draft', ADD COLUMN visibility text DEFAULT 'private',
+            ADD COLUMN updated_at timestamptz DEFAULT now(), ADD COLUMN updated_by_user_id uuid;
+          CREATE TABLE public.project_activity_log(
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(), project_id uuid NOT NULL REFERENCES public.projects(id),
+            event_type text NOT NULL, actor_type text NOT NULL, actor_user_id uuid,
+            from_status text, to_status text, metadata jsonb NOT NULL DEFAULT '{}',created_at timestamptz DEFAULT now()
+          );
+          UPDATE public.projects SET title='Old',summary='Old summary',problem_statement='Old problem'
+          WHERE id=md5('phase3-new-1')::uuid;
+          INSERT INTO public.project_activity_log(project_id,event_type,actor_type,metadata)
+          VALUES(md5('phase3-new-1')::uuid,'project_created','system',
+           jsonb_build_object('github_import',jsonb_build_object(
+            'external_id','MTL-DE-051','repository','https://github.com/Mettelo/data-engineering-051',
+            'revision',1,'manifest_snapshot',jsonb_build_object('id','MTL-DE-051'))));
+          SQL
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261018010000_phase3_github_revision_approval.sql
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $approval$
+          DECLARE new_revision int; record_count int;
+          BEGIN
+           SELECT public.phase3_approve_github_revision(
+            md5('phase3-new-1')::uuid,md5('phase3-admin')::uuid,1,
+            '{"id":"MTL-DE-051","repository":"https://github.com/Mettelo/data-engineering-051","status":"Available","name":"New title","brief":"New summary","problem":"New problem"}'::jsonb,
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+           ) INTO new_revision;
+           IF new_revision<>2 THEN RAISE EXCEPTION 'Revision did not advance'; END IF;
+           SELECT count(*) INTO record_count FROM public.project_activity_log
+           WHERE event_type='github_manifest_revision_approved';
+           IF record_count<>1 THEN RAISE EXCEPTION 'Revision audit missing'; END IF;
+           IF (SELECT title FROM public.projects WHERE id=md5('phase3-new-1')::uuid)<>'New title'
+           THEN RAISE EXCEPTION 'Draft was not updated'; END IF;
+           BEGIN
+            PERFORM public.phase3_approve_github_revision(
+             md5('phase3-new-1')::uuid,md5('phase3-admin')::uuid,1,
+             '{"id":"MTL-DE-051","repository":"https://github.com/Mettelo/data-engineering-051","status":"Available","name":"Replay","brief":"Replay","problem":"Replay"}'::jsonb,
+             'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+            RAISE EXCEPTION 'Replay incorrectly accepted';
+           EXCEPTION WHEN OTHERS THEN
+            IF SQLERRM='Replay incorrectly accepted' THEN RAISE; END IF;
+           END;
+           UPDATE public.projects SET visibility='public' WHERE id=md5('phase3-new-1')::uuid;
+           BEGIN
+            PERFORM public.phase3_approve_github_revision(
+             md5('phase3-new-1')::uuid,md5('phase3-admin')::uuid,2,
+             '{"id":"MTL-DE-051","repository":"https://github.com/Mettelo/data-engineering-051","status":"Available","name":"Published","brief":"Published","problem":"Published"}'::jsonb,
+             'cccccccccccccccccccccccccccccccccccccccc');
+            RAISE EXCEPTION 'Published project incorrectly modified';
+           EXCEPTION WHEN OTHERS THEN
+            IF SQLERRM='Published project incorrectly modified' THEN RAISE; END IF;
+           END;
+          END $approval$;
           SQL

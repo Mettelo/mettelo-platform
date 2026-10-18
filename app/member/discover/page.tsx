@@ -1,6 +1,6 @@
 import {getExpandableGithubProjects} from '@/lib/expandable-github-catalogue';
 import GithubMasterCatalogue from '@/components/GithubMasterCatalogue';
-import {getGithubMasterProjects,isGithubMasterDiscoveryEnabled} from '@/lib/github-master-projects';
+import {isGithubMasterDiscoveryEnabled} from '@/lib/github-master-projects';
 import {redirect} from 'next/navigation';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {calculateMemberReadiness} from '@/lib/member-readiness';

@@ -1,6 +1,7 @@
 import {serviceDb} from '@/lib/project-flow';
 import {getGithubMasterProjects} from '@/lib/github-master-projects';
 import {buildExpandableCatalogue} from '@/lib/github-catalogue-projection';
+type AuditRow={project_id:string;event_type:string;metadata:unknown;created_at:string};
 export {buildExpandableCatalogue} from '@/lib/github-catalogue-projection';
 export function isExpandableCatalogueEnabled(){
  return process.env.METTELO_PHASE3_EXPANDABLE_CATALOGUE_ENABLED==='true';

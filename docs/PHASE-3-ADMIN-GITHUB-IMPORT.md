@@ -39,3 +39,14 @@ The project ID must be unique, immutable and not reused; the repository must mat
 ## Lifecycle
 
 GitHub repository → validated manifest → Admin preview → private operational draft → operational configuration → publication preflight → manually approved publication → discovery. Updates to the GitHub README or manifest must not silently rewrite active runs or applications.
+
+## Phase 3B: expandable catalogue projection (PR after #296)
+
+- The pinned 50 master entries remain immutable and retain their existing master URLs.
+- `lib/expandable-github-catalogue.ts` reads **only published public operational projects** with a unique canonical MTL ID and an approved `github.com/Mettelo` URL. It requires a matching, immutable `project_created` audit-event manifest snapshot before adding an entry.
+- Import now saves the validated manifest snapshot with revision `1` in the creation audit event. Later revisions require explicit separate audit events and admin approval; no automatic GitHub webhook sync.
+- New projects appear in public and member discovery only when `METTELO_PHASE2_CATALOGUE_MODE=github50` **and** `METTELO_PHASE3_EXPANDABLE_CATALOGUE_ENABLED=true`, and after the operational project has passed existing publication governance.
+- An approved new project with `applications_open=true` links to its **existing operational UUID-based detail/application journey**. The initial 50 remain read-only until individually operationalised.
+- Database uniqueness migration `supabase/migrations/20261018000000_phase3_github_project_uniqueness.sql` is checked in but **not applied**. It must be reviewed and explicitly authorised before either Phase 3 write or expandable-read feature flag is enabled.
+- A disposable PostgreSQL CI service tests duplicate rejection, URL normalisation and unchanged 305 historical IDs. No new Supabase staging database or Production write.
+- Remaining work: integrate admin project edit/publish view with provenance and approval UI, enforce revisioned manifest updates, end-to-end member application tests, controlled migration and owner release decision.

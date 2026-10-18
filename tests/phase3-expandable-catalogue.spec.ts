@@ -32,3 +32,13 @@ test('a published project with closed intake remains discoverable but cannot adv
  expect(output).toHaveLength(51);
  expect(output[50].applicationsOpen).toBe(false);
 });
+
+test('latest approved revision is used only when immutable identity matches',()=>{
+ const base=getGithubMasterProjects();
+ const original={...audit,event_type:'project_created'};
+ const approved={project_id:published.id,event_type:'github_manifest_revision_approved',created_at:'2026-10-18T12:00:00Z',metadata:{github_import:{external_id:id,repository,revision:2,manifest_snapshot:{...manifest,capabilities:['SQL','Python','Airflow']}}}};
+ const output=buildExpandableCatalogue(base,[published],[original,approved]);
+ expect(output[50].capabilities).toEqual(['SQL','Python','Airflow']);
+ const tampered={...approved,metadata:{github_import:{...approved.metadata.github_import,external_id:'MTL-DE-999'}}};
+ expect(buildExpandableCatalogue(base,[published],[original,tampered])[50].capabilities).toEqual(['SQL','Python']);
+});

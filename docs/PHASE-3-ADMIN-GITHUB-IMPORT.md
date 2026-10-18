@@ -50,3 +50,7 @@ GitHub repository → validated manifest → Admin preview → private operation
 - Database uniqueness migration `supabase/migrations/20261018000000_phase3_github_project_uniqueness.sql` is checked in but **not applied**. It must be reviewed and explicitly authorised before either Phase 3 write or expandable-read feature flag is enabled.
 - A disposable PostgreSQL CI service tests duplicate rejection, URL normalisation and unchanged 305 historical IDs. No new Supabase staging database or Production write.
 - The Admin GitHub review page at `/admin/projects/github-import/review` shows registered repositories, operational status, visibility and intake, and links to the existing publisher; it never publishes directly. Remaining work: implement revisioned manifest approval updates, end-to-end authenticated member application tests, controlled migration and owner release decision.
+
+## Safe repository update inspection
+
+Admin can select **Check GitHub changes** on the review page. The server fetches the current validated GitHub manifest, compares it with the immutable revision-1 import snapshot, reports changed fields, and refuses any change to canonical project ID or repository. This endpoint performs **no database write** and cannot silently alter applications, runs, members, project status or publication. Explicit approved revision writes are a separate follow-on task, and both Phase 3 flags remain OFF.

@@ -1,6 +1,6 @@
 import {getExpandableGithubProjects} from '@/lib/expandable-github-catalogue';
 import GithubMasterCatalogue from '@/components/GithubMasterCatalogue';
-import {getGithubMasterProjects,isGithubMasterDiscoveryEnabled} from '@/lib/github-master-projects';
+import {isGithubMasterDiscoveryEnabled} from '@/lib/github-master-projects';
 import type {Metadata} from 'next';
 import PublicCapabilityPathsSection from '@/components/PublicCapabilityPathsSection';
 import PublicProjectFilters from '@/components/PublicProjectFilters';
@@ -18,7 +18,6 @@ export const dynamic='force-dynamic';
 const PUBLIC_PAGE_SIZE=12;
 
 type Role={id:string;title:string;discipline:string|null;openings:number};
-type TaxonomyRef={slug:string;name:string};
 type Run={id:string;run_number:number;status:string;completed_at:string|null};
 type RoleFamilyRelation={project_role_catalogue:{slug:string;title:string}|{slug:string;title:string}[]|null};
 type CapabilityRelation={capabilities:{id:string;slug:string;name:string}|{id:string;slug:string;name:string}[]|null};

@@ -35,7 +35,10 @@ test('admin import page is discoverable, supports preview, and retains manual cr
  assert.match(home,/\/admin\/content#publisher/);
  assert.match(page,/github-preview/);
  assert.match(page,/Create private draft/);
- assert.match(page,/\/admin\/content#publisher/);
+ assert.match(page,/\/admin\/projects\/github-import\/review/);
+ const review=read('app/admin/projects/github-import/review/page.tsx');
+ assert.ok(review.includes("user.app_metadata?.role!=='admin'"));
+ assert.match(read('components/AdminGithubProjectReview.tsx'),/\/admin\/content#publisher/);
 });
 test('future publishing is explicitly blocked until database uniqueness and persistent catalogue exist',()=>{
  const doc=read('docs/PHASE-3-ADMIN-GITHUB-IMPORT.md');

@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {buildExpandableCatalogue} from '../lib/expandable-github-catalogue';
+import {buildExpandableCatalogue} from '../lib/github-catalogue-projection';
 import {getGithubMasterProjects} from '../lib/github-master-projects';
 
 const id='MTL-DE-051';

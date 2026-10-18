@@ -3,15 +3,16 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('expansion is opt-in and only projects with public visibility, published status and validated audit snapshots enter discovery',()=>{
- const src=read('lib/expandable-github-catalogue.ts');
- assert.match(src,/METTELO_PHASE3_EXPANDABLE_CATALOGUE_ENABLED/);
+ const src=read('lib/github-catalogue-projection.ts');
+ const loader=read('lib/expandable-github-catalogue.ts');
+ assert.match(loader,/METTELO_PHASE3_EXPANDABLE_CATALOGUE_ENABLED/);
  assert.match(src,/row.visibility!=='public'/);
  assert.match(src,/PUBLIC_STATUSES.has\(row.status\)/);
  assert.match(src,/known.has\(row.canonical_project_key\)/);
  assert.match(src,/validateGithubProjectManifest\(record.manifest_snapshot,repo.url\)/);
- assert.match(src,/project_created/);
- assert.match(src,/\.eq\('visibility','public'\)/);
- assert.match(src,/getGithubMasterProjects\(\)/);
+ assert.match(loader,/project_created/);
+ assert.match(loader,/\.eq\('visibility','public'\)/);
+ assert.match(loader,/getGithubMasterProjects\(\)/);
 });
 test('existing member and public catalogue and detail route use expandable projection',()=>{
  for(const path of ['app/projects/page.tsx','app/member/discover/page.tsx']){

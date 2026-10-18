@@ -59,3 +59,20 @@ test('repository change preview is read-only, admin-only and refuses project ide
  assert.match(review,/Check GitHub changes/);
  assert.match(review,/github-revision-preview/);
 });
+
+test('draft revision approval requires explicit admin confirmation and an atomic gated database RPC',()=>{
+ const endpoint=read('app/api/admin/projects/github-revision-approve/route.ts');
+ const sql=read('supabase/migrations/20261018010000_phase3_github_revision_approval.sql');
+ const preview=read('app/api/admin/projects/github-revision-preview/route.ts');
+ assert.ok(endpoint.includes("user.app_metadata?.role!=='admin'"));
+ assert.match(endpoint,/METTELO_PHASE3_GITHUB_REVISION_APPROVAL_ENABLED/);
+ assert.match(endpoint,/APPROVE_GITHUB_REVISION/);
+ assert.match(endpoint,/expected_blob_sha/);
+ assert.match(endpoint,/phase3_approve_github_revision/);
+ assert.match(sql,/FOR UPDATE/);
+ assert.match(sql,/Stale GitHub manifest revision/);
+ assert.match(sql,/Only private drafts/);
+ assert.match(sql,/REVOKE ALL ON FUNCTION/);
+ assert.match(sql,/GRANT EXECUTE/);
+ assert.match(preview,/current_revision:current.revision/);
+});

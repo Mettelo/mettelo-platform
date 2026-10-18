@@ -10,9 +10,9 @@ Production snapshot from the prior read-only audit: 305 legacy projects, 12 appl
 2. Verify backup restore, record-count parity, RLS settings, Auth and referenced storage/permission behaviour. Stop if any element is missing.
 3. Apply the reviewed additive private catalogue schema prototype from `docs/phase2b/isolated-catalogue-schema.sql` in isolation only after security review. This file is **not** a production migration.
 4. Pin source `Mettelo/project-library/docs/projects.json` to a 40-character commit SHA and run the merged validator and offline preview, recording the digest and all warnings.
-5. Load exactly 50 staged catalogue rows through a reviewed transactional importer **not yet implemented**; verify composite revision+external ID uniqueness, security, absence of partial writes and error audit.
+5. Load exactly 50 staged catalogue rows through the reviewed transaction generator `scripts/generate-isolated-catalogue-rehearsal.mjs` (defaults to `ROLLBACK`, requires isolated-target attestation for `COMMIT`); verify composite revision+external ID uniqueness, security, absence of partial writes and error audit.
 6. Produce a full legacy lineage export (every direct FK table, 47 project-related and 37 run-related FK edges) and separate treatment plan for every one of the 305 original IDs, avoiding PII in GitHub.
-7. Test a reversible *discovery projection switch* in staging: exactly 50 public and member discoverable IDs, while authorised historic project/run URLs and Lab activity remain functional. **The frontend switch has not yet been implemented**.
+7. Test a reversible *discovery projection switch* in staging: exactly 50 public and member discoverable IDs, while authorised historic project/run URLs and Lab activity remain functional. The frontend switch is implemented behind the disabled-by-default `METTELO_PHASE2_CATALOGUE_MODE=github50` flag and is not enabled in Production.
 8. Execute anonymous/member/admin security checks, full affected browser regression, WCAG keyboard/mobile tests, performance baseline and all existing application/Proof journeys.
 9. Roll back staging projection to old catalogue; verify invariant UUID/key sets, child counts, permissions, notification references and request success. Archive test evidence.
 10. Present the evidence and owner cutover recommendation for separate manual deployment approval. No automated deploy and no production writes in this phase without that distinct authorisation.
@@ -28,5 +28,11 @@ Production snapshot from the prior read-only audit: 305 legacy projects, 12 appl
 - Phase 2A source-validator PR #287 merged.
 - Phase 2B prototype PR #289 merged, but SQL is only a non-executed prototype in `docs/`.
 - Phase 2C offline import-preview PR #290 merged, but no catalogue rows have been loaded.
-- Phase 2D reconciliation PR #291 is pending exact-head checks and merge.
-- **No isolated restored snapshot, SQL execution, staged 50-row import or public 50-only cutover has been verified.** Thus Phase 2E is OPEN.
+- Phase 2D reconciliation, rollback-first import generator and pure projection PR #291 merged.\n- Phase 2 public/member 50-master integration PR #293 merged; no production flag enabled.\n- Phase 2 final UX and isolated acceptance PR #294 is pending required CI checks.\n- Read-only isolated database assertions: `docs/phase2b/isolated-catalogue-acceptance.sql`; gated browser acceptance: `npm run test:phase2-browser`.
+- **No isolated restored snapshot, SQL execution, staged 50-row import or public 50-only cutover has been verified.** Thus Phase 2E remains OPEN pending separately authorised staging rehearsal, actual anonymous/member regression and manual release decision.
+
+## Approved alternative: disposable CI PostgreSQL (no new Supabase staging project)
+
+The owner explicitly declined creation of a new staging database. `.github/workflows/phase2-ephemeral-catalogue.yml` therefore starts a PostgreSQL 17 **ephemeral GitHub Actions service**, checks that its connection is `localhost`/`phase2_ephemeral_ci`, seeds 305 synthetic legacy projects and associated child records, applies the isolated private schema, runs default rollback, explicit isolated import twice (idempotence), security/50-count assertions, synthetic legacy-ID checks, and transaction rollback. The runner and database are discarded after the job. This uses no Supabase secrets, has no connection to Production and does not deploy.
+
+**Evidence boundary:** a synthetic fixture tests importer behaviour and historical FK preservation by contract; it does not prove a restored Production backup, real 47+37 FK topology, live RLS policies, historical UI journeys, or operational cutover. Treat this as a high-confidence code gate, not an actual Production migration rehearsal. Production feature flag remains OFF until a separate, manual owner decision after any remaining live-read-only and application checks.

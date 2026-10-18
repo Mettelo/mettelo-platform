@@ -11,6 +11,7 @@ test('admin-only GitHub preview uses fixed GitHub API host and server-side manif
  assert.match(helper,/validateGithubProjectManifest/);
  assert.match(preview,/user\.app_metadata\?\.role!=='admin'/);
  assert.match(preview,/fetchGithubProjectManifest/);
+ assert.match(preview,/reserved by the pinned 50-project catalogue/);
  assert.doesNotMatch(preview,/\.insert\(|\.update\(|\.delete\(/);
 });
 test('existing project creation supports verified GitHub imports only behind disabled-by-default gate',()=>{
@@ -18,6 +19,7 @@ test('existing project creation supports verified GitHub imports only behind dis
  assert.match(api,/METTELO_PHASE3_GITHUB_IMPORT_ENABLED/);
  assert.match(api,/fetchGithubProjectManifest/);
  assert.match(api,/canonical_project_key:manifest\?\.id/);
+ assert.match(api,/reserved by the pinned 50-project catalogue/);
  assert.match(api,/github_url:manifest\?\.repository/);
  assert.match(api,/status:'draft',visibility:'private'/);
  assert.match(api,/applications_open:false/);

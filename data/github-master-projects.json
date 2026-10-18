@@ -1,0 +1,2242 @@
+[
+  {
+    "id": "MTL-DA-001",
+    "name": "Retail Banking Customer & Portfolio Intelligence",
+    "track": "Data Analytics",
+    "capabilities": [
+      "Data Analytics",
+      "SQL",
+      "Python",
+      "Power BI",
+      "Customer Analytics",
+      "KPI Design",
+      "Data Storytelling"
+    ],
+    "sector": "Banking / Financial Services",
+    "problem": "Help a retail banking team understand customer behaviour, portfolio performance, segmentation and commercial or risk patterns from banking data.",
+    "expertise": [
+      "SQL",
+      "Python",
+      "Power BI or Tableau",
+      "Customer analytics",
+      "KPI design",
+      "Stakeholder communication"
+    ],
+    "team_size": "3–4",
+    "repository": "https://github.com/Mettelo/MTL-DA-001-retail-banking-intelligence",
+    "status": "Available",
+    "roles": [
+      "Data Analyst",
+      "BI Developer"
+    ],
+    "use_case": "",
+    "data_source": "",
+    "brief": "A retail bank needs to understand which customers and portfolio segments are performing well and where commercial or risk patterns need attention. Build a customer and portfolio dashboard that brings behaviour, segmentation and key performance measures into one view."
+  },
+  {
+    "id": "MTL-DA-002",
+    "name": "Student Engagement, Retention & Academic Performance Intelligence",
+    "track": "Data Analytics",
+    "capabilities": [
+      "Data Analytics",
+      "SQL",
+      "Python",
+      "Cohort Analysis",
+      "Education Analytics",
+      "Dashboarding",
+      "Data Storytelling"
+    ],
+    "sector": "Higher Education / Digital Learning",
+    "problem": "Help a digital education provider understand how student engagement relates to retention and academic outcomes and where intervention may be required.",
+    "expertise": [
+      "SQL or Python",
+      "Cohort analysis",
+      "Learning analytics",
+      "Data modelling",
+      "Dashboarding",
+      "Insight communication"
+    ],
+    "team_size": "3–4",
+    "repository": "https://github.com/Mettelo/Mettelo-MTL-DA-002-student-engagement-intelligence",
+    "status": "Available",
+    "roles": [
+      "Data Analyst",
+      "BI Developer"
+    ],
+    "use_case": "",
+    "data_source": "",
+    "brief": "A digital education provider needs to identify where student engagement is weakening and how it relates to retention and academic outcomes. Build a cohort-analysis dashboard that highlights groups requiring further support investigation."
+  },
+  {
+    "id": "MTL-DA-003",
+    "name": "Energy Demand, Tariff & Customer Consumption Intelligence",
+    "track": "Data Analytics",
+    "capabilities": [
+      "Data Analytics",
+      "SQL",
+      "Python",
+      "Time Series Analysis",
+      "Segmentation",
+      "Energy Analytics",
+      "Dashboarding"
+    ],
+    "sector": "Energy / Utilities",
+    "problem": "Help an energy organisation understand consumption behaviour, demand patterns, tariff performance and customer segments using smart-meter data.",
+    "expertise": [
+      "SQL or Python",
+      "Time-series analysis",
+      "Segmentation",
+      "Energy analytics",
+      "Dashboarding",
+      "Data modelling"
+    ],
+    "team_size": "3–4",
+    "repository": "https://github.com/Mettelo/MTL-DA-003-Energy-Demand-Tariff-Customer-Consumption-Intelligence",
+    "status": "Available",
+    "roles": [
+      "Data Analyst",
+      "BI Developer"
+    ],
+    "use_case": "",
+    "data_source": "",
+    "brief": "An energy organisation needs to understand when customers consume energy and how demand differs across tariffs and customer groups. Build a smart-meter analysis and dashboard showing consumption patterns, demand peaks and segments that need closer review."
+  },
+  {
+    "id": "MTL-DA-004",
+    "name": "Road Safety, Collision Risk & Transport Intelligence",
+    "track": "Data Analytics",
+    "capabilities": [
+      "Data Analytics",
+      "Python",
+      "SQL",
+      "Geospatial Analysis",
+      "Public Sector Analytics",
+      "Statistical Analysis",
+      "Data Visualisation"
+    ],
+    "sector": "Public Sector / Transport",
+    "problem": "Help a transport authority understand when, where and under what conditions collisions and casualties occur so interventions can be better targeted.",
+    "expertise": [
+      "Python or SQL",
+      "Transport analytics",
+      "Geospatial or location analysis",
+      "Statistical analysis",
+      "Data visualisation"
+    ],
+    "team_size": "3–4",
+    "repository": "https://github.com/Mettelo/MTL-DA-004-Road-Safety-Collision-Risk-Transport-Intelligence",
+    "status": "Available",
+    "roles": [
+      "Data Analyst",
+      "BI Developer",
+      "GIS / Spatial Analyst"
+    ],
+    "use_case": "",
+    "data_source": "",
+    "brief": "A transport authority needs to identify recurring collision and casualty patterns so road-safety investigations can be better targeted. Build an analysis and dashboard showing where, when and under which recorded conditions serious safety concerns occur."
+  },
+  {
+    "id": "MTL-DA-005",
+    "name": "Food Safety Compliance, Inspection Risk & Regulatory Intelligence",
+    "track": "Data Analytics",
+    "capabilities": [
+      "Data Analytics",
+      "SQL",
+      "Python",
+      "Risk Analysis",
+      "Regulatory Analytics",
+      "Dashboarding",
+      "Data Quality"
+    ],
+    "sector": "Public Health / Regulation",
+    "problem": "Help a regulatory authority understand food-hygiene performance, inspection patterns and compliance risks so attention can be prioritised.",
+    "expertise": [
+      "SQL or Python",
+      "Regulatory analytics",
+      "Risk analysis",
+      "Dashboarding",
+      "Data quality",
+      "Stakeholder reporting"
+    ],
+    "team_size": "3–4",
+    "repository": "https://github.com/Mettelo/MTL-DA-005-Food-Safety-Compliance-Inspection-Risk-Regulatory-Intelligence",
+    "status": "Available",
+    "roles": [
+      "Data Analyst",
+      "BI Developer",
+      "Data Quality Analyst"
+    ],
+    "use_case": "",
+    "data_source": "",
+    "brief": "A food-safety regulator needs to identify establishments and areas requiring closer compliance attention. Build an inspection and hygiene-performance dashboard that highlights poor ratings, inspection patterns and data gaps to support review priorities."
+  },
+  {
+    "id": "MTL-DE-006",
+    "name": "UK Road Safety Data Platform",
+    "track": "Data Engineering",
+    "capabilities": [
+      "Data Engineering",
+      "Python",
+      "SQL",
+      "DuckDB",
+      "dbt",
+      "Data Modelling",
+      "ETL/ELT",
+      "Data Quality",
+      "Git"
+    ],
+    "sector": "Public Sector / Transport",
+    "problem": "Build a reproducible data platform that ingests, validates and models official collision, vehicle and casualty datasets into analytics-ready tables.",
+    "expertise": [
+      "Python",
+      "SQL",
+      "DuckDB",
+      "dbt",
+      "Dimensional modelling",
+      "Data-quality testing",
+      "Pipeline design",
+      "Git"
+    ],
+    "team_size": "3–4",
+    "repository": "https://github.com/Mettelo/MTL-DE-006-UK-Road-Safety-Data-Platform",
+    "status": "Available",
+    "roles": [
+      "Data Engineer",
+      "Data Quality Analyst"
+    ],
+    "use_case": "",
+    "data_source": "",
+    "brief": "Road-safety analysts need reliable collision, vehicle and casualty tables before they can investigate safety patterns. Build a repeatable data pipeline that validates and joins the official datasets, producing documented tables ready for analysis."
+  },
+  {
+    "id": "MTL-DE-007",
+    "name": "UK Companies Registry Data Platform",
+    "track": "Data Engineering",
+    "capabilities": [
+      "Data Engineering",
+      "Python",
+      "REST APIs",
+      "SQL",
+      "JSON",
+      "DuckDB",
+      "dbt",
+      "Incremental Loading",
+      "Data Quality",
+      "Git"
+    ],
+    "sector": "Companies / Business Intelligence",
+    "problem": "Build an API-based platform that collects Companies House company and filing data, handles pagination and refreshes, and produces reliable analytical models.",
+    "expertise": [
+      "Python APIs",
+      "SQL",
+      "JSON processing",
+      "DuckDB or dbt",
+      "Incremental loading",
+      "Data quality",
+      "Git"
+    ],
+    "team_size": "3–4",
+    "repository": "https://github.com/Mettelo/MTL-DE-007-UK-Companies-Registry-Data-Platform",
+    "status": "Available",
+    "roles": [
+      "Data Engineer",
+      "Data Quality Analyst"
+    ],
+    "use_case": "",
+    "data_source": "",
+    "brief": "A business-intelligence team needs consistent company and filing information without repeatedly collecting records by hand. Build a Companies House data platform that handles API collection, pagination, refreshes and quality checks, then produces tables ready for analysis."
+  },
+  {
+    "id": "MTL-DS-008",
+    "name": "NHS Waiting List Demand Forecasting & Capacity Planning",
+    "track": "Data Science",
+    "capabilities": [
+      "Data Science",
+      "Machine Learning",
+      "Forecasting",
+      "Python",
+      "Time Series",
+      "Model Evaluation",
+      "Backtesting",
+      "Healthcare Analytics"
+    ],
+    "sector": "Healthcare / NHS",
+    "problem": "Forecast future RTT waiting-list pressure and translate the forecast into practical capacity-planning insight.",
+    "expertise": [
+      "Python",
+      "Time-series forecasting",
+      "statsmodels or scikit-learn",
+      "Backtesting",
+      "Model evaluation",
+      "Operational analytics"
+    ],
+    "team_size": "3–4",
+    "repository": "https://github.com/Mettelo/MTL-DS-008-NHS-Waiting-List-Demand-Forecasting-Capacity-Planning",
+    "status": "Available",
+    "roles": [
+      "Data Scientist",
+      "Data Analyst"
+    ],
+    "use_case": "",
+    "data_source": "",
+    "brief": "An NHS planning team needs to understand how waiting-list pressure could develop so it can examine future capacity needs. Build and backtest a waiting-list forecast, explain its uncertainty and translate the results into planning scenarios."
+  },
+  {
+    "id": "MTL-DS-009",
+    "name": "London Fire Incident Response Demand & Risk Modelling",
+    "track": "Data Science",
+    "capabilities": [
+      "Data Science",
+      "Machine Learning",
+      "Classification",
+      "Python",
+      "Feature Engineering",
+      "XGBoost",
+      "SHAP",
+      "Model Validation",
+      "Explainability"
+    ],
+    "sector": "Emergency Services / Public Sector",
+    "problem": "Develop an explainable classification model that identifies incidents associated with higher operational response demand while controlling leakage and model risk.",
+    "expertise": [
+      "Python",
+      "Classification",
+      "Feature engineering",
+      "XGBoost or scikit-learn",
+      "SHAP",
+      "Threshold selection",
+      "Model validation"
+    ],
+    "team_size": "3–4",
+    "repository": "https://github.com/Mettelo/MTL-DS-009-London-Fire-Incident-Response-Demand-Risk-Modelling",
+    "status": "Available",
+    "roles": [
+      "Data Scientist",
+      "ML Engineer",
+      "Model Governance / Assurance"
+    ],
+    "use_case": "",
+    "data_source": "",
+    "brief": "A fire-service planning team needs to understand which recorded incident characteristics are associated with higher response demand. Build an explainable classification model and assess its reliability so planners can investigate demand patterns responsibly."
+  },
+  {
+    "id": "MTL-AI-010",
+    "name": "NHS Operational Guidance Knowledge Assistant",
+    "track": "Artificial Intelligence",
+    "capabilities": [
+      "Artificial Intelligence",
+      "AI Engineering",
+      "LLM Engineering",
+      "RAG",
+      "Python",
+      "Embeddings",
+      "Vector Search",
+      "Prompt Engineering",
+      "AI Evaluation",
+      "Guardrails"
+    ],
+    "sector": "Healthcare / NHS",
+    "problem": "Build a RAG assistant that answers NHS operational and statistical guidance questions using approved evidence, citations and reliable refusal behaviour.",
+    "expertise": [
+      "Python",
+      "RAG",
+      "Embeddings",
+      "Vector search",
+      "Local LLMs",
+      "Prompt engineering",
+      "AI evaluation",
+      "Guardrails"
+    ],
+    "team_size": "3–4",
+    "repository": "https://github.com/Mettelo/MTL-AI-010-NHS-Operational-Guidance-Knowledge-Assistant",
+    "status": "Available",
+    "roles": [
+      "AI Engineer",
+      "LLM Engineer",
+      "AI Governance / Assurance"
+    ],
+    "use_case": "",
+    "data_source": "",
+    "brief": "NHS staff need a clearer way to find answers in approved operational and statistical guidance. Build a knowledge assistant that retrieves relevant evidence, cites its sources and declines to answer when the guidance does not support a reliable response."
+  },
+  {
+    "id": "MTL-XF-011",
+    "name": "Public Procurement Spend, Supplier Concentration & Contract Risk Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Commercial Analytics",
+      "Data Quality",
+      "Decision Intelligence"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst / Commercial Analyst",
+      "BI Developer",
+      "Data Quality / Assurance Analyst"
+    ],
+    "sector": "Public Sector / Commercial / Procurement",
+    "problem": "Build a governed procurement-intelligence solution that helps commercial leaders identify supplier concentration, fragmented purchasing, re-procurement pressure and SME participation from Contracts Finder data.",
+    "use_case": "Supports commercial portfolio reviews by showing where procurement teams should investigate supplier dependency, fragmented demand or upcoming contract workload before deciding on intervention.",
+    "data_source": "Contracts Finder — June 2026 OCDS flattened CSV notices",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "SQL or Python",
+      "Procurement analytics",
+      "BI development",
+      "Data quality",
+      "Stakeholder decision support"
+    ],
+    "team_size": "6–8",
+    "repository": "https://github.com/Mettelo/MTL-XF-011-Public-Procurement-Supplier-Contract-Risk-Intelligence",
+    "status": "Available",
+    "brief": "A public-sector commercial team needs to identify supplier dependency, fragmented purchasing and upcoming contract workload across its procurement portfolio. Build a Contracts Finder dashboard and review pack that highlights contracts and suppliers requiring further commercial investigation."
+  },
+  {
+    "id": "MTL-XF-012",
+    "name": "NHS Workforce Capacity, Retention & Service Sustainability Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Data Science",
+      "Workforce Analytics",
+      "Model Governance"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Workforce / Data Analyst",
+      "BI Developer",
+      "Data Scientist / Forecaster",
+      "Model Governance / Assurance Analyst"
+    ],
+    "sector": "Healthcare / NHS / Workforce",
+    "problem": "Create a governed workforce intelligence product that separates headcount, FTE and turnover so leaders can identify persistent workforce capacity and retention pressure.",
+    "use_case": "Supports workforce planning meetings by helping leaders decide whether a problem warrants recruitment analysis, retention intervention, workforce redesign or further investigation.",
+    "data_source": "NHS HCHS Workforce Statistics — July 2026 core workforce and turnover extracts",
+    "expertise": [
+      "Business analysis",
+      "Workforce analytics",
+      "Data governance",
+      "SQL or Python",
+      "BI development",
+      "Forecasting",
+      "Model assurance"
+    ],
+    "team_size": "6–8",
+    "repository": "https://github.com/Mettelo/MTL-XF-012-NHS-Workforce-Capacity-Retention-Service-Sustainability",
+    "status": "Available",
+    "brief": "An NHS workforce team needs to distinguish staffing capacity pressure from retention problems across its workforce. Build a workforce dashboard that separates headcount, full-time-equivalent staffing and turnover, with evidence for recruitment, retention or service-redesign enquiries."
+  },
+  {
+    "id": "MTL-XF-013",
+    "name": "Financial Complaints, Conduct Risk & Customer Harm Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Risk Analytics",
+      "Regulatory Analytics",
+      "Assurance"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Conduct / Data Analyst",
+      "BI Developer",
+      "Risk / Assurance Analyst"
+    ],
+    "sector": "Financial Services / Conduct / Customer Outcomes",
+    "problem": "Build a conduct-intelligence view that separates complaint volume from complaint rate, upheld outcomes and closure performance to identify where customer-outcome issues deserve investigation.",
+    "use_case": "Supports complaints and conduct-risk committees by prioritising firms or products for investigation or enhanced monitoring without presenting analytical flags as regulatory findings.",
+    "data_source": "FCA Firm-Specific Complaints Data — 2025 H2",
+    "expertise": [
+      "Business analysis",
+      "Conduct risk",
+      "Data governance",
+      "Excel ingestion",
+      "SQL or Python",
+      "BI development",
+      "Assurance"
+    ],
+    "team_size": "6–8",
+    "repository": "https://github.com/Mettelo/MTL-XF-013-Financial-Complaints-Conduct-Risk-Customer-Harm-Intelligence",
+    "status": "Available",
+    "brief": "A financial-services conduct team needs to identify where complaint patterns may indicate customer-outcome problems. Build a complaints dashboard that separates volume, rates, upheld outcomes and closure performance so firms or products can be selected for further review."
+  },
+  {
+    "id": "MTL-XF-014",
+    "name": "Telecom Customer Experience & Provider Performance Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Product Analytics",
+      "Customer Analytics",
+      "Trend Analysis"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Customer Insight / Data Analyst",
+      "BI Developer",
+      "Product Analyst",
+      "Assurance Analyst"
+    ],
+    "sector": "Telecommunications / Customer Experience",
+    "problem": "Create a multi-quarter provider and service intelligence product that distinguishes persistent complaint deterioration from temporary spikes and supports targeted root-cause investigation.",
+    "use_case": "Supports customer-experience reviews by showing which provider/service combinations warrant deeper investigation before resources are redirected.",
+    "data_source": "Ofcom Telecoms and Pay-TV Complaints — quarterly underlying CSV data",
+    "expertise": [
+      "Business analysis",
+      "Customer analytics",
+      "Data governance",
+      "Trend analysis",
+      "BI development",
+      "Product analytics",
+      "Quality assurance"
+    ],
+    "team_size": "6–8",
+    "repository": "https://github.com/Mettelo/MTL-XF-014-Telecom-Customer-Experience-Provider-Performance-Intelligence",
+    "status": "Available",
+    "brief": "A telecom customer-experience team needs to identify providers and services with recurring complaint deterioration. Build a multi-quarter performance dashboard that distinguishes persistent patterns from short-term spikes and supports focused service-quality investigation."
+  },
+  {
+    "id": "MTL-XF-015",
+    "name": "Housing Energy Efficiency, Consumption & Retrofit Prioritisation Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Data Science",
+      "AI Governance",
+      "Responsible AI",
+      "Scenario Analysis"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Housing / Energy Data Analyst",
+      "BI Developer",
+      "Data Scientist",
+      "AI / Model Governance Analyst"
+    ],
+    "sector": "Housing / Energy / Net Zero",
+    "problem": "Build an explainable retrofit-prioritisation solution that combines property characteristics, energy consumption and efficiency-measure evidence while keeping investment decisions under human control.",
+    "use_case": "Supports housing investment workshops by comparing alternative prioritisation scenarios and showing which property segments warrant deeper feasibility assessment.",
+    "data_source": "DESNZ NEED Anonymised Data 2026 — 50,000-row sample",
+    "expertise": [
+      "Business analysis",
+      "Energy analytics",
+      "Data governance",
+      "Python or SQL",
+      "BI development",
+      "Scenario modelling",
+      "Responsible AI",
+      "Model governance"
+    ],
+    "team_size": "6–8",
+    "repository": "https://github.com/Mettelo/MTL-XF-015-Housing-Energy-Efficiency-Retrofit-Prioritisation-Intelligence",
+    "status": "Available",
+    "brief": "A housing investment team needs to decide which property segments deserve further retrofit assessment. Build an explainable prioritisation tool using property characteristics, energy consumption and efficiency-measure evidence, with alternative scenarios for feasibility review."
+  },
+  {
+    "id": "MTL-XF-016",
+    "name": "Community Safety, Crime Demand & Resource Allocation Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "GIS / Spatial Analysis",
+      "Public Safety Analytics",
+      "Risk Assurance"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Community Safety / Data Analyst",
+      "BI Developer",
+      "GIS / Spatial Analyst",
+      "Risk / Assurance Analyst"
+    ],
+    "sector": "Public Safety / Local Government / Policing",
+    "problem": "Build a longitudinal crime-demand intelligence product that separates persistent change from short-term spikes and supports evidence-led community-safety prioritisation.",
+    "use_case": "Supports Community Safety Partnership meetings by identifying offence-area patterns that merit multi-agency prevention investigation without stigmatising areas from raw volume alone.",
+    "data_source": "Home Office Police Recorded Crime Open Data — Police Force Area tables",
+    "expertise": [
+      "Business analysis",
+      "Public-safety analytics",
+      "Data governance",
+      "Longitudinal analysis",
+      "BI development",
+      "GIS",
+      "Assurance"
+    ],
+    "team_size": "6–8",
+    "repository": "https://github.com/Mettelo/MTL-XF-016-Community-Safety-Crime-Demand-Resource-Intelligence",
+    "status": "Available",
+    "brief": "A community-safety partnership needs to identify offence and area patterns that deserve prevention investigation. Build a crime-demand dashboard that separates persistent change from short-term spikes and makes the evidence behind review priorities clear."
+  },
+  {
+    "id": "MTL-XF-017",
+    "name": "Flood Defence Asset, Investment & Risk Prioritisation Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "GIS / Spatial Analysis",
+      "Investment Analytics",
+      "Risk Analytics"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Flood Risk / Data Analyst",
+      "GIS Analyst",
+      "BI Developer",
+      "Investment / Risk Analyst",
+      "Assurance Analyst"
+    ],
+    "sector": "Environment / Flood Risk / Capital Investment",
+    "problem": "Create a transparent flood-investment portfolio view that helps leaders identify schemes requiring earlier review while making funding, delivery and evidence gaps visible.",
+    "use_case": "Supports capital-programme reviews by showing which schemes need engineering review, funding challenge or additional evidence before investment prioritisation.",
+    "data_source": "Environment Agency FCERM Investment Programme — 2026–27",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Portfolio analytics",
+      "GIS",
+      "BI development",
+      "Investment analysis",
+      "Risk assurance"
+    ],
+    "team_size": "6–8",
+    "repository": "https://github.com/Mettelo/MTL-XF-017-Flood-Defence-Investment-Risk-Prioritisation",
+    "status": "Available",
+    "brief": "A flood-investment team needs to identify which schemes require earlier engineering, funding or delivery review. Build a programme dashboard that brings investment plans, delivery information and evidence gaps together to support a transparent review queue."
+  },
+  {
+    "id": "MTL-XF-018",
+    "name": "Government Grants Portfolio, Funding Concentration & Programme Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Programme Evaluation",
+      "Entity Resolution",
+      "Risk Assurance"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Programme / Data Analyst",
+      "BI Developer",
+      "Evaluation Analyst",
+      "Risk / Assurance Analyst"
+    ],
+    "sector": "Public Sector / Grants / Programme Management",
+    "problem": "Build a grants-portfolio intelligence product that identifies funding concentration, multi-scheme recipients, possible overlap and under-reach without treating funding value as evidence of impact.",
+    "use_case": "Supports annual portfolio reviews by highlighting patterns that require further due diligence, programme coordination or evaluation before the next funding cycle.",
+    "data_source": "Cabinet Office Government Grants Register — 2024–25 scheme and award data",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Entity resolution",
+      "Portfolio analytics",
+      "BI development",
+      "Programme evaluation",
+      "Assurance"
+    ],
+    "team_size": "6–8",
+    "repository": "https://github.com/Mettelo/MTL-XF-018-Government-Grants-Funding-Impact-Intelligence",
+    "status": "Available",
+    "brief": "A government grants team needs to understand funding concentration, repeated recipients and possible overlap across schemes. Build a grants-portfolio dashboard and review pack that highlights due-diligence and evaluation questions without treating funding value as proof of impact."
+  },
+  {
+    "id": "MTL-XF-019",
+    "name": "Road Network Demand, Traffic Pressure & Infrastructure Investment Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Data Science",
+      "AI Governance",
+      "GIS / Spatial Analysis",
+      "Transport Analytics",
+      "Forecasting"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Transport / Data Analyst",
+      "GIS Analyst",
+      "BI Developer",
+      "Data Scientist",
+      "AI / Model Governance Analyst"
+    ],
+    "sector": "Transport / Highways / Infrastructure Investment",
+    "problem": "Build a longitudinal road-demand intelligence product that distinguishes persistent traffic pressure from estimated counts, temporary variation and incomplete evidence before capital investment decisions.",
+    "use_case": "Supports transport investment gateway meetings by identifying corridors that warrant deeper congestion, safety or economic assessment rather than automatically recommending expenditure.",
+    "data_source": "DfT Road Traffic Statistics — Count Points and AADF",
+    "expertise": [
+      "Business analysis",
+      "Transport analytics",
+      "Data governance",
+      "Data engineering",
+      "GIS",
+      "BI development",
+      "Forecasting",
+      "Model governance"
+    ],
+    "team_size": "6–8",
+    "repository": "https://github.com/Mettelo/MTL-XF-019-Road-Network-Demand-Congestion-Investment-Intelligence",
+    "status": "Available",
+    "brief": "A highways team needs to identify where sustained traffic pressure warrants deeper infrastructure assessment. Build a road-demand dashboard that separates persistent patterns from temporary variation and estimated counts, then identifies corridors requiring further evidence."
+  },
+  {
+    "id": "MTL-XF-020",
+    "name": "Housing Market Affordability, Development & Investment Risk Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Data Science",
+      "Policy Analytics",
+      "Economic Analysis",
+      "Scenario Analysis"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Housing / Data Analyst",
+      "BI Developer",
+      "Economist / Policy Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Housing / Economic Development / Investment",
+    "problem": "Build a housing-market intelligence product that distinguishes sustained market pressure from one-period price movement and clearly separates price evidence from true affordability.",
+    "use_case": "Supports housing strategy and development planning by identifying areas that warrant deeper affordability, supply or planning analysis before intervention decisions are considered.",
+    "data_source": "HM Land Registry UK House Price Index — June 2026 full historical CSV",
+    "expertise": [
+      "Business analysis",
+      "Housing analytics",
+      "Data governance",
+      "Time-series analysis",
+      "BI development",
+      "Policy analysis",
+      "Scenario modelling",
+      "Model assurance"
+    ],
+    "team_size": "6–8",
+    "repository": "https://github.com/Mettelo/MTL-XF-020-Housing-Market-Affordability-Investment-Risk-Intelligence",
+    "status": "Available",
+    "brief": "A housing strategy team needs to identify areas where sustained market-price pressure warrants closer affordability or development analysis. Build a housing-market dashboard and investigation shortlist, making clear which income, supply or planning evidence is still needed."
+  },
+  {
+    "id": "MTL-XF-021",
+    "name": "School Attendance, Persistent Absence & Early Intervention Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Education Analytics",
+      "Cohort Analysis",
+      "Intervention Prioritisation"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Education / Data Analyst",
+      "Policy Analyst",
+      "Assurance Analyst"
+    ],
+    "sector": "Education / Local Government",
+    "problem": "A regional education directorate must allocate limited attendance-review capacity, but separate absence and pupil-group reports leave leaders unable to distinguish persistent phase-level problems from temporary spikes or high volumes in large authorities.",
+    "use_case": "At the termly review, compare rate-first and burden-first LA/phase shortlists, inspect supported FSM/SEN disparities, and assign each accepted case to an Attendance or Inclusion Lead with an evidence request and next-review date.",
+    "data_source": "DfE Pupil Absence — geographic and pupil-characteristics CSV datasets",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Python or SQL",
+      "Data modelling",
+      "BI development",
+      "Education Analytics",
+      "Cohort Analysis",
+      "Intervention Prioritisation"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-021-School-Attendance-Persistent-Absence-Early-Intervention-Intelligence",
+    "status": "Available",
+    "brief": "An education directorate needs to decide where limited attendance-support resources should be focused. Build an attendance dashboard and review shortlist that identifies persistent absence by local authority and school phase, compares rates with affected-enrolment counts, and examines pupil-group gaps where the data supports them."
+  },
+  {
+    "id": "MTL-XF-022",
+    "name": "Statutory Homelessness, Temporary Accommodation & Prevention Performance Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Housing Analytics",
+      "Service Performance",
+      "Prevention Evaluation"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Housing / Data Analyst",
+      "Policy / Evaluation Analyst",
+      "Finance Analyst"
+    ],
+    "sector": "Housing / Local Government",
+    "problem": "A council partnership needs to choose between prevention-pathway, relief-service and accommodation-supply investigations, but its quarterly reports mix duties, ended-duty outcomes and quarter-end accommodation stock.",
+    "use_case": "Use England trends and the January–March 2026 LA snapshot to create separate pathway and placement/supply review queues, each with a Housing Options or Accommodation owner and a defined request for local casework, supply or cost evidence.",
+    "data_source": "MHCLG Statutory Homelessness — England time series and detailed local-authority data, January–March 2026",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Python or SQL",
+      "Data modelling",
+      "BI development",
+      "Housing Analytics",
+      "Service Performance",
+      "Prevention Evaluation"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-022-Homelessness-Temporary-Accommodation-Prevention-Intelligence",
+    "status": "Available",
+    "brief": "A council housing partnership needs to understand whether homelessness pressure calls for a prevention-pathway review or an accommodation-supply enquiry. Build a dashboard that separates new duties, duty-ending outcomes and households in temporary accommodation, with distinct investigation lists for Housing Options and accommodation teams."
+  },
+  {
+    "id": "MTL-XF-023",
+    "name": "Local Government Financial Resilience, Service Spend & Budget Pressure Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Financial Analysis",
+      "Public Sector Analytics",
+      "Scenario Analysis"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Finance Analyst",
+      "Risk / Assurance Analyst"
+    ],
+    "sector": "Public Sector / Local Government / Finance",
+    "problem": "A council finance directorate must challenge service-spending assumptions for its medium-term plan, but headline growth rankings obscure service drivers, different council responsibilities and reorganisation effects.",
+    "use_case": "In the financial-plan challenge meeting, use reconciled service-spend bridges and like-for-like peers to assign specific questions to service finance leads, separating supported expenditure pressure from funding/reserve evidence gaps and invalid comparisons.",
+    "data_source": "MHCLG Revenue Outturn time-series CSV — 2017/18–2025/26",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Python or SQL",
+      "Data modelling",
+      "BI development",
+      "Financial Analysis",
+      "Public Sector Analytics",
+      "Scenario Analysis"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-023-Local-Government-Financial-Resilience-Service-Pressure-Intelligence",
+    "status": "Available",
+    "brief": "A council finance team needs to understand which services are driving expenditure growth before challenging its medium-term financial plan. Build a service-spending dashboard and change analysis that compares councils with similar responsibilities and identifies specific service lines requiring further finance review."
+  },
+  {
+    "id": "MTL-XF-024",
+    "name": "Apprenticeship Skills Pipeline, Participation & Achievement Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Skills Analytics",
+      "Cohort Analysis",
+      "Programme Evaluation"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Skills / Data Analyst",
+      "Policy Analyst",
+      "Evaluation Analyst"
+    ],
+    "sector": "Education / Skills / Workforce",
+    "problem": "A regional skills authority needs to target employer outreach and participation support, but separate apprenticeship reports blur falling entrant volumes, age/level mix changes and incomplete-year reporting.",
+    "use_case": "At the quarterly skills review, compare completed-year count and population-rate signals, maintain a separate provisional watchlist, and commission segment-specific outreach or linked learner enquiries without mislabelling aggregate ratios as completion rates.",
+    "data_source": "DfE Apprenticeships — geography, starts, participation, achievements and population CSV, 2020/21–2025/26",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Python or SQL",
+      "Data modelling",
+      "BI development",
+      "Skills Analytics",
+      "Cohort Analysis",
+      "Programme Evaluation"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-024-Apprenticeship-Skills-Pipeline-Participation-Achievement-Intelligence",
+    "status": "Available",
+    "brief": "A regional skills authority needs to decide which apprenticeship groups require participation support or employer outreach. Build a dashboard comparing starts, participation and achievements across supported areas, ages and levels, with completed years separated from provisional figures and no unsupported completion-rate claims."
+  },
+  {
+    "id": "MTL-XF-025",
+    "name": "Business Insolvency, Sector Stress & Economic Resilience Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Economic Analysis",
+      "Time Series Analysis",
+      "Risk Analytics"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Economic / Data Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Business / Economic Development / Financial Services",
+    "problem": "An economic-development team must decide whether insolvency increases justify targeted support enquiries, but headline counts can conceal procedure changes, connected-company events and gaps in industry or recorded-location coverage.",
+    "use_case": "At the monthly resilience meeting, compare national procedure trends with supported event-level concentrations, test three-/six-month persistence, and assign sector or location evidence requests before redirecting business-support activity.",
+    "data_source": "Insolvency Service Company Insolvency Statistics — June 2026 long-run CSV and England, Wales and Scotland record-level ZIP",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Python or SQL",
+      "Data modelling",
+      "BI development",
+      "Economic Analysis",
+      "Time Series Analysis",
+      "Risk Analytics"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-025-Business-Insolvency-Sector-Stress-Economic-Resilience-Intelligence",
+    "status": "Available",
+    "brief": "An economic-development team needs to identify which insolvency patterns warrant business-support investigation. Build a dashboard of procedure trends and supported industry or recorded-location concentrations, showing whether increases persist and where coding or coverage gaps limit the conclusions."
+  },
+  {
+    "id": "MTL-XF-026",
+    "name": "Aviation Punctuality, Delay & Operational Resilience Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Transport Analytics",
+      "Time Series Analysis",
+      "Operational Resilience"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Aviation / Data Analyst",
+      "Operations Analyst",
+      "Data Scientist"
+    ],
+    "sector": "Transport / Aviation / Operations",
+    "problem": "An airport operations directorate needs to choose resilience investigations, but unweighted route summaries and mixed cancellation/delay measures can push low-volume outliers ahead of persistent, higher-volume airport/airline problems.",
+    "use_case": "In the monthly resilience review, inspect flight-weighted January–August 2026 cases under 100/250-flight gates, then assign stable signals to an Operations Lead for schedule, weather and disruption evidence before agreeing any remedy.",
+    "data_source": "Civil Aviation Authority (CAA) punctuality — monthly full-analysis CSVs, January–August 2026",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Python or SQL",
+      "Data modelling",
+      "BI development",
+      "Transport Analytics",
+      "Time Series Analysis",
+      "Operational Resilience"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-026-Aviation-Punctuality-Delay-Operational-Resilience-Intelligence",
+    "status": "Available",
+    "brief": "An airport operations team needs to identify recurring punctuality and delay problems before choosing resilience investigations. Build a January–August 2026 performance dashboard that weights results by flight volumes, separates cancellations from delay and highlights airport/airline patterns that remain concerning across months."
+  },
+  {
+    "id": "MTL-XF-027",
+    "name": "Regional Trade Exposure, Export Concentration & Market Diversification Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Trade Analytics",
+      "Economic Analysis",
+      "Concentration Analysis"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Trade / Economic Analyst",
+      "Policy Analyst",
+      "Risk Analyst"
+    ],
+    "sector": "Trade / Economic Development / Public Sector",
+    "problem": "A regional trade board must target export-support enquiries, but England totals and broad partner groups do not identify which English regions or product sections face exposure, or which individual destination markets need diversification.",
+    "use_case": "Use the required HMRC regional tables in the quarterly board review to compare regional goods activity and supported product-section exposure, assign outreach-scoping cases, and request country detail before making destination-market recommendations.",
+    "data_source": "HMRC Regional Trade in Goods — England Figure 1 context ODS plus required Q2 2026 regional accompanying ODS; detailed country extracts are optional extensions",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Python or SQL",
+      "Data modelling",
+      "BI development",
+      "Trade Analytics",
+      "Economic Analysis",
+      "Concentration Analysis"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-027-Regional-Trade-Exposure-Export-Concentration-Market-Diversification-Intelligence",
+    "status": "Available",
+    "brief": "A regional trade board needs to identify which English regions and broad product groups require closer export-support review. Build a trade dashboard using the required regional HMRC tables to show changes in goods trade and supported concentration patterns; individual destination-market recommendations need additional country detail."
+  },
+  {
+    "id": "MTL-XF-028",
+    "name": "Local Net Zero Emissions, Sector Decarbonisation & Intervention Prioritisation Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Sustainability Analytics",
+      "Policy Analytics",
+      "Scenario Analysis"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Sustainability / Data Analyst",
+      "Policy Analyst",
+      "Data Scientist",
+      "AI / Model Governance Analyst"
+    ],
+    "sector": "Environment / Net Zero / Local Government",
+    "problem": "A combined authority must decide where to commission decarbonisation feasibility work, but a territorial emissions ranking does not show which sources it can influence or whether historical reductions reflect local action.",
+    "use_case": "At the net-zero programme meeting, compare LA/sector emissions scale and trend, challenge a separate local-influence assessment under two weight sets, and commission owner-led cost and delivery enquiries before investment appraisal.",
+    "data_source": "DESNZ UK local-authority greenhouse-gas emissions — 2005–2024 data-tables XLSX",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Python or SQL",
+      "Data modelling",
+      "BI development",
+      "Sustainability Analytics",
+      "Policy Analytics",
+      "Scenario Analysis"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-028-Local-Net-Zero-Emissions-Decarbonisation-Prioritisation-Intelligence",
+    "status": "Available",
+    "brief": "A combined authority needs to decide which places and sectors deserve decarbonisation feasibility work. Build an emissions dashboard and prioritisation tool that compares emissions scale and trend with a separate assessment of local influence, producing cases for further cost and delivery investigation."
+  },
+  {
+    "id": "MTL-XF-029",
+    "name": "NHS Hospital Activity, Demand, Flow & Capacity Pressure Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Healthcare Analytics",
+      "Time Series Analysis",
+      "Forecasting"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "NHS Performance Analyst",
+      "Operational Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Healthcare / NHS / Operations",
+    "problem": "A hospital planning directorate must decide which activity changes need operational investigation, but mixed units, cumulative snapshots and revisions can turn a headline volume movement into an unsupported capacity claim.",
+    "use_case": "At the monthly review, validate sustained elective/non-elective stream changes against a declared baseline, then assign waiting-list, workforce, bed or data-resolution evidence requests. Provider and outpatient recommendations require verified additional coverage.",
+    "data_source": "NHS England HES Monthly Activity Report — intended April 2018–March 2026 historical input; validated historical and 2025/26 MAR CSV fallback per source register",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Python or SQL",
+      "Data modelling",
+      "BI development",
+      "Healthcare Analytics",
+      "Time Series Analysis",
+      "Forecasting"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-029-NHS-Hospital-Activity-Demand-Flow-Capacity-Intelligence",
+    "status": "Available",
+    "brief": "A hospital planning team needs to identify sustained changes in elective and non-elective activity before deciding what operational evidence to request. Build a dashboard of verified activity trends and baseline comparisons, with a review list that separates observed changes from untested bed, workforce or waiting-list explanations."
+  },
+  {
+    "id": "MTL-XF-030",
+    "name": "River Water Quality Classification & Environmental Intervention Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Environmental Analytics",
+      "GIS / Spatial Analysis",
+      "Risk Assurance"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Environmental / Data Analyst",
+      "GIS Analyst",
+      "Risk / Assurance Analyst"
+    ],
+    "sector": "Environment / Water / Regulation",
+    "problem": "A catchment authority must choose environmental investigations, but repeated classification elements and broad measures links obscure whether a case needs ecological review, better evidence or a measure-delivery check.",
+    "use_case": "At the catchment programme meeting, compare same-cycle ecological-condition and evidence-gap queues, verify body/measure linkages, and assign specialist or delivery-status enquiries without presenting recorded measures as completed remediation.",
+    "data_source": "Environment Agency Catchment Data Explorer — England classifications.csv and measures.csv",
+    "expertise": [
+      "Business analysis",
+      "Data governance",
+      "Python or SQL",
+      "Data modelling",
+      "BI development",
+      "Environmental Analytics",
+      "GIS / Spatial Analysis",
+      "Risk Assurance"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-030-River-Water-Quality-Classification-Environmental-Intervention-Intelligence",
+    "status": "Available",
+    "brief": "A catchment authority needs to decide which water bodies require ecological review, better evidence or a check on planned measures. Build a dashboard of comparable classification records and supported measures links, with separate investigation queues for weak ecological condition and missing evidence."
+  },
+  {
+    "id": "MTL-XF-031",
+    "name": "Ecommerce Conversion, Customer Journey & Optimisation Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Conversion Analysis",
+      "Experiment Design",
+      "Customer Journey Analysis",
+      "Classification"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Digital Product Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Retail / Ecommerce",
+    "brief": "An online retailer must choose which traffic and visitor groups deserve its next growth experiments. Build a conversion scorecard, compare volume-led and conversion-gap priorities, and produce three evidence-backed experiment cards.",
+    "problem": "The retailer's growth team must choose its next three product and acquisition experiments. Marketing sees traffic-source totals, while product managers see page-engagement summaries; neither view shows which sufficiently large visitor groups combine weak purchase conversion with meaningful session volume. A high non-purchase count can reflect scale, while a low conversion rate can reflect a small or seasonal group. Spending the next development sprint against the wrong signal risks consuming experiment capacity without a defensible hypothesis.",
+    "use_case": "At the monthly growth meeting, the Head of Ecommerce Growth filters TrafficType and VisitorType, checks conversion, sample size and uncertainty, compares two priority lists, and assigns up to three experiment hypotheses to product or marketing owners. The analyst provides the evidence and measurement design; the meeting decides what to test.",
+    "data_source": "UCI Online Shoppers Purchasing Intention — 12,330 session summaries; not an ordered clickstream",
+    "expertise": [
+      "Business requirements",
+      "Source governance",
+      "Python or SQL",
+      "Data modelling",
+      "Dashboarding",
+      "Conversion Analysis",
+      "Experiment Design",
+      "Customer Journey Analysis",
+      "Classification"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-031-Ecommerce-Conversion-Customer-Journey-Optimisation-Intelligence",
+    "status": "Available",
+    "data_downloads": [
+      {
+        "label": "Download dataset",
+        "url": "https://archive.ics.uci.edu/static/public/468/online+shoppers+purchasing+intention+dataset.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-XF-031-Ecommerce-Conversion-Customer-Journey-Optimisation-Intelligence/blob/main/data/SOURCE_REGISTER.md"
+  },
+  {
+    "id": "MTL-XF-032",
+    "name": "Retail Customer Value, Returns & Product Mix Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Customer Value",
+      "RFM Segmentation",
+      "Commercial Analytics",
+      "Revenue Reconciliation"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Retail Commercial Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Retail / Ecommerce",
+    "brief": "A retailer needs to see which customers, products and markets create value once cancellations and missing customer identities are made visible. Build a reconciled trading ledger, customer RFM profiles and a prioritised retention and merchandising investigation pack.",
+    "problem": "The commercial director must decide where retention and merchandising effort should go next quarter. A product may appear attractive on positive invoice value while generating substantial negative adjustments; a market may appear to have valuable customers while many sales lack customer IDs. The team needs one reconciled commercial ledger before it can compare account value, product concentration and cancellation exposure. Ignoring anonymous lines or deleting negative quantities would produce attractive but misleading totals.",
+    "use_case": "During quarterly trading review, the director compares markets and products on positive value, signed adjustments and customer coverage, then reviews customer RFM groups and approves a ten-item retention/merchandising investigation register.",
+    "data_source": "UCI Online Retail II — two invoice-line worksheets; negative adjustments are not confirmed physical returns",
+    "expertise": [
+      "Business requirements",
+      "Source governance",
+      "Python or SQL",
+      "Data modelling",
+      "Dashboarding",
+      "Customer Value",
+      "RFM Segmentation",
+      "Commercial Analytics",
+      "Revenue Reconciliation"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-032-Retail-Customer-Value-Returns-Product-Mix-Intelligence",
+    "status": "Available",
+    "data_downloads": [
+      {
+        "label": "Download dataset",
+        "url": "https://archive.ics.uci.edu/static/public/502/online+retail+ii.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-XF-032-Retail-Customer-Value-Returns-Product-Mix-Intelligence/blob/main/data/SOURCE_REGISTER.md"
+  },
+  {
+    "id": "MTL-XF-033",
+    "name": "Bank Marketing Propensity & Campaign Efficiency Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Campaign Analytics",
+      "Propensity Modelling",
+      "Cost Scenarios",
+      "Experiment Design"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Campaign Strategy Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Banking / Financial Services",
+    "brief": "A retail bank has capacity to contact only part of its campaign list. Compare random and model-ranked lists at the same 20% contact capacity, quantify response and assumed economics, and design a controlled pilot using pre-contact information.",
+    "problem": "The outbound campaign manager can contact only one fifth of the eligible list in the planning scenario. Selecting customers by a broad demographic profile may waste calls, but selecting on completed-call duration would make a pre-call model look useful using information the caller does not yet know. The bank needs a comparison of contact lists at the same capacity and a transparent view of response concentration, customer contact burden and assumed economics.",
+    "use_case": "Before a term-deposit campaign, marketing compares a fixed random 20% list with a model-ranked 20% list, reviews expected historical response capture and cost scenarios, and approves a consent-screened randomised pilot rather than deploying historical propensity as proven uplift.",
+    "data_source": "UCI Bank Marketing — bank-full.csv, 45,211 records; exclude call duration from pre-contact models",
+    "expertise": [
+      "Business requirements",
+      "Source governance",
+      "Python or SQL",
+      "Data modelling",
+      "Dashboarding",
+      "Campaign Analytics",
+      "Propensity Modelling",
+      "Cost Scenarios",
+      "Experiment Design"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-033-Bank-Marketing-Propensity-Campaign-Efficiency-Intelligence",
+    "status": "Available",
+    "data_downloads": [
+      {
+        "label": "Download dataset",
+        "url": "https://archive.ics.uci.edu/static/public/222/bank+marketing.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-XF-033-Bank-Marketing-Propensity-Campaign-Efficiency-Intelligence/blob/main/data/SOURCE_REGISTER.md"
+  },
+  {
+    "id": "MTL-XF-034",
+    "name": "Credit Risk, Underwriting & Portfolio Quality Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Credit Risk",
+      "Explainable Modelling",
+      "Cost-Sensitive Classification",
+      "Model Assurance"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Credit Risk Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Banking / Financial Services",
+    "brief": "A lender needs to compare missed credit risk with unnecessary manual referrals. Build an explainable screening prototype with corrected outcome coding, three error-cost policies and a modern-data validation plan; recommendations remain human reviewed.",
+    "problem": "The lender's risk team must compare a conservative referral policy with a policy that sends fewer low-risk cases for manual review. Missed bad-credit cases and unnecessary referrals have different consequences, so accuracy alone cannot decide the policy. The historical sample is intentionally enriched with bad credits and uses corrected coding; treating it as today's applicant population would produce an unjustified lending policy.",
+    "use_case": "At model-risk review, the Head of Credit Risk compares transparent screening thresholds under three assumed error-cost ratios, examines bad-credit recall and good-credit referral burden, and decides whether to retain a manual baseline or commission modern validation.",
+    "data_source": "UCI South German Credit — 1,000 historical, deliberately sampled records with corrected codebook",
+    "expertise": [
+      "Business requirements",
+      "Source governance",
+      "Python or SQL",
+      "Data modelling",
+      "Dashboarding",
+      "Credit Risk",
+      "Explainable Modelling",
+      "Cost-Sensitive Classification",
+      "Model Assurance"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-034-Credit-Risk-Underwriting-Portfolio-Quality-Intelligence",
+    "status": "Available",
+    "data_downloads": [
+      {
+        "label": "Download dataset",
+        "url": "https://archive.ics.uci.edu/static/public/573/south+german+credit+update.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-XF-034-Credit-Risk-Underwriting-Portfolio-Quality-Intelligence/blob/main/data/SOURCE_REGISTER.md"
+  },
+  {
+    "id": "MTL-XF-035",
+    "name": "Manufacturing Predictive Maintenance & Downtime Risk Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Predictive Maintenance",
+      "Failure Classification",
+      "Inspection Prioritisation",
+      "Operational Assurance"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Reliability and Maintenance Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Manufacturing / Industrial Operations",
+    "brief": "A maintenance manager needs to allocate limited inspection capacity. Compare a tool-wear rule with sensor-risk ranking at 2%, 5% and 10% capacity, then produce a reviewed inspection worklist and real-plant validation plan.",
+    "problem": "The plant maintenance manager has limited inspection slots and needs to decide which operating observations deserve attention first. A simple tool-wear trigger is understandable but may miss failure patterns associated with temperature, speed and torque; a model may capture more failures but create unnecessary inspections. The synthetic dataset supports this inspection-allocation comparison, not proof of advance warning, actual downtime reduction or remaining useful life.",
+    "use_case": "In weekly maintenance planning, the manager compares the tool-wear baseline with risk-ranked inspection lists at 2%, 5% and 10% capacity, reviews missed failures and false inspections, and approves a supervised plant-data validation plan.",
+    "data_source": "UCI AI4I 2020 Predictive Maintenance — 10,000 synthetic observations; no validated advance failure horizon",
+    "expertise": [
+      "Business requirements",
+      "Source governance",
+      "Python or SQL",
+      "Data modelling",
+      "Dashboarding",
+      "Predictive Maintenance",
+      "Failure Classification",
+      "Inspection Prioritisation",
+      "Operational Assurance"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-035-Manufacturing-Predictive-Maintenance-Downtime-Risk-Intelligence",
+    "status": "Available",
+    "data_downloads": [
+      {
+        "label": "Download dataset",
+        "url": "https://archive.ics.uci.edu/static/public/601/ai4i+2020+predictive+maintenance+dataset.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-XF-035-Manufacturing-Predictive-Maintenance-Downtime-Risk-Intelligence/blob/main/data/SOURCE_REGISTER.md"
+  },
+  {
+    "id": "MTL-XF-036",
+    "name": "B2B Wholesale Customer Segmentation & Account Growth Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Customer Segmentation",
+      "Cluster Stability",
+      "Account Strategy",
+      "Category Analysis"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "B2B Account Strategy Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Wholesale / Retail",
+    "brief": "A wholesale distributor needs account-service propositions that reflect different category-spend patterns. Build interpretable customer segments, test their stability and produce three service propositions plus an evidence-labelled account investigation register.",
+    "problem": "The wholesale sales director must allocate account-manager attention across customers with different annual category mixes. A customer with high total spend but a low category share may warrant a conversation, but low share alone does not establish unmet demand. The team needs understandable groups, evidence that the grouping is stable, and a shortlist account managers can validate before offering a different service or cross-sell proposition.",
+    "use_case": "At quarterly account planning, sales reviews spend profiles and cluster stability, compares them with existing channel groups, and assigns three service propositions and up to ten account-category investigation cases.",
+    "data_source": "UCI Wholesale Customers — 440 annual customer-spend records in monetary units; no growth or churn history",
+    "expertise": [
+      "Business requirements",
+      "Source governance",
+      "Python or SQL",
+      "Data modelling",
+      "Dashboarding",
+      "Customer Segmentation",
+      "Cluster Stability",
+      "Account Strategy",
+      "Category Analysis"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-036-B2B-Wholesale-Customer-Segmentation-Account-Growth-Intelligence",
+    "status": "Available",
+    "data_downloads": [
+      {
+        "label": "Download dataset",
+        "url": "https://archive.ics.uci.edu/static/public/292/wholesale+customers.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-XF-036-B2B-Wholesale-Customer-Segmentation-Account-Growth-Intelligence/blob/main/data/SOURCE_REGISTER.md"
+  },
+  {
+    "id": "MTL-XF-037",
+    "name": "Commercial Building Energy Demand & Efficiency Optimisation Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Energy Analytics",
+      "Time Series Forecasting",
+      "Scenario Analysis",
+      "Pilot Design"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Energy and Facilities Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Energy / Facilities Management",
+    "brief": "An energy-services provider needs to decide whether its demand-analysis method is ready for a commercial-site pilot. Use a single-house proxy to compare next-interval forecasts and three scheduling hypotheses, with explicit tariff, comfort and transfer-validation limits.",
+    "problem": "The energy-services provider must decide whether its demand-analysis method is credible enough to take into a commercial customer pilot. High-consumption windows may identify scheduling hypotheses, but confusing interval energy with power or leaking same-interval measurements into a forecast would exaggerate usefulness. Because the source is one house, the commercial decision is whether and how to validate the method at a customer site, not whether a commercial saving has already been established.",
+    "use_case": "The Commercial Energy Services Director reviews interval-energy quality, next-interval forecast errors and three scheduling hypotheses, then commissions a monitored commercial-site pilot with occupancy, tariff and comfort data.",
+    "data_source": "UCI Appliances Energy Prediction — 19,735 ten-minute observations from one residential building used as a commercial-method prototype",
+    "expertise": [
+      "Business requirements",
+      "Source governance",
+      "Python or SQL",
+      "Data modelling",
+      "Dashboarding",
+      "Energy Analytics",
+      "Time Series Forecasting",
+      "Scenario Analysis",
+      "Pilot Design"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-037-Commercial-Building-Energy-Demand-Efficiency-Optimisation-Intelligence",
+    "status": "Available",
+    "data_downloads": [
+      {
+        "label": "Download dataset",
+        "url": "https://archive.ics.uci.edu/static/public/374/appliances+energy+prediction.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-XF-037-Commercial-Building-Energy-Demand-Efficiency-Optimisation-Intelligence/blob/main/data/SOURCE_REGISTER.md"
+  },
+  {
+    "id": "MTL-XF-038",
+    "name": "Manufacturing Quality, Defect Detection & Process Assurance Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Fault Classification",
+      "Quality Analytics",
+      "Confidence-Based Routing",
+      "Model Assurance"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Manufacturing Quality Analyst",
+      "Data Scientist",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Manufacturing / Quality Assurance",
+    "brief": "A steel quality team needs consistent routing of known faults without sending every case for specialist review. Build a seven-class classifier, analyse error pairs and confidence thresholds, and produce inspection handover and process-investigation cards.",
+    "problem": "The quality manager needs consistent routing of already detected steel-plate faults to the right inspection specialist. Misclassifying two similar fault types can delay investigation, while routing every example manually consumes specialist capacity. The dataset can compare seven-class routing and low-confidence referral; it cannot establish how many normal plates pass inspection or estimate a factory-wide defect rate.",
+    "use_case": "At weekly quality review, inspectors examine the top confusion pairs, compare confidence thresholds and choose an offline fault-routing prototype with a specialist-review queue and three process-investigation hypotheses.",
+    "data_source": "UCI Steel Plates Faults — 1,941 known-fault examples; no normal plates or factory-wide defect-rate denominator",
+    "expertise": [
+      "Business requirements",
+      "Source governance",
+      "Python or SQL",
+      "Data modelling",
+      "Dashboarding",
+      "Fault Classification",
+      "Quality Analytics",
+      "Confidence-Based Routing",
+      "Model Assurance"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-038-Manufacturing-Quality-Defect-Detection-Process-Assurance-Intelligence",
+    "status": "Available",
+    "data_downloads": [
+      {
+        "label": "Download dataset",
+        "url": "https://archive.ics.uci.edu/static/public/198/steel+plates+faults.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-XF-038-Manufacturing-Quality-Defect-Detection-Process-Assurance-Intelligence/blob/main/data/SOURCE_REGISTER.md"
+  },
+  {
+    "id": "MTL-XF-039",
+    "name": "Enterprise Vulnerability Exposure & Patch Prioritisation Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Vulnerability Management",
+      "CVE Analysis",
+      "Patch Prioritisation",
+      "CPE Matching",
+      "Security Governance"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "Vulnerability Management Analyst",
+      "Cyber Risk Analyst",
+      "Security Assurance Analyst"
+    ],
+    "sector": "Information Security / Cyber Risk",
+    "brief": "A security team has more vulnerabilities than it can review and patch at once. Combine a frozen NVD cohort with a clearly synthetic 20-asset inventory, validate product/version matches and build an exposure-aware patch queue, remediation policy and exception runbook.",
+    "problem": "The enterprise security team must decide what goes into the next patch-review meeting when vulnerability volume exceeds available analyst and change-window capacity. A critical CVSS score may concern software that is not installed; a moderate score may affect an internet-facing critical service. Incomplete version matching can create false exposure, and missing severity can hide work. The engagement must separate public vulnerability intelligence from explicitly synthetic asset exposure and turn both into an auditable review and exception process.",
+    "use_case": "At weekly patch review, analysts validate CVE/product/version matches against a synthetic twenty-asset inventory, compare severity-only and exposure-aware queues, assign remediation owners and inspect dated ticket/exception scenarios.",
+    "data_source": "NIST NVD CVE JSON 2.0 — frozen 2024 identifier-year feed plus explicitly synthetic asset and ticket fixtures",
+    "expertise": [
+      "Business requirements",
+      "Source governance",
+      "Python or SQL",
+      "Data modelling",
+      "Dashboarding",
+      "Vulnerability Management",
+      "CVE Analysis",
+      "Patch Prioritisation",
+      "CPE Matching",
+      "Security Governance"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-039-Enterprise-Vulnerability-Exposure-Patch-Prioritisation-Intelligence",
+    "status": "Available",
+    "data_downloads": [
+      {
+        "label": "Download dataset",
+        "url": "https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-2024.json.gz"
+      },
+      {
+        "label": "Checksum metadata",
+        "url": "https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-2024.meta"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-XF-039-Enterprise-Vulnerability-Exposure-Patch-Prioritisation-Intelligence/blob/main/data/SOURCE_REGISTER.md"
+  },
+  {
+    "id": "MTL-XF-040",
+    "name": "Phishing URL Detection & Security Triage Intelligence",
+    "track": "Cross-Functional",
+    "capabilities": [
+      "Business Analysis",
+      "Data Governance",
+      "Data Engineering",
+      "Data Analytics",
+      "BI Development",
+      "Phishing Detection",
+      "SOC Triage",
+      "Domain-Isolated Evaluation",
+      "False Positive Management",
+      "Incident Response"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Data Governance Analyst",
+      "Data Engineer",
+      "Data Analyst",
+      "BI Developer",
+      "SOC Analyst",
+      "Threat Intelligence Analyst",
+      "Data Scientist",
+      "Security Governance Analyst",
+      "Model Governance / Assurance"
+    ],
+    "sector": "Information Security / Security Operations",
+    "brief": "A commercial SOC needs to prioritise suspicious URLs without overwhelming analysts with legitimate alerts. Build an offline lexical detection comparison, domain-disjoint evaluation and three-band triage playbook with a declared false-positive target and defanged case evidence.",
+    "problem": "The SOC manager needs a triage workflow that captures suspicious URLs without overwhelming analysts with legitimate alerts. An apparently strong classifier can be misleading if legitimate and phishing labels are reversed, domains appear in both training and test, or webpage-derived signals are presented as available when the URL first arrives. The team must evaluate an offline receipt-time feature set, quantify review burden and define human escalation for uncertain and missed cases.",
+    "use_case": "At daily SOC review, an analyst inspects high-risk and intermediate bands, reviews defanged examples and false positives/negatives, and follows a documented evidence-preservation and incident-response handoff. No listed URL is opened.",
+    "data_source": "UCI PhiUSIIL Phishing URL Dataset — 235,795 records; legitimate=1 and phishing=0; offline analysis only",
+    "expertise": [
+      "Business requirements",
+      "Source governance",
+      "Python or SQL",
+      "Data modelling",
+      "Dashboarding",
+      "Phishing Detection",
+      "SOC Triage",
+      "Domain-Isolated Evaluation",
+      "False Positive Management",
+      "Incident Response"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-XF-040-Phishing-URL-Detection-Security-Triage-Intelligence",
+    "status": "Available",
+    "data_downloads": [
+      {
+        "label": "Download dataset",
+        "url": "https://archive.ics.uci.edu/static/public/967/phiusiil+phishing+url+dataset.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-XF-040-Phishing-URL-Detection-Security-Triage-Intelligence/blob/main/data/SOURCE_REGISTER.md"
+  },
+  {
+    "id": "MTL-BA-041",
+    "name": "Customer Returns & Refund Process Improvement",
+    "track": "Business Analysis",
+    "capabilities": [
+      "Business Analysis",
+      "Process maps",
+      "Root-cause analysis",
+      "Business case",
+      "Change impact",
+      "Benefits measurement"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Process Improvement Business Analyst"
+    ],
+    "sector": "Retail / Ecommerce",
+    "brief": "A retailer has slow refunds, conflicting policy interpretations and repeated manual hand-offs. Investigate the evidence, model current and future operations, and recommend affordable improvements with a business case and transition plan.",
+    "problem": "Northbank needs to distinguish avoidable operational delay from payment-provider timing and resolve inconsistent decisions across stores and online returns.",
+    "use_case": "Operations and Finance use the recommendation to choose accountable process changes, compare costs and define how benefits will be measured.",
+    "data_source": "Supplied synthetic organisational evidence, stakeholder testimony, policies, system context and staged challenge notices; no live client data",
+    "expertise": [
+      "Process maps",
+      "Root-cause analysis",
+      "Business case",
+      "Change impact",
+      "Benefits measurement"
+    ],
+    "team_size": "Individual or team — agree with cohort",
+    "repository": "https://github.com/Mettelo/MTL-BA-041-Customer-Returns-Refund-Process-Transformation",
+    "status": "Available",
+    "learning_pathway": "Process improvement and operational change",
+    "duration": "6 weeks",
+    "deliverables": [
+      "Baseline workbook and problem statement",
+      "AS-IS maps and root-cause analysis",
+      "Policy/control proposals and TO-BE operations",
+      "Options appraisal and business case",
+      "Operational transition, benefits plan and sponsor decision"
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-BA-041-Customer-Returns-Refund-Process-Transformation/blob/main/evidence/README.md",
+    "submission_guide": "https://github.com/Mettelo/MTL-BA-041-Customer-Returns-Refund-Process-Transformation/blob/main/submission/DELIVERABLES_CHECKLIST.md"
+  },
+  {
+    "id": "MTL-BA-042",
+    "name": "NHS Outpatient Referral & Appointment Discovery",
+    "track": "Business Analysis",
+    "capabilities": [
+      "Business Analysis",
+      "Discovery research",
+      "Patient journey",
+      "Service blueprint",
+      "Evidence synthesis",
+      "Service needs"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Service Business Analyst"
+    ],
+    "sector": "Healthcare / NHS",
+    "brief": "A fictional NHS trust sees repeated referral information requests and unclear patient updates. Explore patient and staff needs, map the current service, analyse evidence and recommend whether to proceed, pivot, continue discovery or stop.",
+    "problem": "Westmere needs to separate administrative information, patient communication, clinical hand-off and capacity problems before committing to a portal or other solution.",
+    "use_case": "The divisional sponsor uses discovery findings and proposed experiments to decide what a next phase should investigate or solve.",
+    "data_source": "Supplied synthetic organisational evidence, stakeholder testimony, policies, system context and staged challenge notices; no live client data",
+    "expertise": [
+      "Discovery research",
+      "Patient journey",
+      "Service blueprint",
+      "Evidence synthesis",
+      "Service needs"
+    ],
+    "team_size": "Individual or team — agree with cohort",
+    "repository": "https://github.com/Mettelo/MTL-BA-042-NHS-Outpatient-Referral-Appointment-Transformation",
+    "status": "Available",
+    "learning_pathway": "Discovery and service analysis",
+    "duration": "4 weeks",
+    "deliverables": [
+      "Discovery brief and elicitation plan",
+      "Research synthesis and evidence gaps",
+      "Patient journey and service blueprint",
+      "Problem/opportunity assessment and evidence workbook",
+      "Prioritised needs, experiments and discovery decision"
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-BA-042-NHS-Outpatient-Referral-Appointment-Transformation/blob/main/evidence/README.md",
+    "submission_guide": "https://github.com/Mettelo/MTL-BA-042-NHS-Outpatient-Referral-Appointment-Transformation/blob/main/submission/DELIVERABLES_CHECKLIST.md"
+  },
+  {
+    "id": "MTL-BA-043",
+    "name": "SME Lending Functional Requirements & Decision Rules",
+    "track": "Business Analysis",
+    "capabilities": [
+      "Business Analysis",
+      "FRD",
+      "Use cases",
+      "Decision tables",
+      "State modelling",
+      "Requirements traceability"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Functional Business Analyst"
+    ],
+    "sector": "Financial Services / SME Lending",
+    "brief": "An SME lender has ambiguous application completeness, decision authority and exception handling. Develop an FRD, detailed use cases, decision tables and traceability for an assisted workflow that retains human decision ownership.",
+    "problem": "Alderbridge needs precise, consistent functional behaviour before a delivery team can design or estimate application-to-decision workflow changes.",
+    "use_case": "Operations, Underwriting, Risk and designers review the specification, resolve policy gaps and assess whether it is ready for design estimation.",
+    "data_source": "Supplied synthetic organisational evidence, stakeholder testimony, policies, system context and staged challenge notices; no live client data",
+    "expertise": [
+      "FRD",
+      "Use cases",
+      "Decision tables",
+      "State modelling",
+      "Requirements traceability"
+    ],
+    "team_size": "Individual or team — agree with cohort",
+    "repository": "https://github.com/Mettelo/MTL-BA-043-SME-Lending-Application-Decision-Transformation",
+    "status": "Available",
+    "learning_pathway": "Functional analysis and business rules",
+    "duration": "6 weeks",
+    "deliverables": [
+      "Functional boundary and actor inventory",
+      "Functional Requirements Document (FRD)",
+      "Use-case diagram and at least five detailed use cases",
+      "Decision tables, conceptual data model and state model",
+      "Traceability, boundary scenarios and functional handover"
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-BA-043-SME-Lending-Application-Decision-Transformation/blob/main/evidence/README.md",
+    "submission_guide": "https://github.com/Mettelo/MTL-BA-043-SME-Lending-Application-Decision-Transformation/blob/main/submission/DELIVERABLES_CHECKLIST.md"
+  },
+  {
+    "id": "MTL-BA-044",
+    "name": "Employee Onboarding & Access Integration Analysis",
+    "track": "Business Analysis",
+    "capabilities": [
+      "Business Analysis",
+      "Interface requirements",
+      "Data mapping",
+      "Sequence diagrams",
+      "Failure recovery",
+      "Non-functional requirements"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Technical Business Analyst"
+    ],
+    "sector": "Professional Services / Workforce / Identity and Access",
+    "brief": "HR, service tickets and identity systems do not reliably coordinate joiners, changed dates and leavers. Specify interface behaviour, data mappings, event flows and recovery controls for a bounded integration handover.",
+    "problem": "Harrowgate needs authoritative employment events, reliable identifiers and accountable failure handling; ticket closure or directory acceptance alone does not establish worker readiness or complete revocation.",
+    "use_case": "Engineering, HR and Security use the specification to review integration contracts, estimate work and identify blockers to a controlled introduction.",
+    "data_source": "Supplied synthetic organisational evidence, stakeholder testimony, policies, system context and staged challenge notices; no live client data",
+    "expertise": [
+      "Interface requirements",
+      "Data mapping",
+      "Sequence diagrams",
+      "Failure recovery",
+      "Non-functional requirements"
+    ],
+    "team_size": "Individual or team — agree with cohort",
+    "repository": "https://github.com/Mettelo/MTL-BA-044-Employee-Onboarding-Access-Management-Transformation",
+    "status": "Available",
+    "learning_pathway": "Technical business analysis and systems integration",
+    "duration": "6 weeks",
+    "deliverables": [
+      "System context and integration boundary",
+      "Interface Requirements Specification",
+      "Source-to-target mapping and technical data dictionary",
+      "Event/sequence diagrams and recovery specification",
+      "Quality controls, integration scenarios and cutover/rollback plan"
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-BA-044-Employee-Onboarding-Access-Management-Transformation/blob/main/evidence/README.md",
+    "submission_guide": "https://github.com/Mettelo/MTL-BA-044-Employee-Onboarding-Access-Management-Transformation/blob/main/submission/DELIVERABLES_CHECKLIST.md"
+  },
+  {
+    "id": "MTL-BA-045",
+    "name": "CRM & Sales Pipeline Agile Product Analysis",
+    "track": "Business Analysis",
+    "capabilities": [
+      "Business Analysis",
+      "MVP",
+      "Story mapping",
+      "User stories",
+      "Acceptance criteria",
+      "Wireframes",
+      "Backlog refinement"
+    ],
+    "roles": [
+      "Business Analyst",
+      "Agile Business Analyst"
+    ],
+    "sector": "B2B Sales / Professional Services",
+    "brief": "A sales business has scattered lead records, unreliable forecasts and competing CRM requests. Define a coherent MVP, prioritise epics and user stories with acceptance criteria, explore interactions and recommend a feasible release.",
+    "problem": "Beaconbridge needs to choose the smallest useful capability for six sellers rather than treating every department request as mandatory first-release scope.",
+    "use_case": "Product decision-makers use the story map, backlog and wireframes to agree priorities, assess a release slice and decide what to validate next.",
+    "data_source": "Supplied synthetic organisational evidence, stakeholder testimony, policies, system context and staged challenge notices; no live client data",
+    "expertise": [
+      "MVP",
+      "Story mapping",
+      "User stories",
+      "Acceptance criteria",
+      "Wireframes",
+      "Backlog refinement"
+    ],
+    "team_size": "Individual or team — agree with cohort",
+    "repository": "https://github.com/Mettelo/MTL-BA-045-CRM-Sales-Pipeline-Transformation",
+    "status": "Available",
+    "learning_pathway": "Agile product analysis",
+    "duration": "5 weeks",
+    "deliverables": [
+      "Product goal, personas and opportunity map",
+      "MVP definition and story map",
+      "Epics and 12–18 prioritised user stories with acceptance criteria",
+      "Wireframes/prototype for at least three linked interactions",
+      "Refinement log, release plan and product playback"
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-BA-045-CRM-Sales-Pipeline-Transformation/blob/main/evidence/README.md",
+    "submission_guide": "https://github.com/Mettelo/MTL-BA-045-CRM-Sales-Pipeline-Transformation/blob/main/submission/DELIVERABLES_CHECKLIST.md"
+  },
+  {
+    "id": "MTL-AI-046",
+    "name": "Data Quality Investigation Copilot",
+    "track": "Artificial Intelligence",
+    "capabilities": [
+      "Artificial Intelligence",
+      "AI Engineering",
+      "Data Quality",
+      "Python",
+      "Data Validation",
+      "LLM Engineering",
+      "AI Evaluation",
+      "Guardrails",
+      "Human-in-the-Loop"
+    ],
+    "roles": [
+      "AI Engineer",
+      "Data Engineer",
+      "Data Quality Analyst",
+      "AI Governance / Assurance"
+    ],
+    "sector": "Data / Analytics Engineering / Operations",
+    "brief": "A data operations team receives failed validation checks but still spends significant time investigating what failed, what may be affected and what evidence to collect next. Build a local AI copilot that combines deterministic data-quality evidence with bounded AI assistance to produce evidence-linked investigation drafts, safe next steps and human-reviewed incident reports.",
+    "problem": "Validation identifies failed rules but does not reliably explain likely causes, downstream impact or the evidence an engineer should investigate next.",
+    "use_case": "A data operations analyst opens a failed batch, inspects rule evidence and declared lineage, generates an evidence-linked investigation draft, edits or rejects hypotheses and exports a reviewed incident report with an accountable owner.",
+    "data_source": "UCI Air Quality — frozen Air Quality dataset plus controlled, labelled data-quality failure scenarios",
+    "expertise": [
+      "Python",
+      "Data-quality engineering",
+      "Pandera or validation rules",
+      "Local LLMs",
+      "Evidence contracts",
+      "AI evaluation",
+      "Human review workflows"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-AI-046-Data-Quality-Investigation-Copilot",
+    "status": "Available",
+    "duration": "8 weeks",
+    "deliverables": [
+      "Governed source and controlled DQ scenario laboratory",
+      "Reproducible validation and evidence pipeline",
+      "Local AI investigation copilot with guardrails",
+      "Human review and incident-report workflow",
+      "Held-out AI evaluation, UAT and technical handover"
+    ],
+    "data_downloads": [
+      {
+        "label": "UCI Air Quality ZIP",
+        "url": "https://archive.ics.uci.edu/static/public/360/air%2Bquality.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-AI-046-Data-Quality-Investigation-Copilot/blob/main/data/README.md",
+    "submission_guide": "https://github.com/Mettelo/MTL-AI-046-Data-Quality-Investigation-Copilot/blob/main/submission/SUBMISSION_GUIDE.md"
+  },
+  {
+    "id": "MTL-AI-047",
+    "name": "Mobility Operations Narrative Copilot",
+    "track": "Artificial Intelligence",
+    "capabilities": [
+      "Artificial Intelligence",
+      "AI Engineering",
+      "Analytics Engineering",
+      "Python",
+      "KPI Design",
+      "LLM Engineering",
+      "Claim Verification",
+      "AI Evaluation",
+      "Decision Support"
+    ],
+    "roles": [
+      "AI Engineer",
+      "Data Analyst",
+      "Analytics Engineer",
+      "AI Governance / Assurance"
+    ],
+    "sector": "Mobility / Transport / Operations",
+    "brief": "A mobility operations team can calculate rental KPIs but still prepares management briefings manually. Build a local AI product in which Python or SQL computes every metric first, then the model explains only verified movements, contributing factors, limitations and investigation questions through evidence-linked narratives.",
+    "problem": "Management reporting is slow and inconsistent, while allowing an LLM to calculate or improvise metrics would create unacceptable factual risk.",
+    "use_case": "An operations analyst selects valid reporting and comparison windows, reviews verified KPIs, generates a grounded briefing, checks every claim against its evidence packet and approves the final management narrative.",
+    "data_source": "UCI Bike Sharing — Capital Bikeshare hourly and daily rental data, 2011–2012",
+    "expertise": [
+      "Python or DuckDB",
+      "KPI engineering",
+      "Evidence contracts",
+      "Local LLMs",
+      "Claim verification",
+      "AI evaluation",
+      "Management reporting"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-AI-047-Mobility-Operations-Narrative-Copilot",
+    "status": "Available",
+    "duration": "8 weeks",
+    "deliverables": [
+      "Governed mobility dataset and KPI catalogue",
+      "Deterministic metric and evidence engine",
+      "Local AI narrative layer",
+      "Claim-verification and human-review product",
+      "40-case evaluation, UAT and executive handover"
+    ],
+    "data_downloads": [
+      {
+        "label": "UCI Bike Sharing ZIP",
+        "url": "https://archive.ics.uci.edu/static/public/275/bike%2Bsharing%2Bdataset.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-AI-047-Mobility-Operations-Narrative-Copilot/blob/main/data/README.md",
+    "submission_guide": "https://github.com/Mettelo/MTL-AI-047-Mobility-Operations-Narrative-Copilot/blob/main/submission/SUBMISSION_GUIDE.md"
+  },
+  {
+    "id": "MTL-AI-048",
+    "name": "Meeting Decision & Action Copilot",
+    "track": "Artificial Intelligence",
+    "capabilities": [
+      "Artificial Intelligence",
+      "AI Engineering",
+      "NLP",
+      "LLM Engineering",
+      "Information Extraction",
+      "Evidence Grounding",
+      "Human-in-the-Loop",
+      "AI Evaluation"
+    ],
+    "roles": [
+      "AI Engineer",
+      "NLP / Data Engineer",
+      "Product / Business Analyst",
+      "AI Governance / Assurance"
+    ],
+    "sector": "Professional Services / Delivery / Collaboration",
+    "brief": "Project teams often leave meetings with inconsistent interpretations of decisions, commitments and unresolved questions. Build a local assistant that converts approved transcripts into evidence-linked decision, action and question candidates, preserves explicitly stated owners and deadlines, and requires human review before exporting minutes and an action register.",
+    "problem": "Manual meeting records are slow to prepare and often lose ownership, deadlines, reversals and the transcript evidence supporting each decision or action.",
+    "use_case": "A coordinator loads an approved transcript, reviews extracted decisions/actions/questions against exact evidence, corrects ambiguous fields, rejects unsupported items and approves a final minutes and action-register export.",
+    "data_source": "AMI Meeting Corpus — manual annotations/transcripts v1.6.2 (core project does not require audio or video)",
+    "expertise": [
+      "Python",
+      "Transcript parsing",
+      "NLP / information extraction",
+      "Local LLMs",
+      "Evidence linking",
+      "Human review workflows",
+      "Evaluation design"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-AI-048-Meeting-Decision-Action-Copilot",
+    "status": "Available",
+    "duration": "8 weeks",
+    "deliverables": [
+      "Governed AMI transcript cohort and gold-label protocol",
+      "Reproducible transcript/evidence pipeline",
+      "Decision, action and question extraction capability",
+      "Reviewable minutes and action-register application",
+      "Held-out semantic evaluation, UAT and handover"
+    ],
+    "data_downloads": [
+      {
+        "label": "AMI manual annotations 1.6.2",
+        "url": "https://groups.inf.ed.ac.uk/ami/AMICorpusAnnotations/ami_public_manual_1.6.2.zip"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-AI-048-Meeting-Decision-Action-Copilot/blob/main/data/README.md",
+    "submission_guide": "https://github.com/Mettelo/MTL-AI-048-Meeting-Decision-Action-Copilot/blob/main/submission/SUBMISSION_GUIDE.md"
+  },
+  {
+    "id": "MTL-AI-049",
+    "name": "SOC Incident Investigation Copilot",
+    "track": "Artificial Intelligence",
+    "capabilities": [
+      "Artificial Intelligence",
+      "AI Engineering",
+      "Cybersecurity",
+      "Security Operations",
+      "MITRE ATT&CK",
+      "Event Correlation",
+      "LLM Engineering",
+      "AI Evaluation",
+      "Security Assurance"
+    ],
+    "roles": [
+      "AI Engineer",
+      "SOC Analyst",
+      "Security Data Engineer",
+      "Threat / Detection Analyst",
+      "Security Assurance Analyst"
+    ],
+    "sector": "Information Security / Security Operations",
+    "brief": "SOC analysts receive fragmented alerts and event records that need to be reconstructed into a defensible incident narrative. Build a local copilot that validates and orders telemetry, correlates related entities, proposes evidence-supported MITRE ATT&CK mappings, surfaces unknowns and produces a human-reviewed incident handover.",
+    "problem": "Alert severity alone does not establish chronology, entity relationships, supported ATT&CK behaviour, evidence gaps or the next investigation step.",
+    "use_case": "A SOC analyst opens a frozen case, reviews the reconstructed timeline and correlated evidence, validates ATT&CK candidates, rejects unsupported compromise claims and approves an auditable shift-handover record.",
+    "data_source": "MITRE Enterprise ATT&CK 17.1 STIX 2.1 plus frozen safe repository-authored security-event scenarios",
+    "expertise": [
+      "Python",
+      "Security-event normalisation",
+      "Timeline reconstruction",
+      "Entity correlation",
+      "MITRE ATT&CK",
+      "Local LLMs",
+      "Security assurance"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-AI-049-SOC-Incident-Investigation-Copilot",
+    "status": "Available",
+    "duration": "8 weeks",
+    "deliverables": [
+      "Frozen ATT&CK resource and scenario pack",
+      "Event normalisation and correlation baseline",
+      "Local AI incident-investigation layer",
+      "Guarded analyst review and handover application",
+      "Held-out security evaluation, UAT and technical handover"
+    ],
+    "data_downloads": [
+      {
+        "label": "MITRE Enterprise ATT&CK 17.1 JSON",
+        "url": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-AI-049-SOC-Incident-Investigation-Copilot/blob/main/data/README.md",
+    "submission_guide": "https://github.com/Mettelo/MTL-AI-049-SOC-Incident-Investigation-Copilot/blob/main/submission/SUBMISSION_GUIDE.md"
+  },
+  {
+    "id": "MTL-AI-050",
+    "name": "Cybersecurity Framework Change Intelligence Assistant",
+    "track": "Artificial Intelligence",
+    "capabilities": [
+      "Artificial Intelligence",
+      "AI Engineering",
+      "Cybersecurity Governance",
+      "Document Intelligence",
+      "NIST CSF",
+      "LLM Engineering",
+      "Change Detection",
+      "AI Evaluation",
+      "Governance"
+    ],
+    "roles": [
+      "AI Engineer",
+      "Cybersecurity Governance Analyst",
+      "Data / Document Engineer",
+      "Risk / Control Analyst",
+      "AI Governance / Assurance"
+    ],
+    "sector": "Information Security / Governance / Risk",
+    "brief": "Cybersecurity governance teams migrating from NIST CSF 1.1 to 2.0 need more than a textual diff. Build a local assistant that preserves NIST crosswalk relationships, identifies structural and wording changes, drafts evidence-linked organisational impact hypotheses, blocks unsupported obligations and produces a human-reviewed change register.",
+    "problem": "Manual framework comparison is slow and can confuse renumbering, moved outcomes, split/merge relationships and wording changes with substantive compliance requirements.",
+    "use_case": "A governance lead reviews aligned CSF outcomes and proposed change labels, follows citations to both versions, rejects unsupported impact or obligation claims and approves a migration change register for internal planning.",
+    "data_source": "NIST CSF 1.1 Core, NIST CSF 2.0 Core/reference export and official CSF 1.1→2.0 crosswalk",
+    "expertise": [
+      "Python",
+      "Document/data extraction",
+      "Crosswalk modelling",
+      "Change classification",
+      "Local LLMs",
+      "Citation verification",
+      "Cybersecurity governance"
+    ],
+    "team_size": "3–5",
+    "repository": "https://github.com/Mettelo/MTL-AI-050-Cybersecurity-Framework-Change-Intelligence-Assistant",
+    "status": "Available",
+    "duration": "8 weeks",
+    "deliverables": [
+      "Frozen NIST source and framework inventories",
+      "Many-to-many crosswalk graph and deterministic change baseline",
+      "Local AI impact-explanation layer",
+      "Citation/obligation guard and governance-review application",
+      "40-case evaluation, UAT and framework-change handover"
+    ],
+    "data_downloads": [
+      {
+        "label": "NIST CSF 1.1 Core",
+        "url": "https://www.nist.gov/document/2018-04-16frameworkv11core1xlsx"
+      },
+      {
+        "label": "NIST CSF 2.0 export",
+        "url": "https://csrc.nist.gov/extensions/nudp/services/json/csf/download?olirids=all"
+      },
+      {
+        "label": "NIST CSF 1.1→2.0 crosswalk",
+        "url": "https://csrc.nist.gov/csrc/media/Projects/olir/documents/submissions/CSFv1.1_to_CSFv2.0_CROSSWALK_20240220.xlsx"
+      }
+    ],
+    "source_guide": "https://github.com/Mettelo/MTL-AI-050-Cybersecurity-Framework-Change-Intelligence-Assistant/blob/main/data/README.md",
+    "submission_guide": "https://github.com/Mettelo/MTL-AI-050-Cybersecurity-Framework-Change-Intelligence-Assistant/blob/main/submission/SUBMISSION_GUIDE.md"
+  }
+]

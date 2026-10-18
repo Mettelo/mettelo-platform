@@ -7,6 +7,13 @@ on:
       - 'lib/expandable-github-catalogue.ts'
       - 'app/api/admin/projects/route.ts'
       - 'tests/phase3-expandable-catalogue-contract.test.mjs'
+      - 'tests/phase3-expandable-catalogue.spec.ts'
+      - 'tests/phase3-admin-github-import-contract.test.mjs'
+      - 'lib/github-catalogue-projection.ts'
+      - 'app/api/admin/projects/github-revision-approve/route.ts'
+      - 'app/api/admin/projects/github-revision-preview/route.ts'
+      - 'components/AdminGithubProjectReview.tsx'
+      - 'package.json'
       - '.github/workflows/phase3-ephemeral-catalogue.yml'
   workflow_dispatch:
 permissions:

@@ -42,11 +42,11 @@ test('admin import page is discoverable, supports preview, and retains manual cr
  assert.ok(review.includes("user.app_metadata?.role!=='admin'"));
  assert.match(read('components/AdminGithubProjectReview.tsx'),/\/admin\/content#publisher/);
 });
-test('future publishing is explicitly blocked until database uniqueness and persistent catalogue exist',()=>{
+test('production activation remains blocked until migration review and owner approval',()=>{
  const doc=read('docs/PHASE-3-ADMIN-GITHUB-IMPORT.md');
- assert.match(doc,/unique partial index/);
- assert.match(doc,/persistent versioned master catalogue/);
- assert.match(doc,/Do not enable/);
+ assert.match(doc,/unique partial indexes/);
+ assert.match(doc,/versioned expandable catalogue projection/);
+ assert.match(doc,/Do not enable any of them or apply either migration without explicit Production change approval/);
 });
 
 test('repository change preview is read-only, admin-only and refuses project identity changes',()=>{

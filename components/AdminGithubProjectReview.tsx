@@ -6,7 +6,7 @@ export default function AdminGithubProjectReview(){
  const [items,setItems]=useState<Project[]>([]);
  const [busy,setBusy]=useState(true);
  const [error,setError]=useState('');
- const [revision,setRevision]=useState<Record<string,{loading:boolean;message:string}>>({});
+ const [revision,setRevision]=useState<Record<string,{loading:boolean;message:string;revision?:number;blob?:string;canApprove?:boolean}>>({});
  async function checkRevision(id:string){
   setRevision(previous=>({...previous,[id]:{loading:true,message:''}}));
   try{
@@ -14,8 +14,20 @@ export default function AdminGithubProjectReview(){
    const data=await response.json();
    if(!response.ok)throw new Error(data.error||'Unable to check repository');
    const message=data.changes_pending_approval?`Changes found in ${data.changed_fields.join(', ')}. These changes are not applied; review and approval will be required.`:'No changes to the approved project manifest.';
-   setRevision(previous=>({...previous,[id]:{loading:false,message}}));
+   setRevision(previous=>({...previous,[id]:{loading:false,message,revision:data.current_revision,blob:data.latest_blob_sha,canApprove:data.changes_pending_approval&&data.can_approve}}));
   }catch(e){setRevision(previous=>({...previous,[id]:{loading:false,message:e instanceof Error?e.message:'Unable to check repository'}}))}
+ }
+ async function approveRevision(id:string){
+  const current=revision[id];
+  if(!current?.canApprove||!current.revision||!current.blob)return;
+  if(!window.confirm('Approve this GitHub manifest revision for the private draft? This changes the draft title, summary and problem, but does not publish or open applications.'))return;
+  setRevision(previous=>({...previous,[id]:{...current,loading:true}}));
+  try{
+   const response=await fetch('/api/admin/projects/github-revision-approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project_id:id,expected_revision:current.revision,expected_blob_sha:current.blob,confirmation:'APPROVE_GITHUB_REVISION'})});
+   const data=await response.json();
+   if(!response.ok)throw new Error(data.error||'Revision approval failed');
+   setRevision(previous=>({...previous,[id]:{loading:false,message:`Revision ${data.approved_revision} approved for private draft. Publication and applications are unchanged.`,canApprove:false}}));
+  }catch(e){setRevision(previous=>({...previous,[id]:{...current,loading:false,message:e instanceof Error?e.message:'Revision approval failed'}}))}
  }
  useEffect(()=>{
   let active=true;
@@ -39,6 +51,7 @@ export default function AdminGithubProjectReview(){
    <p className="mt-2 text-sm">Lifecycle: {p.status} · Visibility: {p.visibility} · Applications: {p.applications_open?'Open':'Closed'}</p>
    <button type="button" disabled={revision[p.id]?.loading} onClick={()=>checkRevision(p.id)} className="mt-3 rounded-md border border-slate-400 px-3 py-2 text-sm disabled:opacity-50">{revision[p.id]?.loading?'Checking…':'Check GitHub changes'}</button>
    {revision[p.id]?.message?<p role="status" className="mt-2 text-sm">{revision[p.id].message}</p>:null}
+   {revision[p.id]?.canApprove?<button type="button" disabled={revision[p.id]?.loading} onClick={()=>approveRevision(p.id)} className="mt-3 ml-3 rounded-md border border-slate-900 px-3 py-2 text-sm disabled:opacity-50">Approve draft revision</button>:null}
    <div className="mt-3 flex flex-wrap gap-4 text-sm">
     <a className="underline" href={p.github_url||'#'} target="_blank" rel="noopener noreferrer">View GitHub repository</a>
     <Link className="underline" href="/admin/content#publisher">Review in project publisher</Link>

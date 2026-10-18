@@ -1,3 +1,4 @@
+import {getGithubMasterProjects} from '@/lib/github-master-projects';
 import {fetchGithubProjectManifest} from '@/lib/admin-github-project-import';
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
@@ -28,6 +29,7 @@ if(body.github_repository_url&&process.env.METTELO_PHASE3_GITHUB_IMPORT_ENABLED!
 const githubImport=body.github_repository_url?await fetchGithubProjectManifest(String(body.github_repository_url)):null;
 if(githubImport&&!githubImport.ok)return NextResponse.json({error:'GitHub project manifest failed validation.',details:githubImport.errors},{status:422});
 const manifest=githubImport?.manifest||null;
+if(manifest&&getGithubMasterProjects().some(p=>p.id===manifest.id))return NextResponse.json({error:'This project ID is reserved by the pinned 50-project catalogue.'},{status:409});
 if(manifest){
  const {data:existing,error:lookupError}=await db.from('projects').select('id').or(`canonical_project_key.eq.${manifest.id},github_url.eq.${manifest.repository}`).limit(1);
  if(lookupError)return NextResponse.json({error:'Unable to verify project uniqueness.'},{status:503});

@@ -31,6 +31,7 @@ export async function POST(request:Request){
  revisions.sort((a,b)=>b.revision-a.revision);
  const current=revisions[0]||initial;
  const original=current.manifest_snapshot as Record<string,unknown>;
- const changedFields=(['name','track','brief','problem','sector','roles','capabilities','status'] as const).filter(key=>JSON.stringify(original[key])!==JSON.stringify(latest.manifest?.[key]));
- return NextResponse.json({ok:true,project_id:id,canonical_project_key:project.canonical_project_key,changed_fields:changedFields,changes_pending_approval:changedFields.length>0,latest_manifest:latest.manifest,original_revision:initial.revision||1,current_revision:current.revision||1,latest_blob_sha:latest.commit,can_approve:project.status==='draft'&&project.visibility==='private'&&process.env.METTELO_PHASE3_GITHUB_REVISION_APPROVAL_ENABLED==='true',applied:false});
+ const manifest=latest.manifest;
+ const changedFields=(['name','track','brief','problem','sector','roles','capabilities','status'] as const).filter(key=>JSON.stringify(original[key])!==JSON.stringify(manifest[key]));
+ return NextResponse.json({ok:true,project_id:id,canonical_project_key:project.canonical_project_key,changed_fields:changedFields,changes_pending_approval:changedFields.length>0,latest_manifest:manifest,original_revision:initial.revision||1,current_revision:current.revision||1,latest_blob_sha:latest.commit,can_approve:project.status==='draft'&&project.visibility==='private'&&process.env.METTELO_PHASE3_GITHUB_REVISION_APPROVAL_ENABLED==='true',applied:false});
 }

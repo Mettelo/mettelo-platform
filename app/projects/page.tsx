@@ -1,3 +1,5 @@
+import GithubMasterCatalogue from '@/components/GithubMasterCatalogue';
+import {getGithubMasterProjects,isGithubMasterDiscoveryEnabled} from '@/lib/github-master-projects';
 import type {Metadata} from 'next';
 import PublicCapabilityPathsSection from '@/components/PublicCapabilityPathsSection';
 import PublicProjectFilters from '@/components/PublicProjectFilters';
@@ -40,6 +42,7 @@ function participationSummary(project:Project){const mode=project.participation_
 function capacityCopy(capacity:Capacity){if(capacity.participation_mode==='solo')return `Solo · ${recruitmentLabel(capacity.recruitment_state)}`;const bits=[`${capacity.confirmed_members} member${capacity.confirmed_members===1?'':'s'} confirmed`];if(capacity.min_team_size!=null)bits.push(`Minimum ${capacity.min_team_size}`);if(capacity.target_team_size!=null)bits.push(`Target ${capacity.target_team_size}`);if(capacity.max_team_size!=null)bits.push(`Maximum ${capacity.max_team_size}`);bits.push(`Recruitment ${recruitmentLabel(capacity.recruitment_state).toLowerCase()}`);return bits.join(' · ')}
 
 export default async function ProjectsPage({searchParams}:{searchParams?:Promise<Search>}){
+ if(isGithubMasterDiscoveryEnabled())return <GithubMasterCatalogue projects={getGithubMasterProjects()}/>;
  const params=await searchParams||{};
  const supabase=createPublicSupabaseClient();
  let projects:Project[]=[];

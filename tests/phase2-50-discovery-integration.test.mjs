@@ -27,7 +27,7 @@ test('public and member discovery use same explicit opt-in and retain legacy cod
  for(const source of [pub,member]){
   assert.match(source,/isGithubMasterDiscoveryEnabled\(\)/);
   assert.match(source,/GithubMasterCatalogue/);
-  assert.match(source,/getGithubMasterProjects\(\)/);
+  assert.match(source,/getExpandableGithubProjects\(\)/);
  }
  assert.match(pub,/loadPublicProjectCatalogue/);
  assert.match(member,/loadMemberDiscoverProjects/);
@@ -36,7 +36,9 @@ test('public and member discovery use same explicit opt-in and retain legacy cod
 test('master detail does not replace legacy details or claim application availability',()=>{
  const master=read('app/projects/master/[id]/page.tsx');
  assert.match(master,/if\(!isGithubMasterDiscoveryEnabled\(\)\)notFound\(\)/);
- assert.match(master,/Applications for this catalogue are not enabled yet/);
+ assert.match(master,/getExpandableGithubProject\(id\)/);
+ assert.match(master,/project\.operationalId&&project\.applicationsOpen/);
+ assert.match(master,/Applications for the initial master catalogue are not enabled yet/);
  assert.match(read('app/projects/[id]/page.tsx'),/getPublicProject/);
  assert.match(read('app/member/discover/[id]/page.tsx'),/getProjectDetailContent/);
 });

@@ -1,3 +1,4 @@
+import {getGithubMasterProjects} from '@/lib/github-master-projects';
 import {NextResponse} from 'next/server';
 import {createServerSupabaseClient} from '@/lib/supabase/server';
 import {serviceDb} from '@/lib/project-flow';
@@ -13,8 +14,10 @@ export async function POST(request:Request){
  try{body=await request.json()}catch{return NextResponse.json({error:'Invalid JSON request.'},{status:400})}
  const result=await fetchGithubProjectManifest(String(body.repository_url??''));
  if(!result.ok||!result.manifest)return NextResponse.json({error:'Repository validation failed.',details:result.errors},{status:422});
- const {data:existing,error}=await db.from('projects').select('id,title,canonical_project_key,github_url').or(`canonical_project_key.eq.${result.manifest.id},github_url.eq.${result.manifest.repository}`).limit(1);
+ const manifest=result.manifest;
+ if(getGithubMasterProjects().some(p=>p.id===manifest.id))return NextResponse.json({error:'This project ID is reserved by the pinned 50-project catalogue.'},{status:409});
+ const {data:existing,error}=await db.from('projects').select('id,title,canonical_project_key,github_url').or(`canonical_project_key.eq.${manifest.id},github_url.eq.${manifest.repository}`).limit(1);
  if(error)return NextResponse.json({error:'Unable to verify project uniqueness.'},{status:503});
  if(existing?.length)return NextResponse.json({error:'Project already registered.',existing_project_id:existing[0].id},{status:409});
- return NextResponse.json({ok:true,manifest:result.manifest,repository_commit:result.commit,publication:'draft_only',applications_open:false});
+ return NextResponse.json({ok:true,manifest,repository_commit:result.commit,publication:'draft_only',applications_open:false});
 }

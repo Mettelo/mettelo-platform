@@ -1,5 +1,6 @@
+import {getExpandableGithubProjects} from '@/lib/expandable-github-catalogue';
 import GithubMasterCatalogue from '@/components/GithubMasterCatalogue';
-import {getGithubMasterProjects,isGithubMasterDiscoveryEnabled} from '@/lib/github-master-projects';
+import {isGithubMasterDiscoveryEnabled} from '@/lib/github-master-projects';
 import type {Metadata} from 'next';
 import PublicCapabilityPathsSection from '@/components/PublicCapabilityPathsSection';
 import PublicProjectFilters from '@/components/PublicProjectFilters';
@@ -17,7 +18,6 @@ export const dynamic='force-dynamic';
 const PUBLIC_PAGE_SIZE=12;
 
 type Role={id:string;title:string;discipline:string|null;openings:number};
-type TaxonomyRef={slug:string;name:string};
 type Run={id:string;run_number:number;status:string;completed_at:string|null};
 type RoleFamilyRelation={project_role_catalogue:{slug:string;title:string}|{slug:string;title:string}[]|null};
 type CapabilityRelation={capabilities:{id:string;slug:string;name:string}|{id:string;slug:string;name:string}[]|null};
@@ -42,7 +42,7 @@ function participationSummary(project:Project){const mode=project.participation_
 function capacityCopy(capacity:Capacity){if(capacity.participation_mode==='solo')return `Solo · ${recruitmentLabel(capacity.recruitment_state)}`;const bits=[`${capacity.confirmed_members} member${capacity.confirmed_members===1?'':'s'} confirmed`];if(capacity.min_team_size!=null)bits.push(`Minimum ${capacity.min_team_size}`);if(capacity.target_team_size!=null)bits.push(`Target ${capacity.target_team_size}`);if(capacity.max_team_size!=null)bits.push(`Maximum ${capacity.max_team_size}`);bits.push(`Recruitment ${recruitmentLabel(capacity.recruitment_state).toLowerCase()}`);return bits.join(' · ')}
 
 export default async function ProjectsPage({searchParams}:{searchParams?:Promise<Search>}){
- if(isGithubMasterDiscoveryEnabled())return <GithubMasterCatalogue projects={getGithubMasterProjects()}/>;
+ if(isGithubMasterDiscoveryEnabled())return <GithubMasterCatalogue projects={await getExpandableGithubProjects()}/>;
  const params=await searchParams||{};
  const supabase=createPublicSupabaseClient();
  let projects:Project[]=[];

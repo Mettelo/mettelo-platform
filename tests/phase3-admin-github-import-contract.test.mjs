@@ -74,7 +74,7 @@ test('draft revision approval requires explicit admin confirmation and an atomic
  assert.match(sql,/FOR UPDATE/);
  assert.match(sql,/Stale GitHub manifest revision/);
  assert.match(sql,/Only private drafts/);
- assert.match(sql,/REVOKE ALL ON FUNCTION/);
+ assert.match(sql,/REVOKE ALL ON FUNCTION[^;]*FROM PUBLIC, anon, authenticated;/);
  assert.match(sql,/GRANT EXECUTE/);
  assert.match(preview,/current_revision:current.revision/);
 });

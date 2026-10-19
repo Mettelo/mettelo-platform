@@ -62,7 +62,9 @@ BEGIN
  RETURN next_revision;
 END;
 $$;
--- Supabase may grant EXECUTE directly to anon and authenticated by default.\n-- Revoking only PUBLIC does not remove those explicit grants.\nREVOKE ALL ON FUNCTION public.phase3_approve_github_revision(uuid,uuid,integer,jsonb,text) FROM PUBLIC, anon, authenticated;
+-- Supabase may grant EXECUTE directly to anon and authenticated by default.
+-- Revoking only PUBLIC does not remove those explicit grants.
+REVOKE ALL ON FUNCTION public.phase3_approve_github_revision(uuid,uuid,integer,jsonb,text) FROM PUBLIC, anon, authenticated;
 DO $grant$
 BEGIN
  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN

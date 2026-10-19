@@ -3,12 +3,11 @@ on:
   pull_request:
     paths:
       - 'data/github-master-projects.json'
-      - 'app/projects/**'
+      - 'app/projects/page.tsx'
+      - 'app/projects/master/**'
       - 'components/GithubMasterCatalogue.tsx'
       - 'lib/github-master-projects.ts'
       - 'tests/phase2-50-master-discovery-browser.spec.ts'
-      - 'package.json'
-      - 'package-lock.json'
       - 'scripts/generate-isolated-catalogue-rehearsal.mjs'
       - 'scripts/preview-github-catalogue-import.mjs'
       - 'scripts/validate-github-first-catalogue.mjs'
@@ -16,6 +15,10 @@ on:
       - 'tests/fixtures/phase2-ephemeral-legacy.sql'
       - '.github/workflows/phase2-ephemeral-catalogue.yml'
   workflow_dispatch:
+# Cancel obsolete rehearsals for the same PR; latest commit is authoritative.
+concurrency:
+  group: phase2-catalogue-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

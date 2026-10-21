@@ -74,7 +74,10 @@ test('draft revision approval requires explicit admin confirmation and an atomic
  assert.match(sql,/FOR UPDATE/);
  assert.match(sql,/Stale GitHub manifest revision/);
  assert.match(sql,/Only private drafts/);
- assert.match(sql,/REVOKE ALL ON FUNCTION[^;]*FROM PUBLIC, anon, authenticated;/);
- assert.match(sql,/GRANT EXECUTE/);
+ // PR #300 passed a substring assertion even though a literal backslash-n
+ // inside a SQL line comment swallowed REVOKE. Check executable lines.
+ assert.doesNotMatch(sql,/\\n/,'SQL must not contain literal backslash-n escapes');
+ assert.match(sql,/^REVOKE ALL ON FUNCTION public\.phase3_approve_github_revision\(uuid,uuid,integer,jsonb,text\) FROM PUBLIC, anon, authenticated;$/m);
+ assert.match(sql,/^  GRANT EXECUTE ON FUNCTION public\.phase3_approve_github_revision\(uuid,uuid,integer,jsonb,text\) TO service_role;$/m);
  assert.match(preview,/current_revision:current.revision/);
 });
